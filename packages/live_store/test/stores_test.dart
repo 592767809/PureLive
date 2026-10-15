@@ -303,6 +303,18 @@ void main() {
       expect(other.cookieFor('douyu'), isNull);
       expect(other.unreadable, {SecretRefs.cookie('douyu')});
     });
+
+    test('signing out of a cookie this device cannot read tells the listeners (its notice goes)', () async {
+      await store.secrets.setCookie('douyu', 'a=1');
+      final other = await SecretStore.load(store.database, const FakeCipher.foreign());
+      final changes = <String>[];
+      final sub = other.changes.listen(changes.add);
+      await other.setCookie('douyu', '');
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+      expect(other.unreadable, isEmpty);
+      expect(changes, [SecretRefs.cookie('douyu')]);
+    });
   });
 
   group('webdav', () {

@@ -119,20 +119,22 @@ final class SecretStore {
       for (final ref in [..._sealed.keys]) {
         if (stored.containsKey(ref)) continue;
         _sealed.remove(ref);
-        unreadable.remove(ref);
-        if (_values.remove(ref) != null) changed.add(ref);
+        // An unreadable one that went away changed too (its notice goes).
+        final wasUnreadable = unreadable.remove(ref);
+        if (_values.remove(ref) != null || wasUnreadable) changed.add(ref);
       }
       for (final MapEntry(key: ref, :value) in opened.entries) {
         _sealed[ref] = base64.encode(stored[ref]!);
         final before = _values[ref];
+        final bool flagChanged;
         if (value == null) {
           _values.remove(ref);
-          unreadable.add(ref);
+          flagChanged = unreadable.add(ref);
         } else {
           _values[ref] = value;
-          unreadable.remove(ref);
+          flagChanged = unreadable.remove(ref);
         }
-        if (before != _values[ref]) changed.add(ref);
+        if (before != _values[ref] || flagChanged) changed.add(ref);
       }
       changed.forEach(_changes.add);
       return;
@@ -203,8 +205,10 @@ final class SecretStore {
       } else {
         _values[entry.key] = value;
       }
-      unreadable.remove(entry.key);
-      if (before != _values[entry.key]) _changes.add(entry.key);
+      // Signing out of a cookie this device cannot read leaves the value
+      // empty as it was; the change is the notice going away.
+      final wasUnreadable = unreadable.remove(entry.key);
+      if (before != _values[entry.key] || wasUnreadable) _changes.add(entry.key);
     }
   }
 
