@@ -113,9 +113,9 @@ abstract final class KickApi {
   /// Web origin.
   static const String origin = _web;
 
-  /// Host of the API. Cloudflare refuses dart:io's TLS handshake there
-  /// (403 "Request blocked by security policy.", 2026-10-01, also on
-  /// `web.kick.com`); Android's system TLS stack and curl pass.
+  /// Host of the API. It refuses HTTP/1.1 clients (403 "Request blocked by
+  /// security policy.", 2026-10, also on `web.kick.com`), so the app sends
+  /// these requests over HTTP/2 (`Http2LiveHttp`).
   static const String apiHost = 'kick.com';
 
   /// Headers of every API request, names in lower case.

@@ -1,5 +1,5 @@
 // KickApi over the recorded answers (fixtures/kick, 2026-10-01, anonymous,
-// curl: dart:io is refused by Kick's Cloudflare) and synthetic edge cases.
+// curl over HTTP/2: Kick refuses HTTP/1.1) and synthetic edge cases.
 // Kick was retired in 3.x 3.2.11 and has no v3 output to compare with; the
 // cases follow pure_live_TV's KickApi (e1cca224) and the recorded shapes.
 import 'dart:convert';
@@ -52,11 +52,11 @@ void main() {
       expect(KickApi.subcategories(_encode({'data': <Object>[]}), parent: (slug: 'games', name: '游戏')), isEmpty);
     });
 
-    test('Cloudflare refusal is RiskControl, other statuses typed', () {
+    test('the HTTP/1.1 refusal (403 security policy) is RiskControl, other statuses typed', () {
       const refused = '{"error": "Request blocked by security policy.", "reference": "dda9bc1f"}';
       expect(
         () => KickApi.mainCategories(refused, status: 403),
-        throwsA(isA<RiskControl>().having((e) => e.detail, 'detail', contains('Cloudflare'))),
+        throwsA(isA<RiskControl>().having((e) => e.detail, 'detail', contains('HTTP/2'))),
       );
       expect(() => KickApi.mainCategories('', status: 429), throwsA(isA<RateLimited>()));
       expect(() => KickApi.mainCategories('', status: 502), throwsA(isA<NetworkFailure>()));

@@ -82,7 +82,7 @@ void main() {
       );
     });
 
-    test('Cloudflare refusing dart:io is RiskControl', () async {
+    test('the HTTP/1.1 refusal (403 security policy) is RiskControl', () async {
       final api = ReplayHttp([
         _synthetic(
           'https://kick.com/api/v1/categories',
