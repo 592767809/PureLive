@@ -8,6 +8,7 @@ import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/tv/phone/tv_phone_dialogs.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
@@ -1013,4 +1014,43 @@ void main() {
       expect(await choice, isNull);
     });
   });
+
+  for (final (name, size, ratio) in [
+    ('a 1080p TV', const Size(1920, 1080), 2.0),
+    ('a phone on its side', const Size(2608, 1200), 3.0),
+  ]) {
+    testWidgets('the code fits its dialog on $name', (tester) async {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = ratio;
+      addTearDown(tester.view.reset);
+      await tester.runAsync(loadStrings);
+      final scheme = ColorScheme.fromSeed(seedColor: LiveTheme.brandBlue, brightness: Brightness.dark);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(colorScheme: scheme),
+          home: TvTheme(
+            palette: TvPalette.of(scheme),
+            child: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showTvLink(context, title: 'example.com', url: 'https://example.com/a/long/path'),
+                child: const Text('打开'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: 'no overflow');
+      final dialog = tester.getRect(find.byKey(const ValueKey('tv-link-dialog')));
+      final code = tester.getRect(find.byKey(const ValueKey('tv-qr-code')));
+      final title = tester.getRect(find.byKey(const ValueKey('tv-dialog-title')));
+      expect(code.bottom, lessThanOrEqualTo(dialog.bottom));
+      // The painter draws at its size: it must be the space it was given.
+      final painted = tester.widget<QrCodeWidget>(find.byKey(const ValueKey('tv-qr-code'))).size;
+      expect(painted, lessThanOrEqualTo(code.height + 0.5));
+      expect(code.top, greaterThanOrEqualTo(title.bottom), reason: 'under the title, not over it');
+    });
+  }
 }
