@@ -144,29 +144,31 @@ void main() {
     expect(appBuild, pubspecBuild);
   });
 
+  // The update files offer the release this tree builds (PROCESS §11: they
+  // change last, once its packages are up).
   test('reads the repository update files as 3.x does', () {
     final android = UpdateInfo.fromJson(_versionJson(), platform: 'android');
-    expect(android.version, '5.0.0');
-    expect(android.buildNumber, 5100);
+    expect(android.version, pubspecVersion);
+    expect(android.buildNumber, pubspecBuild);
     expect(android.androidAbis, {'arm64-v8a', 'armeabi-v7a', 'x86_64'});
     expect(android.isNewer, isFalse);
-    // A platform block overrides the top level; 5.0.0 is on Linux too, and
-    // macOS stays on 3.2.10.
-    expect(UpdateInfo.fromJson(_versionJson(), platform: 'linux').version, '5.0.0');
+    // A platform block overrides the top level; the release is on Linux too,
+    // and macOS stays on 3.2.10.
+    expect(UpdateInfo.fromJson(_versionJson(), platform: 'linux').version, pubspecVersion);
     expect(UpdateInfo.fromJson(_versionJson(), platform: 'macos').version, '3.2.10');
     expect(() => UpdateInfo.fromJson({'version': '1.0.0'}, platform: 'android'), throwsFormatException);
 
     final releases = parseReleases(_releasesJson());
-    expect(releases.first.version, '5.0.0');
+    expect(releases.first.version, pubspecVersion);
     for (var i = 1; i < releases.length; i++) {
       expect(releases[i - 1].date.compareTo(releases[i].date), greaterThanOrEqualTo(0));
     }
     final packages = platformPackages('android', android, releases.first.files);
     expect([for (final (title, _) in packages) title], ['arch_arm64', 'arch_arm32', 'arch_x86_64']);
     expect(packages.first.$2.name, contains('arm64-v8a'));
-    // 5.0.0 is on Windows too, with the installer and the portable ZIP.
+    // The release is on Windows too, with the installer and the portable ZIP.
     final windowsInfo = UpdateInfo.fromJson(_versionJson(), platform: 'windows');
-    expect(windowsInfo.version, '5.0.0');
+    expect(windowsInfo.version, pubspecVersion);
     final windows = platformPackages(
       'windows',
       windowsInfo,
