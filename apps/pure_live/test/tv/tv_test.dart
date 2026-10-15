@@ -196,7 +196,8 @@ void main() {
   testWidgets('home: the menu, OK into a destination, the grid by index, Left back to the menu', (tester) async {
     final services = await _pumpApp(tester);
     expect(_focused, 'tv menu favorites');
-    expect(find.text('还没有关注的直播间，在房间卡片上长按 OK 可以关注'), findsOneWidget);
+    expect(find.text('无关注直播'), findsOneWidget);
+    expect(find.text('搜索直播'), findsOneWidget, reason: 'A17.3 c4');
 
     await _press(tester, LogicalKeyboardKey.arrowDown);
     expect(_focused, 'tv menu popular');
