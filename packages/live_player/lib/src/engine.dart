@@ -16,10 +16,17 @@ final class EngineMedia {
     this.audioOnly = false,
     this.onDemand = false,
     this.start,
+    this.audio,
   });
 
-  /// The media of [input] with the session's decoder and audio mode.
-  factory of(MediaInput input, {DecoderMode decoder = DecoderMode.hardware, bool audioOnly = false}) => EngineMedia(
+  /// The media of [input] with the session's decoder and audio mode, and
+  /// the external [audio] of a split stream.
+  factory of(
+    MediaInput input, {
+    DecoderMode decoder = DecoderMode.hardware,
+    bool audioOnly = false,
+    ExternalAudio? audio,
+  }) => EngineMedia(
     uri: input.uri,
     headers: input.headers,
     proxyUrl: input.proxyUrl,
@@ -27,6 +34,7 @@ final class EngineMedia {
     audioOnly: audioOnly,
     onDemand: input.onDemand,
     start: input.start,
+    audio: audio,
   );
 
   /// The URL to open (a loopback URL for relayed inputs).
@@ -50,9 +58,38 @@ final class EngineMedia {
   /// Where to start an on-demand input.
   final Duration? start;
 
+  /// The audio of a split stream (DASH video on demand, A17.6), played
+  /// alongside [uri]; null when [uri] carries its own sound (live rooms).
+  final ExternalAudio? audio;
+
   @override
   String toString() => 'EngineMedia(${uri.scheme}://${uri.host}, ${decoder.name}${audioOnly ? ', audio only' : ''})';
 }
+
+/// An external audio track: a DASH audio rendition played alongside the
+/// video file (mpv `audio-files`, A17.6). It is fetched with the media's
+/// headers and proxy, which the CDNs of split streams share with the video.
+@immutable
+final class ExternalAudio {
+  /// Creates the track.
+  const new(this.uri);
+
+  /// The audio file.
+  final Uri uri;
+
+  @override
+  bool operator ==(Object other) => other is ExternalAudio && other.uri == uri;
+
+  @override
+  int get hashCode => uri.hashCode;
+
+  @override
+  String toString() => 'ExternalAudio(${uri.host})';
+}
+
+/// The external audio for a [source] of the plan (the audio rendition on
+/// the same CDN as the video line); null for none.
+typedef ExternalAudioFor = ExternalAudio? Function(PlaybackSource source);
 
 /// One event of the engine, in arrival order.
 @immutable

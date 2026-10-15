@@ -27,6 +27,7 @@ final class PlaybackRequest {
     this.volume = 1,
     this.startup,
     this.onTiming,
+    this.audio,
   });
 
   /// The platform id: the proxy route key and the relay's site.
@@ -53,6 +54,11 @@ final class PlaybackRequest {
   /// fails; an open replaced before that (a new open, another line, a stop)
   /// reports nothing. Without it the open is not timed.
   final PlaybackTimingSink? onTiming;
+
+  /// The external audio of each source of a split stream (DASH video on
+  /// demand, A17.6): asked on every open, so a refreshed plan or another
+  /// line gets its own audio. Null for sources that carry their sound.
+  final ExternalAudioFor? audio;
 }
 
 /// The session's deadlines, 3.x's `PlayerManager` defaults.
@@ -705,7 +711,14 @@ final class PlaybackSession {
             ),
             (input) async {
               if (_current(session)) _timing?.inputOpened(input.route);
-              await engine.open(EngineMedia.of(input, decoder: _decoder, audioOnly: _state.audioOnly));
+              await engine.open(
+                EngineMedia.of(
+                  input,
+                  decoder: _decoder,
+                  audioOnly: _state.audioOnly,
+                  audio: request.audio?.call(source),
+                ),
+              );
               if (_current(session)) _timing?.mark(OpenTiming.loaded);
             },
           )

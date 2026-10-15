@@ -77,6 +77,26 @@ void main() {
     });
   });
 
+  test('A17.6: a split stream opens each line with its own external audio; a live line has none', () {
+    fakeAsync((async) {
+      ExternalAudio audioFor(PlaybackSource source) =>
+          ExternalAudio(Uri.parse('https://${Uri.parse(source.url ?? '').host}/audio.m4s'));
+      start(PlaybackRequest(site: 'bilibili', plan: _plan([_a, _b], onDemand: true), audio: audioFor), async);
+      expect(engine.opens.single.audio, ExternalAudio(Uri.parse('https://a.example/audio.m4s')));
+      engine.emit(const EngineError(_network));
+      async.flushMicrotasks();
+      expect(engine.opens.last.uri.host, 'b.example');
+      expect(engine.opens.last.audio, ExternalAudio(Uri.parse('https://b.example/audio.m4s')));
+    });
+  });
+
+  test('A17.6: without an audio callback (live rooms) nothing changes', () {
+    fakeAsync((async) {
+      start(PlaybackRequest(site: 'douyu', plan: _plan([_a])), async);
+      expect(engine.opens.single.audio, isNull);
+    });
+  });
+
   test('a network failure refreshes the plan and reopens the same line first', () {
     fakeAsync((async) {
       var refreshes = 0;

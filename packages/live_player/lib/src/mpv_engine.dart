@@ -94,6 +94,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
   VoidCallback? _frameListener;
   Timer? _bufferingProbe;
   var _audioOnly = false;
+  var _externalAudio = false;
   var _disposed = false;
   var _opens = 0;
 
@@ -195,6 +196,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
     try {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
+      await _setExternalAudio(media.audio);
       await player.open(Media(media.uri.toString(), httpHeaders: media.headers, start: media.start));
     } on Object catch (error, stack) {
       if (error is PlayerException) rethrow;
@@ -254,6 +256,18 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
 
   @override
   Future<void> setVolume(double volume) => player.setVolume((volume * 100).clamp(0, 100).toDouble());
+
+  /// Sets mpv's `audio-files` to [audio] (or clears it when an earlier open
+  /// set one); the option applies to the next file loaded. A URL is appended
+  /// as one item with `change-list` (a path list would split it at colons).
+  Future<void> _setExternalAudio(ExternalAudio? audio) async {
+    final native = player.platform;
+    if (native is! NativePlayer) return;
+    if (audio == null && !_externalAudio) return;
+    await native.setProperty('audio-files', '');
+    _externalAudio = audio != null;
+    if (audio != null) await native.command(['change-list', 'audio-files', 'append', audio.uri.toString()]);
+  }
 
   @override
   Future<void> setRate(double rate) => player.setRate(rate.clamp(0.25, 4).toDouble());
