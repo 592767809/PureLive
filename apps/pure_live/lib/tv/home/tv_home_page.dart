@@ -1,0 +1,535 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:live_store/live_store.dart';
+import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/home/home_menu.dart';
+import 'package:pure_live/features/live_play/logic/predictive_back.dart';
+import 'package:pure_live/features/version/update_feed.dart';
+import 'package:pure_live/features/version/update_prompt.dart';
+import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/tv/pages/tv_areas_pane.dart';
+import 'package:pure_live/tv/pages/tv_favorites_pane.dart';
+import 'package:pure_live/tv/pages/tv_history_pane.dart';
+import 'package:pure_live/tv/pages/tv_iptv_pane.dart';
+import 'package:pure_live/tv/pages/tv_link_pane.dart';
+import 'package:pure_live/tv/pages/tv_popular_pane.dart';
+import 'package:pure_live/tv/pages/tv_search_page.dart';
+import 'package:pure_live/tv/pages/tv_settings_pane.dart';
+import 'package:pure_live/tv/tv_navigation.dart';
+import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/widgets/tv_dialogs.dart';
+import 'package:pure_live/tv/widgets/tv_nav_item.dart';
+import 'package:pure_live/tv/widgets/tv_status.dart';
+
+/// The destinations of the TV side menu (pure_live_TV `TvMenuType` and its
+/// mode switch), in order; [settings] sits at the bottom.
+enum TvPane {
+  /// Follows (the landing destination, as on pure_live_TV and 3.x).
+  favorites('tv_menu_favorites', TvIcons.menuFavorites),
+
+  /// Recommended rooms per platform.
+  popular('tv_menu_popular', TvIcons.menuPopular),
+
+  /// Areas per platform, followed areas first.
+  areas('tv_menu_areas', TvIcons.menuAreas),
+
+  /// Link playback (A17.5 c12).
+  link('tv_menu_link', TvIcons.menuLink),
+
+  /// Search.
+  search('tv_menu_search', TvIcons.menuSearch),
+
+  /// Watch history.
+  history('tv_menu_history', TvIcons.menuHistory),
+
+  /// IPTV playlists and channels.
+  iptv('tv_menu_iptv', TvIcons.menuIptv),
+
+  /// Videos (M14.3); not shown yet.
+  video('tv_menu_video', TvIcons.menuVideo, available: false),
+
+  /// Music (M14.4); not shown yet.
+  music('tv_menu_music', TvIcons.menuMusic, available: false),
+
+  /// Wallpapers (M14.5); not shown yet.
+  wallpaper('tv_menu_wallpaper', TvIcons.menuWallpaper, available: false),
+
+  /// The TV settings.
+  settings('tv_menu_settings', TvIcons.menuSettings);
+
+  new(this.labelKey, this.icon, {this.available = true});
+
+  /// The label's translation key.
+  final String labelKey;
+
+  /// The icon.
+  final IconData icon;
+
+  /// Shown in the menu (the video, music and wallpaper modules come later).
+  final bool available;
+
+  /// The destinations in the menu's upper part.
+  static List<TvPane> get menu => [
+    for (final pane in values)
+      if (pane.available && pane != settings) pane,
+  ];
+}
+
+/// What a pane can ask of the TV home.
+abstract interface class TvHomeHost {
+  /// Puts the focus back on the side menu.
+  void focusMenu();
+
+  /// Sets what Back does inside [pane] first (search: back from the results
+  /// to the field; areas: from the rooms to the areas); the handler returns
+  /// whether it used the press. Null removes it.
+  void setBackHandler(TvPane pane, bool Function()? handler);
+
+  /// Whether [pane] is shown.
+  bool isShown(TvPane pane);
+}
+
+/// The TV home host of the pane below (null for a page opened on its own).
+class TvHomeScope extends InheritedWidget {
+  /// Provides [host] to [pane]'s content.
+  const new({required this.host, required this.pane, required this.shown, required super.child, super.key});
+
+  /// The home.
+  final TvHomeHost host;
+
+  /// The pane this content is.
+  final TvPane pane;
+
+  /// Whether the pane is shown now.
+  final bool shown;
+
+  /// The scope above [context], if any.
+  static TvHomeScope? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<TvHomeScope>();
+
+  @override
+  bool updateShouldNotify(TvHomeScope oldWidget) => shown != oldWidget.shown || pane != oldWidget.pane;
+}
+
+/// The TV home (pure_live_TV `HomePage`): a side menu with a clock on the
+/// left and the destination on the right.
+///
+/// The remote:
+/// - Up and Down walk the menu; OK opens the destination and moves into it
+///   (one press less than pure_live_TV, where OK only switched); Right
+///   enters it too, back on the item focused there last;
+/// - Back steps out one level at a time: the destination's own level (if it
+///   has one), then the side menu, then the exit question (A17.2 c8).
+///
+/// The side menu is a rail of icons that opens over the page while the
+/// focus is in it, unless "导航栏始终展开" is on (A17.2 c2). The first start
+/// shows the notice once (A17.2 c10).
+///
+/// Destinations visited stay alive (pure_live_TV's keep-alive stack), so
+/// coming back keeps their tab, scroll and focus.
+class TvHomePage extends ConsumerStatefulWidget {
+  /// Creates the home.
+  const new({super.key});
+
+  /// The meta key remembering that the notice was accepted (A17.2 c10).
+  static const String noticeKey = 'tv.noticeAccepted';
+
+  @override
+  ConsumerState<TvHomePage> createState() => _TvHomePageState();
+}
+
+class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObserver implements TvHomeHost {
+  TvPane _pane = TvPane.favorites;
+  final Set<TvPane> _visited = {TvPane.favorites};
+  final Map<TvPane, FocusNode> _menuNodes = {};
+  final Map<TvPane, FocusNode> _paneNodes = {};
+  final Map<TvPane, FocusNode> _memory = {};
+  final Map<TvPane, bool Function()> _backHandlers = {};
+  DateTime? _backgroundedAt;
+  Timer? _updateTimer;
+  bool _menuFocused = false;
+  bool _asking = false;
+
+  FocusNode _menuNode(TvPane pane) => _menuNodes[pane] ??= FocusNode(debugLabel: 'tv menu ${pane.name}');
+
+  FocusNode _paneNode(TvPane pane) =>
+      _paneNodes[pane] ??= FocusNode(debugLabel: 'tv pane ${pane.name}', skipTraversal: true, canRequestFocus: false);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    FocusManager.instance.addListener(_remember);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(RoomBackChannel.instance.hold(this, _nativeBack));
+      _menuNode(_pane).requestFocus();
+      unawaited(_start());
+    });
+  }
+
+  Future<void> _start() async {
+    final services = ref.read(appServicesProvider);
+    if (await services.store.meta.get(TvHomePage.noticeKey) != '1') {
+      if (!mounted) return;
+      final agreed = await showTvNotice(context);
+      if (!agreed) {
+        await SystemNavigator.pop();
+        return;
+      }
+      await services.store.meta.set(TvHomePage.noticeKey, '1');
+      if (!mounted) return;
+      _menuNode(_pane).requestFocus();
+    }
+    final launch = services.launch;
+    if (launch.room case final room?) unawaited(openTvRoom(room));
+    if (launch.isPrimary) _updateTimer = Timer(startupUpdateCheckDelay, _checkForUpdate);
+  }
+
+  /// Android's Back (key or gesture) on the TV (K90, 2026-10-15): the root
+  /// route's PopScope is not reached there (the home is the only route and
+  /// Android leaves the app), so the home takes Back the way the live room
+  /// does ([RoomBackChannel]): something open on top (a dialog, a page) is
+  /// popped as usual, its own PopScope deciding; on the home itself the
+  /// steps of [_back] run, and leaving ends the app.
+  Future<void> _nativeBack() async {
+    if (!mounted) return;
+    if (!(ModalRoute.of(context)?.isCurrent ?? true)) {
+      await Navigator.of(context).maybePop();
+      return;
+    }
+    if (await _back()) await SystemNavigator.pop();
+  }
+
+  @override
+  void dispose() {
+    unawaited(RoomBackChannel.instance.release(this));
+    WidgetsBinding.instance.removeObserver(this);
+    FocusManager.instance.removeListener(_remember);
+    _updateTimer?.cancel();
+    for (final node in [..._menuNodes.values, ..._paneNodes.values]) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _checkForUpdate() {
+    if (!mounted) return;
+    unawaited(
+      checkForUpdateOnStartup(
+        context,
+        settings: ref.read(appServicesProvider).store.settings,
+        feed: ref.read(updateFeedProvider),
+      ),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) {
+      _backgroundedAt ??= DateTime.now();
+      return;
+    }
+    if (state != AppLifecycleState.resumed) return;
+    final away = _backgroundedAt;
+    _backgroundedAt = null;
+    if (away == null || DateTime.now().difference(away) < HomeSignals.resumeRefreshAfter) return;
+    // The phone's signal: follows refresh themselves, popular and areas
+    // refresh the platform shown (3.x).
+    final menu = switch (_pane) {
+      TvPane.favorites => HomeMenu.favorites,
+      TvPane.popular => HomeMenu.popular,
+      TvPane.areas => HomeMenu.areas,
+      _ => null,
+    };
+    if (menu == null) return;
+    final previous = HomeSignals.resumedAfterBackground.value;
+    HomeSignals.resumedAfterBackground.value = (menu, (previous?.$2 ?? 0) + 1);
+  }
+
+  /// Remembers the focused item of each destination.
+  /// Also sends a focus that left the destination for the menu (Left on
+  /// its first column, by geometry) to the selected entry, not to whichever
+  /// entry happened to be level with it.
+  void _remember() {
+    final primary = FocusManager.instance.primaryFocus;
+    if (primary == null || primary is FocusScopeNode) return;
+    final paneNode = _paneNodes[_pane];
+    final inPane = paneNode != null && paneNode.hasFocus;
+    final cameFromPane = _inPane;
+    _inPane = inPane;
+    if (inPane) {
+      _memory[_pane] = primary;
+      return;
+    }
+    final selected = _menuNode(_pane);
+    if (cameFromPane && primary != selected && _menuNodes.containsValue(primary)) selected.requestFocus();
+  }
+
+  bool _inPane = false;
+
+  @override
+  void focusMenu() => _menuNode(_pane).requestFocus();
+
+  @override
+  void setBackHandler(TvPane pane, bool Function()? handler) {
+    if (handler == null) {
+      _backHandlers.remove(pane);
+    } else {
+      _backHandlers[pane] = handler;
+    }
+  }
+
+  @override
+  bool isShown(TvPane pane) => pane == _pane;
+
+  /// Moves the focus into the destination: back on its last item, else on
+  /// its first. False when it has nothing to focus yet.
+  bool _enter() {
+    final remembered = _memory[_pane];
+    if (remembered != null && remembered.context != null && remembered.canRequestFocus) {
+      remembered.requestFocus();
+      return true;
+    }
+    final first = _paneNode(_pane).traversalDescendants.where((node) => node.context != null).firstOrNull;
+    if (first == null) return false;
+    first.requestFocus();
+    return true;
+  }
+
+  void _select(TvPane pane) {
+    if (pane == _pane) {
+      if (pane == TvPane.favorites) HomeSignals.favoritesReselected.value++;
+      _enter();
+      return;
+    }
+    setState(() {
+      _pane = pane;
+      _visited.add(pane);
+    });
+    // The destination builds in this frame; move in once it is laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_enter()) _menuNode(pane).requestFocus();
+    });
+  }
+
+  /// Back on the home: the destination's own level, then the menu, then
+  /// the exit question; true when the user chose to leave.
+  Future<bool> _back() async {
+    final handler = _backHandlers[_pane];
+    if (handler != null && handler()) return false;
+    if (_paneNode(_pane).hasFocus) {
+      focusMenu();
+      return false;
+    }
+    if (_asking) return false;
+    _asking = true;
+    final leave = await showTvConfirm(
+      context,
+      title: i18n('tv_exit_title'),
+      message: i18n('tv_exit_message'),
+      confirmLabel: i18n('tv_exit'),
+    );
+    _asking = false;
+    if (!leave && mounted) focusMenu();
+    return leave;
+  }
+
+  KeyEventResult _menuKey(TvPane pane, KeyEvent event) {
+    if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowRight) return KeyEventResult.ignored;
+    return _enter() ? KeyEventResult.handled : KeyEventResult.ignored;
+  }
+
+  Widget _content(TvPane pane) => switch (pane) {
+    TvPane.favorites => const TvFavoritesPane(),
+    TvPane.popular => const TvPopularPane(),
+    TvPane.areas => const TvAreasPane(),
+    TvPane.history => const TvHistoryPane(),
+    TvPane.search => const TvSearchPane(),
+    TvPane.link => const TvLinkPane(),
+    TvPane.iptv => const TvIptvPane(),
+    TvPane.settings => const TvSettingsPane(),
+    TvPane.video ||
+    TvPane.music ||
+    TvPane.wallpaper => TvStatusView(icon: TvIcons.underConstruction, title: i18n('tv_under_construction')),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TvTheme.of(context);
+    final scale = TvScale.of(context);
+    const panes = TvPane.values;
+    final alwaysExpanded = watchSetting(ref, Settings.tvMenuAlwaysExpanded);
+    final expanded = alwaysExpanded || _menuFocused;
+    final railWidth = scale.pxText(84);
+    final expandedWidth = scale.pxText(200);
+    final menu = Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onFocusChange: (focused) {
+        if (focused != _menuFocused) setState(() => _menuFocused = focused);
+      },
+      child: FocusTraversalGroup(
+        child: Container(
+          key: const ValueKey('tv-home-menu'),
+          width: expanded ? expandedWidth : railWidth,
+          decoration: BoxDecoration(
+            color: palette.low,
+            border: Border(right: BorderSide(color: palette.divider)),
+          ),
+          padding: expanded
+              ? EdgeInsets.fromLTRB(scale.px(24), scale.px(28), scale.px(16), scale.px(28))
+              : EdgeInsets.symmetric(horizontal: scale.px(10), vertical: scale.px(28)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (expanded) ...[const _Clock(), SizedBox(height: scale.px(16))],
+              Expanded(
+                child: SingleChildScrollView(
+                  clipBehavior: Clip.none,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [for (final pane in TvPane.menu) _menuItem(pane, compact: !expanded)],
+                  ),
+                ),
+              ),
+              _menuItem(TvPane.settings, compact: !expanded),
+            ],
+          ),
+        ),
+      ),
+    );
+    final page = FocusTraversalGroup(
+      child: IndexedStack(
+        index: panes.indexOf(_pane),
+        sizing: StackFit.expand,
+        children: [
+          for (final pane in panes)
+            if (_visited.contains(pane))
+              Focus(
+                focusNode: _paneNode(pane),
+                skipTraversal: true,
+                canRequestFocus: false,
+                child: TvHomeScope(
+                  host: this,
+                  pane: pane,
+                  shown: pane == _pane,
+                  child: KeyedSubtree(key: ValueKey('tv-pane-${pane.name}'), child: _content(pane)),
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+        ],
+      ),
+    );
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          unawaited(
+            _back().then((leave) async {
+              if (leave && Platform.isAndroid) await SystemNavigator.pop();
+            }),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: palette.background,
+        body: TvBackground(
+          // One tree for both layouts, so switching keeps the pages: always
+          // expanded, the page sits beside the menu; else the rail opens over
+          // the page, which stays put and dims.
+          child: Stack(
+            children: [
+              Positioned.fill(left: alwaysExpanded ? expandedWidth : railWidth, child: page),
+              if (_menuFocused && !alwaysExpanded)
+                Positioned.fill(
+                  left: railWidth,
+                  child: IgnorePointer(
+                    child: ColoredBox(
+                      key: const ValueKey('tv-home-menu-scrim'),
+                      color: palette.background.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ),
+              Positioned(left: 0, top: 0, bottom: 0, child: menu),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _menuItem(TvPane pane, {required bool compact}) => Padding(
+    padding: EdgeInsets.only(bottom: TvScale.of(context).px(4)),
+    child: TvNavItem(
+      key: ValueKey('tv-menu-${pane.name}'),
+      focusNode: _menuNode(pane),
+      icon: pane.icon,
+      label: i18n(pane.labelKey),
+      compact: compact,
+      selected: pane == _pane,
+      onTap: () => _select(pane),
+      onKey: (node, event) => _menuKey(pane, event),
+    ),
+  );
+}
+
+/// The wall clock at the top of the menu (pure_live_TV `TvDigitalClock`):
+/// hours and minutes, the date below.
+class _Clock extends StatefulWidget {
+  const new();
+
+  @override
+  State<_Clock> createState() => _ClockState();
+}
+
+class _ClockState extends State<_Clock> {
+  Timer? _timer;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  void _schedule() {
+    final now = DateTime.now();
+    _timer = Timer(Duration(seconds: 60 - now.second), () {
+      if (!mounted) return;
+      setState(() => _now = DateTime.now());
+      _schedule();
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = TvTheme.of(context);
+    final scale = TvScale.of(context);
+    String two(int value) => value.toString().padLeft(2, '0');
+    return Column(
+      children: [
+        Text(
+          '${two(_now.hour)}:${two(_now.minute)}',
+          style: scale.font(TvTextSize.title, weight: FontWeight.w600, color: palette.text, height: 1).tabular,
+        ),
+        SizedBox(height: scale.px(4)),
+        Text(
+          '${_now.year}/${two(_now.month)}/${two(_now.day)}',
+          style: scale.font(TvTextSize.small, color: palette.textSecondary).tabular,
+        ),
+      ],
+    );
+  }
+}
