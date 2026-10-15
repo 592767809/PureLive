@@ -71,6 +71,7 @@ dependencies:
   live_record: any
   live_store: any
   live_ui: any
+  live_vod: any
   # QR codes of device sync and TV sync.
   mobile_scanner: ^7.4.2
   # Opens local files on Android (playlist copies, downloaded installers).

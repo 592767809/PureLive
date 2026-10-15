@@ -1749,6 +1749,9 @@ abstract final class Settings {
   /// of icons that opens over the page when the focus moves in.
   static const tvMenuAlwaysExpanded = BoolSetting('tvMenuAlwaysExpanded', section: 'app', defaultValue: false);
 
+  /// The TV home's mode (A17.2 X1): `live` or `video` (A17.6).
+  static const tvMode = StringSetting('tvMode', section: 'app', defaultValue: 'live');
+
   /// The order of the TV side menu's entries (A17.9 c11; pane names): these
   /// first, the rest in the default order. Empty: the default order.
   static const tvMenuOrder = StringListSetting('tvMenuOrder', section: 'app', defaultValue: []);
@@ -1997,6 +2000,7 @@ abstract final class Settings {
     uiMode,
     tvFocusZoom,
     tvMenuAlwaysExpanded,
+    tvMode,
     tvMenuOrder,
     tvMenuHidden,
     tvMenuIcons,

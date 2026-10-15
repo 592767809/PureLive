@@ -22,9 +22,31 @@ import 'package:pure_live/tv/pages/tv_search_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_catalog.dart';
 import 'package:pure_live/tv/tv_navigation.dart';
 import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/video/video_panes.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_nav_item.dart';
-import 'package:pure_live/tv/widgets/tv_status.dart';
+
+/// The modes of the TV home (A17.2 X1, pure_live_TV's 直播 / 视频 / 音乐):
+/// each has its own destinations; the mode button at the top of the menu
+/// switches.
+enum TvMode {
+  /// Live rooms.
+  live('tv_mode_live', TvIcons.menuIptv),
+
+  /// Bilibili videos (A17.6).
+  video('tv_mode_video', TvIcons.menuVideo);
+
+  new(this.labelKey, this.icon);
+
+  /// The label's translation key.
+  final String labelKey;
+
+  /// The icon.
+  final IconData icon;
+
+  /// The mode stored as [name], [live] when unknown.
+  static TvMode of(String name) => values.asNameMap()[name] ?? live;
+}
 
 /// The destinations of the TV side menu (pure_live_TV `TvMenuType` and its
 /// mode switch), in order; [settings] sits at the bottom.
@@ -50,19 +72,28 @@ enum TvPane {
   /// IPTV playlists and channels.
   iptv('tv_menu_iptv', TvIcons.menuIptv),
 
-  /// Videos (M14.3); not shown yet.
-  video('tv_menu_video', TvIcons.menuVideo, available: false),
+  /// Video search (A17.6, X4: the video mode's order).
+  videoSearch('tv_menu_video_search', TvIcons.menuSearch, mode: TvMode.video),
 
-  /// Music (M14.4); not shown yet.
-  music('tv_menu_music', TvIcons.menuMusic, available: false),
+  /// "我的": followings, watch later, favourites, history, followed seasons.
+  videoMine('tv_menu_video_mine', TvIcons.videoMine, mode: TvMode.video),
 
-  /// Wallpapers (M14.5); not shown yet.
-  wallpaper('tv_menu_wallpaper', TvIcons.menuWallpaper, available: false),
+  /// The video home: dynamics, recommended, popular.
+  videoHome('tv_menu_video_home', TvIcons.videoHome, mode: TvMode.video),
+
+  /// Partitions and their rankings.
+  videoAreas('tv_menu_video_areas', TvIcons.menuAreas, mode: TvMode.video),
+
+  /// Films and series (影视, c10: the film icon).
+  videoCinema('tv_menu_video_cinema', TvIcons.menuVideo, mode: TvMode.video),
 
   /// The TV settings.
   settings('tv_menu_settings', TvIcons.menuSettings);
 
-  new(this.labelKey, this.icon, {this.available = true});
+  new(this.labelKey, this.icon, {this.mode = TvMode.live});
+
+  /// The mode it belongs to (A17.2 X1).
+  final TvMode mode;
 
   /// The label's translation key.
   final String labelKey;
@@ -70,25 +101,30 @@ enum TvPane {
   /// The icon.
   final IconData icon;
 
-  /// Shown in the menu (the video, music and wallpaper modules come later).
-  final bool available;
-
-  /// The destinations in the menu's upper part, in the default order, all
-  /// shown.
+  /// The live mode's destinations in the menu's upper part, in the default
+  /// order, all shown.
   static List<TvPane> get menu => menuOf();
 
-  /// The destinations that can be in the menu's upper part, in the default
-  /// order.
-  static List<TvPane> get entries => [
+  /// The live mode's destinations that can be in the menu's upper part, in
+  /// the default order.
+  static List<TvPane> get entries => entriesOf(TvMode.live);
+
+  /// [mode]'s destinations that can be in the menu's upper part, in the
+  /// default order.
+  static List<TvPane> entriesOf(TvMode mode) => [
     for (final pane in values)
-      if (pane.available && pane != settings) pane,
+      if (pane != settings && pane.mode == mode) pane,
   ];
 
-  /// [entries] in the user's [order] (`tvMenuOrder`: those first, the rest
-  /// in the default order), without the [hidden] ones (`tvMenuHidden`; at
-  /// least one stays), A17.9 c11.
-  static List<TvPane> menuOf({List<String> order = const [], List<String> hidden = const []}) {
-    final ordered = orderOf(order);
+  /// [mode]'s entries in the user's [order] (`tvMenuOrder`: those first, the
+  /// rest in the default order), without the [hidden] ones (`tvMenuHidden`;
+  /// at least one stays), A17.9 c11.
+  static List<TvPane> menuOf({
+    List<String> order = const [],
+    List<String> hidden = const [],
+    TvMode mode = TvMode.live,
+  }) {
+    final ordered = orderOf(order, mode: mode);
     final shown = [
       for (final pane in ordered)
         if (!hidden.contains(pane.name)) pane,
@@ -96,9 +132,9 @@ enum TvPane {
     return shown.isEmpty ? [ordered.first] : shown;
   }
 
-  /// [entries] in the user's [order], hidden ones included.
-  static List<TvPane> orderOf(List<String> order) {
-    final byName = {for (final pane in entries) pane.name: pane};
+  /// [mode]'s entries in the user's [order], hidden ones included.
+  static List<TvPane> orderOf(List<String> order, {TvMode mode = TvMode.live}) {
+    final byName = {for (final pane in entriesOf(mode)) pane.name: pane};
     final ordered = <TvPane>[];
     for (final name in order) {
       final pane = byName.remove(name);
@@ -195,6 +231,8 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
   bool _menuFocused = false;
   bool _asking = false;
 
+  final FocusNode _modeNode = FocusNode(debugLabel: 'tv menu mode');
+
   FocusNode _menuNode(TvPane pane) => _menuNodes[pane] ??= FocusNode(debugLabel: 'tv menu ${pane.name}');
 
   FocusNode _paneNode(TvPane pane) =>
@@ -207,8 +245,15 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     FocusManager.instance.addListener(_remember);
     // The first destination shown when "关注" is hidden (A17.9 c11).
     final settings = ref.read(storeProvider).settings;
-    final shown = TvPane.menuOf(order: settings.get(Settings.tvMenuOrder), hidden: settings.get(Settings.tvMenuHidden));
-    if (!shown.contains(_pane)) _pane = shown.first;
+    final shown = TvPane.menuOf(
+      order: settings.get(Settings.tvMenuOrder),
+      hidden: settings.get(Settings.tvMenuHidden),
+      mode: TvMode.of(settings.get(Settings.tvMode)),
+    );
+    if (!shown.contains(_pane)) {
+      _pane = shown.first;
+      _visited.add(_pane);
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(RoomBackChannel.instance.hold(this, _nativeBack));
@@ -256,7 +301,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     FocusManager.instance.removeListener(_remember);
     _updateTimer?.cancel();
-    for (final node in [..._menuNodes.values, ..._paneNodes.values]) {
+    for (final node in [_modeNode, ..._menuNodes.values, ..._paneNodes.values]) {
       node.dispose();
     }
     super.dispose();
@@ -398,10 +443,41 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     TvPane.link => const TvLinkPane(),
     TvPane.iptv => const TvIptvPane(),
     TvPane.settings => const TvSettingsCatalog(),
-    TvPane.video ||
-    TvPane.music ||
-    TvPane.wallpaper => TvStatusView(icon: TvIcons.underConstruction, title: i18n('tv_under_construction')),
+    TvPane.videoSearch => const TvVideoGate(child: TvVideoSearchPane()),
+    TvPane.videoMine => const TvVideoGate(child: TvVideoMinePane()),
+    TvPane.videoHome => const TvVideoGate(child: TvVideoHomePane()),
+    TvPane.videoAreas => const TvVideoGate(child: TvVideoAreasPane()),
+    TvPane.videoCinema => const TvVideoGate(child: TvVideoCinemaPane()),
   };
+
+  /// The mode button (A17.2 X1): OK offers the modes; another mode opens
+  /// its first destination.
+  Future<void> _chooseMode(TvMode mode) async {
+    final chosen = await showTvChoice<TvMode>(
+      context,
+      title: i18n('tv_mode'),
+      current: mode,
+      options: [
+        for (final value in TvMode.values) TvChoice(value: value, label: i18n(value.labelKey), icon: value.icon),
+      ],
+    );
+    if (chosen == null || chosen == mode || !mounted) return;
+    final settings = ref.read(storeProvider).settings;
+    await settings.set(Settings.tvMode, chosen.name);
+    if (!mounted) return;
+    final first = TvPane.menuOf(
+      order: settings.get(Settings.tvMenuOrder),
+      hidden: settings.get(Settings.tvMenuHidden),
+      mode: chosen,
+    ).first;
+    setState(() {
+      _pane = first;
+      _visited.add(first);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _menuNode(first).requestFocus();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -409,9 +485,11 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     final scale = TvScale.of(context);
     const panes = TvPane.values;
     final alwaysExpanded = watchSetting(ref, Settings.tvMenuAlwaysExpanded);
+    final mode = TvMode.of(watchSetting(ref, Settings.tvMode));
     final menuPanes = TvPane.menuOf(
       order: watchSetting(ref, Settings.tvMenuOrder),
       hidden: watchSetting(ref, Settings.tvMenuHidden),
+      mode: mode,
     );
     _icons = watchSetting(ref, Settings.tvMenuIcons);
     final expanded = alwaysExpanded || _menuFocused;
@@ -438,6 +516,17 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (expanded) ...[const _Clock(), SizedBox(height: scale.px(16))],
+              Padding(
+                padding: EdgeInsets.only(bottom: scale.px(12)),
+                child: TvNavItem(
+                  key: const ValueKey('tv-menu-mode'),
+                  focusNode: _modeNode,
+                  icon: mode.icon,
+                  label: i18n(mode.labelKey),
+                  compact: !expanded,
+                  onTap: () => unawaited(_chooseMode(mode)),
+                ),
+              ),
               Expanded(
                 child: SingleChildScrollView(
                   clipBehavior: Clip.none,

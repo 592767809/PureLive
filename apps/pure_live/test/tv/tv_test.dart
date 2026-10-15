@@ -611,6 +611,43 @@ void main() {
     await _close(tester, services);
   });
 
+  testWidgets('A17.6 X1: the mode button switches to videos: 搜索、我的、首页、分区、影视, behind the login', (tester) async {
+    final services = await _pumpApp(tester);
+    expect(_focused, 'tv menu favorites');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focused, 'tv menu mode');
+    expect(find.text('直播'), findsOneWidget);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    expect(find.byType(TvOptionRow), findsNWidgets(2));
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester, rounds: 6);
+    expect(services.store.settings.get(Settings.tvMode), 'video');
+    final menu = [
+      for (final element
+          in find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget.key is ValueKey<String> && (widget.key! as ValueKey<String>).value.startsWith('tv-menu-'),
+              )
+              .evaluate())
+        (element.widget.key! as ValueKey<String>).value,
+    ];
+    expect(menu, [
+      'tv-menu-mode',
+      'tv-menu-videoSearch',
+      'tv-menu-videoMine',
+      'tv-menu-videoHome',
+      'tv-menu-videoAreas',
+      'tv-menu-videoCinema',
+      'tv-menu-settings',
+    ]);
+    expect(_focused, 'tv menu videoSearch');
+    expect(find.byKey(const ValueKey('tv-video-login-gate')), findsOneWidget, reason: 'signed out');
+    await _close(tester, services);
+  });
+
   testWidgets('a focusable: OK taps at once without a long press; with one, a hold never also taps', (tester) async {
     var taps = 0;
     var holds = 0;

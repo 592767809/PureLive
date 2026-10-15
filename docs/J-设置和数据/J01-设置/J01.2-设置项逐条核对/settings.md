@@ -2,13 +2,13 @@
 
 <!-- 由 tools/docs/settings_audit.py 生成（手写的部分在 tools/docs/settings_audit_notes.py），不要手改 -->
 
-v4 的 258 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
+v4 的 259 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
 
 ## 结论
 
 | 结论 | 个数 |
 |---|---:|
-| 一样 | 237 |
+| 一样 | 238 |
 | 确认改动 | 3 |
 | 不一样，已改 | 18 |
 | 不一样，待处理 | 0 |
@@ -49,10 +49,11 @@ v4 的 258 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `twitchLanguages` | StringList | `[]` | —（新加） |  |  |  | `app/platforms.dart:179` | 读取时 | `twitch_languages` | 一样：v4 新加（UPGRADES 8-3）；空 = 不筛语言（3.x 固定只看中文和韩语，作为预设 `twitchLegacyLanguages` 提供） |
 | `uiMode` | String，本机 | `'auto'` | —（新加） | `auto` / `phone` / `tv` |  |  | `app/app.dart:237`、`app/ui_mode.dart:20`、`app/ui_mode.dart:71` 等 5 处 | 立即 | `ui_mode` | 一样：v4 新加（X03.1（M14.1），本机记录），默认值照来源任务 |
 | `tvFocusZoom` | Bool | `true` | —（新加） |  |  |  | `tv/settings/tv_settings_catalog.dart:66`、`tv/settings/tv_settings_catalog.dart:67`、`tv/tv_app.dart:100` | 立即 |  | 一样：v4 新加（A17.1 c2），默认值照来源任务 |
-| `tvMenuAlwaysExpanded` | Bool | `false` | —（新加） |  |  |  | `tv/home/tv_home_page.dart:411`、`tv/settings/tv_settings_catalog.dart:86`、`tv/settings/tv_settings_catalog.dart:87` | 马上 |  | 一样：v4 新加（A17.2 c2）：默认关，电视首页左边导航栏只显示图标，焦点移进去时展开盖在页面上；开了以后一直展开、页面右移（X03.1 原来的样子） |
-| `tvMenuOrder` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（长按确认进入移动） | `tv/home/tv_home_page.dart:210`、`tv/home/tv_home_page.dart:413`、`tv/settings/tv_menu_settings_page.dart:26` 等 5 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏入口的顺序，存的排在前面，其余按默认顺序；空 = 默认顺序 |
-| `tvMenuHidden` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（确认显示或隐藏） | `tv/home/tv_home_page.dart:210`、`tv/home/tv_home_page.dart:414`、`tv/settings/tv_menu_settings_page.dart:27` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏隐藏的入口，至少留一个；空 = 全部显示 |
-| `tvMenuIcons` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制 › 图标 | `tv/home/tv_home_page.dart:416`、`tv/settings/tv_menu_settings_page.dart:28`、`tv/settings/tv_menu_settings_page.dart:82` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.9-31，pure_live_TV 的“选择图标”）：电视导航栏入口自己选的图标，`入口:图标`；没选的用默认图标 |
+| `tvMenuAlwaysExpanded` | Bool | `false` | —（新加） |  |  |  | `tv/home/tv_home_page.dart:487`、`tv/settings/tv_settings_catalog.dart:86`、`tv/settings/tv_settings_catalog.dart:87` | 马上 |  | 一样：v4 新加（A17.2 c2）：默认关，电视首页左边导航栏只显示图标，焦点移进去时展开盖在页面上；开了以后一直展开、页面右移（X03.1 原来的样子） |
+| `tvMode` | String | `'live'` | —（新加） |  |  | 电视首页导航栏最上面的模式按钮 | `tv/home/tv_home_page.dart:251`、`tv/home/tv_home_page.dart:466`、`tv/home/tv_home_page.dart:488` 等 5 处 | 马上 |  | 一样：v5.1 新加（A17.2 X1）：电视首页的模式，live（直播，和以前一样）/ video（哔哩哔哩点播，A17.6） |
+| `tvMenuOrder` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（长按确认进入移动） | `tv/home/tv_home_page.dart:249`、`tv/home/tv_home_page.dart:469`、`tv/home/tv_home_page.dart:490` 等 6 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏入口的顺序，存的排在前面，其余按默认顺序；空 = 默认顺序 |
+| `tvMenuHidden` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（确认显示或隐藏） | `tv/home/tv_home_page.dart:250`、`tv/home/tv_home_page.dart:470`、`tv/home/tv_home_page.dart:491` 等 5 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏隐藏的入口，至少留一个；空 = 全部显示 |
+| `tvMenuIcons` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制 › 图标 | `tv/home/tv_home_page.dart:494`、`tv/settings/tv_menu_settings_page.dart:29`、`tv/settings/tv_menu_settings_page.dart:83` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.9-31，pure_live_TV 的“选择图标”）：电视导航栏入口自己选的图标，`入口:图标`；没选的用默认图标 |
 | `tvWallpaperKind` | String | `'none'` | —（新加） |  |  | 电视设置 › 电视 › 背景设置 | `tv/wallpaper/tv_wallpaper_layer.dart:35`、`tv/wallpaper/wallpaper_files.dart:140`、`tv/wallpaper/wallpaper_model.dart:92` | 马上 |  | 一样：v5.1 新加（A17.8 h1）：电视界面的背景，none（主题纯色，和以前一样）/ color / gradient / image / video |
 | `tvWallpaperValue` | String | `''` | —（新加） |  |  |  | `tv/wallpaper/tv_wallpaper_layer.dart:36`、`tv/wallpaper/wallpaper_files.dart:139`、`tv/wallpaper/wallpaper_files.dart:182` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.8）：背景的颜色、渐变名或文件（图片已模糊好） |
 | `tvWallpaperSource` | String | `''` | —（新加） |  |  |  | `tv/wallpaper/wallpaper_files.dart:138`、`tv/wallpaper/wallpaper_model.dart:94` | 马上 |  | 一样：v5.1 新加（A17.8）：图片或视频的来源地址（网格标“✓ 当前”）和模糊前的原图 |
@@ -174,7 +175,7 @@ v4 的 258 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `danmakuPausedBehavior` | String | `'pause'` | —（新加） | `pause` / `continue` |  |  | `features/live_play/mini/compact_danmaku.dart:165`、`features/live_play/player/player_view.dart:678`、`features/multiview/multiview_page.dart:883` 等 4 处 | 立即 | `danmaku_paused` | 一样：v4 新加（A07.10 c3），默认值照来源任务 |
 | `danmakuFps` | Int | `60` | `60`（`danmaku_settings_controller.dart:70`） | 30～240 | 30～240（`danmaku_settings_controller.dart:123`） | 滑块 30～240，步长 1 | `features/live_play/player/player_view.dart:673`、`shared/danmaku/danmaku_settings.dart:53`、`shared/danmaku/danmaku_templates.dart:38` 等 4 处 | 立即 | `danmaku_fps` | 一样 |
 | `danmakuAutoFps` | Bool | `true` | `true`（`danmaku_settings_controller.dart:71`） |  |  |  | `features/live_play/player/player_view.dart:672`、`shared/danmaku/danmaku_settings.dart:52`、`shared/danmaku/danmaku_templates.dart:39` 等 5 处 | 立即 | `danmaku_auto_fps` | 一样 |
-| `danmakuMaxVisibleCount` | Int | `48` | —（新加） | 10～120 | 3.x 没有这个设置，直播间和多画面写死 48 | 滑块 10～120，步长 2 | `features/live_play/player/player_view.dart:679`、`features/multiview/multiview_page.dart:897`、`tv/room/tv_live_play_page.dart:505` | 立即 | `danmaku_max_visible` | 一样：v4 新加（D05.2，V01.4，D-036）：默认 48 和 3.x 一样；10～120，超出范围（上游电视版存 0 表示按设备）读成 48 |
+| `danmakuMaxVisibleCount` | Int | `48` | —（新加） | 10～120 | 3.x 没有这个设置，直播间和多画面写死 48 | 滑块 10～120，步长 2 | `features/live_play/player/player_view.dart:679`、`features/multiview/multiview_page.dart:897`、`tv/room/tv_live_play_page.dart:505` 等 4 处 | 立即 | `danmaku_max_visible` | 一样：v4 新加（D05.2，V01.4，D-036）：默认 48 和 3.x 一样；10～120，超出范围（上游电视版存 0 表示按设备）读成 48 |
 | `enableDanmakuTapInteraction` | Bool | `true` | `true`（`danmaku_settings_controller.dart:72`） |  |  |  | `features/live_play/player/player_view.dart:469`、`live_store/src/legacy/legacy_snapshot.dart:430` | 读取时 | `danmaku_tap` | 一样 |
 | `enableDanmakuLongPressInteraction` | Bool | `true` | `true`（`danmaku_settings_controller.dart:73`） |  |  |  | `features/live_play/player/player_view.dart:469`、`features/live_play/player/player_view.dart:676`、`live_store/src/legacy/legacy_snapshot.dart:431` | 立即 | `danmaku_long_press` | 一样 |
 | `holdDanmakuOnPress` | Bool | `true` | —（新加） |  |  |  | `features/live_play/player/player_view.dart:482` | 读取时 | `danmaku_hold_on_press` | 一样：v4 新加（D03.4，V01.3，D-036）：默认开（D-039，用户 2026-10-09）；按住一条飞行弹幕时它停住，松手继续；关掉和 3.x 一样 |
@@ -238,9 +239,9 @@ v4 的 258 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `autoRefreshFavorite` | Bool | `false` | `false`（`refresh_config_controller.dart:21`） |  |  |  | `features/favorite/favorite_controller.dart:358`、`features/favorite/favorite_controller.dart:381`、`features/favorite/favorite_controller.dart:427` | 立即（重排定时器） | `auto_refresh` | 一样 |
+| `autoRefreshFavorite` | Bool | `false` | `false`（`refresh_config_controller.dart:21`） |  |  |  | `features/favorite/favorite_controller.dart:358`、`features/favorite/favorite_controller.dart:381`、`features/favorite/favorite_controller.dart:435` | 立即（重排定时器） | `auto_refresh` | 一样 |
 | `refreshFavoriteOnResume` | Bool | `true` | `true`（`refresh_config_controller.dart:26`） |  |  |  | `features/favorite/favorite_controller.dart:351` | 读取时 | `refresh_on_resume` | 一样 |
-| `autoRefreshInterval` | Int | `30` | `30`（`refresh_config_controller.dart:27`） | 5～360 | 5～360（`refresh_config_controller.dart:6-14`） | 选项 5～360 分钟，12 档 | `features/favorite/favorite_controller.dart:359`、`features/favorite/favorite_controller.dart:382`、`features/favorite/favorite_controller.dart:428` | 立即（重排定时器） | `refresh_interval` | 一样 |
+| `autoRefreshInterval` | Int | `30` | `30`（`refresh_config_controller.dart:27`） | 5～360 | 5～360（`refresh_config_controller.dart:6-14`） | 选项 5～360 分钟，12 档 | `features/favorite/favorite_controller.dart:359`、`features/favorite/favorite_controller.dart:382`、`features/favorite/favorite_controller.dart:436` | 立即（重排定时器） | `refresh_interval` | 一样 |
 | `maxConcurrentRefresh` | Int | `4` | `4`（`refresh_config_controller.dart:28`） | 1～20 | 1～20（`refresh_config_controller.dart:9-18`） | 加减 1～20 | `features/favorite/favorite_controller.dart:322`、`features/history/history_page.dart:92` | 读取时 | `refresh_concurrency` | 一样 |
 | `liveAlertEnabled` | Bool | `false` | —（新加） |  |  |  | `features/favorite/favorite_controller.dart` 的 `liveAlerts`（每轮刷新后比较）和 `_scheduleAutoRefresh`（没开“关注自动刷新”时每 15 分钟只查要提醒的关注） | 立即（重排定时器；关掉时忘记看到过的状态） | `live_alert` | 一样：v4 新加（O01.1，V01.1，D-036）：默认关，和以前一样不发通知；开了以后关注的主播开播时发系统通知（只在 Android） |
 | `liveAlertTagIds` | StringList | `[]` | —（新加） |  |  |  | `features/favorite/favorite_controller.dart:240`、`features/favorite/favorite_controller.dart:365`、`shared/rooms/room_live_alert.dart:27` | 下一轮检查 | `live_alert_tags` | 一样：v4 新加（O01.1，V01.1）：空 = 提醒全部关注；选了标签只提醒带这些标签的关注，已删除的标签不算 |

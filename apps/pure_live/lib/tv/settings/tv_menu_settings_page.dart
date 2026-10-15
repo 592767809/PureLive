@@ -23,7 +23,8 @@ class TvMenuSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.read(storeProvider).settings;
-    final order = TvPane.orderOf(watchSetting(ref, Settings.tvMenuOrder));
+    final mode = TvMode.of(watchSetting(ref, Settings.tvMode));
+    final order = TvPane.orderOf(watchSetting(ref, Settings.tvMenuOrder), mode: mode);
     final hidden = watchSetting(ref, Settings.tvMenuHidden);
     final icons = watchSetting(ref, Settings.tvMenuIcons);
     return TvSettingsScaffold(
@@ -116,7 +117,10 @@ class TvMenuIconsPage extends ConsumerWidget {
         children: [
           TvSettingsGroup(
             children: [
-              for (final pane in TvPane.orderOf(watchSetting(ref, Settings.tvMenuOrder)))
+              for (final pane in TvPane.orderOf(
+                watchSetting(ref, Settings.tvMenuOrder),
+                mode: TvMode.of(watchSetting(ref, Settings.tvMode)),
+              ))
                 TvSettingsRow(
                   id: 'icon-${pane.name}',
                   icon: pane.iconIn(icons),

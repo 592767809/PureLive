@@ -44,6 +44,16 @@ abstract final class TvIcons {
   /// Settings.
   static const IconData menuSettings = Remix.settings_5_line;
 
+  /// The video mode's "我的" (A17.6).
+  static const IconData videoMine = Remix.user_3_line;
+
+  /// The video mode's home.
+  static const IconData videoHome = Remix.home_4_line;
+
+  /// "稍后再看".
+  static const IconData videoLater = Remix.time_line;
+
+
   /// "导航栏始终展开" (A17.2 c2).
   static const IconData menuExpand = Remix.side_bar_line;
 
