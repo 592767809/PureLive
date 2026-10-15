@@ -82,6 +82,29 @@ abstract final class TvIcons {
   /// A hidden entry.
   static const IconData menuHidden = Remix.eye_off_line;
 
+  // ---- the background (A17.8) ----
+
+  /// Colours and gradients.
+  static const IconData wallpaperSolid = Remix.palette_line;
+
+  /// The library of pictures.
+  static const IconData wallpaperLibrary = Remix.gallery_line;
+
+  /// Random pictures.
+  static const IconData wallpaperRandom = Remix.shuffle_line;
+
+  /// A video background.
+  static const IconData wallpaperVideo = Remix.film_line;
+
+  /// How it fills the screen.
+  static const IconData wallpaperFit = Remix.aspect_ratio_line;
+
+  /// The veil.
+  static const IconData wallpaperMask = Remix.contrast_drop_2_line;
+
+  /// The blur.
+  static const IconData wallpaperBlur = Remix.blur_off_line;
+
   /// An entry being moved.
   static const IconData menuMoving = Remix.drag_move_2_line;
 

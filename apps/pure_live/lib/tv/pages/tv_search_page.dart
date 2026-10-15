@@ -29,7 +29,7 @@ class TvSearchPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: TvTheme.of(context).background,
+    backgroundColor: TvTheme.pageOf(context),
     body: TvBackground(child: TvSearchPane(initial: route.arguments is String ? route.arguments! as String : null)),
   );
 }

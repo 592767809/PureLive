@@ -86,13 +86,12 @@ class _TvAreaRoomsPageState extends ConsumerState<TvAreaRoomsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = TvTheme.of(context);
     final scale = TvScale.of(context);
     final feed = _feed;
     final area = _area;
     final followed = ref.watch(followedAreaKeysProvider).value ?? const <String>{};
     return Scaffold(
-      backgroundColor: palette.background,
+      backgroundColor: TvTheme.pageOf(context),
       body: TvBackground(
         child: feed == null || area == null
             ? TvStatusView(

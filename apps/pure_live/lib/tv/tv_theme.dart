@@ -191,13 +191,24 @@ int tvRoomColumns(double textScale, {int base = 4}) {
 /// (the `tvFocusZoom` setting, U.15a c2).
 class TvTheme extends InheritedWidget {
   /// Provides [palette].
-  const new({required this.palette, required super.child, this.zoom = true, super.key});
+  const new({required this.palette, required super.child, this.zoom = true, this.backdrop = false, super.key});
 
   /// The colours.
   final TvPalette palette;
 
   /// Focused cards, buttons and tabs grow by 5 % (off on slow boxes).
   final bool zoom;
+
+  /// A background is set (A17.8): pages paint no colour of their own, so it
+  /// shows through; panels, rows and cards keep theirs.
+  final bool backdrop;
+
+  /// The colour a page paints below [context]: the theme's background, or
+  /// none over a background.
+  static Color pageOf(BuildContext context) {
+    final theme = context.dependOnInheritedWidgetOfExactType<TvTheme>();
+    return theme?.backdrop ?? false ? OnVideoColors.clear : of(context).background;
+  }
 
   /// The palette of [context] (derived from the theme when no [TvTheme] is
   /// above, so components also work on their own in tests).
@@ -208,7 +219,8 @@ class TvTheme extends InheritedWidget {
   static bool zoomOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<TvTheme>()?.zoom ?? true;
 
   @override
-  bool updateShouldNotify(TvTheme oldWidget) => palette != oldWidget.palette || zoom != oldWidget.zoom;
+  bool updateShouldNotify(TvTheme oldWidget) =>
+      palette != oldWidget.palette || zoom != oldWidget.zoom || backdrop != oldWidget.backdrop;
 }
 
 /// The default text and icon colours of the palette, over the page
@@ -225,7 +237,7 @@ class TvBackground extends StatelessWidget {
     final palette = TvTheme.of(context);
     final scale = TvScale.of(context);
     return ColoredBox(
-      color: palette.background,
+      color: TvTheme.pageOf(context),
       child: IconTheme(
         data: IconThemeData(color: palette.textSecondary, size: scale.px(24)),
         child: DefaultTextStyle(

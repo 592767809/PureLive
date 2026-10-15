@@ -519,6 +519,7 @@ void main() {
     expect(rows, [
       'ui_mode',
       'focus_zoom',
+      'wallpaper',
       'menu_expanded',
       for (final area in SettingsArea.values)
         for (final section in SettingsSection.values)
@@ -551,8 +552,8 @@ void main() {
       await _press(tester, LogicalKeyboardKey.arrowDown);
     }
     await _press(tester, LogicalKeyboardKey.select);
-    // ui_mode, focus_zoom, menu_expanded, appearance, navigation, platforms, refresh.
-    for (var i = 0; i < 6; i++) {
+    // ui_mode, focus_zoom, wallpaper, menu_expanded, appearance, navigation, platforms, refresh.
+    for (var i = 0; i < 7; i++) {
       await _press(tester, LogicalKeyboardKey.arrowDown);
     }
     expect(

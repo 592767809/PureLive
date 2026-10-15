@@ -313,6 +313,12 @@ const Map<String, Object> newInV4 = {
   'tvMenuOrder': <String>[], // A17.9 c11: the default order
   'tvMenuHidden': <String>[], // A17.9 c11: all shown
   'tvMenuIcons': <String>[], // A17.9-31: the default icons
+  'tvWallpaperKind': 'none', // A17.8 h1: no background
+  'tvWallpaperValue': '', // A17.8
+  'tvWallpaperSource': '', // A17.8
+  'tvWallpaperFit': 'cover', // A17.8 h1 (pure_live_TV)
+  'tvWallpaperMask': 0.35, // A17.8 h1 (pure_live_TV)
+  'tvWallpaperBlur': 0.0, // A17.8 h1: no blur
   'localInteraction.replayOnEnter': true, // D08.1 c6, on by default (D-040)
   'localInteraction.phrases': <String>[], // D08.2: none until one is saved (D-040)
   'localInteraction.growthEnabled': true, // D08.3, on by default (D-040)

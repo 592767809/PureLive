@@ -6,6 +6,7 @@ import 'package:pure_live/app/services.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/tv/phone/tv_phone_dialogs.dart';
 import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/wallpaper/tv_wallpaper_layer.dart';
 
 /// Escape goes back one level on the TV interface (a keyboard on a box or a
 /// computer); the remote's Back arrives as the system's back.
@@ -97,6 +98,7 @@ class _TvAppFrameState extends ConsumerState<TvAppFrame> {
     return TvTheme(
       palette: palette,
       zoom: watchSetting(ref, Settings.tvFocusZoom),
+      backdrop: watchTvWallpaper(ref).active,
       child: Shortcuts(
         shortcuts: const {SingleActivator(LogicalKeyboardKey.escape): TvBackIntent()},
         child: Actions(
@@ -109,7 +111,15 @@ class _TvAppFrameState extends ConsumerState<TvAppFrame> {
               },
             ),
           },
-          child: framed,
+          // The background under every TV page (A17.8 h1).
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: palette.background),
+              const TvWallpaperLayer(),
+              framed,
+            ],
+          ),
         ),
       ),
     );

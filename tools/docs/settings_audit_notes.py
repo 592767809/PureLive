@@ -559,6 +559,17 @@ NOTES: dict[str, dict] = {
         'ui': '电视设置 › 导航栏显示控制（确认显示或隐藏）',
         'when': '马上',
     },
+    'tvWallpaperKind': {
+        **_new('A17.8 h1'),
+        'verdict': 'v5.1 新加（A17.8 h1）：电视界面的背景，none（主题纯色，和以前一样）/ color / gradient / image / video',
+        'ui': '电视设置 › 电视 › 背景设置',
+        'when': '马上',
+    },
+    'tvWallpaperValue': {**_new('A17.8 h1'), 'verdict': 'v5.1 新加（A17.8）：背景的颜色、渐变名或文件（图片已模糊好）', 'when': '马上'},
+    'tvWallpaperSource': {**_new('A17.8'), 'verdict': 'v5.1 新加（A17.8）：图片或视频的来源地址（网格标“✓ 当前”）和模糊前的原图', 'when': '马上'},
+    'tvWallpaperFit': {**_new('A17.8 h1'), 'verdict': 'v5.1 新加（A17.8 h1）：填充模式 7 种，默认等比覆盖（照 pure_live_TV）', 'when': '马上'},
+    'tvWallpaperMask': {**_new('A17.8 h1'), 'verdict': 'v5.1 新加（A17.8 h1）：遮罩 0～100%，默认 35%（照 pure_live_TV）', 'when': '马上'},
+    'tvWallpaperBlur': {**_new('A17.8 h7'), 'verdict': 'v5.1 新加（A17.8 h1、h7）：高斯模糊，默认关；设图片背景时模糊一次存成文件，视频不能模糊', 'when': '马上（重新生成模糊图）'},
     'tvMenuIcons': {
         **_new('A17.9-31'),
         'verdict': 'v5.1 新加（A17.9-31，pure_live_TV 的“选择图标”）：电视导航栏入口自己选的图标，`入口:图标`；没选的用默认图标',

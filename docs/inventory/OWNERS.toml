@@ -339,6 +339,12 @@ setting = [
   { key = "tvMenuOrder", sub = "A17" },
   { key = "tvMenuHidden", sub = "A17" },
   { key = "tvMenuIcons", sub = "A17" },
+  { key = "tvWallpaperKind", sub = "A17" },
+  { key = "tvWallpaperValue", sub = "A17" },
+  { key = "tvWallpaperSource", sub = "A17" },
+  { key = "tvWallpaperFit", sub = "A17" },
+  { key = "tvWallpaperMask", sub = "A17" },
+  { key = "tvWallpaperBlur", sub = "A17" },
   # favorite 分节（默认 I03）
   { key = "preferPlatform", sub = "I02" },
   # theme、font、meta 分节

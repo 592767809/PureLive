@@ -12,6 +12,7 @@ import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/tv/settings/tv_menu_settings_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/wallpaper/tv_wallpaper_pages.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_page_header.dart';
 import 'package:pure_live/tv/widgets/tv_settings_rows.dart';
@@ -64,6 +65,18 @@ class TvSettingsCatalog extends ConsumerWidget {
               subtitle: i18n('tv_focus_zoom_desc'),
               value: watchSetting(ref, Settings.tvFocusZoom),
               onChanged: (value) => unawaited(settings.set(Settings.tvFocusZoom, value)),
+            ),
+            TvLinkRow(
+              id: 'wallpaper',
+              icon: TvIcons.wallpaperSolid,
+              title: i18n('tv_wallpaper'),
+              subtitle: i18n('tv_wallpaper_desc'),
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  settings: const RouteSettings(name: 'tv-settings-wallpaper'),
+                  builder: (context) => const TvWallpaperSettingsPage(),
+                ),
+              ),
             ),
             TvSwitchRow(
               id: 'menu_expanded',

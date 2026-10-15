@@ -55,11 +55,10 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = TvTheme.of(context);
     final scale = TvScale.of(context);
     return Scaffold(
       key: widget.pageKey,
-      backgroundColor: palette.background,
+      backgroundColor: TvTheme.pageOf(context),
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: scale.px(96), vertical: scale.px(56)),
         child: Column(

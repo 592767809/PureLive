@@ -1761,6 +1761,28 @@ abstract final class Settings {
   /// keep their default icon.
   static const tvMenuIcons = StringListSetting('tvMenuIcons', section: 'app', defaultValue: []);
 
+  /// The TV interface's background (A17.8 h1): `none` (the theme's plain
+  /// colour), `color`, `gradient`, `image` or `video`.
+  static const tvWallpaperKind = StringSetting('tvWallpaperKind', section: 'app', defaultValue: 'none');
+
+  /// What [tvWallpaperKind] shows: a colour (`AARRGGBB`), a gradient's name,
+  /// or the file of the picture (blurred already) or video.
+  static const tvWallpaperValue = StringSetting('tvWallpaperValue', section: 'app', defaultValue: '');
+
+  /// Where the picture or video came from (its address), so the grids can
+  /// mark "✓ 当前", and the file the blur starts from.
+  static const tvWallpaperSource = StringSetting('tvWallpaperSource', section: 'app', defaultValue: '');
+
+  /// How the background fills the screen (A17.8 h1; `BoxFit` names; pure_live_TV `cover`).
+  static const tvWallpaperFit = StringSetting('tvWallpaperFit', section: 'app', defaultValue: 'cover');
+
+  /// The dark veil over the background, 0 to 1 (pure_live_TV 0.35).
+  static const tvWallpaperMask = DoubleSetting('tvWallpaperMask', section: 'app', defaultValue: 0.35);
+
+  /// The blur of a picture background (sigma; 0 is none), applied once when
+  /// it is set (A17.8 h7).
+  static const tvWallpaperBlur = DoubleSetting('tvWallpaperBlur', section: 'app', defaultValue: 0);
+
   // ---- internal ----
 
   /// The LAN-sync device id 3.x generated (remote_sync_service.dart:134).
@@ -1978,6 +2000,12 @@ abstract final class Settings {
     tvMenuOrder,
     tvMenuHidden,
     tvMenuIcons,
+    tvWallpaperKind,
+    tvWallpaperValue,
+    tvWallpaperSource,
+    tvWallpaperFit,
+    tvWallpaperMask,
+    tvWallpaperBlur,
   ];
 
   static final Map<String, Setting<Object>> _byKey = {for (final setting in all) setting.key: setting};

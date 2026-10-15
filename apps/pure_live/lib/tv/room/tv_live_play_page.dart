@@ -24,6 +24,7 @@ import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/room/tv_room_settings_panel.dart';
 import 'package:pure_live/tv/tv_navigation.dart';
 import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/wallpaper/tv_wallpaper_layer.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_room_dialog.dart';
@@ -112,6 +113,8 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   @override
   void initState() {
     super.initState();
+    // One video at a time on a box: the video background waits (A17.8).
+    TvWallpaperVideo.hold();
     final arguments = widget.route.arguments;
     final (room, list) = switch (arguments) {
       final TvRoomArgs args => (args.room, args.playlist),
@@ -176,6 +179,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _closeRoom();
     _keys.dispose();
     _firstControl.dispose();
+    TvWallpaperVideo.release();
     super.dispose();
   }
 

@@ -488,7 +488,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
         }
       },
       child: Scaffold(
-        backgroundColor: palette.background,
+        backgroundColor: TvTheme.pageOf(context),
         body: TvBackground(
           // One tree for both layouts, so switching keeps the pages: always
           // expanded, the page sits beside the menu; else the rail opens over
