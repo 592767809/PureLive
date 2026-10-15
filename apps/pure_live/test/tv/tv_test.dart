@@ -32,9 +32,12 @@ import '../support.dart';
 
 /// A platform with [count] recommended rooms that all play.
 final class _TvSite extends LiveSite {
-  new(this.count);
+  new(this.count, {this.offline = const {}});
 
   final int count;
+
+  /// Rooms off air.
+  final Set<int> offline;
 
   @override
   String get id => SiteIds.bilibili;
@@ -49,7 +52,7 @@ final class _TvSite extends LiveSite {
     nick: '主播$n',
     popularity: '${1000 - n}',
     audienceMetricType: AudienceMetricType.popularity,
-    liveStatus: LiveStatus.live,
+    liveStatus: offline.contains(n) ? LiveStatus.offline : LiveStatus.live,
   );
 
   @override
@@ -96,6 +99,8 @@ Future<AppServices> _pumpApp(
   bool television = false,
   int rooms = 10,
   bool noticeAccepted = true,
+  List<int> follows = const [],
+  Set<int> offline = const {},
 }) async {
   tester.view
     ..physicalSize = const Size(1920, 1080)
@@ -111,7 +116,12 @@ Future<AppServices> _pumpApp(
     await settings.set(Settings.language, '简体中文');
     if (noticeAccepted) await base.store.meta.set(TvHomePage.noticeKey, '1');
   });
-  final site = _TvSite(rooms);
+  final site = _TvSite(rooms, offline: offline);
+  await tester.runAsync(() async {
+    for (final n in follows) {
+      await base.store.follows.add(site.room(n));
+    }
+  });
   final services = AppServices(
     store: base.store,
     cipher: base.cipher,
@@ -545,6 +555,23 @@ void main() {
     await _press(tester, LogicalKeyboardKey.select);
     await _settle(tester);
     expect(find.byKey(const ValueKey('tv-search-word-直播 7')), findsOneWidget);
+    await _close(tester, services);
+  });
+
+  testWidgets('follows off air: ← from the first column of rows goes to the rail', (tester) async {
+    final services = await _pumpApp(tester, follows: [1, 2, 3], offline: {2, 3});
+    expect(_focused, 'tv menu favorites');
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    // Up to the states, across to "未开播", OK, down into the rows.
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvRoomRow>(), isNotNull);
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(_focused, 'tv menu favorites');
     await _close(tester, services);
   });
 

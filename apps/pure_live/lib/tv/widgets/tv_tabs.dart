@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/tv/tv_theme.dart';
@@ -80,6 +81,22 @@ class TvTabBar extends StatefulWidget {
 /// The bar's state: [focusSelected] puts the focus on the current tab.
 class TvTabBarState extends State<TvTabBar> {
   final Map<String, FocusNode> _nodes = {};
+  final ScrollController _scroll = ScrollController();
+
+  /// Puts the tab of [id] in the middle of the line (only this line
+  /// scrolls), so the first and last are never cut at the screen's edge.
+  void _center(String id) {
+    final box = _node(id).context?.findRenderObject();
+    if (box == null || !_scroll.hasClients) return;
+    final viewport = RenderAbstractViewport.maybeOf(box);
+    if (viewport == null) return;
+    final position = _scroll.position;
+    final offset = viewport
+        .getOffsetToReveal(box, 0.5)
+        .offset
+        .clamp(position.minScrollExtent, position.maxScrollExtent);
+    if ((offset - position.pixels).abs() > 0.5) _scroll.jumpTo(offset);
+  }
 
   FocusNode _node(String id) => _nodes[id] ??= FocusNode(debugLabel: 'tab $id');
 
@@ -111,6 +128,7 @@ class TvTabBarState extends State<TvTabBar> {
     for (final node in _nodes.values) {
       node.dispose();
     }
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -131,6 +149,7 @@ class TvTabBarState extends State<TvTabBar> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SingleChildScrollView(
+          controller: _scroll,
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.symmetric(horizontal: scale.px(8), vertical: scale.px(6)),
           clipBehavior: Clip.none,
@@ -144,6 +163,9 @@ class TvTabBarState extends State<TvTabBar> {
                     focusNode: _node(tab.id),
                     radius: TvRadius.pill,
                     onKey: _key,
+                    onFocusChange: (focused) {
+                      if (focused) _center(tab.id);
+                    },
                     onTap: () => index == widget.selected ? widget.onRefresh?.call() : widget.onSelect(index),
                     builder: (context, focused) {
                       // Selected is a fill, focus is the ring (U.15a c3): the

@@ -97,6 +97,9 @@ class TvPopularPane extends ConsumerStatefulWidget {
   /// Creates the pane.
   const new({super.key});
 
+  /// The id of the last tab, "全部平台" (opens the panel of every platform).
+  static const String allPlatforms = '__all';
+
   @override
   ConsumerState<TvPopularPane> createState() => _TvPopularPaneState();
 }
@@ -129,8 +132,6 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
     }
   }
 
-  static const String _allPlatforms = '__all';
-
   /// The panel of every platform (A17.3 c5, the phone's A09.2 panel in the
   /// TV's look): three to a row, OK switches at once; "平台显示" at the top
   /// right edits the list.
@@ -155,26 +156,30 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
             ),
             TvButton(label: i18n('close'), onTap: () => Navigator.pop(context)),
           ],
+          // Scrolls: 34 platforms are a dozen lines, more than a TV's height.
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final width = (constraints.maxWidth - scale.px(24)) / 3;
-              return Wrap(
-                spacing: scale.px(12),
-                runSpacing: scale.px(12),
-                children: [
-                  for (final id in ids)
-                    SizedBox(
-                      width: width,
-                      child: TvButton(
-                        key: ValueKey('tv-platform-panel-$id'),
-                        autofocus: id == _current,
-                        expand: true,
-                        selected: id == _current,
-                        label: platformName(id, fallback: sites.of(id).name),
-                        onTap: () => Navigator.pop(context, id),
+              final width = (constraints.maxWidth - scale.px(36)) / 3;
+              return SingleChildScrollView(
+                padding: EdgeInsets.all(scale.px(6)),
+                child: Wrap(
+                  spacing: scale.px(12),
+                  runSpacing: scale.px(12),
+                  children: [
+                    for (final id in ids)
+                      SizedBox(
+                        width: width,
+                        child: TvButton(
+                          key: ValueKey('tv-platform-panel-$id'),
+                          autofocus: id == _current,
+                          expand: true,
+                          selected: id == _current,
+                          label: platformName(id, fallback: sites.of(id).name),
+                          onTap: () => Navigator.pop(context, id),
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               );
             },
           ),
@@ -221,7 +226,7 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
                   logo: id,
                 ),
               // c5: "全部平台" at the end opens the panel of every platform.
-              TvTab(id: _allPlatforms, label: i18n('tv_all_platforms'), icon: TvIcons.allPlatforms),
+              TvTab(id: TvPopularPane.allPlatforms, label: i18n('tv_all_platforms'), icon: TvIcons.allPlatforms),
             ],
             selected: ids.indexOf(current!),
             busy: feed.busy,

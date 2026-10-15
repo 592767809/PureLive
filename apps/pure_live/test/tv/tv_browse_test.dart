@@ -12,12 +12,14 @@ import 'package:pure_live/features/favorite/follow_refresher.dart';
 import 'package:pure_live/tv/pages/tv_favorites_pane.dart';
 import 'package:pure_live/tv/pages/tv_followed_areas_pane.dart';
 import 'package:pure_live/tv/pages/tv_history_pane.dart';
+import 'package:pure_live/tv/pages/tv_popular_pane.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
 import 'package:pure_live/tv/widgets/tv_area_dialog.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
+import 'package:pure_live/tv/widgets/tv_tabs.dart';
 
 import '../support.dart';
 
@@ -148,6 +150,55 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
     await tester.runAsync(services.close);
   }
+
+  testWidgets('A17.3 c8: "全部平台" at the end opens every platform in a panel that scrolls; picking one shows it', (
+    tester,
+  ) async {
+    final services = await pumpPlain(tester, const TvPopularPane());
+    final ids = services.sites.availableIds(services.store.settings.get(Settings.hotAreasList));
+    expect(ids.length, greaterThan(20), reason: 'more lines than a TV is high');
+    final all = find.byKey(const ValueKey('tv-tab-${TvPopularPane.allPlatforms}'));
+    await tester.ensureVisible(all);
+    await tester.tap(all);
+    await settleBrowse(tester);
+    expect(find.byKey(const ValueKey('tv-platform-panel')), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: 'no overflow');
+    final last = find.byKey(ValueKey('tv-platform-panel-${ids.last}'));
+    await tester.ensureVisible(last);
+    await settleBrowse(tester);
+    // The last platform lies inside the panel once scrolled to.
+    final panel = tester.getRect(find.byKey(const ValueKey('tv-platform-panel')));
+    expect(panel.contains(tester.getCenter(last)), isTrue);
+    await tester.tap(last);
+    await settleBrowse(tester);
+    expect(find.byKey(const ValueKey('tv-platform-panel')), findsNothing);
+    final tabs = tester.widget<TvTabBar>(find.byType(TvTabBar));
+    expect(tabs.tabs[tabs.selected].id, ids.last);
+    await closePlain(tester, services);
+  });
+
+  testWidgets('tabs: moving along the line keeps the focused tab off the edges', (tester) async {
+    final bar = GlobalKey<TvTabBarState>();
+    final services = await pumpPlain(
+      tester,
+      TvTabBar(
+        key: bar,
+        tabs: [for (var i = 0; i < 30; i++) TvTab(id: 't$i', label: '平台名称 $i')],
+        selected: 0,
+        onSelect: (_) {},
+      ),
+    );
+    bar.currentState!.focusSelected();
+    await tester.pump();
+    for (var i = 0; i < 29; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pump();
+    }
+    final last = tester.getRect(find.byKey(const ValueKey('tv-tab-t29')));
+    final width = tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    expect(last.right, lessThan(width - 8), reason: 'room for the ring and the zoom');
+    await closePlain(tester, services);
+  });
 
   const area = LiveArea(platform: 'bilibili', areaId: '1', areaName: '英雄联盟', typeName: '网游');
 
