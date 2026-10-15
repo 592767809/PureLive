@@ -2461,7 +2461,6 @@
     "settings_search_empty_hint": "换个说法试试，例如“弹幕速度”“代理”“画质”。",
     "settings_search_hint": "搜索设置",
     "settings_section_danmaku": "弹幕",
-    "settings_section_network": "网络与代理",
     "settings_section_recording": "录制",
     "settings_show_unplayable": "显示不能直接播放的直播",
     "settings_show_unplayable_desc": "热门和分区里也显示付费、加锁、仅限 App 等直播；关注和搜索总是显示",

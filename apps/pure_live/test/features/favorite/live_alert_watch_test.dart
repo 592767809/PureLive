@@ -34,6 +34,15 @@ final class _Site extends LiveSite {
 LiveRoom _room(String id, {LiveStatus? status, String nick = '', String title = ''}) =>
     LiveRoom(platform: 'douyu', roomId: id, nick: nick, title: title, liveStatus: status);
 
+/// Waits (real time, at most 10 s) until [done] holds: file writes are slow
+/// when the whole suite runs at once.
+Future<void> _until(Future<bool> Function() done) async {
+  final end = DateTime.now().add(const Duration(seconds: 10));
+  while (!await done() && DateTime.now().isBefore(end)) {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+  }
+}
+
 const LiveAlertTexts _texts = (title: '{name} 开播了', empty: '点按进入直播间', channel: '开播提醒', channelDescription: '说明');
 
 void main() {
@@ -166,12 +175,12 @@ void main() {
       )..start();
       addTearDown(controller.dispose);
       await controller.firstCheck;
-      await pumpEventQueue();
+      await _until(() async => scheduled.isNotEmpty);
       expect(scheduled, [false], reason: '"开播提醒" is off by default');
       expect(await file.read(), isNull);
 
       await store.settings.set(Settings.liveAlertEnabled, true);
-      await pumpEventQueue(times: 50);
+      await _until(() async => scheduled.last && await file.read() != null);
       expect(scheduled.last, isTrue);
       final written = (await file.read())!;
       expect(written.rooms.map((room) => room.identityKey), ['douyu:1']);
@@ -179,7 +188,7 @@ void main() {
       expect(written.nextCheck, DateTime(2026, 10, 15, 20, 20), reason: 'its 15-minute timer and 5 minutes more');
 
       await store.settings.set(Settings.liveAlertBackground, false);
-      await pumpEventQueue(times: 50);
+      await _until(() async => !scheduled.last && await file.read() == null);
       expect(scheduled.last, isFalse);
       expect(await file.read(), isNull);
     });
@@ -206,7 +215,7 @@ void main() {
       )..start();
       addTearDown(controller.dispose);
       await controller.firstCheck;
-      await pumpEventQueue(times: 50);
+      await _until(() async => (await file.read())?.states.containsKey('douyu:1') ?? false);
 
       // Frozen: the background check sees 甲 go live and tells of it.
       site.details['1'] = _room('1', status: LiveStatus.live);

@@ -2462,7 +2462,6 @@
     "settings_search_empty_hint": "Try other words, e.g. “danmaku speed”, “proxy”, “quality”.",
     "settings_search_hint": "Search settings",
     "settings_section_danmaku": "Danmaku",
-    "settings_section_network": "Network and proxy",
     "settings_section_recording": "Recording",
     "settings_show_unplayable": "Show rooms that cannot be played",
     "settings_show_unplayable_desc": "Popular and Areas also list paid, locked and app-only rooms; follows and search always show them",

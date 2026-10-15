@@ -422,6 +422,14 @@ final class FavoriteController extends ChangeNotifier {
     final background = liveAlertBackground;
     final alerts = liveAlerts;
     if (background == null || alerts == null || _disposed || !_backgroundOn) return;
+    // What the background check wrote meanwhile is newer: kept, not
+    // overwritten by an older state of this app.
+    try {
+      alerts.tracker.adopt((await background.file.read())?.states ?? const {});
+    } on Object catch (error, stack) {
+      _logError(error, stack);
+    }
+    if (_disposed || !_backgroundOn) return;
     final targets = liveAlertTargets;
     final keys = {for (final room in targets) room.identityKey};
     final interval = store.settings.get(Settings.autoRefreshFavorite)

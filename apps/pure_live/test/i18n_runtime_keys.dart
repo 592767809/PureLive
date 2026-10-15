@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:live_core/live_core.dart';
 import 'package:live_media/live_media.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/features/live_play/local_interaction/logic/local_catalog.dart';
 import 'package:pure_live/features/live_play/logic/room_layout.dart';
@@ -59,6 +60,8 @@ List<RuntimeKeyRule> runtimeKeyRules() {
     ),
     // features/popular/popular_grid.dart (else the adapter's directoryNoticeKey)
     (template: 'popular_scope_*', keys: [for (final id in SiteIds.supported) 'popular_scope_$id'], optional: true),
+    // The TV side menu's icon choices (A17.9-31).
+    (template: 'tv_icon_*', keys: [for (final key in TvIcons.menuChoices.keys) 'tv_icon_$key'], optional: false),
     // features/settings/settings_editors.dart
     (
       template: 'settings_twitch_language_*',
