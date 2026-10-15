@@ -53,7 +53,6 @@ abstract final class TvIcons {
   /// "稍后再看".
   static const IconData videoLater = Remix.time_line;
 
-
   /// "导航栏始终展开" (A17.2 c2).
   static const IconData menuExpand = Remix.side_bar_line;
 
