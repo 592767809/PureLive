@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_core/live_core.dart';
@@ -8,14 +9,19 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/search/search_history.dart';
 import 'package:pure_live/features/search/search_model.dart';
+import 'package:pure_live/features/search/search_ranking.dart';
+import 'package:pure_live/features/search/search_scope.dart';
+import 'package:pure_live/features/search/search_widgets.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/route_args.dart';
+import 'package:pure_live/shared/phone_bridge.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_room_grid.dart';
+import 'package:pure_live/tv/widgets/tv_room_row.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
 
@@ -34,17 +40,21 @@ class TvSearchPage extends StatelessWidget {
   );
 }
 
-/// Search with the remote (pure_live_TV `TvSearchPage` over v4's search
-/// model, M13.4):
+/// Search with the remote on one page (A17.3 c11, C2 A; the phone's A09.7
+/// over v4's search model):
 ///
 /// - the field opens the system keyboard through a native input dialog on
 ///   Android ([TvTextInput]: the TV's IME and its voice input, where the box
-///   has one), a text field elsewhere;
-/// - before a search, the recent words (v4's search history): OK searches
-///   one again, a held OK removes it;
+///   has one), a text field elsewhere; "用手机输入" types on a phone that
+///   scans a code (A17.9's LAN page);
+/// - under it the phone's filters: "直播间 / 主播", "包含未开播", the
+///   order (rooms), and the scope line that opens the scope panel;
 /// - the platform tabs (all, then the platform list) search the same words
-///   there; results are rooms in a grid that loads more at its end;
-/// - Back from the results goes back to the field and the history.
+///   there; the results are below them (rooms in the grid, streamers as
+///   rows, not as blown-up avatars) and up leaves them for the tabs;
+/// - before a search, the recent words: OK searches one again, a held OK
+///   removes it, "清空" asks first (c12);
+/// - Back from the results goes back to the field and the recent words.
 class TvSearchPane extends ConsumerStatefulWidget {
   /// Creates the pane; [initial] is searched at once.
   const new({this.initial, super.key});
@@ -59,9 +69,11 @@ class TvSearchPane extends ConsumerStatefulWidget {
 class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
   late final SearchModel _model;
   late final SearchHistory _history;
+  late final SearchScopeStore _scope;
   final FocusNode _field = FocusNode(debugLabel: 'tv search field');
   final GlobalKey<TvTabBarState> _tabs = GlobalKey();
   final GlobalKey<TvRoomGridState> _grid = GlobalKey();
+  final GlobalKey<TvRoomRowsState> _rows = GlobalKey();
   bool _showResults = false;
   TvHomeHost? _host;
 
@@ -82,9 +94,16 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
       ),
     )..addListener(_changed);
     _history = SearchHistory(store.meta)..addListener(_changed);
+    _scope = SearchScopeStore(store.meta);
     unawaited(_history.load());
+    final scopeLoaded = _scope.load().then((excluded) {
+      if (mounted) _model.setExcluded(excluded);
+    });
     if (widget.initial case final word? when word.trim().isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _search(word));
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await scopeLoaded;
+        if (mounted) _search(word);
+      });
     }
   }
 
@@ -125,7 +144,7 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
   }
 
   /// Clears the recent words after asking (pure_live_TV asked; the focus
-  /// starts on cancel, U.15a c12).
+  /// starts on cancel, A17.3 c12).
   Future<void> _clearRecent(int count) async {
     final confirmed = await showTvConfirm(
       context,
@@ -145,10 +164,59 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
     unawaited(_model.search(text));
   }
 
+  /// "用手机输入": the words come from a phone that scans the code.
+  Future<void> _phoneInput(PhoneBridge bridge) async {
+    final values = await bridge.input(
+      context,
+      PhoneInputRequest(
+        title: i18n('tv_search_phone'),
+        fields: [
+          PhoneInputField(
+            key: 'keyword',
+            label: i18n('tv_menu_search'),
+            initial: _model.keyword,
+            hint: i18n('tv_search_hint'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (values?['keyword'] case final word? when word.trim().isNotEmpty) _search(word);
+  }
+
+  Future<void> _chooseSort() async {
+    final chosen = await showTvChoice<SearchSortMode>(
+      context,
+      title: i18n('search_sort'),
+      current: _model.sort,
+      options: [
+        for (final mode in SearchSortMode.values) TvChoice(value: mode, label: SearchOptionsBar.sortLabel(mode)),
+      ],
+    );
+    if (chosen != null) _model.setSort(chosen);
+  }
+
+  /// The phone's scope panel: which platforms "全部" searches.
+  Future<void> _openScope() async {
+    final excluded = await showSearchScopePanel(context, sites: _model.sites, excluded: _model.excluded);
+    if (!mounted || setEquals(excluded, _model.excluded)) return;
+    unawaited(_scope.save(excluded));
+    _model.setExcluded(excluded, draft: _model.keyword);
+  }
+
+  bool _enterResults() {
+    if (!_showResults) return false;
+    return _model.mode == SearchMode.rooms
+        ? _grid.currentState?.enter() ?? false
+        : _rows.currentState?.enter() ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scale = TvScale.of(context);
     final standalone = TvHomeScope.maybeOf(context) == null;
+    final bridge = PhoneBridge.maybeOf(context);
+    final rooms = _model.mode == SearchMode.rooms;
     return PopScope<Object?>(
       canPop: !standalone || !_showResults,
       onPopInvokedWithResult: (didPop, _) {
@@ -167,6 +235,67 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
               onSubmitted: _search,
             ),
           ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(horizontal: scale.px(12), vertical: scale.px(4)),
+            child: Row(
+              children: [
+                for (final mode in SearchMode.values) ...[
+                  TvButton(
+                    key: ValueKey('tv-search-mode-${mode.name}'),
+                    icon: mode == SearchMode.rooms ? TvIcons.searchRooms : TvIcons.searchAnchors,
+                    label: i18n(mode == SearchMode.rooms ? 'search_mode_rooms' : 'search_mode_anchors'),
+                    selected: _model.mode == mode,
+                    small: true,
+                    onTap: () => _model.setMode(mode, draft: _model.keyword),
+                  ),
+                  SizedBox(width: scale.px(8)),
+                ],
+                SizedBox(width: scale.px(8)),
+                TvButton(
+                  key: const ValueKey('tv-search-offline'),
+                  icon: _model.includeOffline ? TvIcons.ticked : null,
+                  label: i18n('search_include_offline'),
+                  selected: _model.includeOffline,
+                  small: true,
+                  onTap: () => _model.setIncludeOffline(value: !_model.includeOffline),
+                ),
+                if (rooms) ...[
+                  SizedBox(width: scale.px(16)),
+                  TvButton(
+                    key: const ValueKey('tv-search-sort'),
+                    icon: TvIcons.sort,
+                    label: SearchOptionsBar.sortShortLabel(_model.sort),
+                    small: true,
+                    onTap: () => unawaited(_chooseSort()),
+                  ),
+                ],
+                if (bridge != null) ...[
+                  SizedBox(width: scale.px(16)),
+                  TvButton(
+                    key: const ValueKey('tv-search-phone'),
+                    icon: TvIcons.phoneInput,
+                    label: i18n('tv_search_phone'),
+                    small: true,
+                    onTap: () => unawaited(_phoneInput(bridge)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: scale.px(12), vertical: scale.px(4)),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TvButton(
+                key: const ValueKey('tv-search-scope'),
+                icon: TvIcons.searchScope,
+                label: SearchCoverageLine.textOf(_model),
+                small: true,
+                onTap: () => unawaited(_openScope()),
+              ),
+            ),
+          ),
           TvTabBar(
             key: _tabs,
             small: true,
@@ -183,7 +312,7 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
             busy: _model.loading || _model.loadingMore,
             onSelect: (index) => _model.select(index, draft: _model.keyword),
             onRefresh: () => _search(_model.keyword),
-            onDown: _showResults ? () => _grid.currentState?.enter() ?? false : null,
+            onDown: _showResults ? _enterResults : null,
           ),
           Expanded(child: _showResults ? _results() : _recent()),
         ],
@@ -191,11 +320,28 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
     );
   }
 
+  void _loadMore() {
+    if (_model.hasMore && !_model.loadingMore && !_model.loading) unawaited(_model.loadMore());
+  }
+
   Widget _results() {
-    final rooms = _model.results;
-    if (rooms.isEmpty) {
+    if (_model.resultCount == 0) {
       if (_model.loading) return const TvSkeletonGrid();
       final unsupported = _model.unsupported;
+      if (unsupported == null && _model.hidesAllOffline) {
+        return TvStatusView(
+          icon: TvIcons.noResults,
+          title: i18n('search_no_live_results'),
+          subtitle: i18n('search_offline_hidden_desc'),
+          actions: [
+            TvStatusAction(
+              label: i18n('search_show_offline'),
+              icon: TvIcons.ticked,
+              onTap: () => _model.setIncludeOffline(value: true),
+            ),
+          ],
+        );
+      }
       return TvStatusView(
         icon: TvIcons.noResults,
         title: unsupported != null
@@ -206,14 +352,26 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
             : i18n('tv_search_failed', args: {'platforms': _model.failed.map(platformName).join('、')}),
       );
     }
+    if (_model.mode == SearchMode.anchors) {
+      final live = {
+        for (final anchor in _model.anchors)
+          if (anchor.isLive) anchor.key,
+      };
+      return TvRoomRows(
+        key: _rows,
+        rooms: [for (final anchor in _model.anchors) anchor.toRoom()],
+        subtitleOf: (room) =>
+            '${platformName(room.platform)} · ${i18n(live.contains(room.identityKey) ? 'live' : 'offline')}',
+        onLeaveUp: () => _tabs.currentState?.focusSelected(),
+        onEndReached: _loadMore,
+      );
+    }
     return TvRoomGrid(
       key: _grid,
-      rooms: rooms,
+      rooms: _model.results,
       showPlatform: _model.selected == 0,
       onLeaveUp: () => _tabs.currentState?.focusSelected(),
-      onEndReached: () {
-        if (_model.hasMore && !_model.loadingMore && !_model.loading) unawaited(_model.loadMore());
-      },
+      onEndReached: _loadMore,
     );
   }
 

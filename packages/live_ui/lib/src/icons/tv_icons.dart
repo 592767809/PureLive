@@ -217,6 +217,21 @@ abstract final class TvIcons {
   /// A recent search word.
   static const IconData recentWord = Icons.history_rounded;
 
+  /// Search for rooms (A17.3 c11).
+  static const IconData searchRooms = Icons.live_tv_rounded;
+
+  /// Search for streamers (A17.3 c11).
+  static const IconData searchAnchors = Icons.person_search_rounded;
+
+  /// The order of the results.
+  static const IconData sort = Icons.sort_rounded;
+
+  /// What the chosen platforms find (opens the scope panel).
+  static const IconData searchScope = Icons.info_outline_rounded;
+
+  /// Type on a phone ("用手机输入": a code to scan).
+  static const IconData phoneInput = Icons.qr_code_2_rounded;
+
   /// Manage the network TV playlists.
   static const IconData manage = Icons.tune_rounded;
 

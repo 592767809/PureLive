@@ -2921,6 +2921,7 @@
     "tv_search_failed": "These platforms did not answer: {platforms}",
     "tv_search_hint": "Search rooms, streamers or room numbers",
     "tv_search_intro": "Press OK to open the input and type or speak with the remote",
+    "tv_search_phone": "Type on phone",
     "tv_search_recent": "Recent searches",
     "tv_search_recent_hint": "Hold OK to remove one",
     "tv_search_unsupported": "{platform} has no search",

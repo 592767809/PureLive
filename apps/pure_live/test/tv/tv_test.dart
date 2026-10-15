@@ -25,6 +25,7 @@ import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
+import 'package:pure_live/tv/widgets/tv_room_row.dart';
 
 import '../features/live_play/live_play_support.dart';
 import '../support.dart';
@@ -63,6 +64,14 @@ final class _TvSite extends LiveSite {
     if (page == 1)
       for (var n = 0; n < count; n++)
         if (room(n).title.contains(keyword)) room(n),
+  ];
+
+  @override
+  Future<List<LiveAnchorItem>> searchAnchors(String keyword, {int page = 1, int pageSize = 30}) async => [
+    if (page == 1)
+      for (var n = 0; n < count; n++)
+        if (room(n).title.contains(keyword))
+          LiveAnchorItem(roomId: '$n', avatar: '', userName: '主播$n', liveStatus: n.isOdd),
   ];
 
   @override
@@ -473,6 +482,69 @@ void main() {
     await _settle(tester);
     expect(find.byKey(const ValueKey('tv-search-word-直播 7')), findsOneWidget);
     expect(find.byType(TvHomePage), findsOneWidget);
+    await _close(tester, services);
+  });
+
+  testWidgets('A17.3 c11, c12: one search page — filters, streamers as rows, up to the platforms, clear asks first', (
+    tester,
+  ) async {
+    TvTextInput.prompt = (
+      context, {
+      required title,
+      hint = '',
+      text = '',
+      subtitle,
+      numeric = false,
+      suffix,
+      maxLength,
+    }) async => '直播 7';
+    addTearDown(() => TvTextInput.prompt = TvTextInput.defaultPrompt);
+    final services = await _pumpApp(tester);
+    for (var i = 0; i < 5; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(_focused, 'tv search field');
+    // The filters are on the page before a search.
+    for (final key in ['tv-search-mode-rooms', 'tv-search-mode-anchors', 'tv-search-offline', 'tv-search-sort']) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+    }
+    expect(find.byKey(const ValueKey('tv-search-scope')), findsOneWidget);
+
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester, rounds: 6);
+    expect(find.byType(TvRoomCard), findsWidgets);
+
+    // "主播": the same words again; rows, not blown-up avatars; no order.
+    await tester.tap(find.byKey(const ValueKey('tv-search-mode-anchors')));
+    await _settle(tester, rounds: 6);
+    expect(find.byType(TvRoomRow), findsOneWidget);
+    expect(find.byType(TvRoomCard), findsNothing);
+    expect(find.text('主播7'), findsOneWidget);
+    expect(find.textContaining('正在直播'), findsOneWidget);
+    expect(find.byKey(const ValueKey('tv-search-sort')), findsNothing);
+    // Up from the results goes back to the platforms.
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvRoomRow>(), isNotNull);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focused, 'tab all');
+
+    // Back to the recent words; "清空" asks with the focus on cancel.
+    await tester.binding.handlePopRoute();
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('tv-search-clear')));
+    await _settle(tester);
+    expect(find.text('清空最近搜索'), findsOneWidget);
+    expect(
+      FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvButton>()?.key,
+      const ValueKey('tv-confirm-no'),
+    );
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('tv-search-word-直播 7')), findsOneWidget);
     await _close(tester, services);
   });
 

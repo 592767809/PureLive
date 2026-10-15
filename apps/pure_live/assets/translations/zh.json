@@ -2920,6 +2920,7 @@
     "tv_search_failed": "这些平台没有回应：{platforms}",
     "tv_search_hint": "搜索直播间、主播或房间号",
     "tv_search_intro": "按 OK 打开输入框，用遥控器或语音输入要找的内容",
+    "tv_search_phone": "用手机输入",
     "tv_search_recent": "最近搜索",
     "tv_search_recent_hint": "长按 OK 删除一条",
     "tv_search_unsupported": "{platform} 不支持搜索",

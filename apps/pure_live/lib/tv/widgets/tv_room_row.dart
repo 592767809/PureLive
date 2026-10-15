@@ -16,10 +16,14 @@ import 'package:pure_live/tv/widgets/tv_room_dialog.dart';
 /// A09.3): the avatar, the streamer, the platform and the last title.
 class TvRoomRow extends StatelessWidget {
   /// Creates the row of [room].
-  const new({required this.room, this.onTap, this.onLongPress, this.onKey, this.focusNode, super.key});
+  const new({required this.room, this.subtitle, this.onTap, this.onLongPress, this.onKey, this.focusNode, super.key});
 
   /// The room.
   final LiveRoom room;
+
+  /// The second line instead of the last title (a streamer found by
+  /// search: "正在直播" / "未直播").
+  final String? subtitle;
 
   /// OK.
   final VoidCallback? onTap;
@@ -77,7 +81,7 @@ class TvRoomRow extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    room.title.trim(),
+                    subtitle ?? room.title.trim(),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: scale.font(TvTextSize.small, color: palette.textSecondary, height: 1.4),
@@ -97,13 +101,19 @@ class TvRoomRow extends StatelessWidget {
 /// channel list, a held OK opens the card dialog.
 class TvRoomRows extends ConsumerStatefulWidget {
   /// Creates the rows.
-  const new({required this.rooms, this.onLeaveUp, super.key});
+  const new({required this.rooms, this.onLeaveUp, this.onEndReached, this.subtitleOf, super.key});
 
   /// The rooms.
   final List<LiveRoom> rooms;
 
   /// Up on the first line.
   final VoidCallback? onLeaveUp;
+
+  /// Near the last line (load more).
+  final VoidCallback? onEndReached;
+
+  /// The second line of a room ([TvRoomRow.subtitle]).
+  final String Function(LiveRoom room)? subtitleOf;
 
   @override
   ConsumerState<TvRoomRows> createState() => TvRoomRowsState();
@@ -131,11 +141,13 @@ class TvRoomRowsState extends ConsumerState<TvRoomRows> {
           crossSpacing: spacing,
           mainSpacing: spacing,
           onLeaveUp: widget.onLeaveUp,
+          onEndReached: widget.onEndReached,
           itemBuilder: (context, index, node, onKey) {
             final room = widget.rooms[index];
             return TvRoomRow(
               key: ValueKey('tv-room-row-${room.identityKey}'),
               room: room,
+              subtitle: widget.subtitleOf?.call(room),
               focusNode: node,
               onKey: onKey,
               onTap: () => unawaited(openTvRoom(room, playlist: widget.rooms)),
