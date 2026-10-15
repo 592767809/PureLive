@@ -43,8 +43,12 @@ class AndroidVideoController extends PlatformVideoController {
 
   NativePlayer get platform => player.platform as NativePlayer;
 
+  /// Pure Live: asynchronous, so the UI isolate keeps drawing while mpv
+  /// rebuilds the output for a new Surface (the synchronous call held the
+  /// room's first frame for about 0.3 s on the K90). The requests still run
+  /// one after another in the order they are awaited.
   Future<void> setProperty(String key, String value) async {
-    await platform.setProperty(key, value, waitForInitialization: false);
+    await platform.setPropertyAsync(key, value);
   }
 
   Future<void> setProperties(Map<String, String> properties) async {

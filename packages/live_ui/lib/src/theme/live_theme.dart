@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:live_ui/src/theme/live_colors.dart';
 import 'package:live_ui/src/theme/metrics.dart';
+import 'package:live_ui/src/theme/page_transitions.dart';
 import 'package:live_ui/src/widgets/app_chip.dart';
 import 'package:live_ui/src/widgets/focus_ring.dart';
 
-/// The page transitions of 3.x (`appPageTransitionsTheme`).
+/// The page transitions (A03.5): a spring slide on every platform but
+/// Apple's (3.x had Flutter's fade-forwards on Android and Windows, which
+/// faded both pages through offscreen layers each frame, R01.3).
 ///
 /// Android keeps the system back dispatch but lets an unclaimed gesture commit
 /// through the Navigator's regular pop: Flutter's gesture-owned shared element
@@ -12,8 +15,9 @@ import 'package:live_ui/src/widgets/focus_ring.dart';
 /// versions (Pure Live #852; flutter/flutter#153577).
 const PageTransitionsTheme appPageTransitionsTheme = PageTransitionsTheme(
   builders: <TargetPlatform, PageTransitionsBuilder>{
-    TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
-    TargetPlatform.windows: FadeForwardsPageTransitionsBuilder(),
+    TargetPlatform.android: SpringPageTransitionsBuilder(),
+    TargetPlatform.windows: SpringPageTransitionsBuilder(),
+    TargetPlatform.linux: SpringPageTransitionsBuilder(),
   },
 );
 

@@ -78,6 +78,11 @@ abstract final class AppMotion {
   /// stiffness 250, a period of 0.4 s (HyperOS's rubber band).
   static final SpringDescription overscrollSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 250);
 
+  /// A page pushed or popped (A03.5): mass 1, stiffness 300, critically
+  /// damped; it settles in about 0.38 s, three quarters of the way in the
+  /// first 0.15 s and gently at the end, without passing its place.
+  static final SpringDescription pageTransitionSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 300);
+
   /// Small controls (a switch's knob, a chip): Material 3's fast spatial
   /// spring, damping ratio 0.9, stiffness 1400.
   static final SpringDescription controlSpring = SpringDescription.withDampingRatio(
@@ -196,4 +201,28 @@ class _FromLastFrame extends Simulation {
 
   @override
   bool isDone(double time) => _simulation.isDone(_shifted(time));
+}
+
+/// [spring] from 0 to 1 as a [Curve] over [duration] (A03.5): a route's
+/// animation runs for a fixed time, so the spring is sampled at that time
+/// and scaled to end exactly at 1.
+class SpringCurve extends Curve {
+  /// The curve of [spring] over [duration].
+  new(this.spring, this.duration) : _simulation = SpringSimulation(spring, 0, 1, 0) {
+    _end = _simulation.x(_seconds);
+  }
+
+  /// The spring.
+  final SpringDescription spring;
+
+  /// How long the animation runs.
+  final Duration duration;
+
+  final SpringSimulation _simulation;
+  late final double _end;
+
+  double get _seconds => duration.inMicroseconds / Duration.microsecondsPerSecond;
+
+  @override
+  double transformInternal(double t) => _simulation.x(t * _seconds) / _end;
 }

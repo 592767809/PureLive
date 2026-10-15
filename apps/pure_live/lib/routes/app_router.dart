@@ -123,25 +123,23 @@ GoRouter buildAppRouter({
   ],
 );
 
-/// The live room's page: the app's fade-forwards transition for the room
-/// itself, while the page under it stays where it is (M13.16).
+/// The live room's page: the app's spring slide for the room itself
+/// (A03.5), while the page under it stays where it is (M13.16).
 ///
 /// With a `MaterialPage` the page under the room slides in from a quarter
-/// of the screen to the left for 450 ms (an emphasized curve) when the room
-/// closes, so a tab tapped where it rests right after leaving a room hit
-/// whatever was there instead (often the tab already chosen: "the tap did
-/// nothing"). A page route that is not a Material one is not followed by
-/// the page under it (`MaterialRouteTransitionMixin.canTransitionTo`).
+/// of the screen to the left when the room closes, so a tab tapped where it
+/// rests right after leaving a room hit whatever was there instead (often
+/// the tab already chosen: "the tap did nothing"). A page route that is not
+/// a Material one is not followed by the page under it
+/// (`MaterialRouteTransitionMixin.canTransitionTo`).
 Page<Object?> liveRoomPage({required LocalKey key, required Widget child, Object? arguments}) =>
     CustomTransitionPage<Object?>(
       key: key,
       name: RoutePath.kLivePlay,
       arguments: arguments,
-      transitionDuration: const Duration(milliseconds: FadeForwardsPageTransitionsBuilder.kTransitionMilliseconds),
-      reverseTransitionDuration: const Duration(
-        milliseconds: FadeForwardsPageTransitionsBuilder.kTransitionMilliseconds,
-      ),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) => const FadeForwardsPageTransitionsBuilder()
-          .buildTransitions<Object?>(null, context, animation, secondaryAnimation, child),
+      transitionDuration: SpringPageTransitionsBuilder.duration,
+      reverseTransitionDuration: SpringPageTransitionsBuilder.reverseDuration,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          SpringPageTransition(animation: animation, secondaryAnimation: secondaryAnimation, child: child),
       child: child,
     );

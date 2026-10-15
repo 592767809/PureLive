@@ -1139,6 +1139,22 @@ class NativePlayer extends PlatformPlayer {
     calloc.free(data);
   }
 
+  /// Sets [property] like [setProperty] without blocking this isolate: the
+  /// request is queued on the mpv core (`mpv_set_property_async`) and the
+  /// future completes with its reply. Requests run in the order they were
+  /// made, so a sequence awaited one by one keeps its order.
+  ///
+  /// Pure Live (docs/R-性能和流畅度/R01-基准和测量/R01.3-真实操作的掉帧): the Android
+  /// video output's `vo`/`wid` changes rebuild the decoder; made
+  /// synchronously on the UI isolate they held the first frame of a room for
+  /// about 0.3 s.
+  Future<void> setPropertyAsync(String property, String value) async {
+    if (disposed) {
+      throw AssertionError('[Player] has been disposed');
+    }
+    await _setPropertyString(property, value);
+  }
+
   /// Retrieves the value of a property from the internal libmpv instance of this [Player].
   /// Please use this method only if you know what you are doing, existing methods in [Player] implementation are suited for the most use cases.
   ///
