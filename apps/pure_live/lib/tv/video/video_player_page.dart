@@ -9,6 +9,7 @@ import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:live_vod/live_vod.dart';
+import 'package:pure_live/app/music_player.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
@@ -133,6 +134,7 @@ class _TvVideoPlayerPageState extends ConsumerState<TvVideoPlayerPage> {
   void initState() {
     super.initState();
     TvWallpaperVideo.hold();
+    unawaited(yieldMusicToOtherPlayback(ref));
     _danmakuOn = _store.prefs.danmaku;
     _subtitlesOn = _store.prefs.subtitles;
     _states = _session.states.listen(_stateChanged);

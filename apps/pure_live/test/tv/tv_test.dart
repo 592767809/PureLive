@@ -619,7 +619,7 @@ void main() {
     expect(find.text('直播'), findsOneWidget);
     await _press(tester, LogicalKeyboardKey.select);
     await _settle(tester);
-    expect(find.byType(TvOptionRow), findsNWidgets(2));
+    expect(find.byType(TvOptionRow), findsNWidgets(3), reason: '直播, 视频, 音乐');
     await _press(tester, LogicalKeyboardKey.arrowDown);
     await _press(tester, LogicalKeyboardKey.select);
     await _settle(tester, rounds: 6);
@@ -645,6 +645,21 @@ void main() {
     ]);
     expect(_focused, 'tv menu videoSearch');
     expect(find.byKey(const ValueKey('tv-video-login-gate')), findsOneWidget, reason: 'signed out');
+
+    // A17.7: music lands on "我的".
+    for (var i = 0; i < 6; i++) {
+      if (_focused == 'tv menu mode') break;
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+    }
+    expect(_focused, 'tv menu mode');
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester, rounds: 6);
+    expect(services.store.settings.get(Settings.tvMode), 'music');
+    expect(_focused, 'tv menu musicMine');
+    expect(find.byKey(const ValueKey('tv-menu-musicNow')), findsOneWidget);
     await _close(tester, services);
   });
 

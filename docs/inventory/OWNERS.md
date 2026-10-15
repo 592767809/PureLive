@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 213 条；设置 259 个（分节默认 23 条、单独指定 102 个）；来源 35 个；通道 17 个。
+路径规则 213 条；设置 266 个（分节默认 24 条、单独指定 102 个）；来源 35 个；通道 17 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -24,7 +24,7 @@
 | A13 网络电视和多画面界面 | 2 |  |  |  |  |
 | A15 小页面 | 4 |  |  |  |  |
 | A16 桌面界面 | 1 | 12 |  |  |  |
-| A17 电视界面 | 3 | 12 |  |  |  |
+| A17 电视界面 | 3 | 19 |  |  |  |
 | C01 进房和房间逻辑 | 2 | 3 |  |  |  |
 | C02 小窗、画中画、后台播放 | 3 | 8 |  |  | 1 |
 | C03 直播间工具 |  | 2 |  |  |  |
@@ -160,7 +160,7 @@
 ## A17 电视界面
 
 - 代码：`apps/pure_live/lib/routes/tv_router.dart`、`apps/pure_live/lib/tv/`、`apps/pure_live/lib/shared/phone_bridge.dart`
-- 设置：`tvFocusZoom`、`tvMenuAlwaysExpanded`、`tvMode`、`tvMenuOrder`、`tvMenuHidden`、`tvMenuIcons`、`tvWallpaperKind`、`tvWallpaperValue`、`tvWallpaperSource`、`tvWallpaperFit`、`tvWallpaperMask`、`tvWallpaperBlur`
+- 设置：`tvFocusZoom`、`tvMenuAlwaysExpanded`、`tvMode`、`tvMenuOrder`、`tvMenuHidden`、`tvMenuIcons`、`tvWallpaperKind`、`tvWallpaperValue`、`tvWallpaperSource`、`tvWallpaperFit`、`tvWallpaperMask`、`tvWallpaperBlur`、`musicPlayMode`、`musicAudioOnly`、`musicResumeOnOpen`、`musicProgressLine`、`musicLossless`、`musicCacheLimitMb`、`musicThirdPartyEndpoints`
 
 ## C01 进房和房间逻辑
 

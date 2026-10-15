@@ -1786,6 +1786,48 @@ abstract final class Settings {
   /// it is set (A17.8 h7).
   static const tvWallpaperBlur = DoubleSetting('tvWallpaperBlur', section: 'app', defaultValue: 0, min: 0, max: 48);
 
+  // ---- music mode (A17.7) ----
+
+  /// New (A17.7, pure_live_TV `musicDefaultPlayMode`): how the music queue
+  /// moves on — `sequence`, `repeatOne` or `shuffle` (live_vod `PlayMode`
+  /// names; the TV client stored `sequence`/`loopOne`/`random`).
+  static const musicPlayMode = StringSetting(
+    'musicPlayMode',
+    section: 'music',
+    defaultValue: 'sequence',
+    allowed: {'sequence', 'repeatOne', 'shuffle'},
+  );
+
+  /// New (A17.7, pure_live_TV `musicDefaultAudioOnly`): music plays the
+  /// audio only (cover and lyrics on screen); off shows the video picture.
+  static const musicAudioOnly = BoolSetting('musicAudioOnly', section: 'music', defaultValue: true);
+
+  /// New (A17.7, pure_live_TV `musicResumeOnOpen`): opening music mode
+  /// restores the last queue at the last position.
+  static const musicResumeOnOpen = BoolSetting('musicResumeOnOpen', section: 'music', defaultValue: false);
+
+  /// New (A17.7, pure_live_TV `musicPlayerProgressBar`): a thin progress
+  /// line along the bottom of the player while its controls are hidden.
+  static const musicProgressLine = BoolSetting('musicProgressLine', section: 'music', defaultValue: true);
+
+  /// New (A17.7): prefer the Hi-Res (FLAC) audio when the account gets it.
+  static const musicLossless = BoolSetting('musicLossless', section: 'music', defaultValue: false);
+
+  /// New (A17.7): the audio cache's size limit in MiB (0 turns caching off;
+  /// a TV box has little storage).
+  static const musicCacheLimitMb = IntSetting(
+    'musicCacheLimitMb',
+    section: 'music',
+    defaultValue: 1024,
+    min: 0,
+    max: 20480,
+  );
+
+  /// New (A17.7): the third-party service addresses of music mode (playlist
+  /// mirrors, lyric services; live_vod `ThirdPartyEndpoints.toJson`); empty
+  /// keeps every default.
+  static const musicThirdPartyEndpoints = JsonSetting('musicThirdPartyEndpoints', section: 'music', defaultValue: {});
+
   // ---- internal ----
 
   /// The LAN-sync device id 3.x generated (remote_sync_service.dart:134).
@@ -2010,6 +2052,13 @@ abstract final class Settings {
     tvWallpaperFit,
     tvWallpaperMask,
     tvWallpaperBlur,
+    musicPlayMode,
+    musicAudioOnly,
+    musicResumeOnOpen,
+    musicProgressLine,
+    musicLossless,
+    musicCacheLimitMb,
+    musicThirdPartyEndpoints,
   ];
 
   static final Map<String, Setting<Object>> _byKey = {for (final setting in all) setting.key: setting};

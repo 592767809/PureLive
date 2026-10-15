@@ -565,6 +565,13 @@ NOTES: dict[str, dict] = {
         'ui': '电视设置 › 导航栏显示控制（确认显示或隐藏）',
         'when': '马上',
     },
+    'musicPlayMode': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7，pure_live_TV 的默认播放模式）：列表循环 / 单曲循环 / 随机，默认列表循环', 'when': '马上'},
+    'musicAudioOnly': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7）：音乐只放声音（封面和歌词），默认开', 'when': '下一首'},
+    'musicResumeOnOpen': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7）：打开音乐模式时接着上次的队列和位置，默认关', 'when': '下次打开'},
+    'musicProgressLine': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7）：控制栏收起时底边显示进度线，默认开', 'when': '马上'},
+    'musicLossless': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7）：账号有无损时优先放 Hi-Res，默认关', 'when': '下一首'},
+    'musicCacheLimitMb': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7）：音频缓存上限，默认 1024 MB，0 = 不缓存', 'when': '下一首'},
+    'musicThirdPartyEndpoints': {**_new('A17.7'), 'verdict': 'v5.1 新加（A17.7，L03.1）：导入歌单和歌词的第三方地址，空 = 默认', 'when': '下次请求'},
     'tvWallpaperKind': {
         **_new('A17.8 h1'),
         'verdict': 'v5.1 新加（A17.8 h1）：电视界面的背景，none（主题纯色，和以前一样）/ color / gradient / image / video',

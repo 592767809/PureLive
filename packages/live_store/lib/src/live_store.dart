@@ -21,6 +21,16 @@ final class MetaStore {
 
   final StoreDatabase _db;
 
+  /// Every record whose key starts with [prefix], by key (A17.7: music
+  /// mode keeps its small state under `music.`).
+  Future<Map<String, String>> entries(String prefix) async {
+    final rows = await _db.rows('SELECT key, value FROM meta WHERE substr(key, 1, length(?)) = ? ORDER BY key', [
+      prefix,
+      prefix,
+    ]);
+    return {for (final row in rows) row.read<String>('key'): row.read<String>('value')};
+  }
+
   /// The record [key], or null.
   Future<String?> get(String key) async {
     final rows = await _db.rows('SELECT value FROM meta WHERE key = ?', [key]);

@@ -50,6 +50,21 @@ abstract final class TvIcons {
   /// The video mode's home.
   static const IconData videoHome = Remix.home_4_line;
 
+  /// Music: play next (A17.7).
+  static const IconData musicNext = Remix.play_list_add_line;
+
+  /// Music: the queue.
+  static const IconData musicQueue = Remix.play_list_line;
+
+  /// Music: a playlist.
+  static const IconData musicPlaylist = Remix.folder_music_line;
+
+  /// Music: now playing.
+  static const IconData musicNow = Remix.disc_line;
+
+  /// Music: recommended.
+  static const IconData musicDiscover = Remix.compass_3_line;
+
   /// "稍后再看".
   static const IconData videoLater = Remix.time_line;
 

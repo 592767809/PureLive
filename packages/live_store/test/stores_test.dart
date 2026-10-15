@@ -58,6 +58,20 @@ void main() {
     });
   });
 
+  test('A17.7: music mode settings and meta prefix reads', () async {
+    expect(store.settings.get(Settings.musicPlayMode), 'sequence');
+    await store.settings.set(Settings.musicPlayMode, 'shuffle');
+    expect(store.settings.get(Settings.musicPlayMode), 'shuffle');
+    await store.settings.set(Settings.musicPlayMode, 'random');
+    expect(store.settings.get(Settings.musicPlayMode), 'sequence');
+    expect(store.settings.get(Settings.musicAudioOnly), isTrue);
+    expect(Settings.byKey('musicLossless'), Settings.musicLossless);
+    await store.meta.set('music.a', '1');
+    await store.meta.set('music.b', '2');
+    await store.meta.set('musical', '3');
+    expect(await store.meta.entries('music.'), {'music.a': '1', 'music.b': '2'});
+  });
+
   group('history (3.x history_metadata_test)', () {
     test('newest first, moves on rewatch, keeps the limit', () async {
       await store.history.setLimit(2);

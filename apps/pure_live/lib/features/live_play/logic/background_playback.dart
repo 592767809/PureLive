@@ -360,6 +360,25 @@ class _RoomAudioHandler extends audio.BaseAudioHandler {
   Future<void> Function()? onPlay;
   Future<void> Function()? onPause;
   Future<void> Function()? onStop;
+  // Music (A17.7): the queue's buttons and the position.
+  Future<void> Function()? onNext;
+  Future<void> Function()? onPrevious;
+  Future<void> Function(Duration position)? onSeek;
+
+  @override
+  Future<void> skipToNext() async {
+    await onNext?.call();
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    await onPrevious?.call();
+  }
+
+  @override
+  Future<void> seek(Duration position) async {
+    await onSeek?.call(position);
+  }
 
   @override
   Future<void> play() async {
@@ -488,6 +507,85 @@ abstract final class RoomMediaNotification {
     );
   }
 
+  /// Shows a music track for [owner] (A17.7: the TV's music player) with
+  /// the queue's buttons (previous, play or pause, next) and a seek bar;
+  /// the room's notification is unchanged.
+  static Future<void> showTrack({
+    required Object owner,
+    required String id,
+    required String title,
+    required String artist,
+    required String cover,
+    required Duration duration,
+    required Future<void> Function() play,
+    required Future<void> Function() pause,
+    required Future<void> Function() stop,
+    required Future<void> Function() next,
+    required Future<void> Function() previous,
+    required Future<void> Function(Duration position) seek,
+  }) async {
+    debugLog?.call('track $title');
+    if (!available) return;
+    _owner = owner;
+    final handler = await _ensure();
+    if (handler == null || !identical(_owner, owner)) return;
+    handler
+      ..onPlay = play
+      ..onPause = pause
+      ..onStop = stop
+      ..onNext = next
+      ..onPrevious = previous
+      ..onSeek = seek;
+    final art = Uri.tryParse(cover.trim());
+    handler.mediaItem.add(
+      audio.MediaItem(
+        id: id,
+        title: title,
+        artist: artist,
+        duration: duration > Duration.zero ? duration : null,
+        artUri: art != null && art.hasScheme && art.scheme.startsWith('http') ? art : null,
+      ),
+    );
+    updateTrack(owner: owner, playing: false, buffering: true, position: Duration.zero);
+  }
+
+  /// Shows the music player's state on the notification of [owner].
+  static void updateTrack({
+    required Object owner,
+    required bool playing,
+    required bool buffering,
+    required Duration position,
+  }) {
+    if (!available || !identical(_owner, owner)) return;
+    unawaited(
+      _ensure().then((handler) {
+        if (handler == null || !identical(_owner, owner)) return;
+        handler.playbackState.add(
+          audio.PlaybackState(
+            controls: [
+              audio.MediaControl(
+                androidIcon: audio.MediaControl.skipToPrevious.androidIcon,
+                label: i18n('media_previous'),
+                action: audio.MediaAction.skipToPrevious,
+              ),
+              ...mediaControls(playing: playing).take(1),
+              audio.MediaControl(
+                androidIcon: audio.MediaControl.skipToNext.androidIcon,
+                label: i18n('media_next'),
+                action: audio.MediaAction.skipToNext,
+              ),
+            ],
+            systemActions: const {audio.MediaAction.seek},
+            androidCompactActionIndices: const [0, 1, 2],
+            processingState: buffering ? audio.AudioProcessingState.buffering : audio.AudioProcessingState.ready,
+            playing: playing,
+            updatePosition: position,
+          ),
+        );
+      }),
+    );
+  }
+
   /// Removes the notification of [owner].
   static Future<void> hide(Object owner) async {
     debugLog?.call('hide');
@@ -499,6 +597,9 @@ abstract final class RoomMediaNotification {
       ..onPlay = null
       ..onPause = null
       ..onStop = null
+      ..onNext = null
+      ..onPrevious = null
+      ..onSeek = null
       ..playbackState.add(audio.PlaybackState());
   }
 }

@@ -320,6 +320,13 @@ const Map<String, Object> newInV4 = {
   'tvWallpaperFit': 'cover', // A17.8 h1 (pure_live_TV)
   'tvWallpaperMask': 0.35, // A17.8 h1 (pure_live_TV)
   'tvWallpaperBlur': 0.0, // A17.8 h1: no blur
+  'musicPlayMode': 'sequence', // A17.7 (pure_live_TV)
+  'musicAudioOnly': true, // A17.7 (pure_live_TV)
+  'musicResumeOnOpen': false, // A17.7 (pure_live_TV)
+  'musicProgressLine': true, // A17.7 (pure_live_TV)
+  'musicLossless': false, // A17.7
+  'musicCacheLimitMb': 1024, // A17.7: 1 GB
+  'musicThirdPartyEndpoints': <String, Object?>{}, // A17.7: the defaults
   'localInteraction.replayOnEnter': true, // D08.1 c6, on by default (D-040)
   'localInteraction.phrases': <String>[], // D08.2: none until one is saved (D-040)
   'localInteraction.growthEnabled': true, // D08.3, on by default (D-040)
@@ -356,6 +363,7 @@ const Map<String, (num?, num?)> ranges = {
   'danmakuOpacity': (0, 1),
   'tvWallpaperMask': (0, 1), // A17.8
   'tvWallpaperBlur': (0, 48), // A17.8
+  'musicCacheLimitMb': (0, 20480), // A17.7
   'danmakuFps': (30, 240),
   'danmakuMaxVisibleCount': (10, 120), // D05.2: out of range reads as 48
   'danmakuListFontSize': (12, 22), // A08.15: out of range (and 0) reads as 0, the theme's size

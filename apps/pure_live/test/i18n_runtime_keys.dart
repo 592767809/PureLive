@@ -179,6 +179,7 @@ const notTranslationKeyTemplates = {
   'instance_*', // app/launch_args.dart: a safe instance name
   'multiview_cell_*', // features/multiview/multiview_page.dart: a GlobalKey label
   'pgc_*', // tv/video/video_panes.dart: a Bilibili history row id
+  'pl_*', // app/music_library.dart: a playlist id
   'playlist_**', // app/iptv_legacy.dart: a copied playlist's file name
   'window_*_*', // app/launch_args.dart: an instance id
 };

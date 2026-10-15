@@ -6,12 +6,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/music_player.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/features/live_play/logic/predictive_back.dart';
 import 'package:pure_live/features/version/update_feed.dart';
 import 'package:pure_live/features/version/update_prompt.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/tv/music/music_panes.dart';
 import 'package:pure_live/tv/pages/tv_areas_pane.dart';
 import 'package:pure_live/tv/pages/tv_favorites_pane.dart';
 import 'package:pure_live/tv/pages/tv_history_pane.dart';
@@ -34,7 +36,10 @@ enum TvMode {
   live('tv_mode_live', TvIcons.menuIptv),
 
   /// Bilibili videos (A17.6).
-  video('tv_mode_video', TvIcons.menuVideo);
+  video('tv_mode_video', TvIcons.menuVideo),
+
+  /// Music from Bilibili videos (A17.7).
+  music('tv_mode_music', TvIcons.menuMusic);
 
   new(this.labelKey, this.icon);
 
@@ -86,6 +91,21 @@ enum TvPane {
 
   /// Films and series (影视, c10: the film icon).
   videoCinema('tv_menu_video_cinema', TvIcons.menuVideo, mode: TvMode.video),
+
+  /// Music: the song now and the queue (A17.7).
+  musicNow('tv_menu_music_now', TvIcons.musicNow, mode: TvMode.music),
+
+  /// Music search.
+  musicSearch('tv_menu_music_search', TvIcons.menuSearch, mode: TvMode.music),
+
+  /// Music playlists.
+  musicPlaylists('tv_menu_music_playlists', TvIcons.musicPlaylist, mode: TvMode.music),
+
+  /// Music picks: daily, the followed, the ranking.
+  musicDiscover('tv_menu_music_discover', TvIcons.musicDiscover, mode: TvMode.music),
+
+  /// "我的": follows, the account's follows, recent, cloud (the landing page).
+  musicMine('tv_menu_music_mine', TvIcons.videoMine, mode: TvMode.music),
 
   /// The TV settings.
   settings('tv_menu_settings', TvIcons.menuSettings);
@@ -448,6 +468,11 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     TvPane.videoHome => const TvVideoGate(child: TvVideoHomePane()),
     TvPane.videoAreas => const TvVideoGate(child: TvVideoAreasPane()),
     TvPane.videoCinema => const TvVideoGate(child: TvVideoCinemaPane()),
+    TvPane.musicNow => const TvMusicFrame(child: TvMusicNowPane()),
+    TvPane.musicSearch => const TvMusicFrame(child: TvMusicSearchPane()),
+    TvPane.musicPlaylists => const TvMusicFrame(child: TvMusicPlaylistsPane()),
+    TvPane.musicDiscover => const TvMusicFrame(child: TvMusicDiscoverPane()),
+    TvPane.musicMine => const TvMusicFrame(child: TvMusicMinePane()),
   };
 
   /// The mode button (A17.2 X1): OK offers the modes; another mode opens
@@ -463,13 +488,17 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     );
     if (chosen == null || chosen == mode || !mounted) return;
     final settings = ref.read(storeProvider).settings;
+    // Leaving music stops it (A17.2 c7).
+    if (mode == TvMode.music) unawaited(yieldMusicToOtherPlayback(ref));
     await settings.set(Settings.tvMode, chosen.name);
     if (!mounted) return;
-    final first = TvPane.menuOf(
+    final shown = TvPane.menuOf(
       order: settings.get(Settings.tvMenuOrder),
       hidden: settings.get(Settings.tvMenuHidden),
       mode: chosen,
-    ).first;
+    );
+    // Music lands on "我的" (A17.7 g1).
+    final first = chosen == TvMode.music && shown.contains(TvPane.musicMine) ? TvPane.musicMine : shown.first;
     setState(() {
       _pane = first;
       _visited.add(first);

@@ -8,6 +8,7 @@ import 'package:live_core/live_core.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/music_player.dart';
 import 'package:pure_live/app/network.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
@@ -115,6 +116,8 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     super.initState();
     // One video at a time on a box: the video background waits (A17.8).
     TvWallpaperVideo.hold();
+    // Music gives the speakers to the room.
+    unawaited(yieldMusicToOtherPlayback(ref));
     final arguments = widget.route.arguments;
     final (room, list) = switch (arguments) {
       final TvRoomArgs args => (args.room, args.playlist),
