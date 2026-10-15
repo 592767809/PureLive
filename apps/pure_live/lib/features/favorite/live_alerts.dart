@@ -58,9 +58,10 @@ final class LiveAlertTracker {
       final live = status == LiveStatus.live;
       final seen = _seen[room.identityKey];
       if (seen == null) {
-        _seen[room.identityKey] = _Seen(live: live, startedAt: live ? room.startedAt : null);
+        _seen[room.identityKey] = _Seen(live: live, startedAt: live ? room.startedAt : null, seenAt: now);
         continue;
       }
+      seen.seenAt = now;
       if (!live) {
         if (seen.live) {
           seen
@@ -86,6 +87,24 @@ final class LiveAlertTracker {
   /// Forgets every room (the switch turned off: turning it on starts over).
   void forget() => _seen.clear();
 
+  /// What is known of each room (identity key → state), for the background
+  /// check (O01.2), which carries on from it and hands its own back.
+  Map<String, LiveAlertSeen> get states => {
+    for (final MapEntry(:key, :value) in _seen.entries)
+      key: (live: value.live, startedAt: value.startedAt, endedAt: value.endedAt, seenAt: value.seenAt),
+  };
+
+  /// Takes [states] where they are newer than what is known (seen later, or
+  /// not seen here): a broadcast the background check already told of is
+  /// not told again (O01.2).
+  void adopt(Map<String, LiveAlertSeen> states) {
+    for (final MapEntry(:key, :value) in states.entries) {
+      final known = _seen[key];
+      if (known != null && !value.seenAt.isAfter(known.seenAt)) continue;
+      _seen[key] = _Seen(live: value.live, startedAt: value.startedAt, seenAt: value.seenAt)..endedAt = value.endedAt;
+    }
+  }
+
   bool _sameBroadcast(_Seen seen, LiveRoom room, DateTime now) {
     final before = seen.startedAt;
     final start = room.startedAt;
@@ -98,12 +117,16 @@ final class LiveAlertTracker {
       before != null && now != null && now.difference(before) > reconnectWindow;
 }
 
+/// One room's last known state ([LiveAlertTracker.states]).
+typedef LiveAlertSeen = ({bool live, DateTime? startedAt, DateTime? endedAt, DateTime seenAt});
+
 final class _Seen {
-  new({required this.live, this.startedAt});
+  new({required this.live, required this.seenAt, this.startedAt});
 
   bool live;
   DateTime? startedAt;
   DateTime? endedAt;
+  DateTime seenAt;
 }
 
 /// The follows "开播提醒" covers (V01.1 L3, A09.13): every follow, or,

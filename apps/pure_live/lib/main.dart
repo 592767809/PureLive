@@ -21,6 +21,10 @@ import 'package:pure_live/app/startup.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/plugins.dart';
 
+// The background check of "开播提醒" starts here on an engine of its own
+// (O01.2); the export keeps it in the build.
+export 'package:pure_live/app/live_alert_worker.dart' show liveAlertWorkerMain;
+
 Future<void> main(List<String> args) async {
   // R04.1: the start-up's timing, from here (docs/R-性能和流畅度/R04-启动速度/R04.1-启动速度).
   StartupTiming.begin();

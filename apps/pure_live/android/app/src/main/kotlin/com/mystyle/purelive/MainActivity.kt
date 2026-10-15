@@ -82,6 +82,8 @@ import java.util.concurrent.atomic.AtomicBoolean
  *   action, a tap is sent back as `togglePlay`;
  * - `pure_live/share_intake` ([ShareIntakePlugin]), `pure_live/permissions`
  *   ([PermissionsPlugin]): F.0a;
+ * - `pure_live/live_alert_worker` ([LiveAlertWorkerPlugin]): the background
+ *   check of "开播提醒" (O01.2);
  * - `pure_live/background_guide` ([BackgroundGuidePlugin]): the "后台播放检查"
  *   state and the vendors' system pages (O01.3);
  * - `pure_live/app` `setSplashTheme {mode}`: Android 13's splash screen in
@@ -247,6 +249,10 @@ class MainActivity : AudioServiceActivity() {
         // "后台播放检查": the vendor's background state and pages (O01.3).
         if (!flutterEngine.plugins.has(BackgroundGuidePlugin::class.java)) {
             flutterEngine.plugins.add(BackgroundGuidePlugin())
+        }
+        // "开播提醒" after the app is frozen or cleared (O01.2).
+        if (!flutterEngine.plugins.has(LiveAlertWorkerPlugin::class.java)) {
+            flutterEngine.plugins.add(LiveAlertWorkerPlugin())
         }
         displayModeChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,

@@ -3629,15 +3629,14 @@ note = "新设置 liveAlertEnabled（默认关）、liveAlertTagIds（空 = 全�
 id = "O01.2"
 title = "开播提醒（接 O01.1）：应用被系统冻结或清理后也能定时检查（WorkManager 周期任务）"
 type = "原生"
-status = "暂停"
-next = "用户要被清理后也提醒时再做"
+status = "待真机"
 date = "2026-10-15"
 size = "大"
 tier = 3
 from = "V01.1 设计 L1、L14（做法 B）"
 stages = ["方案和真机测量：HyperOS 上周期任务能不能按时跑", "后台检查：原生请求或后台 Dart 引擎，只查要提醒的关注", "和 O01.1 共用去重、真机验证"]
-done = 0
-note = "等 O01.1 在真机上用一段时间、用户还想更及时时再做；最短 15 分钟、系统决定实际时间，HyperOS 可能延后或不跑；不用精确闹钟（SCHEDULE_EXACT_ALARM 只给闹钟和日历类应用）；2026-10-15 按 V01.1 L1、L14：等 O01.1 用一段时间、用户还想更及时时再做（HyperOS 上 WorkManager 不可靠）"
+done = 2
+note = "等 O01.1 在真机上用一段时间、用户还想更及时时再做；最短 15 分钟、系统决定实际时间，HyperOS 可能延后或不跑；不用精确闹钟（SCHEDULE_EXACT_ALARM 只给闹钟和日历类应用）；2026-10-15 按 V01.1 L1、L14：等 O01.1 用一段时间、用户还想更及时时再做（HyperOS 上 WorkManager 不可靠）；2026-10-15 用户要求现在做（5.1.0）：WorkManager 周期任务（15 分钟，要联网，系统决定实际时间）起一个独立 Flutter 引擎跑 `app/live_alert_worker.dart`，不开数据库、不用 Cookie 和代理（内存里的存储）；和应用共用 `live_alert_watch.json`（要提醒的关注、显示名、各房间已知状态、通知文字、应用下一次自己查的时间），应用自己在查时后台跳过，两边都先合并对方看到的状态再判断，同一场直播只提醒一次；新设置“应用被清理后也检查”（liveAlertBackground，默认开，只在开播提醒开着时起作用）；剩真机：K90 上划掉应用后等一轮看通知"
 
 [[task]]
 id = "O01.3"

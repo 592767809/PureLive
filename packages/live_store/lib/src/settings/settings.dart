@@ -1004,6 +1004,11 @@ abstract final class Settings {
   /// empty: as before.
   static const liveAlertRoomKeys = StringListSetting('liveAlertRoomKeys', section: 'refresh', defaultValue: []);
 
+  /// [liveAlertEnabled] also checks after Android froze or cleared the
+  /// app (O01.2, WorkManager every 15 minutes or later). New in v4, on:
+  /// only does anything while [liveAlertEnabled] is on.
+  static const liveAlertBackground = BoolSetting('liveAlertBackground', section: 'refresh', defaultValue: true);
+
   /// Refresh covers on a timer.
   static const autoRefreshThumbnails = BoolSetting('autoRefreshThumbnails', section: 'refresh', defaultValue: false);
 
@@ -1912,6 +1917,7 @@ abstract final class Settings {
     liveAlertEnabled,
     liveAlertTagIds,
     liveAlertRoomKeys,
+    liveAlertBackground,
     autoRefreshThumbnails,
     thumbnailRefreshInterval,
     selectedSourceName,

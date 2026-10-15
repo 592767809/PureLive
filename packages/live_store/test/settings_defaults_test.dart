@@ -297,6 +297,7 @@ const Map<String, Object> newInV4 = {
   'liveAlertEnabled': false, // O01.1 (V01.1; off: no notification as before)
   'liveAlertTagIds': <String>[], // O01.1 (every follow)
   'liveAlertRoomKeys': <String>[], // A09.13 (no follow of its own)
+  'liveAlertBackground': true, // O01.2 (only with liveAlertEnabled)
   'backgroundAudioOnly': false, // O01.3: the video decodes away from the app as before (D-040)
   'backgroundPauseDanmaku': false, // O01.3: the danmaku stays connected as before
   'pauseOnPipClose': false, // O01.3: a closed picture-in-picture window plays on as before

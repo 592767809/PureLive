@@ -157,6 +157,7 @@ path = [
   { glob = "apps/pure_live/android/**/AppChannelsPlugin.kt", sub = "Q03", note = "原生 HTTP、加密、GBK、组播锁，待定" },
   { glob = "apps/pure_live/android/**/Recorder*.kt", sub = "O01" },
   { glob = "apps/pure_live/android/**/LiveAlerts.kt", sub = "O01" },
+  { glob = "apps/pure_live/android/**/LiveAlertWorker.kt", sub = "O01" },
   { glob = "apps/pure_live/android/**/BackgroundGuidePlugin.kt", sub = "O01" },
   { glob = "apps/pure_live/android/**/ShareIntakePlugin.kt", sub = "O03" },
   { glob = "apps/pure_live/android/**/PermissionsPlugin.kt", sub = "O04" },
@@ -292,6 +293,7 @@ channel = [
   { name = "pure_live/native_http", sub = "Q03" },
   { name = "pure_live/permissions", sub = "O04" },
   { name = "pure_live/live_alerts", sub = "O01" },
+  { name = "pure_live/live_alert_worker", sub = "O01" },
   { name = "pure_live/pip", sub = "O02" },
   { name = "pure_live/predictive_back", sub = "O06" },
   { name = "pure_live/recorder", sub = "O01" },
@@ -391,6 +393,7 @@ setting = [
   { key = "liveAlertEnabled", sub = "O01" },
   { key = "liveAlertTagIds", sub = "O01" },
   { key = "liveAlertRoomKeys", sub = "A09" },
+  { key = "liveAlertBackground", sub = "O01" },
   # exit 分节（默认 A16）
   { key = "autoShutDownTime", sub = "J01" },
   { key = "enableAutoShutDownTime", sub = "J01" },

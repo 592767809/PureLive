@@ -1314,6 +1314,9 @@ abstract final class AppIcons {
   /// A follow's own "开播提醒" turned off (A09.13).
   static const IconData liveAlertOff = Remix.notification_off_line;
 
+  /// "开播提醒" also after the app is frozen or cleared (O01.2).
+  static const IconData settingsLiveAlertBackground = Remix.timer_flash_line;
+
   /// A refresh interval.
   static const IconData settingsInterval = Remix.time_line;
 

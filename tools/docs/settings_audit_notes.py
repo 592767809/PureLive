@@ -368,6 +368,14 @@ NOTES: dict[str, dict] = {
         'ui': '不在设置页，在卡片和直播间菜单里开关',
         'when': '下一轮检查',
     },
+    'liveAlertBackground': {
+        **_new('O01.2，V01.1'),
+        'verdict': 'v5.1 新加（O01.2，V01.1 L1、L14）：默认开，但只在“开播提醒”开着时起作用；应用被系统冻结或清理后，'
+        'WorkManager 大约每 15 分钟（系统决定，可能推迟）在后台查一次要提醒的关注；应用自己在查时跳过',
+        'reads': '`features/favorite/favorite_controller.dart` 的 `_syncBackground`（开关 WorkManager、写共享文件）'
+        '和 `app/live_alert_worker.dart`（后台检查）',
+        'when': '立即（开关周期任务）',
+    },
     'maxConcurrentRefresh': {'v3range': '1～20（`refresh_config_controller.dart:9-18`）'},
     'thumbnailRefreshInterval': {
         'v3range': '5～360（`refresh_config_controller.dart:6-14`）',

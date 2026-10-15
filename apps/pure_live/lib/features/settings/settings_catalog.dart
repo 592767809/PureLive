@@ -702,6 +702,17 @@ List<SettingsEntry> _build() {
       keywords: ['开播', '提醒', '标签', 'tag'],
       when: _android,
     )
+    // O01.2: WorkManager's periodic check after the app is frozen or cleared.
+    ..toggle(
+      'live_alert_background',
+      'live_alert_background',
+      Settings.liveAlertBackground,
+      AppIcons.settingsLiveAlertBackground,
+      desc: 'live_alert_background_desc',
+      enabledBy: Settings.liveAlertEnabled,
+      keywords: ['开播', '提醒', '后台', 'background'],
+      when: _android,
+    )
     ..group = 'settings_group_covers'
     ..toggle(
       'refresh_covers',

@@ -9,6 +9,7 @@ import 'package:live_store/live_store.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/favorite/favorite_rules.dart';
 import 'package:pure_live/features/favorite/follow_refresher.dart';
+import 'package:pure_live/features/favorite/live_alert_watch.dart';
 import 'package:pure_live/features/favorite/live_alerts.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/platform/live_alert_channel.dart';
@@ -26,6 +27,7 @@ final Provider<FavoriteController> favoriteControllerProvider = Provider((ref) {
     refresher: FollowRefresher(sites: services.sites),
     followsReady: services.followsReady,
     postLiveAlert: ref.watch(liveAlertPosterProvider),
+    liveAlertBackground: ref.watch(liveAlertBackgroundProvider),
   );
   final recorderChecks = services.recorder?.changes.listen(controller.recorderChanged);
   ref.onDispose(() {
@@ -65,6 +67,7 @@ final class FavoriteController extends ChangeNotifier {
     DateTime Function()? now,
     LiveAlertPoster? postLiveAlert,
     this.liveAlertCheckInterval = LiveAlerts.checkInterval,
+    this.liveAlertBackground,
   }) : _followsReady = followsReady ?? Future<void>.value(),
        _now = now ?? DateTime.now,
        liveAlerts = postLiveAlert == null ? null : LiveAlerts(settings: store.settings, post: postLiveAlert, now: now);
@@ -81,6 +84,10 @@ final class FavoriteController extends ChangeNotifier {
   /// How often "开播提醒" checks the follows it covers while "关注自动刷新"
   /// is off ([LiveAlerts.checkInterval]; shorter in tests).
   final Duration liveAlertCheckInterval;
+
+  /// The background check's side (O01.2; Android): null where there is
+  /// none.
+  final LiveAlertBackground? liveAlertBackground;
 
   final Future<void> _followsReady;
   final DateTime Function() _now;
@@ -161,6 +168,7 @@ final class FavoriteController extends ChangeNotifier {
     HomeSignals.resumedAfterBackground.addListener(_resumed);
     _scheduleAutoRefresh();
     _firstCheck = _verifyAll();
+    unawaited(_syncBackground());
   }
 
   /// The order of live and replay follows, from the settings.
@@ -317,7 +325,11 @@ final class FavoriteController extends ChangeNotifier {
         onProgress: visible ? (done, total) => progress.value = total == 0 ? 1 : done / total : null,
       );
       if (_disposed) return;
+      // What the background check saw (O01.2) is not told again.
+      if (_backgroundOn) liveAlerts?.tracker.adopt((await liveAlertBackground?.file.read())?.states ?? const {});
+      if (_disposed) return;
       liveAlerts?.observe(result.rooms, covered: _covered(), quiet: !alert);
+      if (_backgroundOn) unawaited(_writeWatch());
       lastFailed = result.failed;
       if (result.rooms.isNotEmpty) await store.follows.update(result.rooms);
       if (full) lastFullRefreshAt = _now();
@@ -348,6 +360,11 @@ final class FavoriteController extends ChangeNotifier {
         setting == Settings.liveAlertEnabled) {
       if (setting == Settings.liveAlertEnabled && !(liveAlerts?.enabled ?? false)) liveAlerts?.tracker.forget();
       _scheduleAutoRefresh();
+      unawaited(_syncBackground());
+    } else if (setting == Settings.liveAlertBackground ||
+        setting == Settings.liveAlertTagIds ||
+        setting == Settings.liveAlertRoomKeys) {
+      unawaited(_syncBackground());
     } else if (setting == Settings.preferRealOnlineCounts ||
         setting == Settings.realOnlinePlatforms ||
         setting == Settings.hotAreasList) {
@@ -372,6 +389,59 @@ final class FavoriteController extends ChangeNotifier {
         liveAlertCheckInterval,
         (_) => unawaited(_enqueue(liveAlertTargets, full: false, visible: false, bypassCooldown: false, alert: true)),
       );
+    }
+  }
+
+  /// Whether the background check runs (O01.2): "开播提醒" and "后台也检查"
+  /// on, where there is one.
+  bool get _backgroundOn =>
+      liveAlertBackground != null && (liveAlerts?.enabled ?? false) && store.settings.get(Settings.liveAlertBackground);
+
+  /// Turns the background check on or off to match the settings; on, the
+  /// shared file gets the covered follows now; off, it goes.
+  Future<void> _syncBackground() async {
+    final background = liveAlertBackground;
+    if (background == null || _disposed) return;
+    final on = _backgroundOn;
+    try {
+      await background.schedule(on: on);
+      if (on) {
+        await _firstLoad.future;
+        await _writeWatch();
+      } else {
+        await background.file.clear();
+      }
+    } on Object catch (error, stack) {
+      _logError(error, stack);
+    }
+  }
+
+  /// Writes the covered follows, what is known of them and when the app
+  /// checks next (its timer, give or take [LiveAlertBackground.grace]).
+  Future<void> _writeWatch() async {
+    final background = liveAlertBackground;
+    final alerts = liveAlerts;
+    if (background == null || alerts == null || _disposed || !_backgroundOn) return;
+    final targets = liveAlertTargets;
+    final keys = {for (final room in targets) room.identityKey};
+    final interval = store.settings.get(Settings.autoRefreshFavorite)
+        ? Duration(minutes: store.settings.get(Settings.autoRefreshInterval))
+        : liveAlertCheckInterval;
+    try {
+      await background.file.write(
+        LiveAlertWatch(
+          rooms: targets,
+          names: {for (final room in targets) room.identityKey: background.nameOf(room)},
+          states: {
+            for (final MapEntry(:key, :value) in alerts.tracker.states.entries)
+              if (keys.contains(key)) key: value,
+          },
+          texts: background.texts(),
+          nextCheck: _now().add(interval + LiveAlertBackground.grace),
+        ),
+      );
+    } on Object catch (error, stack) {
+      _logError(error, stack);
     }
   }
 

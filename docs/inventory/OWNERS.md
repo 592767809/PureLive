@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 210 条；设置 247 个（分节默认 23 条、单独指定 90 个）；来源 35 个；通道 16 个。
+路径规则 211 条；设置 249 个（分节默认 23 条、单独指定 92 个）；来源 35 个；通道 17 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -17,7 +17,7 @@
 | A06 首页和全局 | 3 |  |  |  |  |
 | A07 直播间界面 | 1 | 12 |  |  |  |
 | A08 弹幕界面 | 5 | 11 |  |  |  |
-| A09 浏览界面 | 9 | 9 |  |  |  |
+| A09 浏览界面 | 9 | 10 |  |  |  |
 | A10 录制界面 | 6 |  |  |  |  |
 | A11 设置界面 | 1 |  |  |  |  |
 | A12 账号和数据界面 | 6 |  |  |  |  |
@@ -72,7 +72,7 @@
 | L03 点播和音乐 | 1 |  |  |  |  |
 | N01 多画面 | 1 | 1 |  |  |  |
 | N02 投屏 | 1 |  |  |  | 1 |
-| O01 通知和前台服务 | 7 | 5 |  |  | 3 |
+| O01 通知和前台服务 | 8 | 6 |  |  | 4 |
 | O02 画中画 | 1 |  |  |  | 1 |
 | O03 分享接收和快捷方式 | 3 | 1 |  |  | 1 |
 | O04 权限 | 4 |  |  |  | 2 |
@@ -130,7 +130,7 @@
 ## A09 浏览界面
 
 - 代码：`apps/pure_live/lib/features/areas/`、`apps/pure_live/lib/features/area_rooms/`、`apps/pure_live/lib/features/hot_areas/`、`apps/pure_live/lib/features/favorite/`、`apps/pure_live/lib/features/history/`、`apps/pure_live/lib/features/popular/`、`apps/pure_live/lib/features/search/`、`apps/pure_live/lib/features/tags/`、`apps/pure_live/lib/shared/rooms/`
-- 设置：`room_card_mobile_preset`、`room_card_desktop_preset`、`room_card_mobile_config`、`room_card_desktop_config`、`page_show_size_selector`、`page_show_goto_button`、`page_show_scroll_top`、`page_default_size`、`page_size_options_raw`
+- 设置：`room_card_mobile_preset`、`room_card_desktop_preset`、`room_card_mobile_config`、`room_card_desktop_config`、`page_show_size_selector`、`page_show_goto_button`、`page_show_scroll_top`、`page_default_size`、`page_size_options_raw`、`liveAlertRoomKeys`
 
 ## A10 录制界面
 
@@ -387,9 +387,9 @@
 
 ## O01 通知和前台服务
 
-- 代码：`apps/pure_live/lib/platform/background_guide.dart`、`apps/pure_live/lib/platform/live_alert_channel.dart`、`apps/pure_live/lib/features/live_play/logic/background_keeper.dart`、`apps/pure_live/lib/features/favorite/live_alerts.dart`、`apps/pure_live/android/**/Recorder*.kt`、`apps/pure_live/android/**/LiveAlerts.kt`、`apps/pure_live/android/**/BackgroundGuidePlugin.kt`
-- 设置：`backgroundAudioOnly`、`backgroundPauseDanmaku`、`pauseOnPipClose`、`liveAlertEnabled`、`liveAlertTagIds`
-- 通道：`pure_live/background_guide`、`pure_live/live_alerts`、`pure_live/recorder`
+- 代码：`apps/pure_live/lib/platform/background_guide.dart`、`apps/pure_live/lib/platform/live_alert_channel.dart`、`apps/pure_live/lib/features/live_play/logic/background_keeper.dart`、`apps/pure_live/lib/features/favorite/live_alerts.dart`、`apps/pure_live/android/**/Recorder*.kt`、`apps/pure_live/android/**/LiveAlerts.kt`、`apps/pure_live/android/**/LiveAlertWorker.kt`、`apps/pure_live/android/**/BackgroundGuidePlugin.kt`
+- 设置：`backgroundAudioOnly`、`backgroundPauseDanmaku`、`pauseOnPipClose`、`liveAlertEnabled`、`liveAlertTagIds`、`liveAlertBackground`
+- 通道：`pure_live/background_guide`、`pure_live/live_alerts`、`pure_live/live_alert_worker`、`pure_live/recorder`
 
 ## O02 画中画
 

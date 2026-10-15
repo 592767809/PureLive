@@ -104,6 +104,11 @@ flutter {
     source = "../.."
 }
 
+// "开播提醒" after the app is frozen or cleared (O01.2).
+dependencies {
+    implementation("androidx.work:work-runtime-ktx:2.11.2")
+}
+
 // Flutter's build tasks use Project at execution time; keep them out of the
 // configuration cache (same as 3.x).
 tasks.matching {
