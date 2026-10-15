@@ -314,7 +314,7 @@ abstract final class AppBootstrap {
     final cookies = StoreCookieVault(store.secrets);
     final settings = store.settings;
     final library = iptvLibrary ?? StoreIptvLibrary(store);
-    // Android's system TLS: Twitch's GraphQL fallback, Kick's API.
+    // Android's system TLS: Twitch's GraphQL fallback.
     final native = AndroidNativeHttp.isAvailable ? AndroidNativeHttp(proxy: proxy) : null;
     final importer = IptvImporter(
       library: library,
@@ -334,7 +334,9 @@ abstract final class AppBootstrap {
         ?native,
         if (TwitchWebViewHttp.isAvailable) TwitchWebViewHttp(proxy: proxy),
       ],
-      kickApi: native,
+      // Kick's API refuses HTTP/1.1 since 2026-10 (S02.4): HTTP/2 from Dart.
+      // Still Android only, where Kick's playback and danmaku were checked.
+      kickApi: native == null ? null : Http2LiveHttp(proxy: proxy),
       iptv: IptvSite(
         library: library,
         importer: importer,

@@ -72,7 +72,7 @@
 |---|---|---|---:|
 | [E01 国内五大平台](E01-国内五大平台/README.md) | 哔哩哔哩、斗鱼、虎牙、抖音、快手。 | `█████████████████░░░` 86% | 7 / 8 |
 | [E02 其他国内平台](E02-其他国内平台/README.md) | YY、网易 CC、AcFun、猫耳 FM、映客、克拉克拉、小红书、微博、京东、酷狗、百度、六间房、LOOK。 | `████████████████████` 100% | 15 / 15 |
-| [E03 海外平台](E03-海外平台/README.md) | SOOP、Twitch、Picarto、TwitCasting、niconico、SHOWROOM、CHZZK、LiveMe、TikTok、YouTube、BIGO、PandaTV、FC2、Steam、17LIVE、Kick。 | `████████████████████` 100% | 19 / 19 |
+| [E03 海外平台](E03-海外平台/README.md) | SOOP、Twitch、Picarto、TwitCasting、niconico、SHOWROOM、CHZZK、LiveMe、TikTok、YouTube、BIGO、PandaTV、FC2、Steam、17LIVE、Kick。 | `████████████████████` 100% | 20 / 20 |
 | [E04 链接解析和分享口令](E04-链接解析和分享口令/README.md) | 直播间链接、短链、分享口令。 | `████████████████████` 100% | 2 / 2 |
 | [E05 平台框架和模型](E05-平台框架和模型/README.md) | 模型、平台接口、注册表、错误类型、房间资料的合并和补齐。 | `████████████████████` 100% | 5 / 5 |
 | [E06 平台层升级](E06-平台层升级/README.md) | 已批准的升级和平台新数据接到界面。 | `████████████████████` 100% | 3 / 3 |

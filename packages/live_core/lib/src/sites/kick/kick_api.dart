@@ -625,8 +625,8 @@ abstract final class KickApi {
     }
   }
 
-  /// Kick's statuses: 403 is Cloudflare's refusal (`RiskControl`; dart:io
-  /// always gets it), 404 `NotFound`, 429 `RateLimited`, 5xx a network
+  /// Kick's statuses: 403 is its refusal of an HTTP/1.1 client
+  /// (`RiskControl`), 404 `NotFound`, 429 `RateLimited`, 5xx a network
   /// failure; anything else but 200 `ApiChanged`.
   static void _checkStatus(int status, String body, String what) {
     if (status == 200) return;
@@ -634,7 +634,7 @@ abstract final class KickApi {
       throw RiskControl(
         _site,
         detail: body.contains('security policy')
-            ? "$what: Cloudflare refused this client (Kick needs Android's system TLS)"
+            ? '$what: Kick refused this client (it needs HTTP/2)'
             : '$what: HTTP $status',
       );
     }

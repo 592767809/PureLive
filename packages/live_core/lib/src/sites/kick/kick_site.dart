@@ -11,12 +11,13 @@ const _site = 'kick';
 /// The Kick adapter (pure_live_TV's `KickSite`, e1cca224; parsing in
 /// [KickApi]).
 ///
-/// Anonymous and read-only. Kick's API host sits behind a Cloudflare check
-/// that refuses dart:io's TLS handshake (HTTP 403 "Request blocked by
-/// security policy."), so its requests go through [apiHttp] (the app passes
-/// Android's system TLS, `AndroidNativeHttp`); the IVS master playlist goes
-/// through [http]. Room ids are channel slugs in lower case (Kick finds a
-/// channel in any case; `SiteIds.caseInsensitiveRoomIds`).
+/// Anonymous and read-only. Kick's API host refuses every
+/// HTTP/1.1 client (HTTP 403 "Request blocked by security policy."; from
+/// 2026-10 Android's system TLS too, which once got through),
+/// so its requests go through [apiHttp] (the app passes HTTP/2,
+/// `Http2LiveHttp`); the IVS master playlist goes through [http]. Room ids
+/// are channel slugs in lower case (Kick finds a channel in any case;
+/// `SiteIds.caseInsensitiveRoomIds`).
 ///
 /// - Catalog: Kick's top-level categories, each with its 32 most watched
 ///   subcategories (one request for the list, one per category at once).

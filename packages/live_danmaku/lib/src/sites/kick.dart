@@ -44,9 +44,13 @@ final class KickGift extends LiveGift {
 ///   join. `pusher:ping` is answered `pusher:pong`; the client pings too.
 /// - Events carry their payload as a JSON string in `data`.
 abstract final class KickDanmakuProtocol {
-  /// Kick's Pusher endpoint (app key, protocol 7, as the web client).
+  /// Kick's Pusher endpoint (app key, protocol 7, as the web client). The key
+  /// changed in 2026-10 (the old one answers "App key … not in this
+  /// cluster"); Kick's `web.kick.com/api/v1/realtime/channels/{id}/chat/connection`
+  /// gives the current one to a client that accepts only Pusher (it offers
+  /// Centrifugo otherwise).
   static final Uri endpoint = Uri.parse(
-    'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false',
+    'wss://ws-us2.pusher.com/app/34bf7a0ff419a2a775b9?protocol=7&client=js&version=8.4.0&flash=false',
   );
 
   /// Handshake headers: the site's origin and the adapter's desktop UA.

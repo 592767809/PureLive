@@ -7,6 +7,7 @@ export 'src/codec/brotli.dart';
 export 'src/cookies.dart';
 export 'src/diagnostics.dart';
 export 'src/headers.dart';
+export 'src/http2_http.dart';
 export 'src/io_http.dart';
 export 'src/live_http.dart';
 export 'src/proxy.dart';

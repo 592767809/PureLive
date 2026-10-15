@@ -14,7 +14,7 @@ Kick（海外直播）直播间能看到公开聊天、撤回、订阅和突袭�
 
 | 项 | 内容 |
 |---|---|
-| 地址 | `wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0&flash=false`（Kick 网页的 Pusher 应用，不在 Kick 的 Cloudflare 后面，`dart:io` 正常）；请求头 `origin: https://kick.com`、桌面 Chrome 140 UA；按平台 `kick` 走代理 |
+| 地址 | `wss://ws-us2.pusher.com/app/34bf7a0ff419a2a775b9?protocol=7&client=js&version=8.4.0&flash=false`（Kick 网页的 Pusher 应用，不在 Kick 的 Cloudflare 后面，`dart:io` 正常）；请求头 `origin: https://kick.com`、桌面 Chrome 140 UA；按平台 `kick` 走代理 |
 | 会话和订阅 | 服务端先发 `pusher:connection_established`（`socket_id`、`activity_timeout: 120`），之后发 `{"event":"pusher:subscribe","data":{"auth":"","channel":…}}` 订阅 `chatrooms.<chatroomId>.v2`（聊天、审核、通知）和 `channel.<channelId>`（直播本身的事件，比上游多）；聊天频道的 `pusher_internal:subscription_succeeded` 才就绪、才上报消息；加入超时 10 s；每次重连都重新等会话建立、重新订阅 |
 | 心跳 | 客户端每 30 s 发 `pusher:ping`；服务端的 `pusher:ping` 回 `pusher:pong`；无消息 90 s 换连接（框架默认） |
 | 错误 | `pusher:error`、`pusher_internal:subscription_error` → 带 `protocolError` 提示重连；参数不对（没有聊天房间 id）：`connectionFailed`（`No chatroom to subscribe to`） |

@@ -2890,6 +2890,17 @@ from = "E07.1 第一轮巡检（2026-10-08，经代理）：P1 推荐 ApiChanged
 note = "twitch_api.dart:157 的 $languages 改成 [Language!]，巡检 P1 恢复正常（分区用持久化查询，本来不受影响）；K90 经代理看热门里的 Twitch 和语言筛选"
 
 [[task]]
+id = "E03.20"
+title = "Kick 改用 HTTP/2 和新的聊天密钥（API 不再接受 HTTP/1.1，Pusher 应用换了）"
+type = "平台"
+status = "完成"
+size = "小"
+tier = 1
+date = "2026-10-15"
+from = "S02.4 K90 验证（2026-10-15，经代理）：Kick 热门“需要登录账号 / 风控隐藏”，直播间聊天一直重连"
+note = "API：live_net 新加 Http2LiveHttp（http2 2.3.1），Kick 的 API 改走 HTTP/2；聊天：Pusher 密钥换成 34bf7a0ff419a2a775b9；K90 经代理复测热门、播放、聊天正常；见 record.md"
+
+[[task]]
 id = "E03.18"
 title = "接 E07.1：17LIVE 线路全部不通、第 2 页只给重复的一个"
 type = "平台"
@@ -3919,13 +3930,14 @@ old = ["F.9", "F.9a", "F.9b", "F.9c", "T15b.3"]
 id = "S02.4"
 title = "K90 验证：备份恢复、WebDAV、设备同步、扫码、应用内更新、字体、播放代理、Twitch 和 Kick"
 type = "验证"
-status = "未开始"
+status = "完成"
+date = "2026-10-15"
 size = "中"
 tier = 2
 old = ["F.9d", "T15b.4"]
 stages = ["备份恢复和扫码权限", "WebDAV", "设备同步和扫码配对", "应用内更新、关于、字体、日志导出", "播放代理和本地网络权限", "海外平台：Twitch、Kick 和海外弹幕抽查"]
-done = 0
-note = "并入原 Q04.1 的验证：F-NET-02 播放代理（CHECKLIST 5 第 6 条）、F-NET-04 Twitch 令牌（第 7 条）（V03.3）"
+done = 6
+note = "2026-10-15 K90 快速验证：备份、仅导出关注、关于和在线更新、日志导出、播放代理、Twitch 通过；Kick 热门被拒和聊天重连已修（E03.20）；3.x 备份恢复、WebDAV 服务器、两台设备同步、应用内更新安装、字体、长时间海外弹幕没做；见 verify.md"
 
 [[task]]
 id = "S02.5"

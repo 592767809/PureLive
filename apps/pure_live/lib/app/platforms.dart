@@ -139,9 +139,10 @@ final class PlatformDeps {
   /// headless WebView).
   final List<LiveHttp> twitchFallbacks;
 
-  /// The transport of Kick's API (Android's system TLS): Cloudflare refuses
-  /// dart:io's TLS on kick.com. Null where there is none (Windows, until a
-  /// WinHTTP channel exists): Kick is then not registered (UPGRADES X-1).
+  /// The transport of Kick's API: HTTP/2 (`Http2LiveHttp`), since kick.com
+  /// refuses every HTTP/1.1 client from 2026-10 (S02.4; Android's system TLS
+  /// was the way round dart:io before). Null leaves Kick unregistered; only
+  /// Android has it so far, where its playback and danmaku were checked.
   final LiveHttp? kickApi;
 
   /// The IPTV platform; null leaves IPTV out.

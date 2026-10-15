@@ -21,7 +21,7 @@ ReplaySample _synthetic(String url, Object body, {int status = 200}) => ReplaySa
 );
 
 /// The API samples go to `api`, the master playlist to `media`, as the app
-/// splits them (Android's system TLS for kick.com).
+/// splits them (HTTP/2 for kick.com).
 ({KickSite site, ReplayHttp api, ReplayHttp media}) _setup(List<String> api, {List<String> media = const []}) {
   final apiHttp = ReplayHttp([for (final name in api) _sample(name)]);
   final mediaHttp = ReplayHttp([for (final name in media) _sample(name)]);
