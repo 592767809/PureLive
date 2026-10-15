@@ -148,11 +148,12 @@ Finder _key(String key) => find.byKey(ValueKey(key));
 
 Finder _in(String key, Finder finder) => find.descendant(of: _key(key), matching: finder);
 
-/// Twelve chat messages, then the frames the feed batches them in.
-Future<void> _chat(WidgetTester tester, _Room room) async {
+/// Twelve chat messages, then the frames the feed batches them in;
+/// [masked] names as Bilibili hid them from guests (the hint shows).
+Future<void> _chat(WidgetTester tester, _Room room, {bool masked = false}) async {
   room.danmaku.emit(const DanmakuReady());
   for (var i = 1; i <= 12; i++) {
-    room.danmaku.chat('第$i条', user: '观众$i');
+    room.danmaku.chat('第$i条', user: masked ? '观***' : '观众$i');
   }
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
@@ -269,7 +270,7 @@ void main() {
 
   group('c2 a phone held sideways', () {
     testWidgets('869 x 400: the picture at full height, a 280 chat list; the title opens the details', (tester) async {
-      // A guest, as on the phone: the login hint over the list too.
+      // A guest whose names come masked: the login hint over the list too.
       final room = await _pump(tester, width: 869, height: 400, signedIn: false);
       expect(_key('live-play-phone-landscape'), findsOneWidget);
       expect(_key('live-play-desktop-split'), findsNothing);
@@ -283,7 +284,7 @@ void main() {
       expect(_key('live-play-info'), findsNothing);
       expect(_key('live-play-tabs'), findsNothing);
       expect(_key('local-composer-bar'), findsNothing);
-      await _chat(tester, room);
+      await _chat(tester, room, masked: true);
       expect(_key('live-play-name-hint'), findsOneWidget);
       expect(_visibleLines(tester), greaterThanOrEqualTo(5));
       // The strip folded into the picture's title: the figures under it, the
