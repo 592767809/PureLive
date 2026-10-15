@@ -198,11 +198,12 @@ class SettingsGroup extends StatelessWidget {
           ...children
         else
           // A Material, so list tiles on it (the platform accounts) keep
-          // their ink.
+          // their ink. In the TV look it does not clip: the focused row grows
+          // 2 % and its ring would lose its sides.
           Material(
             color: colors.surfaceContainerLow,
             borderRadius: AppRadii.card,
-            clipBehavior: Clip.antiAlias,
+            clipBehavior: SettingsRowStyle.tvOf(context) ? Clip.none : Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,

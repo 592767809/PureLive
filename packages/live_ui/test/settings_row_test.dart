@@ -72,6 +72,21 @@ void main() {
       expect(tester.getTopLeft(find.byType(Divider)).dx, 16 + 56);
     });
 
+    testWidgets('a group in the TV look does not clip, so the focused row keeps the sides of its ring', (tester) async {
+      Clip clipOf() => tester
+          .widgetList<Material>(find.ancestor(of: find.byKey(const ValueKey('a')), matching: find.byType(Material)))
+          .firstWhere((material) => material.borderRadius == AppRadii.card)
+          .clipBehavior;
+      final group = SettingsGroup(
+        title: '主题',
+        children: [SettingsLinkRow(key: const ValueKey('a'), title: '主题模式', value: '跟随系统', onTap: () {})],
+      );
+      await _pump(tester, group);
+      expect(clipOf(), Clip.antiAlias);
+      await _pump(tester, group, tv: true);
+      expect(clipOf(), Clip.none);
+    });
+
     testWidgets('explanations: three lines (A01.4 c2), secondary colour above 4.5:1 on the card', (tester) async {
       await _pump(
         tester,
