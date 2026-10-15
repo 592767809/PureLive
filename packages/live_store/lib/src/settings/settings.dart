@@ -1780,11 +1780,11 @@ abstract final class Settings {
   static const tvWallpaperFit = StringSetting('tvWallpaperFit', section: 'app', defaultValue: 'cover');
 
   /// The dark veil over the background, 0 to 1 (pure_live_TV 0.35).
-  static const tvWallpaperMask = DoubleSetting('tvWallpaperMask', section: 'app', defaultValue: 0.35);
+  static const tvWallpaperMask = DoubleSetting('tvWallpaperMask', section: 'app', defaultValue: 0.35, min: 0, max: 1);
 
   /// The blur of a picture background (sigma; 0 is none), applied once when
   /// it is set (A17.8 h7).
-  static const tvWallpaperBlur = DoubleSetting('tvWallpaperBlur', section: 'app', defaultValue: 0);
+  static const tvWallpaperBlur = DoubleSetting('tvWallpaperBlur', section: 'app', defaultValue: 0, min: 0, max: 48);
 
   // ---- internal ----
 

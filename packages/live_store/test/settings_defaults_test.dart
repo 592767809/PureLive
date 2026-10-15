@@ -354,6 +354,8 @@ const Map<String, (num?, num?)> ranges = {
   'danmakuFontWeight': (100, 900),
   'danmakuFontBorder': (0, 4),
   'danmakuOpacity': (0, 1),
+  'tvWallpaperMask': (0, 1), // A17.8
+  'tvWallpaperBlur': (0, 48), // A17.8
   'danmakuFps': (30, 240),
   'danmakuMaxVisibleCount': (10, 120), // D05.2: out of range reads as 48
   'danmakuListFontSize': (12, 22), // A08.15: out of range (and 0) reads as 0, the theme's size
