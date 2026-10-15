@@ -270,12 +270,12 @@ v3 没有的、不在清点里的：开播提醒（v3 没有通知开播的功�
 | F-REC-03 | FFmpeg 录制、分段、合并成 MP4 | `recorder/services/ffmpeg_service.dart:51`、`recorder/services/video_processor_service.dart:14` | 是 | 完成 | H01.1、H02.1 | 2026-10-02 K90：录一场过 5 分钟，两段合成一个 MP4（339.7 秒，H.264 720p + AAC），分段文件清掉，通过（S02.3 记录） |
 | F-REC-04 | 断线重连、重试、退避、开播轮询检测 | `recorder/services/recorder_continuation_policy.dart:1`、`recorder_controller.dart:87` | 是 | 完成 | H01.1 | |
 | F-REC-05 | 启动时恢复任务 | `common/global/initial_services.dart:85` | 是 | 完成 | `app/recording.dart` | |
-| F-REC-06 | 前台服务、通知、唤醒锁；划掉应用后继续录 | `android/.../RecorderForegroundService.kt:20`、`android/.../RecorderBackgroundPlugin.kt:21` | 是 | 没验证 | `RecorderForegroundService.kt`（H02.1、H01.2） | HyperOS 可能划掉即杀；K90 上划掉没成功（S02.3 记录）→ H01.4 |
-| F-REC-07 | 存储权限（Android 11 起“所有文件访问”） | `recorder/pages/recorder/recorder_controller.dart:665` | 是 | 没验证 | `RecorderPlugin.requestStorage`（H02.1） | → H01.4 |
+| F-REC-06 | 前台服务、通知、唤醒锁；划掉应用后继续录 | `android/.../RecorderForegroundService.kt:20`、`android/.../RecorderBackgroundPlugin.kt:21` | 是 | 完成 | `RecorderForegroundService.kt`（H02.1、H01.2） | H01.4 模拟器验证：移除任务后继续录、重开接着计时；被杀后重启能把分段合成（H01.4 修）。HyperOS 锁屏冻结留给真机 |
+| F-REC-07 | 存储权限（Android 11 起“所有文件访问”） | `recorder/pages/recorder/recorder_controller.dart:665` | 是 | 完成 | `RecorderPlugin.requestStorage`（H02.1） | H01.4：Download 下的文件夹不需要所有文件访问，能写入；系统不让选 Download 根目录 |
 | F-REC-08 | 录制目录、缓存上限清理 | `recorder/services/cache_service.dart:19`、`recorder/consts/recorder_config.dart:135` | 是 | 完成 | `packages/live_record` 的 `RecordStorage` | |
 | F-REC-09 | 录制设置（清晰度、分段、超时、并发、拼音目录等 19 项） | `recorder/pages/record_settings/record_settings_page.dart:10` | 是 | 完成 | `features/record_settings/`（H01.2；界面 A10.2） |  |
-| F-REC-10 | 同时录制弹幕（XML） | `recorder/services/recording_danmaku_service.dart:11` | 是 | 没验证 | `packages/live_record` 的 `chat.dart`（H01.2） | → H01.4 |
-| F-REC-11 | HLS 预取和保留窗口（减少漏段） | `recorder/services/hls_relay_prefetch.dart:182` | 是 | 没验证 | `packages/live_media` 的 `HlsMediaWindow`（H01.2） | 效果没在真机量 → H01.4 |
+| F-REC-10 | 同时录制弹幕（XML） | `recorder/services/recording_danmaku_service.dart:11` | 是 | 完成 | `packages/live_record` 的 `chat.dart`（H01.2） | H01.4：XML 完整，时间和画面对得上 |
+| F-REC-11 | HLS 预取和保留窗口（减少漏段） | `recorder/services/hls_relay_prefetch.dart:182` | 是 | 完成 | `packages/live_media` 的 `HlsMediaWindow`（H01.2） | H01.4：AcFun（HLS）3 分钟无缺口、内容连续 |
 | F-REC-12 | 打开录制文件夹 | `recorder/pages/recorder/recorder_controller.dart:1599` | 是 | 完成 | H01.2（应用专属目录改为复制路径） | |
 | F-REC-13 | 合并进度（v3 只发进度事件，界面没接） | `recorder/services/video_processor_service.dart:26` | 是 | 完成 | H01.3：`packages/live_record/lib/src/merge.dart:67-78`（`merge(onProgress:)` 听 FFmpeg 统计，`mergeProgress` 照 3.x 的公式）；`shared/record/record_status_card.dart:414-425`（“正在整理文件”显示百分比和进度条，录制面板和录制中心同一张卡）；测试 `merge_progress_test.dart` | 2026-10-02 H01.3（提交 `d145aa930`）；FFmpeg 统计在录制计时里已在 K90 上用过（S02.2 记录），合并时的显示没在真机看 → H01.4 的真机步骤。录制通知里不显示进度 → H05.3 |
 
