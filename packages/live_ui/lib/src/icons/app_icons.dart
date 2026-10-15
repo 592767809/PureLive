@@ -829,10 +829,6 @@ abstract final class AppIcons {
   /// "播放时匹配视频帧率" (U.2i): the refresh rate follows the video.
   static const IconData matchFrameRate = Remix.movie_2_line;
 
-  /// "无障碍兼容" (R01.3): the screen's contents for every accessibility
-  /// service.
-  static const IconData accessibilityAlways = Remix.hand_heart_line;
-
   /// Network proxies (a globe in 3.x; the language has its own icon now,
   /// A01.4 c4).
   static const IconData settingsNetwork = Remix.global_line;

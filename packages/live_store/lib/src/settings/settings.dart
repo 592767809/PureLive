@@ -86,13 +86,6 @@ abstract final class Settings {
   /// multiple of its frame rate (U.2i; new in v4, so no 3.x key).
   static const matchVideoFrameRate = BoolSetting('matchVideoFrameRate', section: 'app', defaultValue: true);
 
-  /// Android: give the screen's contents to every accessibility service,
-  /// not only to a screen reader (R01.3). Off: Flutter's semantics tree is
-  /// built only while a screen reader explores by touch, so a service that
-  /// is merely on (HyperOS's 小米澎湃AI引擎 by default, password managers)
-  /// does not slow every frame. New in v5.
-  static const accessibilityAlways = BoolSetting('accessibilityAlways', section: 'app', defaultValue: false);
-
   /// Prefer real online counts over popularity where a platform has both.
   static const preferRealOnlineCounts = BoolSetting('preferRealOnlineCounts', section: 'app', defaultValue: false);
 
@@ -1864,7 +1857,6 @@ abstract final class Settings {
     showSplashPage,
     refreshRateMode,
     matchVideoFrameRate,
-    accessibilityAlways,
     preferRealOnlineCounts,
     realOnlinePlatforms,
     savedMenuIds,
