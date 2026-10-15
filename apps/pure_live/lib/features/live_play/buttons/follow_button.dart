@@ -7,6 +7,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/rooms/room_live_alert.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -24,6 +25,9 @@ enum FollowButtonPlace {
   /// `FavoriteButton`, U.2c change 6).
   video,
 }
+
+/// What the followed room's small menu chose.
+enum _FollowChoice { liveAlert, unfollow }
 
 /// Follow and unfollow (3.x `FavoriteFloatingButton`, `FavoriteButton`):
 /// unfollowing asks first in a small menu next to the button and then
@@ -79,17 +83,26 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       // a small menu next to the button, which never covers the picture's
       // middle (docs/A-界面设计/A07-直播间界面/A07.12-直播间子弹窗统一 c8, N3): who it is, then "取消关注" in
       // red (B-15: the button says what it does).
+      // The room's own "开播提醒" sits above it (A09.13; Android).
       _asking = true;
-      final bool? chosen;
+      final _FollowChoice? chosen;
+      final alertOn = roomLiveAlertOn(store.settings, room);
       try {
-        chosen = await showAppMenu<bool>(
+        chosen = await showAppMenu<_FollowChoice>(
           context,
           title: '${room.displayNick(platformName(room.platform))} · ${platformName(room.platform)}',
           preferAbove: widget.place == FollowButtonPlace.video,
           entries: [
+            if (liveAlertsAvailable)
+              AppMenuEntry(
+                key: const ValueKey('follow-live-alert'),
+                value: _FollowChoice.liveAlert,
+                icon: alertOn ? AppIcons.liveAlertOff : AppIcons.settingsLiveAlert,
+                label: i18n(alertOn ? 'room_live_alert_turn_off' : 'room_live_alert_turn_on'),
+              ),
             AppMenuEntry(
               key: const ValueKey('unfollow-confirm'),
-              value: true,
+              value: _FollowChoice.unfollow,
               icon: AppIcons.unfollow,
               label: i18n('unfollow'),
               danger: true,
@@ -99,7 +112,11 @@ class _FollowButtonState extends ConsumerState<FollowButton> {
       } finally {
         _asking = false;
       }
-      if (!(chosen ?? false) || !mounted) return;
+      if (chosen == null || !mounted) return;
+      if (chosen == _FollowChoice.liveAlert) {
+        await toggleRoomLiveAlert(context, store: store, room: room);
+        return;
+      }
     }
     setState(() => _pending = true);
     try {

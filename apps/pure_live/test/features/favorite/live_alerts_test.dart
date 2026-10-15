@@ -116,6 +116,15 @@ void main() {
       expect(covered(['gone', 'b']), ['2']);
       expect(covered(['gone']), ['1', '2', '3'], reason: 'nothing chosen is left: as if none were chosen');
     });
+
+    test('follows with their own switch (A09.13) join the chosen tags; unfollowed keys do not count', () {
+      List<String> covered(List<String> chosen, List<String> rooms) =>
+          _ids(liveAlertRooms(follows, chosen: chosen, tags: tags, assignments: assignments, rooms: rooms));
+      expect(covered([], ['douyu:3']), ['3']);
+      expect(covered(['a'], ['douyu:3']), ['1', '3']);
+      expect(covered(['a'], ['douyu:1']), ['1'], reason: 'once');
+      expect(covered([], ['douyu:9']), ['1', '2', '3'], reason: 'not followed: as if none were given');
+    });
   });
 
   group('alerts', () {

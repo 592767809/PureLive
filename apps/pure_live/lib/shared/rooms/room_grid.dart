@@ -14,6 +14,7 @@ import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/paging.dart';
 import 'package:pure_live/shared/rooms/room_cards.dart';
 import 'package:pure_live/shared/rooms/room_feed.dart';
+import 'package:pure_live/shared/rooms/room_live_alert.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -99,11 +100,16 @@ class RoomGridCard extends ConsumerWidget {
     this.statusPendingLabel,
     this.now,
     this.onOpen,
+    this.follow = false,
     super.key,
   });
 
   /// The room.
   final LiveRoom room;
+
+  /// A card of the follows page: its own "开播提醒" in the menu and the bell
+  /// while on (A09.13; Android, as "开播提醒").
+  final bool follow;
 
   /// The list mixes platforms (the platform badge's "automatic").
   final bool mixedPlatforms;
@@ -127,7 +133,13 @@ class RoomGridCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final policy = watchAudiencePolicy(ref);
     final appearance = watchCardAppearance(ref);
-    return LiveRoomCard(
+    final alerts = follow && liveAlertsAvailable;
+    final bell =
+        alerts &&
+        watchSetting(ref, Settings.liveAlertEnabled) &&
+        watchSetting(ref, Settings.liveAlertRoomKeys).contains(room.identityKey);
+    final store = ref.read(storeProvider);
+    final card = LiveRoomCard(
       data: policy.cardOf(room, now: now ?? ref.read(roomClockProvider)()),
       appearance: appearance,
       dense: dense,
@@ -135,7 +147,21 @@ class RoomGridCard extends ConsumerWidget {
       statusPending: statusPending,
       statusPendingLabel: statusPendingLabel,
       onTap: onOpen ?? () => unawaited(AppNavigator.toLiveRoomDetail(liveRoom: room)),
-      onLongPress: () => unawaited(showRoomMenu(context, store: ref.read(storeProvider), room: room)),
+      onLongPress: () => unawaited(
+        showRoomMenu(
+          context,
+          store: store,
+          room: room,
+          actions: [if (alerts) roomLiveAlertAction(context, store: store, room: room)],
+        ),
+      ),
+    );
+    if (!bell) return card;
+    return Stack(
+      children: [
+        card,
+        const Positioned(top: 6, right: 6, child: IgnorePointer(child: RoomLiveAlertBell())),
+      ],
     );
   }
 }

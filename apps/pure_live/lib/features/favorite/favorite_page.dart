@@ -19,6 +19,7 @@ import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/paging.dart';
 import 'package:pure_live/shared/rooms/room_cards.dart';
 import 'package:pure_live/shared/rooms/room_grid.dart';
+import 'package:pure_live/shared/rooms/room_live_alert.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -453,7 +454,14 @@ class _FollowGridState extends ConsumerState<_FollowGrid> {
                   data: policy.cardOf(room),
                   trailing: note == null ? null : _RowNote(text: note),
                   onTap: () => unawaited(AppNavigator.toLiveRoomDetail(liveRoom: room, playlist: all)),
-                  onLongPress: () => unawaited(showRoomMenu(context, store: store, room: room)),
+                  onLongPress: () => unawaited(
+                    showRoomMenu(
+                      context,
+                      store: store,
+                      room: room,
+                      actions: [if (liveAlertsAvailable) roomLiveAlertAction(context, store: store, room: room)],
+                    ),
+                  ),
                 );
               },
             );
@@ -489,6 +497,7 @@ class _FollowGridState extends ConsumerState<_FollowGrid> {
                   now: now,
                   // The group's rooms go along (U.2b2).
                   onOpen: () => unawaited(AppNavigator.toLiveRoomDetail(liveRoom: room, playlist: all)),
+                  follow: true,
                 );
               },
             );

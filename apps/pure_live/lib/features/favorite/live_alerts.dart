@@ -106,25 +106,29 @@ final class _Seen {
   DateTime? endedAt;
 }
 
-/// The follows "开播提醒" covers (V01.1 L3): every follow, or with tags
-/// chosen ([chosen], `liveAlertTagIds`) those with one of them. A chosen
-/// tag that no longer exists does not count; with none left it is every
-/// follow again, which is also what the settings show (no tag ticked).
+/// The follows "开播提醒" covers (V01.1 L3, A09.13): every follow, or,
+/// with tags chosen ([chosen], `liveAlertTagIds`) or follows given their
+/// own switch ([rooms], `liveAlertRoomKeys`), those with one of the tags or
+/// a switch on. A chosen tag that no longer exists does not count; with
+/// none left and no switch on it is every follow again, which is also what
+/// the settings show (no tag ticked).
 List<LiveRoom> liveAlertRooms(
   List<LiveRoom> follows, {
   required List<String> chosen,
   required List<StoreTag> tags,
   required Map<String, List<String>> assignments,
+  List<String> rooms = const [],
 }) {
   final existing = {for (final tag in tags) tag.id};
   final wanted = {
     for (final id in chosen)
       if (existing.contains(id)) id,
   };
-  if (wanted.isEmpty) return follows;
+  final own = rooms.toSet();
+  if (wanted.isEmpty && !follows.any((room) => own.contains(room.identityKey))) return follows;
   return [
     for (final room in follows)
-      if (assignments[room.identityKey]?.any(wanted.contains) ?? false) room,
+      if (own.contains(room.identityKey) || (assignments[room.identityKey]?.any(wanted.contains) ?? false)) room,
   ];
 }
 

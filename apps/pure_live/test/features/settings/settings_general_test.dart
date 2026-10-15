@@ -216,6 +216,16 @@ void main() {
       expect(h.settings.get(Settings.liveAlertTagIds), [tags[0].id, tags[1].id], reason: "in the tags' order");
       await tapSettings(tester, second);
       expect(h.settings.get(Settings.liveAlertTagIds), [tags[0].id]);
+
+      // A09.13: the follows given their own switch are counted, with "清除".
+      final rooms = find.byKey(const ValueKey('settings-live-alert-rooms'));
+      expect(rooms, findsNothing);
+      await tester.runAsync(() => h.settings.set(Settings.liveAlertRoomKeys, ['douyu:1', 'huya:2']));
+      await settleSettings(tester);
+      expect(find.descendant(of: rooms, matching: findWords('另外单独打开的主播：2 位')), findsOneWidget);
+      await tapSettings(tester, find.byKey(const ValueKey('settings-live-alert-rooms-clear')));
+      expect(h.settings.get(Settings.liveAlertRoomKeys), isEmpty);
+      expect(rooms, findsNothing);
     });
 
     testWidgets('O01.1: search finds "开播提醒" and its tags', (tester) async {

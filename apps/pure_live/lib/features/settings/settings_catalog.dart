@@ -698,7 +698,7 @@ List<SettingsEntry> _build() {
       'live_alert_tags',
       (context, entry) => LiveAlertTagsTile(entry: entry),
       desc: 'live_alert_tags_desc',
-      settings: [Settings.liveAlertTagIds],
+      settings: [Settings.liveAlertTagIds, Settings.liveAlertRoomKeys],
       keywords: ['开播', '提醒', '标签', 'tag'],
       when: _android,
     )

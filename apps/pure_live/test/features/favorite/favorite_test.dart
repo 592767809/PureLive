@@ -20,6 +20,7 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/room_grid.dart';
+import 'package:pure_live/shared/rooms/room_live_alert.dart';
 
 import '../../scroll_support.dart';
 import '../../support.dart';
@@ -580,6 +581,84 @@ void main() {
       final box = find.descendant(of: tab, matching: find.byType(FittedBox));
       expect(tester.getSize(box).width / tester.getSize(content).width, greaterThan(0.7));
       await tester.runAsync(services.close);
+    });
+
+    testWidgets('A09.13: the card menu turns a follow\'s own "开播提醒" on and off; the bell shows it', (tester) async {
+      liveAlertsAvailable = true;
+      addTearDown(() => liveAlertsAvailable = false);
+      final (services, _, _) = await pumpPage(
+        tester,
+        follows: [
+          room('douyu', '1', nick: '甲', status: LiveStatus.live),
+          room('douyu', '2', nick: '乙', status: LiveStatus.live),
+        ],
+        details: {
+          '1': room('douyu', '1', status: LiveStatus.live),
+          '2': room('douyu', '2', status: LiveStatus.live),
+        },
+      );
+      final settings = services.store.settings;
+      await tester.runAsync(() => settings.set(Settings.liveAlertEnabled, true));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('room-live-alert-bell')), findsNothing);
+
+      Future<void> menu(String key) async {
+        await tester.longPress(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+        await tester.pumpAndSettle();
+      }
+
+      // Covering every follow: asked first, as from now on only 甲 is.
+      await menu('douyu:1');
+      expect(
+        find.descendant(of: find.byKey(const ValueKey('room-menu-live-alert')), matching: find.text('开播提醒')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('room-menu-live-alert')));
+      await tester.pumpAndSettle();
+      expect(find.text('只提醒选中的主播？'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('room-live-alert-narrow-confirm')));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pumpAndSettle();
+      expect(settings.get(Settings.liveAlertRoomKeys), ['douyu:1']);
+      final bell = find.byKey(const ValueKey('room-live-alert-bell'));
+      expect(bell, findsOneWidget);
+      expect(find.descendant(of: find.byKey(const ValueKey('douyu:1')), matching: bell), findsOneWidget);
+
+      // A second one: no question.
+      await menu('douyu:2');
+      await tester.tap(find.byKey(const ValueKey('room-menu-live-alert')));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pumpAndSettle();
+      expect(find.text('只提醒选中的主播？'), findsNothing);
+      expect(settings.get(Settings.liveAlertRoomKeys), ['douyu:1', 'douyu:2']);
+      expect(find.byKey(const ValueKey('room-live-alert-bell')), findsNWidgets(2));
+
+      // Off again.
+      await menu('douyu:1');
+      expect(
+        find.descendant(of: find.byKey(const ValueKey('room-menu-live-alert')), matching: find.text('关闭开播提醒')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('room-menu-live-alert')));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pumpAndSettle();
+      expect(settings.get(Settings.liveAlertRoomKeys), ['douyu:2']);
+      expect(find.byKey(const ValueKey('room-live-alert-bell')), findsOneWidget);
+
+      // "开播提醒" off: no bell; turning one on turns it on again.
+      await tester.runAsync(() => settings.set(Settings.liveAlertEnabled, false));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('room-live-alert-bell')), findsNothing);
+      await menu('douyu:1');
+      await tester.tap(find.byKey(const ValueKey('room-menu-live-alert')));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pumpAndSettle();
+      expect(settings.get(Settings.liveAlertEnabled), isTrue);
+      expect(settings.get(Settings.liveAlertRoomKeys), ['douyu:2', 'douyu:1']);
+      await tester.pump(const Duration(seconds: 5)); // let the toasts go
+      await tester.pumpAndSettle();
     });
 
     testWidgets('tags filter the grid; the card menu sets tags and unfollows with undo', (tester) async {

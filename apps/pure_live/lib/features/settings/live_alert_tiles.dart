@@ -17,8 +17,9 @@ final StreamProvider<List<StoreTag>> _tagsProvider = StreamProvider.autoDispose<
 /// The tags whose follows "开播提醒" covers (V01.1 L3): a heading row, then
 /// a switch per tag in the tags' order. No tag on covers every follow (a
 /// streamer or a few: give them one tag). Without tags the heading says
-/// every follow is covered and where tags are made. Greyed out while
-/// "开播提醒" is off.
+/// every follow is covered and where tags are made. The follows given their
+/// own switch (A09.13) are counted under them, with "清除". Greyed out
+/// while "开播提醒" is off.
 class LiveAlertTagsTile extends ConsumerWidget {
   /// Creates the rows.
   const new({required this.entry, super.key});
@@ -30,6 +31,7 @@ class LiveAlertTagsTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final on = watchSetting(ref, Settings.liveAlertEnabled);
     final chosen = watchSetting(ref, Settings.liveAlertTagIds);
+    final rooms = watchSetting(ref, Settings.liveAlertRoomKeys);
     final tags = ref.watch(_tagsProvider).value ?? const <StoreTag>[];
     final ticked = {
       for (final tag in tags)
@@ -44,7 +46,7 @@ class LiveAlertTagsTile extends ConsumerWidget {
         SettingsRow(
           icon: AppIcons.tag,
           title: entry.titleText,
-          subtitle: tags.isEmpty ? i18n('live_alert_tags_none') : entry.descriptionText,
+          subtitle: tags.isEmpty && rooms.isEmpty ? i18n('live_alert_tags_none') : entry.descriptionText,
           enabled: on,
           disabledReason: reason,
         ),
@@ -60,6 +62,21 @@ class LiveAlertTagsTile extends ConsumerWidget {
               for (final other in tags)
                 if (other.id == tag.id ? value : ticked.contains(other.id)) other.id,
             ]),
+          ),
+        // The follows given their own switch on their cards (A09.13).
+        if (rooms.isNotEmpty)
+          SettingsRow(
+            key: const ValueKey('settings-live-alert-rooms'),
+            leading: const SizedBox(width: 22),
+            title: i18n('live_alert_rooms', args: {'count': '${rooms.length}'}),
+            subtitle: i18n('live_alert_rooms_desc'),
+            enabled: on,
+            disabledReason: reason,
+            trailing: TextButton(
+              key: const ValueKey('settings-live-alert-rooms-clear'),
+              onPressed: on ? () => writeSetting(ref, Settings.liveAlertRoomKeys, const <String>[]) : null,
+              child: Text(i18n('live_alert_rooms_clear')),
+            ),
           ),
       ],
     );

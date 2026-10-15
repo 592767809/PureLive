@@ -361,6 +361,13 @@ NOTES: dict[str, dict] = {
         'verdict': 'v4 新加（O01.1，V01.1）：空 = 提醒全部关注；选了标签只提醒带这些标签的关注，已删除的标签不算',
         'when': '下一轮检查',
     },
+    'liveAlertRoomKeys': {
+        **_new('A09.13，V01.1'),
+        'verdict': 'v5.1 新加（A09.13，V01.1 L3）：关注卡片长按菜单和直播间关注小菜单里单独打开的主播；'
+        '和选中的标签合起来算，两样都空 = 提醒全部关注；取消关注的不算',
+        'ui': '不在设置页，在卡片和直播间菜单里开关',
+        'when': '下一轮检查',
+    },
     'maxConcurrentRefresh': {'v3range': '1～20（`refresh_config_controller.dart:9-18`）'},
     'thumbnailRefreshInterval': {
         'v3range': '5～360（`refresh_config_controller.dart:6-14`）',

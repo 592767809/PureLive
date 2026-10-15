@@ -999,6 +999,11 @@ abstract final class Settings {
   /// follow (O01.1).
   static const liveAlertTagIds = StringListSetting('liveAlertTagIds', section: 'refresh', defaultValue: []);
 
+  /// The follows given their own "开播提醒" switch (A09.13; identity keys,
+  /// `platform:roomId`): covered besides [liveAlertTagIds]'s. New in v4,
+  /// empty: as before.
+  static const liveAlertRoomKeys = StringListSetting('liveAlertRoomKeys', section: 'refresh', defaultValue: []);
+
   /// Refresh covers on a timer.
   static const autoRefreshThumbnails = BoolSetting('autoRefreshThumbnails', section: 'refresh', defaultValue: false);
 
@@ -1906,6 +1911,7 @@ abstract final class Settings {
     maxConcurrentRefresh,
     liveAlertEnabled,
     liveAlertTagIds,
+    liveAlertRoomKeys,
     autoRefreshThumbnails,
     thumbnailRefreshInterval,
     selectedSourceName,

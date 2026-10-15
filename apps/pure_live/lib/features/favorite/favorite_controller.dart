@@ -227,8 +227,13 @@ final class FavoriteController extends ChangeNotifier {
       _enqueue(rooms, full: true, visible: visible, bypassCooldown: bypassCooldown, alert: alert);
 
   /// The follows "开播提醒" covers ([liveAlertRooms]).
-  List<LiveRoom> get liveAlertTargets =>
-      liveAlertRooms(rooms, chosen: store.settings.get(Settings.liveAlertTagIds), tags: tags, assignments: assignments);
+  List<LiveRoom> get liveAlertTargets => liveAlertRooms(
+    rooms,
+    chosen: store.settings.get(Settings.liveAlertTagIds),
+    tags: tags,
+    assignments: assignments,
+    rooms: store.settings.get(Settings.liveAlertRoomKeys),
+  );
 
   /// The recorder's task list after a change: its fresh checks of rooms go
   /// to "开播提醒" like a pass's rooms.

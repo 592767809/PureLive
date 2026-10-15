@@ -390,6 +390,7 @@ setting = [
   # refresh 分节（默认 I04）
   { key = "liveAlertEnabled", sub = "O01" },
   { key = "liveAlertTagIds", sub = "O01" },
+  { key = "liveAlertRoomKeys", sub = "A09" },
   # exit 分节（默认 A16）
   { key = "autoShutDownTime", sub = "J01" },
   { key = "enableAutoShutDownTime", sub = "J01" },

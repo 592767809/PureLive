@@ -1311,6 +1311,9 @@ abstract final class AppIcons {
   /// "开播提醒": a notification when a followed streamer goes live (O01.1).
   static const IconData settingsLiveAlert = Remix.notification_3_line;
 
+  /// A follow's own "开播提醒" turned off (A09.13).
+  static const IconData liveAlertOff = Remix.notification_off_line;
+
   /// A refresh interval.
   static const IconData settingsInterval = Remix.time_line;
 
