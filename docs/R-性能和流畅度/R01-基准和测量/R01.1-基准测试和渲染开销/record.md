@@ -146,3 +146,7 @@ flutter drive --profile -d 192.168.1.2:5555 \
 - `apps/pure_live/lib/app/bootstrap.dart`：只改了 `configureDecodedImageCache` 和它的调用。
 - `apps/pure_live/pubspec.yaml`、`pubspec.lock`：开发依赖；别的任务改依赖时按块合并即可。
 - `apps/pure_live/test/features/popular/popular_test.dart`：`_FakeSite` 加了 `gate`，加了一个 `group`。
+
+## 2026-10-15 K90 基准（verify 第 1 部分）
+
+在 K90 上跑了 `flutter drive --profile`（120 Hz），9 个场景的数字和判定在 [R01.2 记录](../R01.2-在K90上跑基准/record.md)。设备信息读对了（120 Hz、15086 MiB、图片缓存 320 张 / 128 MiB）。7 个场景通过；`danmaku_200` 的 build P90 4.59 毫秒超过 3 毫秒（无卡顿）；`room_enter_exit_20` 卡顿 2.74%（每次进出约 3 帧），常驻内存不涨。
