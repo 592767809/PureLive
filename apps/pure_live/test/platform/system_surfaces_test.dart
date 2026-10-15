@@ -88,6 +88,10 @@ void main() {
       });
       await keepAlive.refresh();
       expect(calls, hasLength(1), reason: 'nothing changed');
+      // The notification permission was just given: the same words again.
+      await keepAlive.repost();
+      expect((calls.last.method, (calls.last.arguments as Map)['title']), ('update', '正在录制 · 晚风'));
+      calls.removeLast();
       title = '正在录制 2 个直播间';
       await keepAlive.refresh();
       expect((calls.last.method, (calls.last.arguments as Map)['title']), ('update', '正在录制 2 个直播间'));

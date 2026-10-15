@@ -228,6 +228,43 @@ void main() {
       expect(await store.meta.get(RecordingPermissionPrompts.askedKey), isNotNull);
     });
 
+    testWidgets('given there and then, it says so (the recording notification is posted again)', (tester) async {
+      await pumpApp(tester);
+      final store = await LiveStore.memory(cipher: FakeCipher());
+      addTearDown(store.close);
+      final permissions = _Permissions(state: NotificationPermission.askable);
+      final prompts = RecordingPermissionPrompts(
+        permissions: permissions,
+        meta: store.meta,
+        navigator: () => navigator.currentContext,
+        inFront: () => true,
+      );
+      bool? granted;
+      unawaited(prompts.notificationsOnce().then((value) => granted = value));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('去开启'));
+      await tester.pumpAndSettle();
+      expect(permissions.calls, ['request']);
+      expect(granted, isTrue);
+
+      // Refused for good: the settings page, then whether it was given there.
+      await store.meta.set(RecordingPermissionPrompts.askedKey, null);
+      permissions.state = NotificationPermission.blocked;
+      final blocked = RecordingPermissionPrompts(
+        permissions: permissions,
+        meta: store.meta,
+        navigator: () => navigator.currentContext,
+        inFront: () => true,
+        resumed: () async => permissions.state = NotificationPermission.granted,
+      );
+      granted = null;
+      unawaited(blocked.notificationsOnce().then((value) => granted = value));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('去设置'));
+      await tester.pumpAndSettle();
+      expect(granted, isTrue);
+    });
+
     testWidgets('all-files access is explained before the system page; cancel opens nothing', (tester) async {
       await pumpApp(tester);
       final store = await LiveStore.memory(cipher: FakeCipher());

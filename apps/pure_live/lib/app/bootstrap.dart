@@ -362,7 +362,13 @@ abstract final class AppBootstrap {
             words: i18n,
             danmaku: danmaku,
             tasksKey: tasksKey,
-            onServiceStart: () => unawaited(prompts.notificationsOnce()),
+            // Given there and then, the notification Android refused is
+            // posted again (it would wait for the words to change).
+            onServiceStart: (repost) => unawaited(
+              prompts.notificationsOnce().then((granted) async {
+                if (granted) await repost();
+              }),
+            ),
             explainStorage: prompts.explainStorage,
           )
         : buildAppRecording(store: store, sites: sites, proxy: proxy, dataRoot: dataRoot, tasksKey: tasksKey);

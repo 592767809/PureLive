@@ -221,6 +221,13 @@ final class AndroidRecordKeepAlive implements RecordingKeepAlive {
 
   Map<String, Object?> _words() => {'title': title(), 'text': text(), ...?extra?.call()};
 
+  /// Posts the notification again with the same words: the notification
+  /// permission was just given, and Android showed nothing before.
+  Future<void> repost() {
+    _shown = null;
+    return _refresh(due: true);
+  }
+
   /// Sends the notification's words again when they changed (the
   /// recordings changed); nothing while the service is off. A join's
   /// progress goes at most once per [progressGap], the latest when the gap
@@ -387,7 +394,8 @@ Future<bool> androidStorageAccess(
 /// ready). [words] gives the notification's fixed words; its content
 /// follows the recordings ([RecordingNotices], U.14 c3–c5).
 /// [onServiceStart] is told when Android's service starts for the first
-/// recording, [explainStorage] before the all-files page opens (U.14 c14).
+/// recording, with what posts its notification again (after the permission
+/// question), [explainStorage] before the all-files page opens (U.14 c14).
 AppRecording platformAppRecording({
   required LiveStore store,
   required SiteRegistry sites,
@@ -396,7 +404,7 @@ AppRecording platformAppRecording({
   required String Function(String key) words,
   DanmakuRegistry? danmaku,
   String tasksKey = recorderTasksKey,
-  void Function()? onServiceStart,
+  void Function(Future<void> Function() repost)? onServiceStart,
   Future<bool> Function()? explainStorage,
 }) {
   final caBundle = RecordCaBundle(Directory(p.join(dataRoot.path, 'certificates')));
@@ -404,7 +412,8 @@ AppRecording platformAppRecording({
   late final AppRecording recording;
   RecordingNotices? notices;
   RecordNotificationContent content() => recordNotificationContent(recording.recorder?.tasks ?? const []);
-  final keepAlive = Platform.isAndroid
+  late final AndroidRecordKeepAlive? keepAlive;
+  keepAlive = Platform.isAndroid
       ? AndroidRecordKeepAlive(
           title: () => content().title,
           text: () => content().text,
@@ -424,7 +433,7 @@ AppRecording platformAppRecording({
             };
           },
           onInterrupted: (reason) async => await recording.recorder?.keepAliveInterrupted(reason),
-          onStart: onServiceStart,
+          onStart: onServiceStart == null ? null : () => onServiceStart(() => keepAlive!.repost()),
           onStopAll: () async => await notices?.stopAll(),
         )
       : null;

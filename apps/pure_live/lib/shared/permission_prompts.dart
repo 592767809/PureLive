@@ -155,9 +155,15 @@ final Provider<BackgroundPermissions?> backgroundPermissionsProvider = Provider(
 final class RecordingPermissionPrompts {
   /// Creates the prompts over [permissions]; [meta] remembers that the
   /// notification question was asked.
-  new({required this.permissions, required this.meta, BuildContext? Function()? navigator, bool Function()? inFront})
-    : _navigator = navigator ?? (() => AppNavigator.navigatorContext),
-      _inFront = inFront ?? (() => WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed);
+  new({
+    required this.permissions,
+    required this.meta,
+    BuildContext? Function()? navigator,
+    bool Function()? inFront,
+    Future<void> Function()? resumed,
+  }) : _navigator = navigator ?? (() => AppNavigator.navigatorContext),
+       _inFront = inFront ?? (() => WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed),
+       _resumed = resumed ?? nextResume;
 
   /// Where [askedKey] is kept.
   static const String askedKey = 'permission.recordingNotifications';
@@ -170,21 +176,24 @@ final class RecordingPermissionPrompts {
 
   final BuildContext? Function() _navigator;
   final bool Function() _inFront;
+  final Future<void> Function() _resumed;
   bool _asking = false;
 
   /// The first recording started: explains the notification permission
-  /// once while the app is in front; never holds the recording up.
-  Future<void> notificationsOnce() async {
-    if (!permissions.applies || _asking || !_inFront()) return;
+  /// once while the app is in front; never holds the recording up. True
+  /// when the question ended with the permission given (the recording's
+  /// notification, refused by Android so far, is to be posted again).
+  Future<bool> notificationsOnce() async {
+    if (!permissions.applies || _asking || !_inFront()) return false;
     _asking = true;
     try {
-      if (await meta.get(askedKey) != null) return;
+      if (await meta.get(askedKey) != null) return false;
       final state = await permissions.notifications();
-      if (state == NotificationPermission.granted) return;
+      if (state == NotificationPermission.granted) return false;
       final context = _navigator();
-      if (context == null || !context.mounted) return;
+      if (context == null || !context.mounted) return false;
       await meta.set(askedKey, '1');
-      if (!context.mounted) return;
+      if (!context.mounted) return false;
       final askable = state == NotificationPermission.askable;
       final go = await showPermissionDialog(
         context,
@@ -193,12 +202,11 @@ final class RecordingPermissionPrompts {
         confirm: i18n(askable ? 'permission_go_enable' : 'permission_open_settings'),
         cancel: i18n('permission_later'),
       );
-      if (!go) return;
-      if (askable) {
-        await permissions.requestNotifications();
-      } else {
-        await permissions.openNotificationSettings();
-      }
+      if (!go) return false;
+      if (askable) return await permissions.requestNotifications();
+      if (!await permissions.openNotificationSettings()) return false;
+      await _resumed();
+      return await permissions.notifications() == NotificationPermission.granted;
     } on Object catch (error, stack) {
       log(
         'Recording notification question failed',
@@ -206,6 +214,7 @@ final class RecordingPermissionPrompts {
         error: error,
         stackTrace: stack,
       );
+      return false;
     } finally {
       _asking = false;
     }
