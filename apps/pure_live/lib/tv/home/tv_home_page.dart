@@ -561,12 +561,17 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
                   onTap: () => unawaited(_chooseMode(mode)),
                 ),
               ),
+              // Entries past the height scroll; clipped above and below only
+              // (the focused entry grows past the sides).
               Expanded(
-                child: SingleChildScrollView(
-                  clipBehavior: Clip.none,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [for (final pane in menuPanes) _menuItem(pane, compact: !expanded)],
+                child: ClipRect(
+                  clipper: const _VerticalClip(),
+                  child: SingleChildScrollView(
+                    clipBehavior: Clip.none,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [for (final pane in menuPanes) _menuItem(pane, compact: !expanded)],
+                    ),
                   ),
                 ),
               ),
@@ -705,4 +710,15 @@ class _ClockState extends State<_Clock> {
       ],
     );
   }
+}
+
+/// Clips above and below a box, not at its sides.
+class _VerticalClip extends CustomClipper<Rect> {
+  const new();
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(-size.width, 0, size.width * 2, size.height);
+
+  @override
+  bool shouldReclip(_VerticalClip oldClipper) => false;
 }
