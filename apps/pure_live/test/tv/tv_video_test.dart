@@ -179,7 +179,14 @@ void main() {
     expect(find.byKey(const ValueKey('tv-video-login-gate')), findsOneWidget);
     expect(find.text('扫码登录'), findsOneWidget);
     expect(find.text('目的地'), findsNothing);
+    expect(find.text('登录哔哩哔哩后看视频'), findsOneWidget);
     await close(tester, services);
+
+    // The music mode's gate speaks of music.
+    final music = await pump(tester, const TvVideoGate(music: true, child: Text('目的地')));
+    expect(find.text('登录哔哩哔哩后听音乐'), findsOneWidget);
+    expect(find.text('登录哔哩哔哩后看视频'), findsNothing);
+    await close(tester, music);
   });
 
   testWidgets('首页: three tabs, recommended cards; a failure says why and offers "重试"', (tester) async {

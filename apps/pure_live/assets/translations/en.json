@@ -2834,6 +2834,8 @@
     "tv_music_like": "Like",
     "tv_music_liked": "✓ Liked",
     "tv_music_liked_songs": "Liked songs",
+    "tv_music_login_desc": "Music uses the live Bilibili account; scan with the Bilibili app to sign in",
+    "tv_music_login_title": "Sign in to Bilibili for music",
     "tv_music_lyrics_loading": "Loading lyrics…",
     "tv_music_lyrics_none": "No lyrics",
     "tv_music_mode": "Play mode",

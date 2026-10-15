@@ -2833,6 +2833,8 @@
     "tv_music_like": "喜欢",
     "tv_music_liked": "✓ 已喜欢",
     "tv_music_liked_songs": "喜欢的歌曲",
+    "tv_music_login_desc": "音乐用的是直播的哔哩哔哩账号；用手机哔哩哔哩扫码登录后就能听",
+    "tv_music_login_title": "登录哔哩哔哩后听音乐",
     "tv_music_lyrics_loading": "正在加载歌词…",
     "tv_music_lyrics_none": "暂无歌词",
     "tv_music_mode": "播放模式",

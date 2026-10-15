@@ -112,11 +112,14 @@ String videoTitleOf(Object item) => switch (item) {
 /// music): the live login (the same cookie) by its QR page; signing in
 /// anywhere opens the mode.
 class TvVideoGate extends ConsumerWidget {
-  /// Guards [child].
-  const new({required this.child, super.key});
+  /// Guards [child]; [music] words it for the music mode.
+  const new({required this.child, this.music = false, super.key});
 
   /// The destination.
   final Widget child;
+
+  /// In front of the music mode ("登录哔哩哔哩后听音乐").
+  final bool music;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -128,8 +131,8 @@ class TvVideoGate extends ConsumerWidget {
           : TvStatusView(
               key: const ValueKey('tv-video-login-gate'),
               icon: TvIcons.needsLogin,
-              title: i18n('tv_video_login_title'),
-              subtitle: i18n('tv_video_login_desc'),
+              title: i18n(music ? 'tv_music_login_title' : 'tv_video_login_title'),
+              subtitle: i18n(music ? 'tv_music_login_desc' : 'tv_video_login_desc'),
               actions: [
                 TvStatusAction(
                   icon: AppIcons.login,

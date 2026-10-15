@@ -61,6 +61,7 @@ class TvMusicFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TvVideoGate(
+    music: true,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
