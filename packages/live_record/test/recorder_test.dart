@@ -346,6 +346,29 @@ void main() {
       expect(ffmpeg.runs, hasLength(1));
     }, timeout: const Timeout(Duration(seconds: 40)));
 
+    test('a broadcast found by the live check is a new recording: its clock and size start at zero', () async {
+      ffmpeg
+        ..captureExit = 0
+        ..captureSeconds = const Duration(seconds: 1);
+      final task = (await recorder.addTask(room(), autoRecord: true))!;
+      await until(() => task.status == RecordStatus.reconnecting);
+      site.status = LiveStatus.offline;
+      await until(() => task.status == RecordStatus.waitingLive, within: const Duration(seconds: 20));
+      expect(task.pendingAttempts, isEmpty);
+      task
+        ..recordedSeconds = 192
+        ..fileSize = 17000000;
+      final firstStart = task.recordingStartedAt;
+      settings = RecordSettings(enablePolling: true, liveCheckInterval: 10);
+      ffmpeg.captureExit = null;
+      site.status = LiveStatus.live;
+      await recorder.refreshTaskStatus(task);
+      await until(() => task.status == RecordStatus.running, within: const Duration(seconds: 20));
+      expect(task.recordedSeconds, lessThan(192));
+      expect(task.fileSize, lessThan(17000000));
+      expect(task.recordingStartedAt, isNot(firstStart));
+    }, timeout: const Timeout(Duration(seconds: 40)));
+
     test('an offline room waits for the live check', () async {
       site.status = LiveStatus.offline;
       final task = (await recorder.addTask(room()))!;

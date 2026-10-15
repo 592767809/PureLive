@@ -1210,6 +1210,13 @@ final class Recorder {
           ..qualityNoticed = false
           ..poll = null;
         task.retryCount = 0;
+        // Nothing left to join: the last broadcast ended in its own MP4
+        // (H01.5), so this one is a new recording with its own clock and
+        // size, as "开始录制" makes (the card counted on from the last one).
+        if (task.pendingAttempts.isEmpty) {
+          task.beginNewRecording(now: clock.now());
+          rt.base = (bytes: 0, seconds: 0);
+        }
         await _start(task);
         return;
       }
