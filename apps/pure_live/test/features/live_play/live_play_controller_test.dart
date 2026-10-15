@@ -661,13 +661,17 @@ void main() {
     LiveMessage chat(String user) =>
         LiveMessage(type: LiveMessageType.chat, userName: user, message: '前排', color: LiveMessageColor.white);
 
-    test('a guest: the hint while the danmaku is on, and no system line for masked names', () async {
+    test('a guest: full names say nothing; masked ones bring the hint; no system line for them', () async {
       final controller = controllerFor(FakeSite(liveRoom()));
       expect(controller.nameHint, ChatNameHint.none, reason: 'not connected yet');
       await controller.start();
       await settle();
-      expect(controller.nameHint, ChatNameHint.guest);
-      danmaku.emit(DanmakuReceived(chat('观***')));
+      expect(controller.nameHint, ChatNameHint.none, reason: 'guests get full names since 2026-10');
+      danmaku
+        ..emit(DanmakuReceived(chat('观***')))
+        ..emit(DanmakuReceived(chat('离**')))
+        ..emit(DanmakuReceived(chat('V***')));
+      expect(controller.nameHint, ChatNameHint.guest, reason: 'the names came masked');
       expect(controller.chat.lines.where((line) => line.kind == ChatLineKind.system).map((line) => line.text), [
         '开始连接弹幕服务器',
         '弹幕服务器连接正常',
@@ -699,7 +703,7 @@ void main() {
       site.room = liveRoom().copyWith(danmakuData: 'args-6-guest');
       await store.secrets.setCookie(SiteIds.bilibili, '');
       await settle();
-      expect(controller.nameHint, ChatNameHint.guest);
+      expect(controller.nameHint, ChatNameHint.none, reason: 'a new connection: no masked names yet');
       expect(danmaku.connects.sublist(connects), ['args-6-guest']);
       controller.dispose();
     });

@@ -68,13 +68,15 @@ enum ChatConnection {
 }
 
 /// What the chat list says above its lines about Bilibili's names (task
-/// B06 c1): the server masks every name (`观***`) for a connection that is
-/// not logged in, whatever the client reads.
+/// B06 c1): the server masked every name (`观***`) for a connection that
+/// was not logged in; since 2026-10 guests get full names, so the hint
+/// stands on the names that arrive, not on the login alone.
 enum ChatNameHint {
   /// Nothing to say: not Bilibili, no danmaku, or full names.
   none,
 
-  /// No Bilibili login: "访客模式下哔哩哔哩会隐藏昵称 · 去登录".
+  /// No Bilibili login and the names come masked: "访客模式下哔哩哔哩会隐藏昵称
+  /// · 去登录".
   guest,
 
   /// A login is stored but the names still come masked: "登录已失效 ·
@@ -333,22 +335,21 @@ class LiveRoomController extends ChangeNotifier {
   Future<void> reconnectDanmaku() => _syncDanmaku(force: true);
 
   /// Masked chats in one connection, with no full name among them, after
-  /// which a stored Bilibili login counts as expired ([ChatNameHint]).
+  /// which the names count as hidden ([ChatNameHint]).
   static const int maskedChatsForExpiredLogin = 3;
 
-  /// What the chat list says about Bilibili's names (B06 c1): [ChatNameHint.guest]
-  /// while a Bilibili room's danmaku is on without a login,
-  /// [ChatNameHint.loginExpired] when a login is stored but this connection
-  /// got [maskedChatsForExpiredLogin] masked names and no full one.
+  /// What the chat list says about Bilibili's names (B06 c1): nothing while
+  /// the names come in full (guests get them since 2026-10); once this
+  /// connection got [maskedChatsForExpiredLogin] masked names and no full
+  /// one, [ChatNameHint.guest] without a login and
+  /// [ChatNameHint.loginExpired] with one.
   ChatNameHint get nameHint {
     if (_room.platform != SiteIds.bilibili) return ChatNameHint.none;
     if (_chatConnection == ChatConnection.idle || _chatConnection == ChatConnection.unsupported) {
       return ChatNameHint.none;
     }
-    if (!_signedIn) return ChatNameHint.guest;
-    return _maskedChats >= maskedChatsForExpiredLogin && _namedChats == 0
-        ? ChatNameHint.loginExpired
-        : ChatNameHint.none;
+    if (_maskedChats < maskedChatsForExpiredLogin || _namedChats > 0) return ChatNameHint.none;
+    return _signedIn ? ChatNameHint.loginExpired : ChatNameHint.guest;
   }
 
   bool get _signedIn => store.secrets.cookieFor(SiteIds.bilibili)?.trim().isNotEmpty ?? false;

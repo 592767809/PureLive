@@ -120,11 +120,14 @@ Finder _hint(String text) =>
     find.descendant(of: find.byKey(const ValueKey('live-play-name-hint')), matching: find.text(text));
 
 void main() {
-  testWidgets('c1: a guest sees the hint above the chat; 去登录 opens the QR login; the login reconnects', (tester) async {
+  testWidgets('c1: a guest whose names come masked sees the hint above the chat; 去登录 opens the QR login; the '
+      'login reconnects', (tester) async {
     final site = FakeSite(liveRoom());
     final danmaku = FakeDanmaku();
     final services = await _pump(tester, site: site, danmaku: danmaku);
-    danmaku.emit(DanmakuReceived(_chat('观***', '前排')));
+    for (final name in ['观***', '离**', 'V***']) {
+      danmaku.emit(DanmakuReceived(_chat(name, '前排')));
+    }
     await tester.pump();
 
     expect(_hint('访客模式下哔哩哔哩会隐藏昵称'), findsOneWidget);
@@ -155,6 +158,18 @@ void main() {
     danmaku.emit(DanmakuReceived(_chat('小路的观众', '登录后')));
     await tester.pump();
     expect(find.textContaining('小路的观众', findRichText: true), findsOneWidget);
+    await _close(tester, services);
+  });
+
+  testWidgets('c1: a guest who gets full names (Bilibili since 2026-10) sees no hint', (tester) async {
+    final danmaku = FakeDanmaku();
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku);
+    danmaku
+      ..emit(DanmakuReceived(_chat('完整的名字', '前排')))
+      ..emit(DanmakuReceived(_chat('另一个名字', '666')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('live-play-name-hint')), findsNothing);
+    expect(find.textContaining('完整的名字', findRichText: true), findsWidgets);
     await _close(tester, services);
   });
 
