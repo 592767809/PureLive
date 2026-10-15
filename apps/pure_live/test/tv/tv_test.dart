@@ -516,7 +516,13 @@ void main() {
     await _press(tester, LogicalKeyboardKey.select);
     expect(_focused, 'tv search field');
     // The filters are on the page before a search.
-    for (final key in ['tv-search-mode-rooms', 'tv-search-mode-anchors', 'tv-search-offline', 'tv-search-sort']) {
+    for (final key in [
+      'tv-search-mode-rooms',
+      'tv-search-mode-anchors',
+      'tv-search-offline',
+      'tv-search-sort',
+      'tv-search-phone',
+    ]) {
       expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
     }
     expect(find.byKey(const ValueKey('tv-search-scope')), findsOneWidget);

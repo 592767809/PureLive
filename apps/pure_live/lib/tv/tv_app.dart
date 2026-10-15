@@ -90,7 +90,9 @@ class _TvAppFrameState extends ConsumerState<TvAppFrame> {
                 insetPadding: EdgeInsets.fromLTRB(scale.px(240), 0, scale.px(240), scale.px(48)),
               ),
             ),
-            child: child,
+            // "扫码到手机" for every TV page (the search's "用手机输入"), not
+            // only for the phone's pages shown in the TV look.
+            child: TvPhoneBridge(child: child),
           );
         },
       ),
