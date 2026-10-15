@@ -2,13 +2,13 @@
 
 <!-- 由 tools/docs/settings_audit.py 生成（手写的部分在 tools/docs/settings_audit_notes.py），不要手改 -->
 
-v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
+v4 的 252 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
 
 ## 结论
 
 | 结论 | 个数 |
 |---|---:|
-| 一样 | 228 |
+| 一样 | 231 |
 | 确认改动 | 3 |
 | 不一样，已改 | 18 |
 | 不一样，待处理 | 0 |
@@ -48,15 +48,18 @@ v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `douyuForceRenew` | Bool | `false` | —（新加） |  |  |  | `app/platforms.dart:169`、`features/account/douyu_cookie_view.dart:177`、`features/account/douyu_cookie_view.dart:266` | 立即 | `douyu_renew` | 一样：v4 新加（UPGRADES 2-1），默认值照来源任务 |
 | `twitchLanguages` | StringList | `[]` | —（新加） |  |  |  | `app/platforms.dart:179` | 读取时 | `twitch_languages` | 一样：v4 新加（UPGRADES 8-3）；空 = 不筛语言（3.x 固定只看中文和韩语，作为预设 `twitchLegacyLanguages` 提供） |
 | `uiMode` | String，本机 | `'auto'` | —（新加） | `auto` / `phone` / `tv` |  |  | `app/app.dart:237`、`app/ui_mode.dart:20`、`app/ui_mode.dart:71` 等 5 处 | 立即 | `ui_mode` | 一样：v4 新加（X03.1（M14.1），本机记录），默认值照来源任务 |
-| `tvFocusZoom` | Bool | `true` | —（新加） |  |  |  | `tv/pages/tv_settings_pane.dart:101`、`tv/pages/tv_settings_pane.dart:102`、`tv/tv_app.dart:67` | 立即 |  | 一样：v4 新加（A17.1 c2），默认值照来源任务 |
-| `tvMenuAlwaysExpanded` | Bool | `false` | —（新加） |  |  |  | `tv/home/tv_home_page.dart:366`、`tv/pages/tv_settings_pane.dart:109`、`tv/pages/tv_settings_pane.dart:110` | 马上 |  | 一样：v4 新加（A17.2 c2）：默认关，电视首页左边导航栏只显示图标，焦点移进去时展开盖在页面上；开了以后一直展开、页面右移（X03.1 原来的样子） |
+| `tvFocusZoom` | Bool | `true` | —（新加） |  |  |  | `tv/settings/tv_settings_catalog.dart:65`、`tv/settings/tv_settings_catalog.dart:66`、`tv/tv_app.dart:67` | 立即 |  | 一样：v4 新加（A17.1 c2），默认值照来源任务 |
+| `tvMenuAlwaysExpanded` | Bool | `false` | —（新加） |  |  |  | `tv/home/tv_home_page.dart:411`、`tv/settings/tv_settings_catalog.dart:73`、`tv/settings/tv_settings_catalog.dart:74` | 马上 |  | 一样：v4 新加（A17.2 c2）：默认关，电视首页左边导航栏只显示图标，焦点移进去时展开盖在页面上；开了以后一直展开、页面右移（X03.1 原来的样子） |
+| `tvMenuOrder` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（长按确认进入移动） | `tv/home/tv_home_page.dart:210`、`tv/home/tv_home_page.dart:413`、`tv/settings/tv_menu_settings_page.dart:26` 等 5 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏入口的顺序，存的排在前面，其余按默认顺序；空 = 默认顺序 |
+| `tvMenuHidden` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制（确认显示或隐藏） | `tv/home/tv_home_page.dart:210`、`tv/home/tv_home_page.dart:414`、`tv/settings/tv_menu_settings_page.dart:27` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.9 c11）：电视导航栏隐藏的入口，至少留一个；空 = 全部显示 |
+| `tvMenuIcons` | StringList | `[]` | —（新加） |  |  | 电视设置 › 导航栏显示控制 › 图标 | `tv/home/tv_home_page.dart:416`、`tv/settings/tv_menu_settings_page.dart:28`、`tv/settings/tv_menu_settings_page.dart:82` 等 4 处 | 马上 |  | 一样：v5.1 新加（A17.9-31，pure_live_TV 的“选择图标”）：电视导航栏入口自己选的图标，`入口:图标`；没选的用默认图标 |
 
 ## 平台（favorite）
 
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `hotAreasList` | StringList | 35 个：`bilibili, douyu, huya, douyin, kuaishou, cc, twitch, soop, yy, acfun, picarto, twitcasting, missevan, inke, kilakila, xiaohongshu, niconico, weibo, showroom, chzzk, kick, liveme, tiktok, youtube, bigo, pandalive, fc2live, steambroadcast, jdlive, kugoulive, baidulive, sixroom, looklive, 17live, iptv` | 34 个：`bilibili, douyu, huya, douyin, kuaishou, cc, twitch, soop, yy, acfun, picarto, twitcasting, missevan, inke, kilakila, xiaohongshu, niconico, weibo, showroom, chzzk, liveme, tiktok, youtube, bigo, pandalive, fc2live, steambroadcast, jdlive, kugoulive, baidulive, sixroom, looklive, 17live, iptv`（`favorite_room_controller.dart:20`，`AppConsts.supportSites` = `core/sites.dart:217-251`） |  |  |  | `app/bootstrap.dart:422`、`features/areas/areas_page.dart:141`、`features/areas/favorite_areas_view.dart:108` 等 25 处 | 立即 | `platform_list` | 确认改动：v4 多了 Kick（排在 chzzk 后面）：Kick 重新支持（UPGRADES X-1，E 组 M4.34）；其余 34 个和顺序一样 |
-| `preferPlatform` | String | `'bilibili'` | `'bilibili'`（`favorite_room_controller.dart:24`） |  |  |  | `features/areas/areas_page.dart:84`、`features/hot_areas/hot_areas_page.dart:65`、`features/hot_areas/hot_areas_page.dart:67` 等 11 处 | 读取时 | `prefer_platform` | 一样 |
+| `hotAreasList` | StringList | 35 个：`bilibili, douyu, huya, douyin, kuaishou, cc, twitch, soop, yy, acfun, picarto, twitcasting, missevan, inke, kilakila, xiaohongshu, niconico, weibo, showroom, chzzk, kick, liveme, tiktok, youtube, bigo, pandalive, fc2live, steambroadcast, jdlive, kugoulive, baidulive, sixroom, looklive, 17live, iptv` | 34 个：`bilibili, douyu, huya, douyin, kuaishou, cc, twitch, soop, yy, acfun, picarto, twitcasting, missevan, inke, kilakila, xiaohongshu, niconico, weibo, showroom, chzzk, liveme, tiktok, youtube, bigo, pandalive, fc2live, steambroadcast, jdlive, kugoulive, baidulive, sixroom, looklive, 17live, iptv`（`favorite_room_controller.dart:20`，`AppConsts.supportSites` = `core/sites.dart:217-251`） |  |  |  | `app/bootstrap.dart:422`、`features/areas/areas_page.dart:141`、`features/areas/favorite_areas_view.dart:108` 等 27 处 | 立即 | `platform_list` | 确认改动：v4 多了 Kick（排在 chzzk 后面）：Kick 重新支持（UPGRADES X-1，E 组 M4.34）；其余 34 个和顺序一样 |
+| `preferPlatform` | String | `'bilibili'` | `'bilibili'`（`favorite_room_controller.dart:24`） |  |  |  | `features/areas/areas_page.dart:84`、`features/hot_areas/hot_areas_page.dart:65`、`features/hot_areas/hot_areas_page.dart:67` 等 13 处 | 读取时 | `prefer_platform` | 一样 |
 
 ## 历史（history）
 
@@ -69,9 +72,9 @@ v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `themeMode` | String | `'System'` | `'System'`（`theme_settings_controller.dart:17`） | `System` / `Dark` / `Light` |  |  | `app/app.dart:216`、`app/intake/system_intake.dart:58` | 立即 | `theme_mode` | 一样 |
-| `enableDynamicTheme` | Bool | `false` | `false`（`theme_settings_controller.dart:18`） |  |  |  | `app/app.dart:221`、`tv/pages/tv_settings_pane.dart:83` | 立即 | `dynamic_color` | 一样 |
+| `enableDynamicTheme` | Bool | `false` | `false`（`theme_settings_controller.dart:18`） |  |  |  | `app/app.dart:221` | 立即 | `dynamic_color` | 一样 |
 | `liquidGlass` | Bool | `false` | —（新加） |  |  |  | `features/home/home_page.dart:138`、`live_ui/src/widgets/glass.dart:7` | 马上 | `liquid_glass` | 一样：v4 新加（A01.5）：默认关，首页底栏照旧；开了以后手机首页底栏悬浮成毛玻璃胶囊，页面从下面透出来，内存 4 GB 及以下（或读不到）的安卓机只半透明不模糊；宽屏侧栏、直播间不变 |
-| `themeColorSwitch` | String | `'FF2E6FE0'` | `'FF2196F3'`（`theme_settings_controller.dart:13、:19`（`Colors.blue`）） |  |  |  | `app/app.dart:222`、`tv/pages/tv_settings_pane.dart:79`、`tv/pages/tv_settings_pane.dart:84` 等 8 处 | 立即 | `theme_color` | 确认改动：品牌蓝 `FF2E6FE0`（A11.2 C-3）；3.x 默认的蓝色存过的老用户迁移一次（`themeColorMigration`） |
+| `themeColorSwitch` | String | `'FF2E6FE0'` | `'FF2196F3'`（`theme_settings_controller.dart:13、:19`（`Colors.blue`）） |  |  |  | `app/app.dart:222`、`live_store/src/legacy/legacy_snapshot.dart:399`、`live_store/src/legacy/legacy_snapshot.dart:400` 等 6 处 | 立即 | `theme_color` | 确认改动：品牌蓝 `FF2E6FE0`（A11.2 C-3）；3.x 默认的蓝色存过的老用户迁移一次（`themeColorMigration`） |
 | `pureBlackTheme` | Bool | `false` | —（新加） |  |  |  | `app/app.dart:223` | 立即 | `pure_black` | 一样：v4 新加（A11.2 C-4），默认值照来源任务 |
 | `language` | String | `'简体中文'` | `'简体中文'`（`theme_settings_controller.dart:20`） |  |  |  | `app/app.dart:209`、`app/app.dart:211`、`main.dart:111` 等 4 处 | 立即 | `language` | 一样 |
 | `crossAxisSpacing` | Double | `6` | `6`（`theme_settings_controller.dart:21`） | 0～64 | 0～64（`theme_settings_controller.dart:10-12`、:109-113） | 加减 0～64 | `features/areas/area_card.dart:161`、`features/areas/areas_common.dart:198`、`features/favorite/favorite_page.dart:395` 等 8 处 | 立即 | `cross_spacing` | 一样 |
@@ -90,7 +93,7 @@ v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `textScaleFactor` | Double | `1` | `1`（`font_settings_controller.dart:39`） | 0.5～2 | 0.5～2（`font_settings_controller.dart:16-18`） | 滑块 0.5～2，步长 0.05 | `app/app.dart:240`、`tv/pages/tv_areas_pane.dart:197`、`tv/pages/tv_settings_pane.dart:92` 等 5 处 | 立即 | `text_scale` | 一样 |
+| `textScaleFactor` | Double | `1` | `1`（`font_settings_controller.dart:39`） | 0.5～2 | 0.5～2（`font_settings_controller.dart:16-18`） | 滑块 0.5～2，步长 0.05 | `app/app.dart:240`、`tv/pages/tv_areas_pane.dart:197`、`tv/widgets/tv_room_grid.dart:108` | 立即 | `text_scale` | 一样 |
 | `fontSizeBodySmall` | Double | `12` | `12`（`font_settings_controller.dart:40`） | 9～15 | 9～15（`font_settings_controller.dart:19-21`） | 滑块 9～15，步长 1 | `app/app.dart:225`、`shared/rooms/room_cards.dart:172` | 立即 | `font_sizes` | 一样 |
 | `fontSizeBodyMedium` | Double | `13` | `13`（`font_settings_controller.dart:41`） | 11～17 | 11～17（`font_settings_controller.dart:22-24`） | 滑块 11～17，步长 1 | `app/app.dart:226`、`shared/rooms/room_cards.dart:173` | 立即 | `font_sizes` | 一样 |
 | `fontSizeBodyLarge` | Double | `14` | `14`（`font_settings_controller.dart:42`） | 12～18 | 12～18（`font_settings_controller.dart:25-27`） | 滑块 12～18，步长 1 | `app/app.dart:227`、`shared/rooms/room_cards.dart:174` | 立即 | `font_sizes` | 一样 |
@@ -106,7 +109,7 @@ v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 |---|---|---|---|---|---|---|---|---|---|---|
 | `videoFitIndex` | Int | `0` | `0`（`player_settings_controller.dart:33`） | 0～5 | 0～5，越界回到 0（`player_settings_controller.dart:135-139`） |  | `features/live_play/buttons/room_menu_panel.dart:79`、`features/live_play/dialogs/player_dialogs.dart:35`、`features/live_play/dialogs/player_dialogs.dart:42` 等 8 处 | 立即 | `video_fit` | 不一样，已改：默认值和范围一样；越界时 3.x 回到 0（适应），v4 原来夹到 0 或 5，J01.3 改成和 3.x 一样回到默认值（`IntSetting` 的 `resetOutOfRange`） |
 | `videoPlayerKey` | String | `'mpv'` | `'mpv'`（`player_settings_controller.dart:11、:27、:34（iOS 是 ijk）`） |  |  |  | 没有读取 |  |  | 一样：v4 只用 mpv，这个键只为备份往返保留（J02.1 有意差异，F-ROOM-24 不做），没有读取 |
-| `preferResolution` | String | `'原画'` | `'原画'`（`player_settings_controller.dart:36`，`player/utils/player_consts.dart:25`） | `原画` / `流畅` / `蓝光4M` / `蓝光8M` / `超清` |  |  | `features/live_play/logic/room_controller.dart:143`、`features/live_play/logic/room_controller.dart:603`、`features/multiview/logic/multiview_controller.dart:605` 等 5 处 | 立即 | `prefer_resolution` | 一样 |
+| `preferResolution` | String | `'原画'` | `'原画'`（`player_settings_controller.dart:36`，`player/utils/player_consts.dart:25`） | `原画` / `流畅` / `蓝光4M` / `蓝光8M` / `超清` |  |  | `features/live_play/logic/room_controller.dart:143`、`features/live_play/logic/room_controller.dart:603`、`features/multiview/logic/multiview_controller.dart:605` | 读取时 | `prefer_resolution` | 一样 |
 | `preferResolutionCellular` | String | `'原画'` | `'原画'`（`player_settings_controller.dart:37`） | `原画` / `流畅` / `蓝光4M` / `蓝光8M` / `超清` |  |  | `features/live_play/logic/room_controller.dart:142`、`features/live_play/logic/room_controller.dart:603` | 读取时 | `prefer_resolution_cellular` | 一样 |
 | `enableCodec` | Bool | `true` | `true`（`player_settings_controller.dart:39`） |  |  |  | `features/live_play/live_play_page.dart:442`、`features/multiview/multiview_page.dart:145`、`tv/room/tv_live_play_page.dart:36` | 读取时 | `hardware_decoding` | 一样 |
 | `preferH264` | Bool | `true` | —（新加） |  |  |  | `app/platforms.dart:162`、`app/recording.dart:298`、`features/live_play/logic/room_controller.dart:631` 等 7 处 | 读取时 | `prefer_h264` | 一样：v4 新加（UPGRADES 统一原则、22-3），默认值照来源任务 |
@@ -147,11 +150,11 @@ v4 的 249 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `danmakuArea` | Double | `1` | `1`（`danmaku_settings_controller.dart:61`） | 0～1 | 0～1（`danmaku_settings_controller.dart:116`） | 滑块 0～1，步长 0.01 | `shared/danmaku/danmaku_settings.dart:27`、`shared/danmaku/danmaku_templates.dart:28`、`shared/danmaku/danmaku_templates.dart:151` 等 4 处 | 立即 | `danmaku_area` | 一样 |
 | `danmakuBottomArea` | Double | `0.5` | `0.5`（`danmaku_settings_controller.dart:62`） | 0～300 | 0～300（`danmaku_settings_controller.dart:117`） | 滑块 0～300，步长 1 | `shared/danmaku/danmaku_settings.dart:30`、`shared/danmaku/danmaku_templates.dart:30`、`shared/danmaku/danmaku_templates.dart:153` 等 4 处 | 立即 | `danmaku_bottom` | 一样 |
 | `danmakuSpeed` | Double | `120` | `120`（`danmaku_settings_controller.dart:63`） | 20～400 | 20～400（`danmaku_settings_controller.dart:118`） | 滑块 20～400，步长 1 | `shared/danmaku/danmaku_settings.dart:25`、`shared/danmaku/danmaku_templates.dart:31`、`shared/danmaku/danmaku_templates.dart:154` 等 4 处 | 立即 | `danmaku_speed` | 不一样，已改：注册表原来不限，3.x 存的值和导入的备份都夹到这个范围；改成同样的 `min`/`max` |
-| `danmakuFontSize` | Double | `16` | `16`（`danmaku_settings_controller.dart:64`） | 10～30 | 10～30（`danmaku_settings_controller.dart:119`） | 滑块 10～30，步长 0.5 | `shared/danmaku/danmaku_settings.dart:23`、`shared/danmaku/danmaku_templates.dart:32`、`shared/danmaku/danmaku_templates.dart:155` 等 6 处 | 立即 | `danmaku_font_size` | 不一样，已改：注册表原来不限，3.x 存的值和导入的备份都夹到这个范围；改成同样的 `min`/`max` |
+| `danmakuFontSize` | Double | `16` | `16`（`danmaku_settings_controller.dart:64`） | 10～30 | 10～30（`danmaku_settings_controller.dart:119`） | 滑块 10～30，步长 0.5 | `shared/danmaku/danmaku_settings.dart:23`、`shared/danmaku/danmaku_templates.dart:32`、`shared/danmaku/danmaku_templates.dart:155` 等 4 处 | 立即 | `danmaku_font_size` | 不一样，已改：注册表原来不限，3.x 存的值和导入的备份都夹到这个范围；改成同样的 `min`/`max` |
 | `danmakuFontWeight` | Int | `500` | `500`（`danmaku_settings_controller.dart:65`） | 100～900 | 100～900（`danmaku_settings_controller.dart:41-44、:120`） | 滑块 100～900，步长 100 | `shared/danmaku/danmaku_settings.dart:24`、`shared/danmaku/danmaku_templates.dart:33`、`shared/danmaku/danmaku_templates.dart:156` 等 4 处 | 立即 | `danmaku_font_weight` | 不一样，已改：注册表原来不限，3.x 存的值和导入的备份都夹到这个范围；改成同样的 `min`/`max`；3.x 还取整到整百（550 → 600），J01.3 加了同样的取整（`IntSetting` 的 `step: 100`） |
 | `danmakuFontBorder` | Double | `1.5` | `1.5`（`danmaku_settings_controller.dart:66`） | 0～4 | 0～4（`danmaku_settings_controller.dart:121`） | 滑块 0～4，步长 0.1 | `features/live_play/mini/compact_danmaku.dart:157`、`shared/danmaku/danmaku_settings.dart:32`、`shared/danmaku/danmaku_templates.dart:34` 等 5 处 | 立即 | `danmaku_stroke_width` | 一样 |
-| `danmakuOpacity` | Double | `1` | `1`（`danmaku_settings_controller.dart:67`） | 0～1 | 0～1（`danmaku_settings_controller.dart:122`） | 滑块 0～1，步长 0.01 | `shared/danmaku/danmaku_settings.dart:26`、`shared/danmaku/danmaku_templates.dart:35`、`shared/danmaku/danmaku_templates.dart:158` 等 6 处 | 立即 | `danmaku_opacity` | 一样 |
-| `enableDanmakuDisplay` | Bool | `true` | `true`（`danmaku_settings_controller.dart:68`） |  |  |  | `features/live_play/danmaku/chat_list.dart:437`、`features/live_play/danmaku/chat_list.dart:446`、`features/live_play/local_interaction/local_composer.dart:640` 等 14 处 | 立即 | `video_danmaku_show` | 一样 |
+| `danmakuOpacity` | Double | `1` | `1`（`danmaku_settings_controller.dart:67`） | 0～1 | 0～1（`danmaku_settings_controller.dart:122`） | 滑块 0～1，步长 0.01 | `shared/danmaku/danmaku_settings.dart:26`、`shared/danmaku/danmaku_templates.dart:35`、`shared/danmaku/danmaku_templates.dart:158` 等 4 处 | 立即 | `danmaku_opacity` | 一样 |
+| `enableDanmakuDisplay` | Bool | `true` | `true`（`danmaku_settings_controller.dart:68`） |  |  |  | `features/live_play/danmaku/chat_list.dart:437`、`features/live_play/danmaku/chat_list.dart:446`、`features/live_play/local_interaction/local_composer.dart:640` 等 12 处 | 立即 | `video_danmaku_show` | 一样 |
 | `enableDanmakuStroke` | Bool | `true` | `true`（`danmaku_settings_controller.dart:69`） |  |  |  | `features/live_play/mini/compact_danmaku.dart:156`、`shared/danmaku/danmaku_settings.dart:31`、`shared/danmaku/danmaku_templates.dart:36` 等 5 处 | 立即 | `danmaku_stroke` | 一样 |
 | `danmakuListStyle` | String | `'compact'` | —（新加） | `compact` / `card` |  |  | `features/live_play/danmaku/chat_list.dart:449` | 立即 | `danmaku_list_style` | 一样：v4 新加（A07.1，U.2a），默认值照来源任务 |
 | `danmakuListFontSize` | Int | `0` | —（新加） | 12～22 | 3.x 没有这个设置，弹幕卡片写死 14 号（`modules/live_play/widgets/danmaku/danmaku_list_view.dart:468-509`） | 滑块 chatListFontSizeDefaultStop.toDouble()～22，步长 1 | `features/live_play/danmaku/chat_list.dart:457` | 立即 | `danmaku_list_font_size` | 一样：v4 新加（A08.15，D-040）：默认 0 = 跟主题的正文字号，和以前一样；12～22，超出范围读成 0；粉丝牌、徽章、头像、礼物图按比例，系统字体放大照样乘上去；飞行弹幕不受影响 |

@@ -1749,6 +1749,18 @@ abstract final class Settings {
   /// of icons that opens over the page when the focus moves in.
   static const tvMenuAlwaysExpanded = BoolSetting('tvMenuAlwaysExpanded', section: 'app', defaultValue: false);
 
+  /// The order of the TV side menu's entries (A17.9 c11; pane names): these
+  /// first, the rest in the default order. Empty: the default order.
+  static const tvMenuOrder = StringListSetting('tvMenuOrder', section: 'app', defaultValue: []);
+
+  /// The TV side menu's entries hidden (A17.9 c11; pane names); at least
+  /// one stays shown.
+  static const tvMenuHidden = StringListSetting('tvMenuHidden', section: 'app', defaultValue: []);
+
+  /// The TV side menu's own icons (A17.9-31; `pane:icon` pairs); the others
+  /// keep their default icon.
+  static const tvMenuIcons = StringListSetting('tvMenuIcons', section: 'app', defaultValue: []);
+
   // ---- internal ----
 
   /// The LAN-sync device id 3.x generated (remote_sync_service.dart:134).
@@ -1963,6 +1975,9 @@ abstract final class Settings {
     uiMode,
     tvFocusZoom,
     tvMenuAlwaysExpanded,
+    tvMenuOrder,
+    tvMenuHidden,
+    tvMenuIcons,
   ];
 
   static final Map<String, Setting<Object>> _byKey = {for (final setting in all) setting.key: setting};

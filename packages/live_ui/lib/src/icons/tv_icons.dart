@@ -47,6 +47,44 @@ abstract final class TvIcons {
   /// "导航栏始终展开" (A17.2 c2).
   static const IconData menuExpand = Remix.side_bar_line;
 
+  /// The icons a side menu entry can take instead of its own (A17.9-31,
+  /// pure_live_TV "选择图标"), by a stored name.
+  static const Map<String, IconData> menuChoices = {
+    'heart': Remix.heart_3_line,
+    'star': Remix.star_line,
+    'fire': Remix.fire_line,
+    'shapes': Remix.shapes_line,
+    'apps': Remix.apps_2_line,
+    'compass': Remix.compass_3_line,
+    'history': Remix.history_line,
+    'time': Remix.time_line,
+    'search': Remix.search_line,
+    'tv': Remix.tv_2_line,
+    'live': Remix.live_line,
+    'link': Remix.links_line,
+    'film': Remix.film_line,
+    'music': Remix.music_2_line,
+    'image': Remix.image_line,
+    'home': Remix.home_4_line,
+    'bookmark': Remix.bookmark_line,
+    'game': Remix.gamepad_line,
+    'user': Remix.user_3_line,
+    'folder': Remix.folder_3_line,
+    'rocket': Remix.rocket_line,
+    'leaf': Remix.leaf_line,
+    'sun': Remix.sun_line,
+    'moon': Remix.moon_line,
+  };
+
+  /// Showing or hiding an entry, moving it (A17.9 c11).
+  static const IconData menuShown = Remix.eye_line;
+
+  /// A hidden entry.
+  static const IconData menuHidden = Remix.eye_off_line;
+
+  /// An entry being moved.
+  static const IconData menuMoving = Remix.drag_move_2_line;
+
   /// A part of the TV interface that is not built yet.
   static const IconData underConstruction = Icons.construction_rounded;
 

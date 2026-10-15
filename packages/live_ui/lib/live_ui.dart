@@ -16,6 +16,7 @@ export 'src/theme/live_colors.dart';
 export 'src/theme/live_theme.dart';
 export 'src/theme/metrics.dart';
 export 'src/theme/motion.dart';
+export 'src/theme/swatches.dart';
 export 'src/theme/text_styles.dart';
 export 'src/theme/text_wrapping.dart';
 export 'src/theme/tv_colors.dart';

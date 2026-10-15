@@ -6,24 +6,28 @@ import 'package:pure_live/tv/settings/tv_settings_style.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_page_header.dart';
 
-/// One page of the TV settings (A17.9 c2–c6): the phone's rows of
-/// [section] (the catalogue, so the words, icons and order are the phone's)
-/// in their TV look, in the TV's safe area (48 and 28 of the 960 × 540
-/// panel), one column at most 720 wide in the middle. The first row has the
-/// focus when it opens; Back goes back to the catalogue, onto the row that
-/// opened it.
-class TvSettingsSectionPage extends StatefulWidget {
+/// A page of the TV settings (A17.9 c3, c4): the title, then [child] in the
+/// TV's safe area (48 and 28 of the 960 × 540 panel); the first focusable
+/// of [child] has the focus when it opens, and Back goes back onto the row
+/// that opened it.
+class TvSettingsScaffold extends StatefulWidget {
   /// Creates the page.
-  const new({required this.section, super.key});
+  const new({required this.title, required this.child, this.pageKey, super.key});
 
-  /// The page shown.
-  final SettingsSection section;
+  /// The title.
+  final String title;
+
+  /// The content.
+  final Widget child;
+
+  /// The scaffold's key (`tv-settings-page-<name>`).
+  final Key? pageKey;
 
   @override
-  State<TvSettingsSectionPage> createState() => _TvSettingsSectionPageState();
+  State<TvSettingsScaffold> createState() => _TvSettingsScaffoldState();
 }
 
-class _TvSettingsSectionPageState extends State<TvSettingsSectionPage> {
+class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
   final FocusNode _body = FocusNode(debugLabel: 'tv settings page', skipTraversal: true, canRequestFocus: false);
 
   @override
@@ -51,19 +55,19 @@ class _TvSettingsSectionPageState extends State<TvSettingsSectionPage> {
     final palette = TvTheme.of(context);
     final scale = TvScale.of(context);
     return Scaffold(
-      key: ValueKey('tv-settings-page-${widget.section.name}'),
+      key: widget.pageKey,
       backgroundColor: palette.background,
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: scale.px(96), vertical: scale.px(56)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TvPageHeader(title: i18n(widget.section.titleKey), subtitle: i18n('tv_menu_settings')),
+            TvPageHeader(title: widget.title, subtitle: i18n('tv_menu_settings')),
             SizedBox(height: scale.px(16)),
             Expanded(
               child: Focus(
                 focusNode: _body,
-                child: TvSettingsStyle(child: SettingsSectionView(section: widget.section)),
+                child: TvSettingsStyle(child: widget.child),
               ),
             ),
           ],
@@ -71,4 +75,41 @@ class _TvSettingsSectionPageState extends State<TvSettingsSectionPage> {
       ),
     );
   }
+}
+
+/// One page of the TV settings (A17.9 c2–c6): the phone's rows of
+/// [section] (the catalogue, so the words, icons and order are the phone's)
+/// in their TV look, one column at most 720 wide in the middle.
+class TvSettingsSectionPage extends StatelessWidget {
+  /// Creates the page.
+  const new({required this.section, super.key});
+
+  /// The page shown.
+  final SettingsSection section;
+
+  @override
+  Widget build(BuildContext context) => TvSettingsScaffold(
+    pageKey: ValueKey('tv-settings-page-${section.name}'),
+    title: i18n(section.titleKey),
+    child: SettingsSectionView(section: section),
+  );
+}
+
+/// A TV settings page of its own content, one column at most 720 wide in
+/// the middle, scrolling.
+class TvSettingsColumn extends StatelessWidget {
+  /// Creates the column.
+  const new({required this.children, super.key});
+
+  /// The rows and groups.
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Align(
+    alignment: Alignment.topCenter,
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: TvScale.of(context).px(1440)),
+      child: ListView(children: children),
+    ),
+  );
 }

@@ -9,6 +9,7 @@ import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/pages/tv_area_rooms_page.dart';
 import 'package:pure_live/tv/pages/tv_search_page.dart';
 import 'package:pure_live/tv/room/tv_live_play_page.dart';
+import 'package:pure_live/tv/settings/tv_platform_settings_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
 
 /// The pages the TV interface (M14.1) puts on the phone's paths, so every
@@ -18,6 +19,8 @@ final Map<String, PageBuilder> tvPageRoutes = {
   RoutePath.kLivePlay: (route) => TvLivePlayPage(route: route),
   RoutePath.kAreaRooms: (route) => TvAreaRoomsPage(route: route),
   RoutePath.kSearch: (route) => TvSearchPage(route: route),
+  // A17.9 c11: show, hide and move on one page with the remote.
+  RoutePath.kSettingsHotAreas: (route) => TvPlatformSettingsPage(route: route),
 };
 
 /// The router of the TV interface: the TV home ([TvHomePage]) at the root,

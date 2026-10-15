@@ -67,11 +67,15 @@ class TvSettingsRow extends StatelessWidget {
     this.trailing,
     this.below,
     this.onTap,
+    this.onLongPress,
     this.onKey,
     this.focusNode,
     this.autofocus = false,
     super.key,
   });
+
+  /// A held OK or the menu key (A17.9 c11: move an entry).
+  final VoidCallback? onLongPress;
 
   /// The row's id.
   final String id;
@@ -113,6 +117,7 @@ class TvSettingsRow extends StatelessWidget {
       autofocus: autofocus,
       zoom: false,
       onTap: onTap,
+      onLongPress: onLongPress,
       onKey: onKey,
       builder: (context, focused) => Container(
         constraints: BoxConstraints(minHeight: scale.pxText(64)),

@@ -9,6 +9,7 @@ import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/tv/settings/tv_menu_settings_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
@@ -112,6 +113,16 @@ class TvSettingsCatalog extends ConsumerWidget {
 void openTvSettingsSection(BuildContext context, SettingsSection section) {
   if (section.route case final route?) {
     unawaited(AppNavigator.toNamed<void>(route));
+    return;
+  }
+  if (section == SettingsSection.navigation) {
+    // The TV's side menu, not the phone's bottom bar (A17.9 c11).
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'tv-settings-navigation'),
+        builder: (context) => const TvMenuSettingsPage(),
+      ),
+    );
     return;
   }
   if (section == SettingsSection.danmaku || section == SettingsSection.configPreview) {

@@ -318,6 +318,11 @@ Future<Color?> showColorDialog({
   bool opacity = false,
   ValueChanged<Color>? onPreview,
 }) {
+  if (!opacity) {
+    if (SettingsColorPresenter.maybeOf(context) case final presenter?) {
+      return presenter.pick(context, title: title, current: current);
+    }
+  }
   final picker = GlobalKey<LiveColorPickerState>();
   return showAppDialog<Color>(
     context: context,
@@ -355,4 +360,21 @@ Future<Color?> showColorDialog({
       ),
     ),
   );
+}
+
+/// Picks the opaque colours of [showColorDialog] below it another way: the
+/// TV's colour grid (A17.9 c12).
+class SettingsColorPresenter extends InheritedWidget {
+  /// Creates the presenter.
+  const new({required this.pick, required super.child, super.key});
+
+  /// Picks a colour; null keeps the current one.
+  final Future<Color?> Function(BuildContext context, {required String title, required Color current}) pick;
+
+  /// The presenter above [context], if any.
+  static SettingsColorPresenter? maybeOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<SettingsColorPresenter>();
+
+  @override
+  bool updateShouldNotify(SettingsColorPresenter oldWidget) => oldWidget.pick != pick;
 }

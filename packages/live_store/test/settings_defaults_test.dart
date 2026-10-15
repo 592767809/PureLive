@@ -310,6 +310,9 @@ const Map<String, Object> newInV4 = {
   'uiMode': 'auto', // X03.1
   'tvFocusZoom': true, // A17.1
   'tvMenuAlwaysExpanded': false, // A17.2 c2: a rail of icons, opening on focus
+  'tvMenuOrder': <String>[], // A17.9 c11: the default order
+  'tvMenuHidden': <String>[], // A17.9 c11: all shown
+  'tvMenuIcons': <String>[], // A17.9-31: the default icons
   'localInteraction.replayOnEnter': true, // D08.1 c6, on by default (D-040)
   'localInteraction.phrases': <String>[], // D08.2: none until one is saved (D-040)
   'localInteraction.growthEnabled': true, // D08.3, on by default (D-040)

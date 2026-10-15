@@ -73,11 +73,51 @@ enum TvPane {
   /// Shown in the menu (the video, music and wallpaper modules come later).
   final bool available;
 
-  /// The destinations in the menu's upper part.
-  static List<TvPane> get menu => [
+  /// The destinations in the menu's upper part, in the default order, all
+  /// shown.
+  static List<TvPane> get menu => menuOf();
+
+  /// The destinations that can be in the menu's upper part, in the default
+  /// order.
+  static List<TvPane> get entries => [
     for (final pane in values)
       if (pane.available && pane != settings) pane,
   ];
+
+  /// [entries] in the user's [order] (`tvMenuOrder`: those first, the rest
+  /// in the default order), without the [hidden] ones (`tvMenuHidden`; at
+  /// least one stays), A17.9 c11.
+  static List<TvPane> menuOf({List<String> order = const [], List<String> hidden = const []}) {
+    final ordered = orderOf(order);
+    final shown = [
+      for (final pane in ordered)
+        if (!hidden.contains(pane.name)) pane,
+    ];
+    return shown.isEmpty ? [ordered.first] : shown;
+  }
+
+  /// [entries] in the user's [order], hidden ones included.
+  static List<TvPane> orderOf(List<String> order) {
+    final byName = {for (final pane in entries) pane.name: pane};
+    final ordered = <TvPane>[];
+    for (final name in order) {
+      final pane = byName.remove(name);
+      if (pane != null) ordered.add(pane);
+    }
+    return [...ordered, ...byName.values];
+  }
+
+  /// This entry's icon: its own from `tvMenuIcons` (`pane:icon`), else
+  /// [icon] (A17.9-31).
+  IconData iconIn(List<String> icons) {
+    for (final pair in icons) {
+      final at = pair.indexOf(':');
+      if (at > 0 && pair.substring(0, at) == name) {
+        if (TvIcons.menuChoices[pair.substring(at + 1)] case final chosen?) return chosen;
+      }
+    }
+    return icon;
+  }
 }
 
 /// What a pane can ask of the TV home.
@@ -144,6 +184,7 @@ class TvHomePage extends ConsumerStatefulWidget {
 
 class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObserver implements TvHomeHost {
   TvPane _pane = TvPane.favorites;
+  List<String> _icons = const [];
   final Set<TvPane> _visited = {TvPane.favorites};
   final Map<TvPane, FocusNode> _menuNodes = {};
   final Map<TvPane, FocusNode> _paneNodes = {};
@@ -164,6 +205,10 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     FocusManager.instance.addListener(_remember);
+    // The first destination shown when "关注" is hidden (A17.9 c11).
+    final settings = ref.read(storeProvider).settings;
+    final shown = TvPane.menuOf(order: settings.get(Settings.tvMenuOrder), hidden: settings.get(Settings.tvMenuHidden));
+    if (!shown.contains(_pane)) _pane = shown.first;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(RoomBackChannel.instance.hold(this, _nativeBack));
@@ -364,6 +409,11 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     final scale = TvScale.of(context);
     const panes = TvPane.values;
     final alwaysExpanded = watchSetting(ref, Settings.tvMenuAlwaysExpanded);
+    final menuPanes = TvPane.menuOf(
+      order: watchSetting(ref, Settings.tvMenuOrder),
+      hidden: watchSetting(ref, Settings.tvMenuHidden),
+    );
+    _icons = watchSetting(ref, Settings.tvMenuIcons);
     final expanded = alwaysExpanded || _menuFocused;
     final railWidth = scale.pxText(84);
     final expandedWidth = scale.pxText(200);
@@ -393,7 +443,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
                   clipBehavior: Clip.none,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [for (final pane in TvPane.menu) _menuItem(pane, compact: !expanded)],
+                    children: [for (final pane in menuPanes) _menuItem(pane, compact: !expanded)],
                   ),
                 ),
               ),
@@ -469,7 +519,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     child: TvNavItem(
       key: ValueKey('tv-menu-${pane.name}'),
       focusNode: _menuNode(pane),
-      icon: pane.icon,
+      icon: pane.iconIn(_icons),
       label: i18n(pane.labelKey),
       compact: compact,
       selected: pane == _pane,
