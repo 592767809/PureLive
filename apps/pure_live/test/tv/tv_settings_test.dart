@@ -30,7 +30,6 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
           data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
           child: TvTheme(
             palette: TvPalette.of(_scheme),
-            zoom: true,
             child: Scaffold(body: child),
           ),
         ),
