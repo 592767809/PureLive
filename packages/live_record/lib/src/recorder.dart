@@ -924,6 +924,9 @@ final class Recorder {
           filePrefix: attempt.filePrefix,
           recordedSeconds: task.recordedSeconds,
           allowLegacy: allowLegacy,
+          // Recovery (allowLegacy) joins what a killed process left: the
+          // segment being written has no journal row yet.
+          openTail: allowLegacy,
           damaged: attempt.inputIntegrityError,
           cancelled: () => _closing,
           onProgress: (progress) => onProgress(index, progress),

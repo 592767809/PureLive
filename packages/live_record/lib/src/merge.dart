@@ -71,7 +71,10 @@ final class RecordMerger {
   /// timeout; [allowLegacy] admits 3.x schema-1 segments (crash recovery);
   /// [damaged] (the capture reported damaged packets) still joins but keeps
   /// the segments next to the MP4 (H01.6; 3.x refused the join and the user
-  /// got nothing); [cancelled] is checked between steps.
+  /// got nothing); [openTail] (recovery after the process was killed) takes
+  /// the unfinished last segment without its journal row, and when FFmpeg
+  /// refuses it, joins the finished ones and leaves it; [cancelled] is
+  /// checked between steps.
   /// [onProgress] gets the join's progress from FFmpeg's statistics
   /// ([mergeProgress]): rising only, at most 0.99 while FFmpeg runs, and 1
   /// once the MP4 is committed. The skipped empty tail is deleted with the
@@ -83,8 +86,40 @@ final class RecordMerger {
     bool allowLegacy = false,
     bool damaged = false,
     bool deleteSources = true,
+    bool openTail = false,
     bool Function()? cancelled,
     void Function(double progress)? onProgress,
+  }) async {
+    Future<MergeResult> run({required bool open, bool leaveLast = false}) => _merge(
+      directory: directory,
+      filePrefix: filePrefix,
+      recordedSeconds: recordedSeconds,
+      allowLegacy: allowLegacy,
+      damaged: damaged,
+      deleteSources: deleteSources,
+      openTail: open,
+      cancelled: cancelled,
+      onProgress: onProgress,
+      leaveLast: leaveLast,
+    );
+    final result = await run(open: openTail);
+    if (!openTail || result.failure != MergeFailure.ffmpeg || (cancelled?.call() ?? false)) return result;
+    // The segment cut off by the kill can end in half a packet FFmpeg
+    // refuses: join the finished ones and leave that file next to the MP4.
+    return await run(open: false, leaveLast: true);
+  }
+
+  Future<MergeResult> _merge({
+    required String directory,
+    required String filePrefix,
+    required int recordedSeconds,
+    required bool allowLegacy,
+    required bool damaged,
+    required bool deleteSources,
+    required bool openTail,
+    required bool Function()? cancelled,
+    required void Function(double progress)? onProgress,
+    bool leaveLast = false,
   }) async {
     bool isCancelled() => cancelled?.call() ?? false;
     final dir = Directory(directory);
@@ -117,6 +152,13 @@ final class RecordMerger {
       kept--;
     }
     if (kept == 0) return const MergeResult.failed(MergeFailure.empty);
+    // The retry without the segment the kill left unfinished keeps that
+    // file where it is.
+    if (leaveLast) {
+      if (kept < 2) return const MergeResult.failed(MergeFailure.ffmpeg);
+      kept--;
+      all.removeRange(kept, all.length);
+    }
     final segments = all.sublist(0, kept);
     final tail = all.sublist(kept);
     final journal = File(p.join(directory, SegmentClock.journalName(filePrefix)));
@@ -128,12 +170,22 @@ final class RecordMerger {
         if (segments.any((file) => file.lengthSync() <= 0)) {
           throw const FormatException('Recording clock empty segment');
         }
-        manifest = (await SegmentClock.read(
-          journal,
-          prefix: filePrefix,
-          segments: segments,
-          ignoredTail: tail,
-        )).toConcatManifest();
+        // Killed before FFmpeg wrote the journal at all: one segment, no rows.
+        final clock = openTail && !journal.existsSync()
+            ? SegmentClock.parse(
+                '',
+                prefix: filePrefix,
+                segments: [for (final file in segments) file.path],
+                openTail: true,
+              )
+            : await SegmentClock.read(
+                journal,
+                prefix: filePrefix,
+                segments: segments,
+                ignoredTail: tail,
+                openTail: openTail,
+              );
+        manifest = clock.toConcatManifest();
       } on FileSystemException {
         return const MergeResult.failed(MergeFailure.segmentClock);
       } on FormatException {

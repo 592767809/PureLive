@@ -20,13 +20,28 @@ final class SegmentClock {
   /// [ignoredTail] names the empty segments dropped after the last of
   /// [segments] (H01.5): rows beyond [segments] are left out only when they
   /// are exactly the first of those names, in order, at the end.
+  ///
+  /// [openTail] (recovery after the process was killed, H01.4): FFmpeg
+  /// writes a row when a segment is finished, so the segment being written
+  /// at the kill has none. Exactly that one, the next name after the last
+  /// row, is taken without a row: it starts where the last row ended and
+  /// plays to its own end (the last file of a manifest has no duration).
   factory parse(
     String csv, {
     required String prefix,
     required List<String> segments,
     Iterable<String> ignoredTail = const [],
+    bool openTail = false,
   }) {
     _checked(prefix);
+    if (openTail && csv.isEmpty && segments.length == 1) {
+      // Killed in the first segment: nothing finished, one file from zero.
+      final path = p.absolute(segments.single);
+      if (p.basename(path) != segmentName(prefix, 0) || RegExp(r'[\x00-\x1f\x7f]').hasMatch(path)) {
+        throw const FormatException('Recording clock segment identity or order');
+      }
+      return SegmentClock._(List.unmodifiable([path]), const [0]);
+    }
     if (csv.length > maxBytes || segments.isEmpty || segments.length > maxSegments || !csv.endsWith('\n')) {
       throw const FormatException('Recording clock journal shape or unfinished row');
     }
@@ -41,9 +56,13 @@ final class SegmentClock {
       }
       if (matches) rows = rows.sublist(0, segments.length);
     }
-    if (rows.length != segments.length) throw const FormatException('Recording clock missing or extra segment');
+    final open = openTail && rows.length + 1 == segments.length;
+    if (rows.length + (open ? 1 : 0) != segments.length) {
+      throw const FormatException('Recording clock missing or extra segment');
+    }
     final starts = <int>[];
     final paths = <String>[];
+    var lastEnd = 0;
     for (var i = 0; i < rows.length; i++) {
       final fields = rows[i].split(',');
       final expected = segmentName(prefix, i);
@@ -56,8 +75,17 @@ final class SegmentClock {
         throw const FormatException('Recording clock timestamp order');
       }
       starts.add(start);
+      lastEnd = end;
       final path = p.absolute(segments[i]);
       if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(path)) throw const FormatException('Recording clock path controls');
+      paths.add(path);
+    }
+    if (open) {
+      final path = p.absolute(segments.last);
+      if (p.basename(path) != segmentName(prefix, rows.length) || RegExp(r'[\x00-\x1f\x7f]').hasMatch(path)) {
+        throw const FormatException('Recording clock segment identity or order');
+      }
+      starts.add(lastEnd);
       paths.add(path);
     }
     if (paths.map(p.dirname).toSet().length != 1) throw const FormatException('Recording clock mixed directories');
@@ -106,6 +134,7 @@ final class SegmentClock {
     required String prefix,
     required List<File> segments,
     Iterable<File> ignoredTail = const [],
+    bool openTail = false,
   }) async {
     final bytes = <int>[];
     await for (final chunk in file.openRead()) {
@@ -117,6 +146,7 @@ final class SegmentClock {
       prefix: prefix,
       segments: [for (final file in segments) file.path],
       ignoredTail: [for (final file in ignoredTail) file.path],
+      openTail: openTail,
     );
   }
 

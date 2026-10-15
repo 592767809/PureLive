@@ -153,6 +153,34 @@ void main() {
       expect(attempt.existsSync(), isFalse);
     });
 
+    test('restore after a kill joins the segment left without a journal row (H01.4)', () async {
+      final attempt = Directory('${directory.path}/fake/a/2026-10-01/10-00-00')..createSync(recursive: true);
+      const prefix = '20261001_100000_000';
+      File('${attempt.path}/${prefix}_000000.clock-v1.ts').writeAsBytesSync(List.filled(1000, 1));
+      File('${attempt.path}/${prefix}_000001.clock-v1.ts').writeAsBytesSync(List.filled(500, 1));
+      File('${attempt.path}/$prefix.clock-v1.csv')
+          .writeAsStringSync('${prefix}_000000.clock-v1.ts,0.000000,300.000000\n');
+      final stored = RecordTask(
+        taskId: 'fake_1',
+        roomId: '1',
+        platform: 'fake',
+        title: '',
+        nick: 'a',
+        avatar: '',
+        cover: '',
+        createTime: DateTime(2026, 10, 1, 10),
+        status: RecordStatus.running,
+        outputDir: attempt.path,
+        pendingAttempts: [PendingRecordingAttempt(directoryPath: attempt.path, filePrefix: prefix)],
+      );
+      await recorder.restore(jsonEncode([stored.toJson()]));
+      final task = recorder.tasks.single;
+      await until(() => task.status == RecordStatus.stopped || task.status == RecordStatus.failed);
+      expect(task.status, RecordStatus.stopped);
+      expect(task.lastError, isNull);
+      expect(task.lastOutputPath, endsWith('.mp4'));
+    });
+
     test('an attempt that wrote nothing leaves no folder', () async {
       settings = RecordSettings(autoReconnect: false);
       ffmpeg

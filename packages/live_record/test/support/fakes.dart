@@ -81,6 +81,10 @@ final class FakeFfmpeg implements FfmpegRunner {
   /// ends; none: it ends at once.
   List<FfmpegStatistics> joinStatistics = const [];
 
+  /// Whether a join of this manifest fails (FFmpeg refusing a cut-off
+  /// segment); null: every join succeeds.
+  bool Function(String manifest)? joinFails;
+
   @override
   Future<FfmpegExecution> start(List<String> arguments) async {
     runs.add(arguments);
@@ -88,12 +92,14 @@ final class FakeFfmpeg implements FfmpegRunner {
     executions.add(execution);
     if (arguments.contains('concat')) {
       final output = arguments.last;
-      joinManifests.add(File(arguments[arguments.indexOf('-i') + 1]).readAsStringSync());
+      final manifest = File(arguments[arguments.indexOf('-i') + 1]).readAsStringSync();
+      joinManifests.add(manifest);
       File(output).writeAsStringSync('mp4');
+      final fails = joinFails?.call(manifest) ?? false;
       final samples = List.of(joinStatistics);
       void next() {
         if (samples.isEmpty) {
-          execution.finish(0);
+          execution.finish(fails ? 1 : 0);
         } else {
           execution.stats.add(samples.removeAt(0));
           Timer.run(next);
