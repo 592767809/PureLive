@@ -12,6 +12,7 @@ import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/phone_bridge.dart';
 
 /// Shares a file (share_plus in the app; replaced in tests). False when
 /// nothing was shown.
@@ -146,6 +147,16 @@ class _LogPageState extends ConsumerState<LogPage> {
             onPressed: _log.entries.isEmpty ? null : () => unawaited(_share()),
             icon: const Icon(AppIcons.exportFile),
           ),
+          // A TV: read on a phone that scans a code (A17.9 c15, A17.9-34).
+          if (PhoneBridge.maybeOf(context) case final bridge?)
+            IconButton(
+              key: const ValueKey('log-phone'),
+              tooltip: i18n('phone_view'),
+              onPressed: visible.isEmpty
+                  ? null
+                  : () => unawaited(bridge.view(context, title: i18n('log_manage'), text: _allText)),
+              icon: const Icon(AppIcons.phoneBridge),
+            ),
           IconButton(
             key: const ValueKey('log-clear'),
             tooltip: i18n('settings_log_clear'),

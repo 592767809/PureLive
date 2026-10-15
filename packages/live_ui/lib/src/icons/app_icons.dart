@@ -767,6 +767,9 @@ abstract final class AppIcons {
   /// A QR code to scan.
   static const IconData qrCode = Remix.qr_code_line;
 
+  /// "用手机填写" / "在手机上查看" on a TV (A17.9 c15).
+  static const IconData phoneBridge = Remix.smartphone_line;
+
   /// The QR code was scanned.
   static const IconData qrScanned = Remix.checkbox_circle_line;
 

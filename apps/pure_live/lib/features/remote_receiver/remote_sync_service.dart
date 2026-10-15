@@ -12,6 +12,7 @@ import 'package:pure_live/platform/platform_services.dart';
 import 'package:pure_live/platform/system_access.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/backup/sync_parts.dart';
+import 'package:pure_live/shared/net/lan_address.dart';
 
 /// Another device on the network, from its announcement.
 @immutable
@@ -251,45 +252,8 @@ class RemoteSyncService extends ChangeNotifier {
     super.dispose();
   }
 
-  /// The best IPv4 address of this device: private networks first, then
-  /// 192.168 over 10 over 172.16/12 (3.x).
-  Future<String> _pickLocalIp() async {
-    List<String> ips;
-    final listed = _listIps?.call();
-    if (listed != null) {
-      ips = listed;
-    } else {
-      try {
-        final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4);
-        ips = [
-          for (final interface in interfaces)
-            for (final address in interface.addresses) address.address,
-        ];
-      } on Object {
-        ips = const [];
-      }
-    }
-    final usable = [
-      for (final ip in ips)
-        if (_ipv4(ip) case final parts? when parts[0] != 127 && !(parts[0] == 169 && parts[1] == 254)) ip,
-    ]..sort((a, b) => _priority(b).compareTo(_priority(a)));
-    return usable.firstOrNull ?? '';
-  }
-
-  static List<int>? _ipv4(String ip) {
-    final parts = ip.split('.');
-    if (parts.length != 4) return null;
-    final values = [for (final part in parts) int.tryParse(part) ?? -1];
-    return values.every((value) => value >= 0 && value <= 255) ? values : null;
-  }
-
-  static int _priority(String ip) {
-    final parts = _ipv4(ip)!;
-    if (parts[0] == 192 && parts[1] == 168) return 3;
-    if (parts[0] == 10) return 2;
-    if (parts[0] == 172 && parts[1] >= 16 && parts[1] <= 31) return 1;
-    return 0;
-  }
+  /// The best IPv4 address of this device ([bestLanAddress], 3.x).
+  Future<String> _pickLocalIp() async => bestLanAddress(_listIps?.call() ?? await localIpv4Addresses());
 
   // ---- server ----
 
@@ -585,7 +549,7 @@ class RemoteSyncService extends ChangeNotifier {
   }
 
   void _foundOverMdns(MdnsPeer peer) {
-    if (_disposed || peer.id == deviceId || _ipv4(peer.ip) == null) return;
+    if (_disposed || peer.id == deviceId || !isIpv4(peer.ip)) return;
     final known = _devices[peer.id];
     // 3.x answers on its fixed port; a service not resolved yet has port 0.
     final port = peer.port > 0 && peer.port <= 65535 ? peer.port : RemoteSyncProtocol.defaultHttpPort;
@@ -640,7 +604,7 @@ class RemoteSyncService extends ChangeNotifier {
       if (id.isEmpty || id == deviceId) return;
       final ip = packet['ip']?.toString() ?? datagram.address.address;
       final port = int.tryParse('${packet['port']}') ?? RemoteSyncProtocol.defaultHttpPort;
-      if (_ipv4(ip) == null || port < 1 || port > 65535) return;
+      if (!isIpv4(ip) || port < 1 || port > 65535) return;
       _devices[id] = RemoteSyncDevice(
         id: id,
         name: packet['name']?.toString() ?? 'PureLive',

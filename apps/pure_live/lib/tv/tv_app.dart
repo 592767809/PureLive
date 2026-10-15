@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/tv/phone/tv_phone_dialogs.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 
 /// Escape goes back one level on the TV interface (a keyboard on a box or a
@@ -24,8 +25,10 @@ class TvBackIntent extends Intent {
 ///   ([TvTheme], docs/A-界面设计/A17-电视界面/A17.1-电视设计系统和通用组件 c4; the app shows its dark theme on
 ///   the TV), whether focused items grow (`tvFocusZoom`), and the toast in
 ///   the TV's sizes (16, corners of 12, U.15a's toast);
-/// - Escape as Back.
-class TvAppFrame extends ConsumerWidget {
+/// - Escape as Back;
+/// - a web address opened anywhere shows its code for a phone (most
+///   televisions have no browser, A17.9 c14, c18).
+class TvAppFrame extends ConsumerStatefulWidget {
   /// Wraps [child].
   const new({required this.child, super.key});
 
@@ -33,7 +36,36 @@ class TvAppFrame extends ConsumerWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TvAppFrame> createState() => _TvAppFrameState();
+}
+
+class _TvAppFrameState extends ConsumerState<TvAppFrame> {
+  // What opened addresses before (the phone's browser), kept to put back.
+  late final Future<bool> Function(Uri uri) _openExternal;
+
+  @override
+  void initState() {
+    super.initState();
+    _openExternal = AppNavigator.openExternal;
+    AppNavigator.openExternal = _showLink;
+  }
+
+  @override
+  void dispose() {
+    AppNavigator.openExternal = _openExternal;
+    super.dispose();
+  }
+
+  Future<bool> _showLink(Uri uri) async {
+    final context = AppNavigator.navigatorContext;
+    if (context == null || !context.mounted) return await _openExternal(uri);
+    await showTvLink(context, title: uri.host, url: uri.toString());
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = widget.child;
     final media = MediaQuery.of(context);
     final lift = TvScale.legibilityLift(context);
     final theme = Theme.of(context);

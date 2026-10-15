@@ -125,7 +125,16 @@ void openTvSettingsSection(BuildContext context, SettingsSection section) {
     );
     return;
   }
-  if (section == SettingsSection.danmaku || section == SettingsSection.configPreview) {
+  if (section == SettingsSection.danmaku) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'tv-settings-danmaku'),
+        builder: (context) => const TvDanmakuSettingsPage(),
+      ),
+    );
+    return;
+  }
+  if (section == SettingsSection.configPreview) {
     unawaited(AppNavigator.toNamed<void>(RoutePath.kSettings, arguments: section.name));
     return;
   }

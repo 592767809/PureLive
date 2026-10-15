@@ -10,6 +10,7 @@ import 'package:pure_live/features/account/account_state.dart';
 import 'package:pure_live/features/account/account_widgets.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/phone_bridge.dart';
 
 /// One input of a cookie page.
 final class CookieInput {
@@ -311,6 +312,18 @@ class _CookieEditorScaffoldState extends State<CookieEditorScaffold> {
     if (mounted) await Navigator.of(context).maybePop();
   }
 
+  Future<void> _fromPhone(PhoneBridge bridge) async {
+    final values = await bridge.input(
+      context,
+      PhoneInputRequest(
+        title: '${widget.platform.name} · ${i18n('cookie')}',
+        fields: [PhoneInputField(key: 'cookie', label: i18n('cookie'), initial: _cookie.text, multiline: true)],
+      ),
+    );
+    final cookie = values?['cookie'];
+    if (cookie != null && mounted) _cookie.text = cookie.trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -365,6 +378,14 @@ class _CookieEditorScaffoldState extends State<CookieEditorScaffold> {
                       i18n('account_clear_input'),
                       _cookie.clear,
                     ),
+                    // A TV: typed on a phone that scans a code (A17.9 c15).
+                    if (PhoneBridge.maybeOf(context) case final bridge?)
+                      chip(
+                        const ValueKey('account-cookie-phone'),
+                        AppIcons.phoneBridge,
+                        i18n('phone_fill'),
+                        () => unawaited(_fromPhone(bridge)),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),

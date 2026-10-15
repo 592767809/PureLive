@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 211 条；设置 252 个（分节默认 23 条、单独指定 95 个）；来源 35 个；通道 17 个。
+路径规则 213 条；设置 252 个（分节默认 23 条、单独指定 95 个）；来源 35 个；通道 17 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -24,7 +24,7 @@
 | A13 网络电视和多画面界面 | 2 |  |  |  |  |
 | A15 小页面 | 4 |  |  |  |  |
 | A16 桌面界面 | 1 | 12 |  |  |  |
-| A17 电视界面 | 2 | 5 |  |  |  |
+| A17 电视界面 | 3 | 5 |  |  |  |
 | C01 进房和房间逻辑 | 2 | 3 |  |  |  |
 | C02 小窗、画中画、后台播放 | 3 | 8 |  |  | 1 |
 | C03 直播间工具 |  | 2 |  |  |  |
@@ -63,7 +63,7 @@
 | J02 存储和加密 | 2 |  |  |  | 1 |
 | J03 备份恢复 | 2 | 1 |  |  |  |
 | J04 WebDAV | 3 |  |  |  |  |
-| J05 设备同步 | 2 | 1 |  |  |  |
+| J05 设备同步 | 3 | 1 |  |  |  |
 | J06 3.x 数据迁移 | 1 |  |  |  |  |
 | K01 账号和登录方式 | 4 |  |  |  |  |
 | K02 登录状态 | 1 | 3 |  |  |  |
@@ -159,7 +159,7 @@
 
 ## A17 电视界面
 
-- 代码：`apps/pure_live/lib/routes/tv_router.dart`、`apps/pure_live/lib/tv/`
+- 代码：`apps/pure_live/lib/routes/tv_router.dart`、`apps/pure_live/lib/tv/`、`apps/pure_live/lib/shared/phone_bridge.dart`
 - 设置：`tvFocusZoom`、`tvMenuAlwaysExpanded`、`tvMenuOrder`、`tvMenuHidden`、`tvMenuIcons`
 
 ## C01 进房和房间逻辑
@@ -344,7 +344,7 @@
 
 ## J05 设备同步
 
-- 代码：`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
+- 代码：`apps/pure_live/lib/shared/net/lan_address.dart`、`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
 - 设置：`remote_sync_device_id`
 
 ## J06 3.x 数据迁移

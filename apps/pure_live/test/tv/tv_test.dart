@@ -597,6 +597,19 @@ void main() {
     await _close(tester, services);
   });
 
+  testWidgets('A17.9 c14: a web address on the TV shows its code for a phone instead of a browser', (tester) async {
+    final services = await _pumpApp(tester);
+    final opened = AppNavigator.openExternal(Uri.parse('https://mpv.io/manual/stable/'));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('tv-link-dialog')), findsOneWidget);
+    expect(find.text('https://mpv.io/manual/stable/'), findsOneWidget);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('tv-link-dialog')), findsNothing);
+    expect(await opened, isTrue);
+    await _close(tester, services);
+  });
+
   testWidgets('a focusable: OK taps at once without a long press; with one, a hold never also taps', (tester) async {
     var taps = 0;
     var holds = 0;

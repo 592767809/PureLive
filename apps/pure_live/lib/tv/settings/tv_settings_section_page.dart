@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/danmaku/chat_list_settings.dart';
+import 'package:pure_live/shared/danmaku/danmaku_settings_content.dart';
+import 'package:pure_live/shared/danmaku/setting_rows.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_page_header.dart';
@@ -110,6 +113,30 @@ class TvSettingsColumn extends StatelessWidget {
     child: ConstrainedBox(
       constraints: BoxConstraints(maxWidth: TvScale.of(context).px(1440)),
       child: ListView(children: children),
+    ),
+  );
+}
+
+/// "弹幕" of the TV settings (A17.9 c13, D1 A): the phone's danmaku settings
+/// (`DanmakuSettingsContent`, the same as the room's panel) with the chat
+/// list group; no floating-window group, a TV has no floating windows.
+class TvDanmakuSettingsPage extends StatelessWidget {
+  /// Creates the page.
+  const new({super.key});
+
+  @override
+  Widget build(BuildContext context) => TvSettingsScaffold(
+    pageKey: const ValueKey('tv-settings-page-danmaku'),
+    title: i18n(SettingsSection.danmaku.titleKey),
+    child: Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: TvScale.of(context).px(1440)),
+        child: DanmakuSettingsContent(
+          hint: i18n('danmaku_settings_live_hint'),
+          extra: [PanelGroupTitle(i18n('danmaku_list')), const ChatListSettings()],
+        ),
+      ),
     ),
   );
 }
