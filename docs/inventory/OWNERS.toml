@@ -238,6 +238,7 @@ path = [
   { glob = "tools/ffmpeg_kit/", sub = "Z04" },
   { glob = "tools/gate/", sub = "Z02" },
   { glob = "tools/live_cli/", sub = "E07" },
+  { glob = "tools/perf/", sub = "R05" },
   { glob = "tools/release/", sub = "Y01" },
   { glob = "tools/timeshift/", sub = "S01" },
   { glob = "tools/ui/inventory.py", sub = "Z03" },
