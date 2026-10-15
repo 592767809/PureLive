@@ -540,12 +540,15 @@ void main() {
             ..recordedSeconds = 2112
             ..fileSize = 1288490189
             ..selectedQuality = '原画'
+            ..recordDanmakuOverride = true
             ..lastUpdate = now
             ..lastOutputPath = file.path,
         ],
       );
       expectCard('saved', ['record-panel-play', 'record-panel-view', 'record-panel-again']);
       expect(find.text('今天 21:30'), findsOneWidget);
+      // Danmaku recorded, but its count is not known in this run (after a
+      // restart): left out, not "弹幕 0 条".
       expect(find.text('时长 00:35:12 · 1.2 GB · 原画'), findsOneWidget);
       expect(tester.widget<Switch>(find.byKey(const ValueKey('record-panel-auto'))).value, isFalse);
     });

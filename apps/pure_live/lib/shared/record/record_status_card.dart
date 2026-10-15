@@ -482,8 +482,11 @@ class RecordStatusCard extends StatelessWidget {
               i18n('record_panel_saved_desc', args: {'duration': recordClockText(Duration(seconds: facts.seconds))}),
               recordShortSize(facts.bytes),
               ?facts.applied,
+              // The count is known in this run only: after a restart the
+              // saved card leaves it out rather than say "弹幕 0 条".
               if (task() case final saved? when saved.recordsChat(fallback: facts.recordDanmaku))
-                i18n('record_panel_danmaku_count', args: {'count': groupedNumber(chatCount(saved))}),
+                if (chatCount(saved) case final count when count > 0)
+                  i18n('record_panel_danmaku_count', args: {'count': groupedNumber(count)}),
             ].join(' · '),
             key: const ValueKey('record-panel-saved'),
             style: body?.tabular,
