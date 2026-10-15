@@ -135,12 +135,6 @@ abstract final class TvIcons {
   /// The interface mode (phone or TV).
   static const IconData uiMode = Icons.tv_rounded;
 
-  /// The theme colour.
-  static const IconData themeColor = Icons.palette_rounded;
-
-  /// The text size.
-  static const IconData textSize = Icons.format_size_rounded;
-
   /// The preferred quality.
   static const IconData quality = Icons.high_quality_rounded;
 
@@ -149,18 +143,6 @@ abstract final class TvIcons {
 
   /// Danmaku on the picture, off.
   static const IconData danmakuOff = Icons.subtitles_off_rounded;
-
-  /// The danmaku size.
-  static const IconData danmakuSize = Icons.text_fields_rounded;
-
-  /// The danmaku opacity.
-  static const IconData danmakuOpacity = Icons.opacity_rounded;
-
-  /// Network and proxy.
-  static const IconData network = Icons.public_rounded;
-
-  /// More settings (the full settings page).
-  static const IconData moreSettings = Icons.settings_suggest_rounded;
 
   /// Grow the focused item (the low-end-box switch, U.15a c2).
   static const IconData focusZoom = Icons.zoom_in_rounded;

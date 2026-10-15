@@ -19,7 +19,7 @@ import 'package:pure_live/tv/pages/tv_iptv_pane.dart';
 import 'package:pure_live/tv/pages/tv_link_pane.dart';
 import 'package:pure_live/tv/pages/tv_popular_pane.dart';
 import 'package:pure_live/tv/pages/tv_search_page.dart';
-import 'package:pure_live/tv/pages/tv_settings_pane.dart';
+import 'package:pure_live/tv/settings/tv_settings_catalog.dart';
 import 'package:pure_live/tv/tv_navigation.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
@@ -352,7 +352,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     TvPane.search => const TvSearchPane(),
     TvPane.link => const TvLinkPane(),
     TvPane.iptv => const TvIptvPane(),
-    TvPane.settings => const TvSettingsPane(),
+    TvPane.settings => const TvSettingsCatalog(),
     TvPane.video ||
     TvPane.music ||
     TvPane.wallpaper => TvStatusView(icon: TvIcons.underConstruction, title: i18n('tv_under_construction')),

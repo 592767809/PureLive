@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_store/live_store.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/ui_mode.dart';
@@ -14,6 +15,7 @@ import 'package:pure_live/features/home/home_page.dart';
 import 'package:pure_live/features/live_play/logic/predictive_back.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/settings/settings_catalog.dart';
+import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/tv/home/tv_home_page.dart';
@@ -494,6 +496,104 @@ void main() {
     await _settle(tester);
     expect(services.store.settings.get(Settings.uiMode), 'phone');
     expect(find.byType(HomePage), findsOneWidget);
+    await _close(tester, services);
+  });
+
+  testWidgets('A17.9: the TV settings are the phone\'s overview after the TV rows, "关于" last', (tester) async {
+    final services = await _pumpApp(tester);
+    for (var i = 0; i < TvPane.menu.length; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    await _press(tester, LogicalKeyboardKey.select);
+    String? row() =>
+        (FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvFocusable>()?.key
+                as ValueKey<String>?)
+            ?.value
+            .substring('tv-setting-'.length);
+    final rows = [row()];
+    while (true) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      if (row() == rows.last) break;
+      rows.add(row());
+    }
+    expect(rows, [
+      'ui_mode',
+      'focus_zoom',
+      'menu_expanded',
+      for (final area in SettingsArea.values)
+        for (final section in SettingsSection.values)
+          if (section.area == area && section != SettingsSection.pipDanmaku) 'section-${section.name}',
+      'about',
+    ]);
+    await _close(tester, services);
+  });
+
+  testWidgets("A17.9: a settings page is the phone's rows in the TV look; ← off, → on; Back to its row", (
+    tester,
+  ) async {
+    final services = await _pumpApp(tester);
+    addTearDown(RoomBackChannel.instance.reset);
+    final settings = services.store.settings;
+    // Android's Back, as the device sends it (the TV home holds it).
+    Future<void> nativeBack() async {
+      unawaited(
+        tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+          'pure_live/predictive_back',
+          const StandardMethodCodec().encodeMethodCall(const MethodCall('backInvoked')),
+          (_) {},
+        ),
+      );
+      await _settle(tester, rounds: 6);
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    for (var i = 0; i < TvPane.menu.length; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    await _press(tester, LogicalKeyboardKey.select);
+    // ui_mode, focus_zoom, menu_expanded, appearance, navigation, platforms, refresh.
+    for (var i = 0; i < 6; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    expect(
+      FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvFocusable>()?.key,
+      const ValueKey('tv-setting-section-refresh'),
+    );
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester, rounds: 6);
+    expect(find.byKey(const ValueKey('tv-settings-page-refresh')), findsOneWidget);
+    expect(find.text('刷新设置'), findsWidgets);
+    // The first row ("开启关注自动刷新") has the focus, in the TV look.
+    final focused = FocusManager.instance.primaryFocus?.context;
+    expect(focused?.findAncestorWidgetOfExactType<SettingsSwitchRow>()?.title, '开启关注自动刷新');
+    expect(SettingsRowStyle.tvOf(focused!), isTrue);
+    expect(settings.get(Settings.autoRefreshFavorite), isFalse);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    expect(settings.get(Settings.autoRefreshFavorite), isTrue);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    expect(settings.get(Settings.autoRefreshFavorite), isTrue, reason: 'already on: stays');
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(settings.get(Settings.autoRefreshFavorite), isFalse);
+    expect(find.byKey(const ValueKey('tv-settings-page-refresh')), findsOneWidget, reason: 'the focus stayed');
+
+    // The interval (on again) opens the TV's choices on the current value.
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    expect(find.byType(TvOptionRow), findsWidgets);
+    expect(find.byKey(const ValueKey('tv-option-current')), findsOneWidget);
+    await nativeBack();
+    expect(find.byType(TvOptionRow), findsNothing);
+    expect(find.byKey(const ValueKey('tv-settings-page-refresh')), findsOneWidget);
+
+    await nativeBack();
+    expect(find.byKey(const ValueKey('tv-settings-page-refresh')), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvFocusable>()?.key,
+      const ValueKey('tv-setting-section-refresh'),
+      reason: 'back on the row that opened it',
+    );
     await _close(tester, services);
   });
 

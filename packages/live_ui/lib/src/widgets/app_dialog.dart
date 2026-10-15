@@ -593,6 +593,46 @@ Future<T?> showAppOptionDialog<T>({
   bool showCancel = true,
   Widget? leading,
   Key? key,
+}) {
+  if (AppOptionPresenter.maybeOf(context) case final presenter?) {
+    return presenter
+        .present(
+          context,
+          AppOptionRequest(
+            title: title,
+            message: message,
+            selected: selected,
+            options: [
+              for (final option in options)
+                (value: option.value, label: option.label, description: option.description, key: option.key),
+            ],
+          ),
+        )
+        .then((value) => value is T ? value : null);
+  }
+  return _showAppOptionDialog(
+    context: context,
+    options: options,
+    title: title,
+    icon: icon,
+    selected: selected,
+    message: message,
+    showCancel: showCancel,
+    leading: leading,
+    key: key,
+  );
+}
+
+Future<T?> _showAppOptionDialog<T>({
+  required BuildContext context,
+  required List<AppDialogOption<T>> options,
+  String? title,
+  IconData? icon,
+  T? selected,
+  String? message,
+  bool showCancel = true,
+  Widget? leading,
+  Key? key,
 }) => showAppDialog<T>(
   context: context,
   builder: (dialogContext) => AppDialog(
@@ -838,4 +878,40 @@ class _InputDialogState extends State<_InputDialog> {
       ],
     ),
   );
+}
+
+/// One option dialog asked of an [AppOptionPresenter].
+@immutable
+final class AppOptionRequest {
+  /// Creates the request.
+  const new({required this.options, this.title, this.message, this.selected});
+
+  /// The title.
+  final String? title;
+
+  /// The line under it.
+  final String? message;
+
+  /// The current value.
+  final Object? selected;
+
+  /// The options, in order.
+  final List<({Object? value, String label, String? description, Key? key})> options;
+}
+
+/// Shows the option dialogs ([showAppOptionDialog]) below it another way:
+/// the TV's choice dialog for the phone's settings rows (A17.9 c7).
+class AppOptionPresenter extends InheritedWidget {
+  /// Creates the presenter.
+  const new({required this.present, required super.child, super.key});
+
+  /// Shows [AppOptionRequest]; the value picked, or null.
+  final Future<Object?> Function(BuildContext context, AppOptionRequest request) present;
+
+  /// The presenter above [context], if any.
+  static AppOptionPresenter? maybeOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<AppOptionPresenter>();
+
+  @override
+  bool updateShouldNotify(AppOptionPresenter oldWidget) => oldWidget.present != present;
 }

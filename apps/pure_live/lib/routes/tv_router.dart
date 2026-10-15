@@ -9,6 +9,7 @@ import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/pages/tv_area_rooms_page.dart';
 import 'package:pure_live/tv/pages/tv_search_page.dart';
 import 'package:pure_live/tv/room/tv_live_play_page.dart';
+import 'package:pure_live/tv/settings/tv_settings_style.dart';
 
 /// The pages the TV interface (M14.1) puts on the phone's paths, so every
 /// `AppNavigator` call (a card, the room switcher, a deep link) lands on the
@@ -21,8 +22,9 @@ final Map<String, PageBuilder> tvPageRoutes = {
 
 /// The router of the TV interface: the TV home ([TvHomePage]) at the root,
 /// [tvPageRoutes] on their paths and every other page of [pageRoutes]
-/// unchanged (settings, accounts, backups: "more settings" opens them; they
-/// work with the remote through Flutter's directional focus).
+/// (accounts, backups, IPTV: the TV settings open them) with the phone's
+/// settings rows and choices in their TV look ([TvSettingsStyle]); they
+/// work with the remote through Flutter's directional focus.
 GoRouter buildTvRouter({
   String initialLocation = RoutePath.kInitial,
   List<NavigatorObserver> observers = const [],
@@ -44,7 +46,13 @@ GoRouter buildTvRouter({
           key: state.pageKey,
           name: path,
           arguments: state.extra,
-          child: PureLiveRouteScrollScope(child: builder(RouteArgs(path, arguments: state.extra))),
+          // The phone's pages in their TV look: settings rows and choices
+          // (A17.9 c2, c7).
+          child: PureLiveRouteScrollScope(
+            child: tvPageRoutes.containsKey(path)
+                ? builder(RouteArgs(path, arguments: state.extra))
+                : TvSettingsStyle(child: builder(RouteArgs(path, arguments: state.extra))),
+          ),
         ),
       ),
   ],

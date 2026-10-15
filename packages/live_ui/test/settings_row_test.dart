@@ -306,7 +306,11 @@ void main() {
       addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale, 1.05);
+      expect(
+        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
+        1.02,
+        reason: 'A17.9 c5: a row grows a little',
+      );
       final frame = tester
           .widgetList<DecoratedBox>(find.byType(DecoratedBox))
           .where(
@@ -427,6 +431,72 @@ void main() {
       expect(scaler.scale(10), closeTo(19.5, 1e-9));
       expect(const AppTextScaler(TextScaler.noScaling, 0.5).scale(20), 10);
       expect(scaler, const AppTextScaler(TextScaler.linear(1.3), 1.5));
+    });
+  });
+
+  group('A17.9: the TV look', () {
+    testWidgets('a switch row: ← off, → on, either kept in the row; the phone ignores them', (tester) async {
+      var value = false;
+      final changes = <bool>[];
+      await _pump(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) => SettingsSwitchRow(
+            title: '开关',
+            value: value,
+            onChanged: (next) => setState(() {
+              changes.add(next);
+              value = next;
+            }),
+          ),
+        ),
+        tv: true,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      for (final key in [LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.arrowRight, LogicalKeyboardKey.arrowLeft]) {
+        await tester.sendKeyEvent(key);
+        await tester.pump();
+      }
+      expect(changes, [true, false], reason: 'on, already on, off');
+    });
+
+    testWidgets('an option dialog under a presenter is asked of it', (tester) async {
+      AppOptionRequest? asked;
+      String? picked;
+      await _pump(
+        tester,
+        AppOptionPresenter(
+          present: (context, request) async {
+            asked = request;
+            return 'b';
+          },
+          child: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async => picked = await showAppOptionDialog<String>(
+                context: context,
+                title: '选择',
+                selected: 'a',
+                options: const [
+                  AppDialogOption(value: 'a', label: '甲'),
+                  AppDialogOption(value: 'b', label: '乙', description: '说明'),
+                ],
+              ),
+              child: const Text('打开'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('打开'));
+      await tester.pumpAndSettle();
+      expect(find.byType(Dialog), findsNothing);
+      expect(asked?.title, '选择');
+      expect(asked?.selected, 'a');
+      expect(
+        [for (final option in asked!.options) (option.value, option.label, option.description)],
+        [('a', '甲', null), ('b', '乙', '说明')],
+      );
+      expect(picked, 'b');
     });
   });
 }

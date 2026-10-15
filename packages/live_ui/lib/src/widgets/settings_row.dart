@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:live_ui/src/icons/app_icons.dart';
 import 'package:live_ui/src/theme/live_colors.dart';
 import 'package:live_ui/src/theme/live_theme.dart';
@@ -514,7 +515,8 @@ class _SettingsRowState extends State<SettingsRow> {
       ),
       child: row,
     );
-    if (tv) row = AnimatedScale(scale: _focused ? 1.05 : 1, duration: AppDurations.fast, child: row);
+    // A whole row grows a little only (A17.9 c5: rows 1.02).
+    if (tv) row = AnimatedScale(scale: _focused ? 1.02 : 1, duration: AppDurations.fast, child: row);
     if (widget.tooltip case final tooltip?) row = Tooltip(message: tooltip, child: row);
     if (!widget.enabled) {
       row = Opacity(
@@ -722,7 +724,7 @@ class SettingsSwitchRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final usable = enabled && onChanged != null && !busy;
-    return SettingsRow(
+    final row = SettingsRow(
       title: title,
       icon: icon,
       leading: leading,
@@ -743,6 +745,25 @@ class SettingsSwitchRow extends StatelessWidget {
           child: Switch(value: value, onChanged: usable ? (_) {} : null),
         ),
       ),
+    );
+    if (!SettingsRowStyle.tvOf(context)) return row;
+    // The remote: ← off, → on (A17.9 c1); either is taken, so the focus
+    // does not leave the column sideways.
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent && event is! KeyRepeatEvent) return KeyEventResult.ignored;
+        final on = switch (event.logicalKey) {
+          LogicalKeyboardKey.arrowLeft => false,
+          LogicalKeyboardKey.arrowRight => true,
+          _ => null,
+        };
+        if (on == null) return KeyEventResult.ignored;
+        if (usable && on != value) onChanged!(on);
+        return KeyEventResult.handled;
+      },
+      child: row,
     );
   }
 }

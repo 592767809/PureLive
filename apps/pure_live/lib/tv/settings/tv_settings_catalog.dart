@@ -1,0 +1,127 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:live_store/live_store.dart';
+import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/settings/settings_model.dart';
+import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
+import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/widgets/tv_dialogs.dart';
+import 'package:pure_live/tv/widgets/tv_page_header.dart';
+import 'package:pure_live/tv/widgets/tv_settings_rows.dart';
+
+/// The pages of the phone's overview the TV leaves out: the floating
+/// windows' danmaku (there are no floating windows on a TV).
+const Set<SettingsSection> tvHiddenSettingsSections = {SettingsSection.pipDanmaku};
+
+/// The TV settings (A17.9 c9): the TV's own rows first (interface mode,
+/// growing the focused item, the side menu always open), then the phone's
+/// overview — its five groups and their pages in the phone's order, words
+/// and icons — and "关于" last. A page opens in its TV look
+/// ([TvSettingsSectionPage]); the pages that are a screen of their own (IPTV,
+/// recording, backup, the log, …) open that screen, which the TV router
+/// draws in the same look.
+class TvSettingsCatalog extends ConsumerWidget {
+  /// Creates the catalogue.
+  const new({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(storeProvider).settings;
+    final scale = TvScale.of(context);
+    return ListView(
+      key: const ValueKey('tv-settings-catalog'),
+      padding: EdgeInsets.symmetric(horizontal: scale.px(24), vertical: scale.px(28)),
+      children: [
+        TvPageHeader(title: i18n('tv_menu_settings')),
+        SizedBox(height: scale.px(16)),
+        TvSettingsGroup(
+          title: i18n('tv_settings_group_tv'),
+          children: [
+            TvChoiceRow<String>(
+              id: 'ui_mode',
+              icon: TvIcons.uiMode,
+              title: i18n('ui_mode'),
+              subtitle: i18n('tv_ui_mode_desc'),
+              value: watchSetting(ref, Settings.uiMode),
+              options: [
+                TvChoice(value: 'auto', label: i18n('ui_mode_auto'), description: i18n('ui_mode_auto_desc')),
+                TvChoice(value: 'phone', label: i18n('ui_mode_phone')),
+                TvChoice(value: 'tv', label: i18n('ui_mode_tv')),
+              ],
+              onChanged: (value) => settings.set(Settings.uiMode, value),
+            ),
+            TvSwitchRow(
+              id: 'focus_zoom',
+              icon: TvIcons.focusZoom,
+              title: i18n('tv_focus_zoom'),
+              subtitle: i18n('tv_focus_zoom_desc'),
+              value: watchSetting(ref, Settings.tvFocusZoom),
+              onChanged: (value) => unawaited(settings.set(Settings.tvFocusZoom, value)),
+            ),
+            TvSwitchRow(
+              id: 'menu_expanded',
+              icon: TvIcons.menuExpand,
+              title: i18n('tv_menu_always_expanded'),
+              subtitle: i18n('tv_menu_always_expanded_desc'),
+              value: watchSetting(ref, Settings.tvMenuAlwaysExpanded),
+              onChanged: (value) => unawaited(settings.set(Settings.tvMenuAlwaysExpanded, value)),
+            ),
+          ],
+        ),
+        for (final area in SettingsArea.values)
+          TvSettingsGroup(
+            title: i18n(area.titleKey),
+            children: [
+              for (final section in SettingsSection.values)
+                if (section.area == area && !tvHiddenSettingsSections.contains(section))
+                  TvLinkRow(
+                    id: 'section-${section.name}',
+                    icon: section.icon ?? TvIcons.danmakuOn,
+                    title: i18n(section.titleKey),
+                    subtitle: i18n(section.descriptionKey),
+                    onTap: () => openTvSettingsSection(context, section),
+                  ),
+            ],
+          ),
+        TvSettingsGroup(
+          children: [
+            TvLinkRow(
+              id: 'about',
+              icon: AppIcons.about,
+              title: i18n('about'),
+              subtitle: i18n('tv_settings_about_desc'),
+              onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kAbout)),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Opens [section]: a page of the catalogue in its TV look, or the screen
+/// that is the page (its route, or the phone's settings opened on it for
+/// the danmaku and the configuration preview, which have pages of their
+/// own).
+void openTvSettingsSection(BuildContext context, SettingsSection section) {
+  if (section.route case final route?) {
+    unawaited(AppNavigator.toNamed<void>(route));
+    return;
+  }
+  if (section == SettingsSection.danmaku || section == SettingsSection.configPreview) {
+    unawaited(AppNavigator.toNamed<void>(RoutePath.kSettings, arguments: section.name));
+    return;
+  }
+  Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      settings: RouteSettings(name: 'tv-settings-${section.name}'),
+      builder: (context) => TvSettingsSectionPage(section: section),
+    ),
+  );
+}
