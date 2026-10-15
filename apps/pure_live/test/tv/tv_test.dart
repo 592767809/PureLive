@@ -548,6 +548,35 @@ void main() {
     await _close(tester, services);
   });
 
+  testWidgets('rail: up and down follow the rail, not the page rows under the opened rail', (tester) async {
+    final services = await _pumpApp(tester);
+    for (var i = 0; i < TvPane.menu.length; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+    }
+    expect(_focused, 'tv menu settings');
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(find.byKey(const ValueKey('tv-setting-ui_mode')), findsOneWidget);
+    // Down into the page, then back to the rail's 设置 and up along it.
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(_focused, 'tv menu settings');
+    final menu = TvPane.menuOf().where((pane) => pane != TvPane.settings).toList();
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focused, 'tv menu ${menu.last.name}');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focused, 'tv menu ${menu[menu.length - 2].name}');
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(_focused, 'tv menu settings');
+    // The top of the rail is the mode button.
+    for (var i = 0; i < menu.length + 2; i++) {
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+    }
+    expect(_focused, 'tv menu mode');
+    await _close(tester, services);
+  });
+
   testWidgets('TV settings: OK opens the choices on the current value; picking phone switches', (tester) async {
     final services = await _pumpApp(tester);
     for (var i = 0; i < TvPane.menu.length; i++) {

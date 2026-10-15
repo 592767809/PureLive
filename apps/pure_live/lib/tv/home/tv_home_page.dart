@@ -453,9 +453,28 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     return leave;
   }
 
-  KeyEventResult _menuKey(TvPane pane, KeyEvent event) {
-    if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowRight) return KeyEventResult.ignored;
-    return _enter() ? KeyEventResult.handled : KeyEventResult.ignored;
+  /// The rail's entries top to bottom (the mode button is `null`), as last
+  /// built.
+  List<TvPane?> _rail = const [];
+
+  /// Keys on the rail: → enters the page; ↑↓ move along the rail in its own
+  /// order. Flutter's directional search would pick the page's rows, which
+  /// lie under the opened rail and can be nearer than the next entry.
+  KeyEventResult _menuKey(TvPane? pane, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowRight) return _enter() ? KeyEventResult.handled : KeyEventResult.ignored;
+    if (key != LogicalKeyboardKey.arrowUp && key != LogicalKeyboardKey.arrowDown) return KeyEventResult.ignored;
+    final index = _rail.indexOf(pane);
+    if (index < 0) return KeyEventResult.ignored;
+    final next = index + (key == LogicalKeyboardKey.arrowUp ? -1 : 1);
+    if (next < 0 || next >= _rail.length) return KeyEventResult.handled;
+    final target = _rail[next];
+    final node = target == null ? _modeNode : _menuNode(target)
+      ..requestFocus();
+    // An entry scrolled out of the rail comes into view.
+    if (node.context case final context?) Scrollable.ensureVisible(context, alignment: 0.5);
+    return KeyEventResult.handled;
   }
 
   Widget _content(TvPane pane) => switch (pane) {
@@ -526,6 +545,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
       mode: mode,
     );
     _icons = watchSetting(ref, Settings.tvMenuIcons);
+    _rail = [null, ...menuPanes.where((pane) => pane != TvPane.settings), TvPane.settings];
     final expanded = alwaysExpanded || _menuFocused;
     final railWidth = scale.pxText(84);
     final expandedWidth = scale.pxText(200);
@@ -559,6 +579,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
                   label: i18n(mode.labelKey),
                   compact: !expanded,
                   onTap: () => unawaited(_chooseMode(mode)),
+                  onKey: (node, event) => _menuKey(null, event),
                 ),
               ),
               // Entries past the height scroll; clipped above and below only
