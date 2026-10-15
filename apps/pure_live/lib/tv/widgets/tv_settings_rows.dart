@@ -121,6 +121,8 @@ class TvSettingsRow extends StatelessWidget {
       onKey: onKey,
       builder: (context, focused) => Container(
         constraints: BoxConstraints(minHeight: scale.pxText(64)),
+        // A row without a description keeps the height, its title centred.
+        alignment: Alignment.centerLeft,
         padding: EdgeInsets.symmetric(horizontal: scale.px(16), vertical: scale.px(10)),
         decoration: BoxDecoration(
           color: focused ? palette.highest : null,

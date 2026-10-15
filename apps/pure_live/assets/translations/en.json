@@ -2930,6 +2930,7 @@
     "tv_set_tags": "Set tags",
     "tv_settings_about_desc": "Version, updates, open-source licences and the project page",
     "tv_settings_group_tv": "TV",
+    "tv_settings_navigation_desc": "Which side-rail entries show, their order and icons",
     "tv_tag_name_hint": "Tag name, up to 15 characters",
     "tv_tags_room": "{name} · {platform}",
     "tv_ui_mode_desc": "Takes effect at once",

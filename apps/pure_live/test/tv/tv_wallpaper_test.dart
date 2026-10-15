@@ -8,15 +8,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/wallpaper/tv_wallpaper_layer.dart';
+import 'package:pure_live/tv/wallpaper/tv_wallpaper_pages.dart';
 import 'package:pure_live/tv/wallpaper/tv_wallpaper_preview.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_files.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_model.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_sources.dart';
+import 'package:pure_live/tv/widgets/tv_focusable.dart';
 
 import '../support.dart';
 
@@ -267,5 +270,39 @@ void main() {
       expect(store.current.source, items.first.url);
       await close(tester, services);
     });
+
+    testWidgets('a library page takes the focus on its first picture once it loads', (tester) async {
+      const category = TvWallpaperCategory('all', 'tv_wallpaper_bing_daily');
+      final (services, _) = await pump(tester, const TvWallpaperGridPage(library: _Library(), category: category));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      for (var i = 0; i < 4; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(find.byKey(const ValueKey('tv-wallpaper-item-0')), findsOneWidget);
+      expect(
+        FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvFocusable>()?.key,
+        const ValueKey('tv-wallpaper-item-0'),
+      );
+      await close(tester, services);
+    });
   });
+}
+
+final class _Library implements TvWallpaperLibrary {
+  const new();
+
+  @override
+  String get id => 'test';
+
+  @override
+  String get nameKey => 'tv_wallpaper_bing';
+
+  @override
+  List<TvWallpaperCategory> get categories => const [];
+
+  @override
+  Future<List<TvWallpaperItem>> items(LiveHttp http, String category, int page) async => [
+    if (page == 1)
+      for (var n = 0; n < 6; n++) TvWallpaperItem(url: 'https://a.example/$n.jpg'),
+  ];
 }

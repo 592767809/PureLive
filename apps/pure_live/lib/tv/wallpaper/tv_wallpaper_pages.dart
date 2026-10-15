@@ -317,6 +317,7 @@ class TvWallpaperGridPage extends ConsumerStatefulWidget {
 }
 
 class _TvWallpaperGridPageState extends ConsumerState<TvWallpaperGridPage> {
+  final GlobalKey<TvGridState> _grid = GlobalKey();
   final List<TvWallpaperItem> _items = [];
   int _page = 0;
   bool _loading = false;
@@ -341,6 +342,12 @@ class _TvWallpaperGridPageState extends ConsumerState<TvWallpaperGridPage> {
         _end = next.isEmpty;
         _error = null;
       });
+      // The first page takes the focus on its first picture.
+      if (_page == 1 && next.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _grid.currentState?.enter();
+        });
+      }
     } on Object catch (error) {
       if (mounted) setState(() => _error = error);
     } finally {
@@ -362,6 +369,7 @@ class _TvWallpaperGridPageState extends ConsumerState<TvWallpaperGridPage> {
           : TvStatusView(icon: TvIcons.noResults, title: i18n('tv_wallpaper_empty'));
     } else {
       body = TvGrid(
+        key: _grid,
         itemCount: _items.length,
         columns: 4,
         aspectRatio: 16 / 9,

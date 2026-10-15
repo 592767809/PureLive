@@ -98,7 +98,7 @@ class TvSettingsCatalog extends ConsumerWidget {
                     id: 'section-${section.name}',
                     icon: section.icon ?? TvIcons.danmakuOn,
                     title: i18n(section.titleKey),
-                    subtitle: i18n(section.descriptionKey),
+                    subtitle: i18n(tvSectionDescriptions[section] ?? section.descriptionKey),
                     onTap: () => openTvSettingsSection(context, section),
                   ),
             ],
@@ -118,6 +118,10 @@ class TvSettingsCatalog extends ConsumerWidget {
     );
   }
 }
+
+/// The words under a section whose TV page differs from the phone's: "导航栏"
+/// manages the TV's side rail, not the phone's bottom bar.
+const Map<SettingsSection, String> tvSectionDescriptions = {SettingsSection.navigation: 'tv_settings_navigation_desc'};
 
 /// Opens [section]: a page of the catalogue in its TV look, or the screen
 /// that is the page (its route, or the phone's settings opened on it for

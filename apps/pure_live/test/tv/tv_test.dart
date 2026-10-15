@@ -613,11 +613,15 @@ void main() {
             ?.value
             .substring('tv-setting-'.length);
     final rows = [row()];
+    var navigationWords = false;
     while (true) {
       await _press(tester, LogicalKeyboardKey.arrowDown);
       if (row() == rows.last) break;
       rows.add(row());
+      // "导航栏" manages the TV's side rail, and says so.
+      if (row() == 'section-navigation') navigationWords = find.text('左边导航栏显示哪些入口、顺序和图标').evaluate().isNotEmpty;
     }
+    expect(navigationWords, isTrue);
     expect(rows, [
       'ui_mode',
       'focus_zoom',

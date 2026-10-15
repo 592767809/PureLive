@@ -2929,6 +2929,7 @@
     "tv_set_tags": "设置标签",
     "tv_settings_about_desc": "版本、在线更新、开源许可证和项目主页",
     "tv_settings_group_tv": "电视",
+    "tv_settings_navigation_desc": "左边导航栏显示哪些入口、顺序和图标",
     "tv_tag_name_hint": "标签名，最多 15 个字",
     "tv_tags_room": "{name} · {platform}",
     "tv_ui_mode_desc": "切换后立即生效",
