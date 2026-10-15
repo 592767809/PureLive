@@ -159,8 +159,16 @@ class _TvFocusableState extends State<TvFocusable> {
         });
         return KeyEventResult.handled;
       case KeyRepeatEvent():
-        // A held key repeats; the timer decides, and a held OK on a plain
-        // button does not fire again.
+        // Android marks a key long-pressed at its first repeat (its
+        // FLAG_LONG_PRESS, `adb shell input keyevent --longpress`): the hold
+        // fires then, not only at the timer. Later repeats do nothing, and
+        // a held OK on a plain button does not fire again.
+        if (_pressed && !_longFired && widget.onLongPress != null) {
+          _hold?.cancel();
+          _longFired = true;
+          _setPressed(false);
+          widget.onLongPress?.call();
+        }
         return KeyEventResult.handled;
       case KeyUpEvent():
         final fired = _longFired;

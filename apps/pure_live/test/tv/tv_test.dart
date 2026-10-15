@@ -821,5 +821,14 @@ void main() {
     await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
     expect((taps, holds), (2, 1));
+    // Android's long press is the first repeat (about 400 ms, before the
+    // timer): it holds, the release does not tap, and more repeats do nothing.
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+    await tester.pump(const Duration(seconds: 1));
+    expect((taps, holds), (2, 2));
   });
 }
