@@ -102,6 +102,6 @@
 ## 还没完成的
 
 - **Z01.2 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁）**（开发中，第三档，规模 小）
-  - 接着做：每月一次，下次 2026-11 上旬（10-14 已升 Flutter 3.47.7、Kotlin 2.4.21、sqlite3 3.7.1、hive_ce 2.21.0、test 1.33.0）
+  - 接着做：5.1.0 发布后升级 go_router 18.1.0、hive_ce 2.22.0、material_ui 1.7.0、tray_manager 0.8.0、screen_retriever 0.3.0 并跑门禁；然后 2026-11 上旬
 
 <!-- docs:生成结束 -->

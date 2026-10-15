@@ -20,3 +20,10 @@
 - `test_api 0.7.14` 的覆盖仍然需要（3.47.6 的 flutter_test 还是锁 0.7.12），只改了注释里的版本。
 - 验证：`flutter build apk --release --target-platform android-arm64` 通过（125.4 MB，lint 通过），日志里只有 Gradle 9.8.1、`platforms/android-37.2`、`build-tools/37.0.0`、`ndk/30.0.16248370`、`cmake/4.1.2`；`tools/gate/gate.sh --all` 通过。
 - 下次：2026-11 上旬。
+
+## 2026-10-15（5.1.0 稳定版发布前）
+
+- `check_latest`：63 项，落后 6 项，4 项查询失败（GitHub API 限流 403：mpv、FFmpeg、media_kit、Kotlin，和 10-14 那轮一样，当时是最新）。
+- 当场升级：`http2` 2.3.1 → 3.1.0（E03.20 新加的依赖，应当用最新），`live_net` 测试通过。
+- 留到发布之后：`go_router` 18.0.2 → 18.1.0、`hive_ce` 2.21.0 → 2.22.0、`material_ui` 1.6.0 → 1.7.0、`tray_manager` 0.7.0 → 0.8.0、`screen_retriever` 0.2.2 → 0.3.0。原因：都是 5 天内的新版本，路由、存储和桌面托盘牵动面大，稳定版发布前不换；发布后单独升级、跑门禁和快速测试。
+- 下次：5.1.0 发布后（上面 5 项），然后 2026-11 上旬。
