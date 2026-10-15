@@ -7,25 +7,28 @@ import 'package:scroll_animator/scroll_animator.dart';
 /// tab indicator and page transition enough frames to look linear.
 const Duration pureLiveTabTransitionDuration = Duration(milliseconds: 220);
 
-/// Content lists: the platform's own touch model (a spring on iOS and macOS,
-/// a hard edge elsewhere) instead of forcing one everywhere.
+/// Content lists: on a phone or tablet the damped edge of the refreshable
+/// lists everywhere (A03.5: past an end the list follows the finger ever
+/// more heavily, at most the 0.52 of 3.x's lists, and springs back with
+/// [AppMotion.refreshSpring]); on a desktop the hard edge its wheel and
+/// scroll bars expect.
 class PureLiveScrollPhysics extends ScrollPhysics {
   /// Creates the physics.
   const new({super.parent});
 
-  /// The platform's physics over [parent].
-  ScrollPhysics get _platform => switch (defaultTargetPlatform) {
-    TargetPlatform.iOS || TargetPlatform.macOS => BouncingScrollPhysics(parent: parent),
-    _ => ClampingScrollPhysics(parent: parent),
+  static bool get _touch => switch (defaultTargetPlatform) {
+    TargetPlatform.android || TargetPlatform.iOS || TargetPlatform.fuchsia => true,
+    _ => false,
   };
+
+  /// The physics for this platform over [parent].
+  ScrollPhysics get _platform =>
+      _touch ? PureLiveDampedScrollPhysics(parent: parent) : ClampingScrollPhysics(parent: parent);
 
   @override
   ScrollPhysics applyTo(ScrollPhysics? ancestor) {
     final parent = buildParent(ancestor);
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.iOS || TargetPlatform.macOS => BouncingScrollPhysics(parent: parent),
-      _ => ClampingScrollPhysics(parent: parent),
-    };
+    return _touch ? PureLiveDampedScrollPhysics(parent: parent) : ClampingScrollPhysics(parent: parent);
   }
 
   // Used without [applyTo] (as another physics' parent, or the scroll
@@ -56,12 +59,31 @@ class PureLiveScrollPhysics extends ScrollPhysics {
 
   @override
   double? get dragStartDistanceMotionThreshold => _platform.dragStartDistanceMotionThreshold;
+
+  @override
+  SpringDescription get spring => _platform.spring;
 }
 
-/// Navigation strips, filters and paged views: never an offset before the
-/// first or after the last item on any platform, even when the content
-/// shrinks while the route stays mounted.
-class PureLiveBoundedScrollPhysics extends ClampingScrollPhysics {
+/// The damped edge (A03.5): iOS's deceleration and rubber band, which are
+/// 3.x's refreshable lists' (easy_refresh's `_ERScrollPhysics`), springing
+/// back with [AppMotion.refreshSpring].
+class PureLiveDampedScrollPhysics extends BouncingScrollPhysics {
+  /// Creates the physics.
+  const new({super.parent});
+
+  @override
+  PureLiveDampedScrollPhysics applyTo(ScrollPhysics? ancestor) =>
+      PureLiveDampedScrollPhysics(parent: buildParent(ancestor));
+
+  @override
+  SpringDescription get spring => AppMotion.refreshSpring;
+}
+
+/// Navigation strips, filters and paged views: the damped edge on every
+/// platform (A03.5; a hard one before), and never left before the first or
+/// after the last item when the content shrinks while the route stays
+/// mounted.
+class PureLiveBoundedScrollPhysics extends PureLiveDampedScrollPhysics {
   /// Creates the physics.
   const new({super.parent});
 
@@ -82,12 +104,16 @@ class PureLiveBoundedScrollPhysics extends ClampingScrollPhysics {
       isScrolling: isScrolling,
       velocity: velocity,
     );
+    // While a drag holds the strip past an end it stays there; at rest it
+    // is put back inside.
+    if (isScrolling) return adjusted;
     return adjusted.clamp(newPosition.minScrollExtent, newPosition.maxScrollExtent);
   }
 }
 
-/// The pages of a `TabBarView`: [PureLiveBoundedScrollPhysics]'s edges, a
-/// firmer spring and Android ViewPager's fling rule (research 2026-10-02
+/// The pages of a `TabBarView`: [PureLiveBoundedScrollPhysics]'s damped
+/// edges past the first and the last page, a firmer spring and Android
+/// ViewPager's fling rule (research 2026-10-02
 /// S3). A release turns the page by itself only when at least
 /// [AppMotion.pageFlingVelocity] fast after [AppMotion.pageFlingDistance];
 /// otherwise the page turns only when dragged past half, so the sideways

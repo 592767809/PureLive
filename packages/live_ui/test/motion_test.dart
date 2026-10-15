@@ -109,7 +109,9 @@ Future<int> _slantedScroll(WidgetTester tester, ScrollPhysics physics) async {
 }
 
 void main() {
-  const before = PureLiveBoundedScrollPhysics();
+  // What the pages had before A03.2: a hard edge and Flutter's spring and
+  // fling thresholds.
+  const before = ClampingScrollPhysics();
   const after = PureLivePageScrollPhysics();
 
   group('tab pages (S3)', () {

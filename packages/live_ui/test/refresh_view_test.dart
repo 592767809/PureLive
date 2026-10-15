@@ -117,7 +117,9 @@ void main() {
     }
   });
 
-  testWidgets("other lists keep Android's deceleration (v4 before P02)", (tester) async {
+  testWidgets('A03.5: other lists glide and damp like the refreshable ones (Android kept its own before)', (
+    tester,
+  ) async {
     _k90(tester);
     final controller = ScrollController();
     addTearDown(controller.dispose);
@@ -132,18 +134,26 @@ void main() {
         ),
       ),
     );
-    // Research §2.2, v4 column.
-    const clamping = {500: (58.0, 0.28), 3000: (1309.0, 1.03), 6000: (4361.0, 1.71)};
-    for (final MapEntry(key: speed, value: (distance, seconds)) in clamping.entries) {
+    for (final MapEntry(key: speed, value: (distance, seconds)) in v3.entries) {
       final velocity = speed.toDouble();
       controller.jumpTo(8000);
       await tester.pump();
       final glide = await _glide(tester, velocity);
-      expect((glide.distance - distance).abs() / distance, lessThan(0.01), reason: '$velocity dp/s');
-      expect(glide.seconds, closeTo(seconds, 0.02), reason: '$velocity dp/s');
+      expect(glide.distance, closeTo(distance, 0.01), reason: '$velocity dp/s');
+      expect(glide.seconds, closeTo(seconds, 0.001), reason: '$velocity dp/s');
     }
-    // And the stretch at their ends.
-    expect(find.byType(StretchingOverscrollIndicator), findsOneWidget);
+    // Past the top the list follows ever more heavily and springs back.
+    controller.jumpTo(0);
+    await tester.pump();
+    final gesture = await tester.startGesture(tester.getCenter(find.byType(ListView)));
+    for (var i = 0; i < 40; i++) {
+      await gesture.moveBy(const Offset(0, 5));
+      await tester.pump(_frame);
+    }
+    expect(-controller.offset, inExclusiveRange(0, 200 * 0.52));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
   });
 
   testWidgets('no stretch and no glow on a refreshable list', (tester) async {

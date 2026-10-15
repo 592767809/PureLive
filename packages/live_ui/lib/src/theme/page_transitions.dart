@@ -110,6 +110,10 @@ class _EdgeShadowPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
   }
 
+  // Paint only: a page leaving under a tap must not catch it (M13.16).
+  @override
+  bool hitTest(Offset position) => false;
+
   @override
   bool shouldRepaint(_EdgeShadowPainter oldDelegate) => oldDelegate.animation != animation || oldDelegate.rtl != rtl;
 }
@@ -129,6 +133,9 @@ class _ShadePainter extends CustomPainter {
       Paint()..color = Colors.black.withValues(alpha: SpringPageTransition.underShade * t),
     );
   }
+
+  @override
+  bool hitTest(Offset position) => false;
 
   @override
   bool shouldRepaint(_ShadePainter oldDelegate) => oldDelegate.animation != animation;

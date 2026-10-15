@@ -13,19 +13,37 @@ void main() {
     devicePixelRatio: 1,
   );
 
-  test('as a parent or unapplied it keeps the edges: a hard edge on Android, a spring on iOS', () {
-    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  test('as a parent or unapplied it keeps the edges: damped on a phone (A03.5), hard on a desktop', () {
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
     // AlwaysScrollable over the unapplied physics scrolled past the end (M13.1).
     const nested = AlwaysScrollableScrollPhysics(parent: PureLiveScrollPhysics());
-    expect(nested.applyBoundaryConditions(metrics, 130), 30);
-    expect(const PureLiveScrollPhysics().applyBoundaryConditions(metrics, 130), 30);
-    expect(const PureLiveScrollPhysics().applyTo(null), isA<ClampingScrollPhysics>());
-
-    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    expect(nested.applyBoundaryConditions(metrics, 130), 0);
-    expect(const PureLiveScrollPhysics().applyTo(null), isA<BouncingScrollPhysics>());
+    for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+      debugDefaultTargetPlatformOverride = platform;
+      expect(nested.applyBoundaryConditions(metrics, 130), 0, reason: '$platform: past the end with the finger');
+      expect(const PureLiveScrollPhysics().applyTo(null), isA<PureLiveDampedScrollPhysics>());
+      expect(const PureLiveScrollPhysics().spring, AppMotion.refreshSpring);
+    }
+    for (final platform in [TargetPlatform.windows, TargetPlatform.linux]) {
+      debugDefaultTargetPlatformOverride = platform;
+      expect(nested.applyBoundaryConditions(metrics, 130), 30, reason: '$platform');
+      expect(const PureLiveScrollPhysics().applyTo(null), isA<ClampingScrollPhysics>());
+    }
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  test('strips and pages: damped past their ends, put back inside when the content shrinks at rest', () {
+    const physics = PureLiveBoundedScrollPhysics();
+    expect(physics.applyBoundaryConditions(metrics, 130), 0);
+    final shrunk = metrics.copyWith(maxScrollExtent: 40, pixels: 100);
+    expect(
+      physics.adjustPositionForNewDimensions(
+        oldPosition: metrics,
+        newPosition: shrunk,
+        isScrolling: false,
+        velocity: 0,
+      ),
+      40,
+    );
   });
 
   testWidgets('a list under it stops at its end', (tester) async {

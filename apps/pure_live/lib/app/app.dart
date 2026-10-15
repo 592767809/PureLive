@@ -356,6 +356,10 @@ class AppScrollBehavior extends MaterialScrollBehavior {
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) => const PureLiveScrollPhysics();
 
+  // A03.5: the lists' rubber band is the edge; no stretch or glow on top.
+  @override
+  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
+
   @override
   ScrollViewKeyboardDismissBehavior getKeyboardDismissBehavior(BuildContext context) =>
       ScrollViewKeyboardDismissBehavior.onDrag;
