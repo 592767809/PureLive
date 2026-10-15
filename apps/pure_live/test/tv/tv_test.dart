@@ -530,6 +530,8 @@ void main() {
     await _press(tester, LogicalKeyboardKey.select);
     await _settle(tester, rounds: 6);
     expect(find.byType(TvRoomCard), findsWidgets);
+    // OK searched: the focus is on the first result.
+    expect(_focused, 'cell 0');
 
     // "主播": the same words again; rows, not blown-up avatars; no order.
     await tester.tap(find.byKey(const ValueKey('tv-search-mode-anchors')));

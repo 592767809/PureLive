@@ -75,6 +75,10 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
   final GlobalKey<TvRoomGridState> _grid = GlobalKey();
   final GlobalKey<TvRoomRowsState> _rows = GlobalKey();
   bool _showResults = false;
+  // An explicit search (OK on the field or a recent word) moves the focus to
+  // its first result once there is one (c11); switching the mode or the
+  // platform keeps the focus where it is.
+  bool _focusResults = false;
   TvHomeHost? _host;
 
   @override
@@ -132,12 +136,20 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
   }
 
   void _changed() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    if (_focusResults && _showResults && _model.resultCount > 0) {
+      _focusResults = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _enterResults();
+      });
+    }
   }
 
   /// Back inside the pane: from the results to the field.
   bool _back() {
     if (!_showResults) return false;
+    _focusResults = false;
     setState(() => _showResults = false);
     _field.requestFocus();
     return true;
@@ -159,9 +171,17 @@ class _TvSearchPaneState extends ConsumerState<TvSearchPane> {
   void _search(String word) {
     final text = word.trim();
     if (text.isEmpty) return;
-    setState(() => _showResults = true);
+    setState(() {
+      _showResults = true;
+      _focusResults = true;
+    });
     unawaited(_history.add(text));
-    unawaited(_model.search(text));
+    unawaited(
+      _model.search(text).whenComplete(() {
+        // A search that found nothing gives the focus nowhere.
+        if (mounted && _model.resultCount == 0) _focusResults = false;
+      }),
+    );
   }
 
   /// "用手机输入": the words come from a phone that scans the code.
