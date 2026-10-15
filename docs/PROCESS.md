@@ -183,7 +183,7 @@ to = ["A07.13"]                # 去向：实现这个提议或反馈的任务�
 - **给 AI 的提示词**（复制后把编号换掉）：
 
 ```text
-你在 GitHub 仓库 wzgrx/pure_live 上工作。先完整读 AGENTS.md、docs/PROCESS.md，
+你在 GitHub 仓库 wzgrx/PureLive 上工作。先完整读 AGENTS.md、docs/PROCESS.md，
 再读任务书 docs/<组>/<子分类>/<任务>/brief.md 和它列出的文件，严格照做。
 从最新的 master 新建分支 ai/<任务编号>，只提交到这个分支，提交信息以 [<任务编号>] 开头（英文）。
 不要推送到 master，不要改版本号、assets/version.json、assets/releases.json，不要写入任何密钥、Cookie、账号。
@@ -238,7 +238,8 @@ to = ["A07.13"]                # 去向：实现这个提议或反馈的任务�
 4. 检查：包名、versionCode、签名证书、通知图标资源、16 KB 对齐（命令见 [Y01](Y-发布和运营/Y01-版本签名和发布/README.md) 的记录）。
 5. 用同一提交的测试包在 K90 上冒烟。
 6. 打标签、建发布页、上传安装包和 SHA256SUMS。
-7. **最后**改 `assets/version.json` 和 `assets/releases.json`（3.x 从 master 读它们检查更新），门禁通过后推送。
+7. **最后**改 `assets/version.json` 和 `assets/releases.json`（5.x 从本仓库 master 读它们检查更新），门禁通过后推送。
+8. **同步到旧仓库**：3.x 和 4.x 从旧仓库 wzgrx/pure_live（本地远端 `legacy`）的 master 读更新文件，所以把这两个文件原样提交到旧仓库 master（只改这两个文件，下载地址指向本仓库的发布页）。旧仓库不再开发，也不删除。
 
 ## 12. 维护
 

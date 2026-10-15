@@ -1946,10 +1946,13 @@ old = ["F.1c", "T05g.3"]
 id = "C03.2"
 title = "HyperOS 拦截“在快手打开”：跳转失败时说清楚怎么放行"
 type = "原生"
-status = "未开始"
+status = "完成"
+date = "2026-10-15"
 size = "小"
 tier = 3
 from = "K90 S02.6 第 11 步（2026-10-08）"
+note = "2026-10-15 代码在 5.0.0（openRoomExternally 在小米手机上应用和网页都打不开时弹对话框，说去哪里打开“打开其他应用”，按钮打开应用信息页；测试 open_externally_test.dart）；K90 HyperOS 这次弹出系统自己的“启动应用”确认框，跳转正常，对话框是系统直接拦住时的兜底"
+
 [[task]]
 id = "D01.1"
 title = "弹幕框架和过滤"
