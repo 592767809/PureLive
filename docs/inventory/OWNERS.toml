@@ -325,6 +325,7 @@ setting = [
   { key = "showSplashPage", sub = "I08" },
   { key = "refreshRateMode", sub = "R02" },
   { key = "matchVideoFrameRate", sub = "R02" },
+  { key = "accessibilityAlways", sub = "R01" },
   { key = "preferRealOnlineCounts", sub = "I02" },
   { key = "realOnlinePlatforms", sub = "I02" },
   { key = "savedMenuIds", sub = "I01" },

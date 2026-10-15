@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:live_net/src/response.dart';
 
 /// A response whose body is still arriving (`LiveHttp.open`).
@@ -32,8 +34,8 @@ final class LiveStreamedResponse {
 
   /// Reads the rest of the body into a [LiveResponse].
   Future<LiveResponse> collect() async {
-    final bytes = await body.fold<List<int>>(<int>[], (all, chunk) => all..addAll(chunk));
-    return LiveResponse(status: status, headers: headers, bytes: bytes, url: url);
+    final bytes = await body.fold(BytesBuilder(copy: false), (all, chunk) => all..add(chunk));
+    return LiveResponse(status: status, headers: headers, bytes: bytes.takeBytes(), url: url);
   }
 
   /// Drops the body without reading it.

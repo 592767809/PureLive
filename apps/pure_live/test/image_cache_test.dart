@@ -10,6 +10,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:path/path.dart' as p;
 import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/image_cache.dart';
+import 'package:pure_live/app/image_downloads.dart';
 import 'package:pure_live/app/platforms.dart';
 import 'package:pure_live/app/services.dart';
 
@@ -78,6 +79,33 @@ void main() {
     }, _RealHttp());
   });
 
+  test('R01.3: images download on a worker isolate, through the proxy directive of each request', () async {
+    final saved = HttpOverrides.current;
+    HttpOverrides.global = null;
+    addTearDown(() => HttpOverrides.global = saved);
+    final proxy = await _Server.start();
+    final direct = await _Server.start();
+    addTearDown(proxy.close);
+    addTearDown(direct.close);
+    var directive = 'DIRECT';
+    final service = IsolateImageFileService(directiveFor: (_) => directive);
+
+    final plain = await service.get('http://127.0.0.1:${direct.port}/a.png');
+    expect(plain.statusCode, 200);
+    expect(plain.fileExtension, '.png');
+    expect(plain.contentLength, 3);
+    expect(await plain.content.expand((bytes) => bytes).toList(), [1, 2, 3]);
+    expect(direct.seen, ['GET /a.png']);
+
+    directive = 'PROXY 127.0.0.1:${proxy.port}';
+    final proxied = await service.get('http://covers.example/b.jpg');
+    expect(await proxied.content.expand((bytes) => bytes).toList(), [1, 2, 3]);
+    expect(proxy.seen, ['GET http://covers.example/b.jpg']);
+
+    directive = 'DIRECT';
+    await expectLater(service.get('http://127.0.0.1:1/c.jpg'), throwsA(isA<HttpException>()));
+  });
+
   test("the cache follows 3.x's rules under a key of its own", () {
     final config = appImageCacheConfig(
       const _NoProxy(),
@@ -88,7 +116,7 @@ void main() {
     expect(appImageCacheKey, isNot('libCachedImageData'), reason: "not flutter_cache_manager's default");
     expect(config.stalePeriod, const Duration(minutes: 30));
     expect(config.maxNrOfCacheObjects, 320);
-    expect(config.fileService, isA<HttpFileService>());
+    expect(config.fileService, isA<IsolateImageFileService>(), reason: 'downloads off the UI isolate (R01.3)');
     // flutter_cache_manager keeps the files in <temp>/<key> (IOFileSystem).
     expect(appImageCacheFolder(Directory('/tmp/x')).path, p.join('/tmp/x', appImageCacheKey));
   });

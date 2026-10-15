@@ -1518,6 +1518,16 @@ List<SettingsEntry> _build() {
       keywords: ['Hz', '帧率', 'frame rate'],
       when: _android,
     )
+    // R01.3: semantics only for a screen reader unless this is on.
+    ..toggle(
+      'accessibility_always',
+      'accessibility_always',
+      Settings.accessibilityAlways,
+      AppIcons.accessibilityAlways,
+      desc: 'accessibility_always_desc',
+      keywords: ['无障碍', '读屏', 'TalkBack', 'accessibility', '卡顿', '流畅'],
+      when: _android,
+    )
     ..group = 'settings_group_launch'
     ..add(
       'startup',

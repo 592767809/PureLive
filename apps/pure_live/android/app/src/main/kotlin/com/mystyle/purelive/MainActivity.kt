@@ -254,6 +254,10 @@ class MainActivity : AudioServiceActivity() {
         if (!flutterEngine.plugins.has(LiveAlertWorkerPlugin::class.java)) {
             flutterEngine.plugins.add(LiveAlertWorkerPlugin())
         }
+        // Semantics only for an assistive tool (R01.3).
+        if (!flutterEngine.plugins.has(AssistivePlugin::class.java)) {
+            flutterEngine.plugins.add(AssistivePlugin())
+        }
         displayModeChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             DISPLAY_MODE_CHANNEL,

@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:http/io_client.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
 import 'package:path/path.dart' as p;
+import 'package:pure_live/app/image_downloads.dart';
 
 /// The platform name image requests are routed under
 /// ([ProxyPolicy.routeFor]); the app proxy does not tell platforms apart.
@@ -20,17 +20,14 @@ const String appImageCacheKey = 'pureLiveImages';
 /// `IOFileSystem` layout).
 Directory appImageCacheFolder(Directory temporary) => Directory(p.join(temporary.path, appImageCacheKey));
 
-/// The image downloads' client (3.x `CustomImageCacheManager._createManager`):
-/// the app proxy of [proxy], read at each new connection so a changed
-/// setting applies to the next image without a new client; idle
-/// connections close after 30 s. The directive is [ProxyRoute.directive]
-/// as is: Android resolves anything else in it as a host name.
-HttpClient imageHttpClient(ProxyPolicy proxy) => HttpClient()
-  ..idleTimeout = const Duration(seconds: 30)
-  ..findProxy = (url) => proxy.routeFor(imageProxySite, url).directive;
-
-/// flutter_cache_manager's download service over [imageHttpClient].
-FileService imageFileService(ProxyPolicy proxy) => HttpFileService(httpClient: IOClient(imageHttpClient(proxy)));
+/// flutter_cache_manager's download service (3.x
+/// `CustomImageCacheManager._createManager`): on an isolate of its own
+/// (R01.3), through the app proxy of [proxy], read for each image so a
+/// changed setting applies to the next one; idle connections close after
+/// 30 s. The directive is [ProxyRoute.directive] as is: Android resolves
+/// anything else in it as a host name.
+FileService imageFileService(ProxyPolicy proxy) =>
+    IsolateImageFileService(directiveFor: (url) => proxy.routeFor(imageProxySite, url).directive);
 
 /// The image cache's rules (3.x): 30 minutes before a file is asked for
 /// again, at most 320 files, downloads through [proxy]. [repo] and

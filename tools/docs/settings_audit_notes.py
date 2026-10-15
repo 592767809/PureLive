@@ -74,6 +74,7 @@ NOTES: dict[str, dict] = {
         '旧开关为真的老用户迁移成 `balanced`（`legacy_snapshot.dart`）',
     },
     'matchVideoFrameRate': _new('R02.1，U.2i'),
+    'accessibilityAlways': _new('R01.3'),
     'realOnlinePlatforms': {
         'v3': "['douyin', 'kuaishou', 'cc', 'twitch', 'soop', 'acfun', 'picarto', 'twitcasting']",
         'v3src': 'app_settings_controller.dart:11-20、:55',

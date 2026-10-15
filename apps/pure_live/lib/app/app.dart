@@ -14,6 +14,7 @@ import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/fonts.dart';
 import 'package:pure_live/app/image_cache.dart';
 import 'package:pure_live/app/page_toasts.dart';
+import 'package:pure_live/app/semantics_gate.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/startup.dart';
 import 'package:pure_live/app/system_bars.dart';
@@ -239,6 +240,7 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
     if (tv != _tv) _switchInterface(tv: tv);
     final textScale = watchSetting(ref, Settings.textScaleFactor);
     final refreshMode = RefreshRateMode.values.asNameMap()[watchSetting(ref, Settings.refreshRateMode)];
+    final accessibilityAlways = watchSetting(ref, Settings.accessibilityAlways);
     final uiConfig = LiveUiConfig(
       strings: _strings.ui,
       loadingStyle: watchSetting(ref, Settings.loadingStyle),
@@ -312,8 +314,11 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
                 // C-5); both together at most 2× (A04.1, appTextScaleLimit).
                 data: MediaQuery.of(context)
                     .copyWith(textScaler: AppTextScaler(MediaQuery.textScalerOf(context), textScale)),
-                // See-through system bars, icons for the theme (A06.5).
-                child: SystemBarsScope(child: framed),
+                // See-through system bars, icons for the theme (A06.5);
+                // the semantics tree only for a screen reader (R01.3).
+                child: SystemBarsScope(
+                  child: SemanticsGate(always: accessibilityAlways, child: framed),
+                ),
               ),
             );
           },

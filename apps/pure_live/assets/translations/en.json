@@ -1379,6 +1379,8 @@
     "match_video_frame_rate": "Match the video frame rate while playing",
     "match_video_frame_rate_desc": "The screen refreshes at a whole multiple of the frame rate for smoother motion; only when the switch is seamless",
     "match_video_frame_rate_single": "This device only has {rate} Hz, so there is nothing to match",
+    "accessibility_always": "Accessibility compatibility",
+    "accessibility_always_desc": "On: every accessibility service reads the screen. Off: only screen readers, for smoother scrolling",
     "max_check_interval": "Maximum Check Interval",
     "max_concurrent_refresh": "Concurrent home refresh tasks",
     "max_record_tasks": "Maximum Concurrent Recording Tasks",

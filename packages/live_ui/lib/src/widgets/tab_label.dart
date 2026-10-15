@@ -64,6 +64,16 @@ class TabLabel extends StatelessWidget {
         ],
       ],
     );
+    // R01.3: TabBar blends the selected and unselected styles every frame
+    // of a page turn; a blended weight lays the label out again each frame,
+    // and that climbed to the whole app bar (none of the boxes between is a
+    // relayout boundary). The weight snaps at the half way instead; the
+    // colour still blends, which only repaints.
+    final weight = snapTabWeight(DefaultTextStyle.of(context).style.fontWeight, TabBarTheme.of(context));
+    final styled = DefaultTextStyle.merge(
+      style: TextStyle(fontWeight: weight),
+      child: content,
+    );
     final node = Focus.maybeOf(context);
     final framed = node != null && node.hasPrimaryFocus && focusFramesShown;
     return Tab(
@@ -71,7 +81,7 @@ class TabLabel extends StatelessWidget {
         foregroundPainter: framed
             ? FocusRingPainter(color: scheme.primary, borderRadius: BorderRadius.circular(4), gap: 6)
             : null,
-        child: FittedBox(fit: BoxFit.scaleDown, child: content),
+        child: FittedBox(fit: BoxFit.scaleDown, child: styled),
       ),
     );
   }
@@ -117,4 +127,17 @@ class SecondaryTabBar extends StatelessWidget {
       tabs: tabs,
     );
   }
+}
+
+/// The weight a tab's label is laid out with while [TabBar] blends between
+/// the theme's selected and unselected label styles: whichever of the two
+/// [weight] is nearer (R01.3). Other weights stay.
+FontWeight? snapTabWeight(FontWeight? weight, TabBarThemeData theme) {
+  final selected = theme.labelStyle?.fontWeight;
+  final unselected = theme.unselectedLabelStyle?.fontWeight;
+  if (weight == null || selected == null || unselected == null || selected == unselected) return weight;
+  final low = selected.value < unselected.value ? selected : unselected;
+  final high = low == selected ? unselected : selected;
+  if (weight.value <= low.value || weight.value >= high.value) return weight;
+  return weight.value * 2 < low.value + high.value ? low : high;
 }

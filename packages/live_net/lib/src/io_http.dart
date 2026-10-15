@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:live_net/src/live_http.dart';
 import 'package:live_net/src/proxy.dart';
@@ -44,12 +45,14 @@ final class IoLiveHttp implements LiveHttp {
     try {
       return await exchange.race(() async {
         final response = await exchange.start();
-        final bytes = await response.fold<List<int>>(<int>[], (all, chunk) => all..addAll(chunk));
+        // One buffer, no per-byte list (R01.3: on the UI isolate the old
+        // fold into a List<int> took 58 ms of 8 page turns).
+        final bytes = await response.fold(BytesBuilder(copy: false), (all, chunk) => all..add(chunk));
         exchange.done = true;
         return LiveResponse(
           status: response.statusCode,
           headers: _headers(response),
-          bytes: bytes,
+          bytes: bytes.takeBytes(),
           url: _finalUrl(request, response),
         );
       });

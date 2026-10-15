@@ -14,6 +14,7 @@ import 'package:pure_live/app/bootstrap.dart';
 import 'package:pure_live/app/data_root.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/fonts.dart';
+import 'package:pure_live/app/frame_log.dart';
 import 'package:pure_live/app/intake/system_intake.dart';
 import 'package:pure_live/app/launch_failure.dart';
 import 'package:pure_live/app/services.dart';
@@ -64,6 +65,8 @@ Future<void> _launch(List<String> args) async {
       child: PureLiveApp(strings: strings),
     ),
   );
+  // R01.3: frame times in the log, only in a measuring build.
+  FrameLog.install();
   if (timing != null) {
     unawaited(WidgetsBinding.instance.waitUntilFirstFrameRasterized.then((_) => timing.mark('firstFrame')));
   }

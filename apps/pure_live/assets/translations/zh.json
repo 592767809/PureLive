@@ -1378,6 +1378,8 @@
     "match_video_frame_rate": "播放时匹配视频帧率",
     "match_video_frame_rate_desc": "让屏幕刷新率是视频帧率的整数倍，画面更匀；只在不闪屏时切换",
     "match_video_frame_rate_single": "这台设备只有 {rate} Hz，用不上",
+    "accessibility_always": "无障碍兼容",
+    "accessibility_always_desc": "打开后所有无障碍服务都能读到界面；关闭时只给读屏，滑动更流畅",
     "max_check_interval": "最大检测间隔",
     "max_concurrent_refresh": "首页并发刷新任务",
     "max_record_tasks": "最大同时录制任务数",
