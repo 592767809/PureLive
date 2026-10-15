@@ -58,6 +58,10 @@ import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 
+/// The room's clock: the danmaku filter, the gift lines' limit and combo
+/// window go by it (tests replace it with their simulated time).
+final Provider<DateTime Function()> roomClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 /// The live room (argument: the `LiveRoom`, or a `LiveRoomArgs` with the
 /// list it was opened from) (3.x `lib/modules/live_play`).
 ///
@@ -292,6 +296,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       sleepSessionOnStart: _platform.android && store.settings.get(Settings.enableAsmrSleepMode),
       network: ref.read(networkProbeProvider),
       emotes: ref.read(emoteLibraryProvider),
+      now: ref.read(roomClockProvider),
     );
     final background = RoomBackgroundPolicy(
       controller: controller,

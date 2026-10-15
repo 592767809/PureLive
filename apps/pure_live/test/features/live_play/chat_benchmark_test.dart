@@ -220,6 +220,8 @@ Future<void> _bench(WidgetTester tester, {required int giftRate}) async {
   addTearDown(() => AppNavigator.toast = previous);
   final platform = FakeSite(liveRoom(startedAt: DateTime.now().subtract(const Duration(minutes: 30))));
   final danmaku = FakeDanmaku();
+  final start = DateTime.now();
+  var clock = start;
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -227,6 +229,9 @@ Future<void> _bench(WidgetTester tester, {required int giftRate}) async {
         sitesProvider.overrideWithValue(SiteRegistry({platform.id: () => platform})),
         danmakuProvider.overrideWithValue(DanmakuRegistry({platform.id: () => danmaku})),
         playbackSessionFactoryProvider.overrideWithValue(({config}) => fakeSession(FakeEngine())),
+        // The gift lines' limit and combo window go by the simulated frames,
+        // not the wall clock, which a busy machine stretches.
+        roomClockProvider.overrideWithValue(() => clock),
       ],
       child: MaterialApp(
         theme: const LiveTheme().light,
@@ -267,6 +272,7 @@ Future<void> _bench(WidgetTester tester, {required int giftRate}) async {
   final watch = Stopwatch();
   try {
     for (var f = 0; f < frames; f++) {
+      clock = start.add(frame * f);
       final due = ((f + 1) * _rate / _hz).floor();
       while (sent < due) {
         final color = _colors[sent % _colors.length];
