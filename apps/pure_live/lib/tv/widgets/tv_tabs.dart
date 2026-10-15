@@ -43,6 +43,7 @@ class TvTabBar extends StatefulWidget {
     this.onDown,
     this.busy = false,
     this.small = false,
+    this.secondary = false,
     super.key,
   });
 
@@ -67,6 +68,10 @@ class TvTabBar extends StatefulWidget {
 
   /// The smaller row (32 high, 14): a second row under the main tabs.
   final bool small;
+
+  /// The secondary look (A17.3 c6, an area's categories): words without
+  /// pills, the selected one underlined, a rule under the row.
+  final bool secondary;
 
   @override
   State<TvTabBar> createState() => TvTabBarState();
@@ -144,6 +149,29 @@ class TvTabBarState extends State<TvTabBar> {
                       // Selected is a fill, focus is the ring (U.15a c3): the
                       // two read apart and can be on the same tab.
                       final selected = index == widget.selected;
+                      if (widget.secondary) {
+                        return Container(
+                          height: height,
+                          padding: EdgeInsets.symmetric(horizontal: scale.px(10)),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: selected ? palette.accent : OnVideoColors.clear,
+                                width: scale.px(3),
+                              ),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            tab.label,
+                            style: scale.font(
+                              TvTextSize.small,
+                              weight: selected ? FontWeight.w600 : FontWeight.w400,
+                              color: selected ? palette.accent : palette.textSecondary,
+                            ),
+                          ),
+                        );
+                      }
                       final foreground = selected ? palette.onSelected : palette.textSecondary;
                       return Container(
                         height: height,
@@ -187,6 +215,7 @@ class TvTabBarState extends State<TvTabBar> {
             ],
           ),
         ),
+        if (widget.secondary) Divider(height: scale.px(1), thickness: scale.px(1), color: palette.divider),
         // The refresh line under the tabs (pure_live_TV's, kept by c1).
         SizedBox(
           height: scale.px(3),

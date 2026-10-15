@@ -262,9 +262,9 @@ void main() {
     await _close(tester, services);
   });
 
-  testWidgets('A17.5 c12: 链接放映 sits between 分区 and 搜索; its field types with the remote', (tester) async {
+  testWidgets('A17.5 c12: 链接放映 sits between 关注分区 and 搜索; its field types with the remote', (tester) async {
     final services = await _pumpApp(tester);
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 4; i++) {
       await _press(tester, LogicalKeyboardKey.arrowDown);
     }
     expect(_focused, 'tv menu link');
@@ -454,7 +454,7 @@ void main() {
         };
     addTearDown(() => TvTextInput.prompt = TvTextInput.defaultPrompt);
     final services = await _pumpApp(tester);
-    for (var i = 0; i < 4; i++) {
+    for (var i = 0; i < 5; i++) {
       await _press(tester, LogicalKeyboardKey.arrowDown);
     }
     expect(_focused, 'tv menu search');

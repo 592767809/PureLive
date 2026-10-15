@@ -12,7 +12,6 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/shared/rooms/room_cards.dart';
 import 'package:pure_live/shared/rooms/room_feed.dart';
-import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/pages/tv_popular_pane.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
@@ -108,13 +107,13 @@ class _TvAreaRoomsPageState extends ConsumerState<TvAreaRoomsPage> {
                       padding: EdgeInsets.symmetric(horizontal: scale.px(12)),
                       child: TvPageHeader(
                         title: areaDisplayName(area),
-                        subtitle: platformName(area.platform),
+                        subtitle: areaPlatformAndCategory(area),
                         actions: [
                           TvButton(
                             key: const ValueKey('tv-area-follow'),
                             focusNode: _follow,
-                            icon: followed.contains(area.identityKey) ? TvIcons.followedArea : TvIcons.followArea,
-                            label: i18n(followed.contains(area.identityKey) ? 'tv_area_followed' : 'tv_area_follow'),
+                            // c8: "＋ 关注 / ✓ 已关注".
+                            label: i18n(followed.contains(area.identityKey) ? 'tv_video_following' : 'tv_video_follow'),
                             selected: followed.contains(area.identityKey),
                             onTap: () => unawaited(toggleAreaFollow(context, ref, area)),
                           ),

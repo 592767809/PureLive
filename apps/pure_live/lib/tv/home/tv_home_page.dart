@@ -16,6 +16,7 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/tv/music/music_panes.dart';
 import 'package:pure_live/tv/pages/tv_areas_pane.dart';
 import 'package:pure_live/tv/pages/tv_favorites_pane.dart';
+import 'package:pure_live/tv/pages/tv_followed_areas_pane.dart';
 import 'package:pure_live/tv/pages/tv_history_pane.dart';
 import 'package:pure_live/tv/pages/tv_iptv_pane.dart';
 import 'package:pure_live/tv/pages/tv_link_pane.dart';
@@ -62,8 +63,11 @@ enum TvPane {
   /// Recommended rooms per platform.
   popular('tv_menu_popular', TvIcons.menuPopular),
 
-  /// Areas per platform, followed areas first.
+  /// Areas per platform.
   areas('tv_menu_areas', TvIcons.menuAreas),
+
+  /// The followed areas (A17.3 c9).
+  followedAreas('tv_menu_followed_areas', TvIcons.menuFollowedAreas),
 
   /// Link playback (A17.5 c12).
   link('tv_menu_link', TvIcons.menuLink),
@@ -458,6 +462,7 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
     TvPane.favorites => const TvFavoritesPane(),
     TvPane.popular => const TvPopularPane(),
     TvPane.areas => const TvAreasPane(),
+    TvPane.followedAreas => const TvFollowedAreasPane(),
     TvPane.history => const TvHistoryPane(),
     TvPane.search => const TvSearchPane(),
     TvPane.link => const TvLinkPane(),

@@ -8,8 +8,13 @@ import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/features/popular/popular_catalog.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/room_feed.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
+import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/widgets/tv_button.dart';
+import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_room_grid.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
@@ -124,6 +129,61 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
     }
   }
 
+  static const String _allPlatforms = '__all';
+
+  /// The panel of every platform (A17.3 c5, the phone's A09.2 panel in the
+  /// TV's look): three to a row, OK switches at once; "平台显示" at the top
+  /// right edits the list.
+  Future<void> _platformPanel(List<String> ids) async {
+    final sites = ref.read(sitesProvider);
+    final picked = await showTvDialog<String>(
+      context,
+      builder: (context) {
+        final scale = TvScale.of(context);
+        return TvDialog(
+          key: const ValueKey('tv-platform-panel'),
+          title: i18n('tv_all_platforms'),
+          width: 1200,
+          actions: [
+            TvButton(
+              key: const ValueKey('tv-platform-panel-display'),
+              label: i18n('platform_display'),
+              onTap: () {
+                Navigator.pop(context);
+                unawaited(AppNavigator.toNamed<void>(RoutePath.kSettingsHotAreas));
+              },
+            ),
+            TvButton(label: i18n('close'), onTap: () => Navigator.pop(context)),
+          ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - scale.px(24)) / 3;
+              return Wrap(
+                spacing: scale.px(12),
+                runSpacing: scale.px(12),
+                children: [
+                  for (final id in ids)
+                    SizedBox(
+                      width: width,
+                      child: TvButton(
+                        key: ValueKey('tv-platform-panel-$id'),
+                        autofocus: id == _current,
+                        expand: true,
+                        selected: id == _current,
+                        label: platformName(id, fallback: sites.of(id).name),
+                        onTap: () => Navigator.pop(context, id),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+    if (picked != null && mounted) _select(picked);
+  }
+
   void _select(String platform) {
     setState(() => _current = platform);
     _catalog.currentPlatform = platform;
@@ -160,10 +220,18 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
                   label: platformName(id, fallback: sites.of(id).name),
                   logo: id,
                 ),
+              // c5: "全部平台" at the end opens the panel of every platform.
+              TvTab(id: _allPlatforms, label: i18n('tv_all_platforms'), icon: TvIcons.allPlatforms),
             ],
             selected: ids.indexOf(current!),
             busy: feed.busy,
-            onSelect: (index) => _select(ids[index]),
+            onSelect: (index) {
+              if (index < ids.length) {
+                _select(ids[index]);
+              } else {
+                unawaited(_platformPanel(ids));
+              }
+            },
             onRefresh: () => unawaited(feed.refresh(count: tvPageSize)),
             onDown: () => _grid(current!).currentState?.enter() ?? false,
           ),

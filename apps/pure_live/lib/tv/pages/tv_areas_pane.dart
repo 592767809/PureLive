@@ -12,18 +12,18 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
+import 'package:pure_live/tv/widgets/tv_area_dialog.dart';
 import 'package:pure_live/tv/widgets/tv_grid.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
 
 /// The tab of the followed areas.
-const String _followedTab = 'followed';
-
-/// Areas (pure_live_TV `AreasPage` and `FavoriteAreasPage` over v4's area
-/// catalogues, M13.5): the followed areas first, then one tab per platform
-/// with its categories in a second row and the areas in a grid. OK opens an
-/// area's rooms (an IPTV channel plays, CC's official entries open in the
-/// browser, as on the phone); a held OK follows or unfollows the area.
+/// Areas (pure_live_TV `AreasPage` over v4's area catalogues, M13.5; A17.3
+/// c6, c7): one tab per platform, its categories in a secondary row (none
+/// for one category) and the areas in a grid. OK opens an area's rooms (an
+/// IPTV channel plays, CC's official entries open in the browser, as on the
+/// phone); a held OK opens the area dialog. The followed areas are their
+/// own destination (`TvFollowedAreasPane`, c9).
 class TvAreasPane extends ConsumerStatefulWidget {
   /// Creates the pane.
   const new({super.key});
@@ -56,7 +56,7 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
 
   void _select(String tab) {
     setState(() => _current = tab);
-    if (tab != _followedTab) unawaited(_catalog(tab).ensureLoaded());
+    unawaited(_catalog(tab).ensureLoaded());
   }
 
   @override
@@ -66,20 +66,16 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
       for (final id in sites.availableIds(watchSetting(ref, Settings.hotAreasList)))
         if (id != SiteIds.iptv) id,
     ];
-    final followed = ref.watch(followedAreasProvider).value ?? const <LiveArea>[];
-    final tabs = [_followedTab, ...platforms];
+    final tabs = platforms;
+    if (tabs.isEmpty) return TvStatusView(icon: TvIcons.noPlatforms, title: i18n('popular_no_platforms'));
     var current = _current;
     if (current == null || !tabs.contains(current)) {
       final preferred = ref.read(storeProvider).settings.get(Settings.preferPlatform);
-      current = _current = followed.isNotEmpty
-          ? _followedTab
-          : (platforms.contains(preferred) ? preferred : (platforms.firstOrNull ?? _followedTab));
+      current = _current = platforms.contains(preferred) ? preferred : platforms.first;
       final first = current;
-      if (first != _followedTab) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) unawaited(_catalog(first).ensureLoaded());
-        });
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(_catalog(first).ensureLoaded());
+      });
     }
     final tab = current;
     return Column(
@@ -89,38 +85,25 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
           key: _platformTabs,
           tabs: [
             for (final id in tabs)
-              if (id == _followedTab)
-                TvTab(id: id, label: i18n('tv_followed_areas'), icon: TvIcons.followedArea)
-              else
-                TvTab(
-                  id: id,
-                  label: platformName(id, fallback: sites.of(id).name),
-                  logo: id,
-                ),
+              TvTab(
+                id: id,
+                label: platformName(id, fallback: sites.of(id).name),
+                logo: id,
+              ),
           ],
           selected: tabs.indexOf(tab),
           onSelect: (index) => _select(tabs[index]),
-          onRefresh: tab == _followedTab ? null : () => unawaited(_catalog(tab).refresh()),
-          onDown: tab == _followedTab ? () => _grid(_followedTab).currentState?.enter() ?? false : null,
+          onRefresh: () => unawaited(_catalog(tab).refresh()),
+          onDown: () {
+            final catalog = _catalog(tab);
+            if (catalog.categories.length > 1) return _categoryTabs.currentState?.focusSelected() ?? false;
+            final categories = catalog.categories;
+            if (categories.isEmpty) return false;
+            return _grid('$tab/${categories[catalog.selected].id}').currentState?.enter() ?? false;
+          },
         ),
-        Expanded(child: tab == _followedTab ? _followedAreas(followed) : _platformAreas(tab)),
+        Expanded(child: _platformAreas(tab)),
       ],
-    );
-  }
-
-  Widget _followedAreas(List<LiveArea> areas) {
-    if (areas.isEmpty) {
-      return TvStatusView(
-        icon: TvIcons.followArea,
-        title: i18n('empty_areas_title'),
-        subtitle: i18n('tv_no_followed_areas'),
-      );
-    }
-    return _AreaGrid(
-      gridKey: _grid(_followedTab),
-      areas: areas,
-      showPlatform: true,
-      onLeaveUp: () => _platformTabs.currentState?.focusSelected(),
     );
   }
 
@@ -149,27 +132,32 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TvTabBar(
-              key: _categoryTabs,
-              small: true,
-              tabs: [
-                for (final (index, category) in categories.indexed)
-                  TvTab(id: '$index:${category.id}', label: category.name),
-              ],
-              selected: selected,
-              busy: catalog.isLoading,
-              onSelect: catalog.select,
-              onRefresh: () => unawaited(catalog.refresh()),
-              onDown: () => gridKey.currentState?.enter() ?? false,
-            ),
+            // c6: a secondary row (words underlined), none for one category.
+            if (categories.length > 1)
+              TvTabBar(
+                key: _categoryTabs,
+                secondary: true,
+                tabs: [
+                  for (final (index, category) in categories.indexed)
+                    TvTab(id: '$index:${category.id}', label: category.name),
+                ],
+                selected: selected,
+                busy: catalog.isLoading,
+                onSelect: catalog.select,
+                onRefresh: () => unawaited(catalog.refresh()),
+                onDown: () => gridKey.currentState?.enter() ?? false,
+              ),
             Expanded(
               child: areas.isEmpty
                   ? TvStatusView(icon: TvIcons.noAreas, title: i18n('tv_no_areas'))
-                  : _AreaGrid(
+                  : TvAreaGrid(
                       key: ValueKey(gridKey),
                       gridKey: gridKey,
                       areas: areas,
-                      onLeaveUp: () => _categoryTabs.currentState?.focusSelected(),
+                      onLeaveUp: () {
+                        if (_categoryTabs.currentState?.focusSelected() ?? false) return;
+                        _platformTabs.currentState?.focusSelected();
+                      },
                     ),
             ),
           ],
@@ -180,13 +168,22 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
 }
 
 /// Areas in a [TvGrid] (U.15a c6 `TvAreaCard`): six columns (fewer as the
-/// text grows), the picture over the name, a heart on the followed ones.
-class _AreaGrid extends ConsumerWidget {
+/// text grows), the picture over the name, a heart on the followed ones; a
+/// held OK opens the area dialog (A17.3 c7).
+class TvAreaGrid extends ConsumerWidget {
+  /// Creates the grid.
   const new({required this.gridKey, required this.areas, this.showPlatform = false, this.onLeaveUp, super.key});
 
+  /// The grid's key.
   final GlobalKey<TvGridState> gridKey;
+
+  /// The areas.
   final List<LiveArea> areas;
+
+  /// Areas of several platforms: the platform and category under each.
   final bool showPlatform;
+
+  /// Up on the first row.
   final VoidCallback? onLeaveUp;
 
   @override
@@ -212,10 +209,11 @@ class _AreaGrid extends ConsumerWidget {
           onKey: onKey,
           name: areaDisplayName(area),
           picture: picture.isEmpty ? null : picture,
-          subtitle: showPlatform ? platformName(area.platform) : null,
-          followed: !showPlatform && followed.contains(area.identityKey),
+          subtitle: showPlatform ? areaPlatformAndCategory(area) : null,
+          followed: followed.contains(area.identityKey),
           onTap: () => openArea(ref, area),
-          onLongPress: () => unawaited(toggleAreaFollow(context, ref, area)),
+          // c7 by the cross-task rule: the unified card dialog.
+          onLongPress: () => unawaited(showTvAreaDialog(context, ref, area)),
         );
       },
     );

@@ -44,6 +44,9 @@ abstract final class TvIcons {
   /// Settings.
   static const IconData menuSettings = Remix.settings_5_line;
 
+  /// The followed areas (A17.2 c4: the phone's "关注分区" button).
+  static const IconData menuFollowedAreas = Remix.heart_add_2_line;
+
   /// The video mode's "我的" (A17.6).
   static const IconData videoMine = Remix.user_3_line;
 
