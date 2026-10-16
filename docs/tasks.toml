@@ -4456,14 +4456,14 @@ note = "标签 v5.1.0（007631be8）；发布页 https://github.com/wzgrx/PureLi
 id = "Y01.9"
 title = "5.2.0 全平台发布（Android、电视、Windows、Linux，构建号 5102）：流畅度、阻尼回弹、液态玻璃"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-16"
 size = "中"
 tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
-done = 1
+done = 5
+note = "标签 v5.2.0（2dd8c3b81）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.2.0 （正式版，六个包和 SHA256SUMS.txt，哈希一致）；两个仓库的更新文件都是 5.2.0、5102"
 from = "用户 2026-10-16：发布5.2.0稳定版本，全平台"
-next = "门禁、各平台构建和检查"
 
 [[task]]
 id = "Y02.1"
