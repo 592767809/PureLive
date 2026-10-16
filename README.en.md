@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.3.0</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/v5.3.0.md">Release notes (Chinese)</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.0</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/v5.4.0.md">Release notes (Chinese)</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#supported-platforms">Platforms</a>
   &nbsp;·&nbsp; <a href="#building-from-source">Build</a>
@@ -30,9 +30,9 @@
 
 Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chinese platforms such as Bilibili, Douyu, Huya, Douyin and Kuaishou together with international ones such as Twitch, YouTube and SOOP, plus the IPTV channels you import yourself. Follows, danmaku, recording and multiview all live in one place, so you don't need a separate app for every platform.
 
-**5.0 was the first release for every platform.** Since 4.0 the network layer, platform adapters, danmaku, playback, recording, storage and every screen have been rewritten (features are based on 3.x, playback is mpv only). 5.0 ships **Android phones and tablets, Android TV, Windows and Linux** from one codebase and one design. You can install over 3.x and 4.x and keep your follows, settings and history. 5.1 added video (Bilibili VOD), music, wallpapers and TV-style settings to the TV interface, and per-streamer live alerts. 5.2 was about smoothness: no more stutter the first time you open a platform or a room, damped overscroll on every list and pager, spring page transitions, and a liquid-glass bottom bar on the home screen. 5.3 adds official sign-in for Douyu, Huya, Douyin, Kuaishou, YY, NetEase CC, Twitch and SOOP: the platform's own sign-in page opens in the app and the login is saved automatically.
+**5.0 was the first release for every platform.** Since 4.0 the network layer, platform adapters, danmaku, playback, recording, storage and every screen have been rewritten (features are based on 3.x, playback is mpv only). 5.0 ships **Android phones and tablets, Android TV, Windows and Linux** from one codebase and one design. You can install over 3.x and 4.x and keep your follows, settings and history. 5.1 added video (Bilibili VOD), music, wallpapers and TV-style settings to the TV interface, and per-streamer live alerts. 5.2 was about smoothness: no more stutter the first time you open a platform or a room, damped overscroll on every list and pager, spring page transitions, and a liquid-glass bottom bar on the home screen. 5.3 adds official sign-in for Douyu, Huya, Douyin, Kuaishou, YY, NetEase CC, Twitch and SOOP: the platform's own sign-in page opens in the app and the login is saved automatically. 5.4 adds Traditional Chinese and twelve more interface languages (Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish) and a volume boost.
 
-> The app's interface is in Simplified Chinese and English (switch in Settings → Appearance); more languages are planned for 5.4.0. Release notes and in-depth docs are written in Chinese.
+> The app's interface comes in 15 languages: Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish (switch in Settings → Appearance; until you pick one it follows the system). The foreign languages were machine-assisted and not yet reviewed by native speakers; corrections are welcome. Release notes and in-depth docs are written in Chinese.
 
 > Since 5.0.0 the project lives in this standalone repository, [wzgrx/PureLive](https://github.com/wzgrx/PureLive). The old [wzgrx/pure_live](https://github.com/wzgrx/pure_live) (a fork of [liuchuancong/pure_live](https://github.com/liuchuancong/pure_live)) is kept; devices running 3.x or 4.x still get update prompts and download new versions from here.
 
@@ -148,7 +148,7 @@ Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chin
 - **Clear states**: offline, banned, replay, sign-in required, paid, region-locked and interrupted each come with an explanation and a button. Offline rooms are checked every 60 seconds and start playing when the stream goes live.
 - **Gestures**: tap for controls, double-tap for fullscreen; swipe the left half for brightness, the right half for volume; lock in fullscreen, with clock and battery in the top bar.
 - **Vertical streams**: taller video, a three-step panel in portrait fullscreen, swipe up to bring the danmaku back; orientation is remembered per room.
-- **More**: audio-only, auto sleep (audio-only on entry and a timer), sleep timer, per-room volume, aspect ratio, keep screen on (optional), DLNA casting, copy stream URL, share room, open in the platform's app or browser; keyboard shortcuts (Space, arrows, R, F, Esc).
+- **More**: audio-only, auto sleep (audio-only on entry and a timer), sleep timer, per-room volume, a volume boost (a few dB for streams quieter than the platform app), aspect ratio, keep screen on (optional), DLNA casting, copy stream URL, share room, open in the platform's app or browser; keyboard shortcuts (Space, arrows, R, F, Esc).
 
 ### Danmaku
 
@@ -229,7 +229,7 @@ With background play on, audio continues after you leave the app, with a notific
 
 ### Appearance
 
-Theme mode (system, light, dark), pure black, theme colour and dynamic colour; a liquid-glass bottom bar on the home screen (edge refraction, the selected item is a glass drop you can hold and drag; can be turned off); damped overscroll on every list and pager and spring page transitions; five font sizes and downloadable fonts; 85 loading animations; which details room cards show and their spacing; which bottom-bar pages show and their order; Simplified Chinese and English. Settings are split into Interface, Sources, Playback, General & network and Data, and searchable by name.
+Theme mode (system, light, dark), pure black, theme colour and dynamic colour; a liquid-glass bottom bar on the home screen (edge refraction, the selected item is a glass drop you can hold and drag; can be turned off); damped overscroll on every list and pager and spring page transitions; five font sizes and downloadable fonts; 85 loading animations; which details room cards show and their spacing; which bottom-bar pages show and their order; 15 interface languages (Simplified and Traditional Chinese, English, Japanese, Korean and more; it follows the system until you pick one). Settings are split into Interface, Sources, Playback, General & network and Data, and searchable by name.
 
 ### Privacy
 
@@ -402,9 +402,9 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Roadmap
 
-| Client | 5.3.0 (now) | Later |
+| Client | 5.4.0 (now) | Later |
 |---|---|---|
-| **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms | More interface languages (5.4.0); keep up with platform changes |
+| **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms, 15 interface languages | Keep up with platform changes |
 | **Android TV** | Stable: Live, Video (Bilibili VOD) and Music modes, wallpapers, TV-style settings, type on your phone via QR code | Verify and tune on more TVs |
 | **Windows** | Stable: custom title bar, tray, close behaviour, launch at startup, desktop floating window, rooms in new windows, official sign-in | Native network channel for Kick on Windows |
 | **Linux** | Stable: the same desktop shell as Windows | In-app web sign-in |
