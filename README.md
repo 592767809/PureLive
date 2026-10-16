@@ -4,6 +4,8 @@
 
 <h1 align="center">纯粹直播 Pure Live</h1>
 
+<p align="center"><b>简体中文</b> · <a href="README.en.md">English</a></p>
+
 <p align="center">
   一个应用看遍 34 个直播平台和网络电视。<br>
   弹幕、录制、多画面、小窗和后台播放，不用注册，没有广告，开源免费。
@@ -66,11 +68,11 @@
   <tr>
     <td valign="top">
       <b>流畅</b><br>
-      只用 mpv 播放；播放时按视频帧率匹配屏幕刷新率；数据存进 SQLite，按行写入，不会写坏。
+      只用 mpv 播放；列表和翻页到头有阻尼回弹，页面用弹簧推入，首页底栏是液态玻璃；数据存进 SQLite，按行写入。
     </td>
     <td valign="top">
       <b>数据在你手里</b><br>
-      不需要账号，没有广告和统计；Cookie 和密码用系统密钥库加密；备份、WebDAV、局域网设备同步都由你决定。
+      不需要账号，没有广告和统计；需要登录时在应用里用平台官方页面登录，Cookie 和密码用系统密钥库加密；备份、WebDAV、局域网设备同步都由你决定。
     </td>
     <td valign="top">
       <b>从 3.x 无缝升级</b><br>
@@ -81,57 +83,56 @@
 
 ## 截图
 
-> 下面是 4.0 界面的设计效果图，应用按这些设计实现；图里的头像、封面、标题和弹幕都是示意内容。
-
-### 直播间
-
-<table>
-  <tr>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-portrait.jpg" width="240" alt="竖屏直播间"><br><sub>竖屏：画面、信息行、弹幕列表和醒目留言</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-vertical.jpg" width="240" alt="竖屏直播流全屏"><br><sub>竖屏直播流：全屏观看，上滑恢复弹幕栏</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-dark.jpg" width="240" alt="深色模式"><br><sub>深色模式：新弹幕提示、本地弹幕输入</sub></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-landscape.jpg" width="760" alt="横屏全屏"><br><sub>横屏全屏：时间和电量、录制标记、锁定、本地弹幕、清晰度和线路</sub></td>
-  </tr>
-  <tr>
-    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-tablet.jpg" width="760" alt="平板分栏"><br><sub>平板和宽屏：画面加右侧聊天栏，聊天栏可以收起</sub></td>
-  </tr>
-</table>
-
-### 弹幕和互动
-
-<table>
-  <tr>
-    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/danmaku-flying.jpg" width="760" alt="飞行弹幕"><br><sub>飞行弹幕：描边文字、彩色弹幕和表情图片</sub></td>
-  </tr>
-  <tr>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/danmaku-settings.jpg" width="240" alt="弹幕设置"><br><sub>弹幕设置：观看模板、显示范围、样式，改动立即生效</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/local-interaction.jpg" width="240" alt="本地互动"><br><sub>本地互动：只有自己看得到的弹幕和礼物特效</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/multiview.jpg" width="240" alt="多画面"><br><sub>多画面：2×2 布局，点格子切换声音来源</sub></td>
-  </tr>
-</table>
+> 以下都是 5.3.0 在小米手机（Android）上的真机截图；头像、封面、标题和弹幕来自截图时各平台正在播的直播间。
 
 ### 首页、分区和搜索
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/home-follow.jpg" width="240" alt="关注"><br><sub>关注：已开播、录播、未开播三组，按平台筛选</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/home-follow.jpg" width="240" alt="关注"><br><sub>关注：已开播、录播、未开播三组，按平台筛选；底栏是液态玻璃</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/popular.jpg" width="240" alt="热门"><br><sub>热门：按平台浏览推荐，左右滑动换平台</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/popular-dark.jpg" width="240" alt="深色模式"><br><sub>深色模式：同一套界面的深色配色</sub></td>
+  </tr>
+  <tr>
     <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/areas.jpg" width="240" alt="分区"><br><sub>分区：按平台和大类浏览，可关注分区</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/search.jpg" width="240" alt="搜索"><br><sub>搜索：所有平台同时搜，结果标出平台</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/search.jpg" width="240" alt="搜索"><br><sub>搜索：所有平台和网络电视同时搜，结果标出平台</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/settings.jpg" width="240" alt="设置"><br><sub>设置：五组分类，可以按名字搜索设置项</sub></td>
   </tr>
 </table>
 
-### 录制、网络电视和设置
+### 直播间
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/record-panel.jpg" width="240" alt="录制面板"><br><sub>直播间里的录制面板：计时、大小、码率、弹幕条数</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/recorder.jpg" width="240" alt="录制中心"><br><sub>录制中心：按状态筛选，断线自动重连</sub></td>
-    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/iptv-guide.jpg" width="240" alt="网络电视节目单"><br><sub>网络电视：节目单、回看、返回直播</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-portrait.jpg" width="240" alt="竖屏直播间"><br><sub>竖屏：画面、信息行、清晰度和线路、弹幕列表</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-dark.jpg" width="240" alt="深色直播间"><br><sub>深色模式：弹幕列表、本地弹幕输入</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/danmaku-settings.jpg" width="240" alt="弹幕设置"><br><sub>弹幕设置：观看模板、显示范围、样式，改动立即生效</sub></td>
   </tr>
   <tr>
-    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/settings-tablet.jpg" width="760" alt="设置"><br><sub>设置：五组分类、按名字搜索，宽屏左右两栏</sub></td>
+    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/room-landscape.jpg" width="760" alt="横屏全屏"><br><sub>横屏全屏：飞行弹幕、时间和电量、锁定、本地弹幕、清晰度和线路</sub></td>
+  </tr>
+</table>
+
+### 多画面、录制和官方登录
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/multiview.jpg" width="240" alt="多画面"><br><sub>多画面：2×2 布局，点格子切换声音来源、换台</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/record-panel.jpg" width="240" alt="录制面板"><br><sub>直播间里的录制面板：计时、大小、码率</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/recorder.jpg" width="240" alt="录制中心"><br><sub>录制中心：按状态筛选，可以随时停止</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/accounts.jpg" width="240" alt="平台账号"><br><sub>平台账号：国内和海外平台分开列出</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/official-login.jpg" width="240" alt="斗鱼账号"><br><sub>账号页的“用斗鱼官方登录”按钮</sub></td>
+    <td align="center" width="33%"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/official-login-page.jpg" width="240" alt="斗鱼官方登录页"><br><sub>在应用里打开平台自己的登录页，登录后自动保存</sub></td>
+  </tr>
+</table>
+
+### 电视界面
+
+<table>
+  <tr>
+    <td align="center" colspan="3"><img src="docs/Y-发布和运营/Y03-发布说明和README/readme/tv-home.jpg" width="760" alt="电视界面"><br><sub>电视界面：遥控器操作，左侧导航栏，关注按平台筛选</sub></td>
   </tr>
 </table>
 
@@ -242,7 +243,7 @@
 
 ## 设计和性能
 
-4.0 的每个界面都按同一套原则设计：
+从 4.0 起，每个界面都按同一套原则设计：
 
 - **3.x 的习惯不丢**：入口、手势、快捷键和设置项都保留，3.x 的设置和数据照旧生效；改变外观或操作的地方，都是逐条对比、确认过的。
 - **同一件事只有一种做法**：一个动作一个图标、一个组件、一套文字；手机、平板用同一套组件，屏幕大小只决定放在哪里。
@@ -254,7 +255,8 @@
 - **只用 mpv 播放**（自己维护的 media_kit 分支，libmpv 0.41.0、FFmpeg 9.0.2）；切换清晰度和线路不重建播放器。
 - **刷新率**：保留 3.x 的省电、均衡、性能三档；播放时按视频帧率选择屏幕刷新率，只在能无缝切换时切换。
 - **弹幕**：排版缓存成图，帧率取屏幕刷新率的整数分之一，同屏数量有上限；只描边、不加模糊阴影。
-- **界面**：状态变化只重建用到它的部分，列表懒加载，图片按显示尺寸解码、缓存有上限；视频上方不用模糊效果。
+- **界面**：状态变化只重建用到它的部分，列表懒加载，图片按显示尺寸解码、缓存有上限，图片下载放在单独的线程；视频上方不用模糊效果。
+- **动效**（5.2 起）：列表和翻页到头有阻尼回弹，页面用弹簧推入、手势返回跟手；首页底栏是液态玻璃，用着色器做边缘折射，选中项是可以按住拖动的玻璃水滴，不支持时退回磨砂效果。
 - **存储**：SQLite（drift）按行写入、有事务，读写放在后台线程。
 
 ## 支持的平台
@@ -269,12 +271,12 @@
 | 平台 | 播放 | 弹幕 | 搜索 | 分区 | 登录 |
 |---|:---:|:---:|---|:---:|---|
 | 哔哩哔哩 | 支持 | 支持 | 含未开播、主播 | 支持 | 扫码、网页、Cookie |
-| 斗鱼 | 支持 | 支持 | 含未开播、主播 | 支持 | Cookie（自动续期） |
-| 虎牙 | 支持 | 支持 | 直播中、主播 | 支持 | Cookie |
-| 抖音 | 支持 | 支持 | 直播中 | 支持 | Cookie |
-| 快手 | 支持 | 支持 | 含未开播、主播 | 支持 | Cookie |
-| YY | 支持 | 支持 | 直播中、主播 | 支持 | Cookie |
-| 网易CC | 支持 | — | 含未开播、主播 | 支持 | — |
+| 斗鱼 | 支持 | 支持 | 含未开播、主播 | 支持 | 官方登录、Cookie（自动续期） |
+| 虎牙 | 支持 | 支持 | 直播中、主播 | 支持 | 官方登录、Cookie |
+| 抖音 | 支持 | 支持 | 直播中 | 支持 | 官方登录、Cookie |
+| 快手 | 支持 | 支持 | 含未开播、主播 | 支持 | 官方登录、Cookie |
+| YY | 支持 | 支持 | 直播中、主播 | 支持 | 官方登录、Cookie |
+| 网易CC | 支持 | — | 含未开播、主播 | 支持 | 官方登录、Cookie |
 | AcFun 直播 | 支持 | 支持 | 含未开播、主播 | 支持 | — |
 | 猫耳 FM | 支持 | 支持 | 含未开播 | 支持 | — |
 | 映客 | 支持 | — | 推荐内筛选 | 支持 | — |
@@ -293,8 +295,8 @@
 
 | 平台 | 播放 | 弹幕 | 搜索 | 分区 | 登录 |
 |---|:---:|:---:|---|:---:|---|
-| Twitch | 支持 | 支持 | 含未开播 | 支持 | Cookie |
-| SOOP | 支持 | 支持 | 直播中 | 支持 | Cookie |
+| Twitch | 支持 | 支持 | 含未开播 | 支持 | 官方登录、Cookie |
+| SOOP | 支持 | 支持 | 直播中 | 支持 | 官方登录、Cookie |
 | YouTube Live | 支持 | 支持 | 直播中 | — | — |
 | TikTok LIVE | 支持 | — | 按频道 | — | — |
 | Kick | 支持 | 支持 | 含未开播 | 支持 | — |
@@ -331,7 +333,7 @@
 | iOS、iPadOS、macOS | — | 暂不提供（需要 Mac 构建和签名） |
 
 - Android 安装时如果提示“安装未知应用”，在弹出的设置里允许当前的浏览器或文件管理器即可。
-- Linux 版没有应用内网页登录，账号可以在手机或 Windows 上登录后用“设备同步”带过来。
+- Linux 版没有应用内网页登录（官方登录、哔哩哔哩网页登录），可以填写 Cookie，或在手机、Windows 上登录后用“设备同步”带过来。
 
 ### 从 3.x 或 4.x 升级
 
@@ -345,7 +347,7 @@
 
 ```bash
 git clone https://github.com/wzgrx/PureLive.git
-cd pure_live
+cd PureLive
 
 # 1. 环境：按 toolchain.env 装好工具链，写一个环境脚本，每次构建前 source 一下
 #    （下面是示例路径，换成你自己的）
@@ -398,11 +400,11 @@ docs/                   开发计划、模块记录、界面设计和功能清�
 
 ## 路线图
 
-| 客户端 | 5.1.0 | 以后 |
+| 客户端 | 5.3.0（现在） | 以后 |
 |---|---|---|
-| **Android 手机和平板** | 正式版：开播提醒可以按主播单独开关，被系统清理后也提醒 | 持续修平台变化 |
+| **Android 手机和平板** | 正式版：液态玻璃底栏、阻尼和弹簧动效，八个平台的官方登录 | 更多界面语言（5.4.0）；持续修平台变化 |
 | **Android 电视** | 正式版：直播、视频（哔哩哔哩点播）、音乐三个模式，壁纸，电视样式的设置目录，扫码用手机输入 | 在更多电视真机上验证和调整 |
-| **Windows** | 正式版：自绘标题栏、托盘、关闭时的选择、开机启动、桌面小窗、在新窗口打开直播间 | Kick 在 Windows 上的原生网络通道 |
+| **Windows** | 正式版：自绘标题栏、托盘、关闭时的选择、开机启动、桌面小窗、在新窗口打开直播间、官方登录 | Kick 在 Windows 上的原生网络通道 |
 | **Linux** | 正式版：和 Windows 同一套桌面外壳 | 应用内网页登录 |
 | **iOS、iPadOS、macOS** | 平台差异已设计好 | 需要 Mac 构建和签名 |
 

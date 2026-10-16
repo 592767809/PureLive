@@ -4510,6 +4510,13 @@ date = "2026-10-02"
 old = ["T16c.1"]
 commit = "dd16f0b26"
 [[task]]
+id = "Y03.2"
+title = "README 换成 5.3.0 真机截图，加英文版 README.en.md 和英文头图"
+type = "发布"
+status = "完成"
+date = "2026-10-16"
+from = "用户 2026-10-16：项目的redme还使用的是旧版本的图片和说明，需要更新到最新版本；redme增加中英文"
+[[task]]
 id = "Y04.1"
 title = "隐私说明写进 README：不收集数据、样本脱敏规则"
 type = "发布"

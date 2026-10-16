@@ -2,7 +2,7 @@
 
 # 任务清单
 
-共 20 组、109 个子分类、379 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
+共 20 组、109 个子分类、380 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
 
 ## A 界面设计
 
@@ -978,6 +978,7 @@ Windows、Linux、电视、苹果平台的客户端专属工作（打包、原�
 | 编号 | 任务 | 类型 | 档位 | 状态 | 阶段 | 资料 |
 |---|---|---|---|---|---|---|
 | Y03.1 | README 和 4.0.0 发布说明 | 发布 | — | 完成 | — | [设计或说明](Y-发布和运营/Y03-发布说明和README/Y03.1-README和4.0.0发布/README.md) |
+| Y03.2 | README 换成 5.3.0 真机截图，加英文版 README.en.md 和英文头图 | 发布 | — | 完成 | — | — |
 
 ### [Y04 隐私和合规](Y-发布和运营/Y04-隐私和合规/README.md)
 
