@@ -357,32 +357,60 @@ class _LocalDanmakuComposerState extends ConsumerState<LocalDanmakuComposer> {
 
   Widget _input(BuildContext context, {required TextStyle? style, required TextStyle? hint, Color? cursor}) =>
       LayoutBuilder(
-        builder: (context, constraints) => TextField(
-          key: const ValueKey('local-composer-input'),
-          controller: _text,
-          focusNode: _focus,
-          autofocus: widget.autofocus,
-          style: style,
-          cursorColor: cursor,
-          // A08.13: the platforms' length; the count is ours, in the row.
-          maxLength: LocalCatalog.danmakuLimit,
-          buildCounter: _noCounter,
-          textInputAction: TextInputAction.send,
-          onSubmitted: (_) => _send(),
-          // The field is as tall as its bar, the words in the middle: a tap
-          // anywhere on the bar's field types (A05.1).
-          textAlignVertical: TextAlignVertical.center,
-          decoration:
-              InputDecoration.collapsed(
-                hintText: localComposerHint(context, hint, constraints.maxWidth),
-                hintStyle: hint,
-              ).copyWith(
-                // A long hint ends in "…" instead of wrapping.
-                hintMaxLines: 1,
-                constraints: BoxConstraints(minHeight: constraints.maxHeight.isFinite ? constraints.maxHeight : 0),
-              ),
-        ),
+        builder: (context, constraints) {
+          final line = localComposerLineHeight(context, style);
+          final height = constraints.maxHeight.isFinite ? constraints.maxHeight : line;
+          return TextField(
+            key: const ValueKey('local-composer-input'),
+            controller: _text,
+            focusNode: _focus,
+            autofocus: widget.autofocus,
+            style: style,
+            cursorColor: cursor,
+            // A08.13: the platforms' length; the count is ours, in the row.
+            maxLength: LocalCatalog.danmakuLimit,
+            buildCounter: _noCounter,
+            textInputAction: TextInputAction.send,
+            onSubmitted: (_) => _send(),
+            // The field is as tall as its bar, the words in the middle: a tap
+            // anywhere on the bar's field types (A05.1). The middle is the
+            // padding's: a collapsed decoration leaves the words at the top
+            // of a taller box, and a full one centres them for 48 even in
+            // the 40-high bar on the picture (and moves them again for
+            // textAlignVertical and for the desktop's compact density).
+            decoration: InputDecoration(
+              hintText: localComposerHint(context, hint, constraints.maxWidth),
+              hintStyle: hint,
+              // A long hint ends in "…" instead of wrapping.
+              hintMaxLines: 1,
+              isDense: true,
+              visualDensity: VisualDensity.standard,
+              contentPadding: EdgeInsets.symmetric(vertical: math.max(0, (height - line) / 2)),
+              // None of the theme's field: the bar is the field.
+              filled: false,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+            ),
+          );
+        },
       );
+}
+
+/// The height of a line of the composer's words: [style] over the theme's
+/// field text, as [TextField] merges them, at the user's text size.
+@visibleForTesting
+double localComposerLineHeight(BuildContext context, TextStyle? style) {
+  final base = Theme.of(context).textTheme.bodyLarge;
+  final painter = TextPainter(
+    text: TextSpan(style: base?.merge(style) ?? style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  );
+  final height = painter.preferredLineHeight;
+  painter.dispose();
+  return height;
 }
 
 Widget? _noCounter(BuildContext context, {required int currentLength, required bool isFocused, int? maxLength}) => null;

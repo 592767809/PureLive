@@ -190,6 +190,15 @@ void main() {
       expect(_in('local-composer-bar', find.byIcon(AppIcons.localSend)), findsOneWidget);
       expect(_in('local-composer-bar', find.text('发送本地弹幕，只有你看得到')), findsOneWidget);
       expect(tester.getSize(_key('local-composer-field')).height, 48);
+      // The words in the middle of the bar, not at its top.
+      final fieldMiddle = tester.getCenter(_key('local-composer-field')).dy;
+      expect(tester.getCenter(_in('local-composer-bar', find.text('发送本地弹幕，只有你看得到'))).dy, closeTo(fieldMiddle, 1));
+      expect(tester.getCenter(field).dy, closeTo(fieldMiddle, 1));
+      expect(
+        tester.getSize(_in('local-composer-bar', find.byType(TextField))).height,
+        48,
+        reason: 'a tap anywhere types',
+      );
 
       await _send(tester, '   ');
       expect(_key('live-play-local-line'), findsNothing, reason: 'an empty one is not sent');
@@ -483,6 +492,10 @@ void main() {
         session.value = _session(tester);
         await tester.pump();
         expect(tester.getSize(_in('wide-bar', _key('local-composer-video'))).width, localComposerVideoMaxWidth);
+        // The words in the middle of the 40-high field, which takes the taps.
+        final videoField = tester.getRect(_in('wide-bar', _key('local-composer-video')));
+        expect(tester.getCenter(_in('wide-bar', find.byType(EditableText))).dy, closeTo(videoField.center.dy, 1));
+        expect(tester.getSize(_in('wide-bar', find.byType(TextField))).height, videoField.height);
         expect(_in('narrow-bar', _key('local-composer-star')), findsOneWidget);
         expect(_in('narrow-bar', find.byType(EditableText)), findsNothing);
         // A08.13 P8: the folded composer shows "write", the star stays the style's.
