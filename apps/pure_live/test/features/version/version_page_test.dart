@@ -144,22 +144,24 @@ void main() {
     expect(appBuild, pubspecBuild);
   });
 
-  // The update files offer the release this tree builds (PROCESS §11: they
-  // change last, once its packages are up).
+  // The update files offer the latest release: this tree's once its
+  // packages are up, the one before while it is being released (PROCESS
+  // §11: they change last).
   test('reads the repository update files as 3.x does', () {
     final android = UpdateInfo.fromJson(_versionJson(), platform: 'android');
-    expect(android.version, pubspecVersion);
-    expect(android.buildNumber, pubspecBuild);
+    final offered = android.version;
+    expect(isNewerVersion(offered, pubspecVersion), isFalse, reason: 'never ahead of this tree');
+    if (offered == pubspecVersion) expect(android.buildNumber, pubspecBuild);
     expect(android.androidAbis, {'arm64-v8a', 'armeabi-v7a', 'x86_64'});
     expect(android.isNewer, isFalse);
     // A platform block overrides the top level; the release is on Linux too,
     // and macOS stays on 3.2.10.
-    expect(UpdateInfo.fromJson(_versionJson(), platform: 'linux').version, pubspecVersion);
+    expect(UpdateInfo.fromJson(_versionJson(), platform: 'linux').version, offered);
     expect(UpdateInfo.fromJson(_versionJson(), platform: 'macos').version, '3.2.10');
     expect(() => UpdateInfo.fromJson({'version': '1.0.0'}, platform: 'android'), throwsFormatException);
 
     final releases = parseReleases(_releasesJson());
-    expect(releases.first.version, pubspecVersion);
+    expect(releases.first.version, offered);
     for (var i = 1; i < releases.length; i++) {
       expect(releases[i - 1].date.compareTo(releases[i].date), greaterThanOrEqualTo(0));
     }
@@ -168,7 +170,7 @@ void main() {
     expect(packages.first.$2.name, contains('arm64-v8a'));
     // The release is on Windows too, with the installer and the portable ZIP.
     final windowsInfo = UpdateInfo.fromJson(_versionJson(), platform: 'windows');
-    expect(windowsInfo.version, pubspecVersion);
+    expect(windowsInfo.version, offered);
     final windows = platformPackages(
       'windows',
       windowsInfo,
