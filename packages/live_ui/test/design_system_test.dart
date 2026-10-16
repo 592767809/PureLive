@@ -551,6 +551,24 @@ void main() {
     expect(find.byType(ImageFiltered), findsNothing, reason: 'no blur per frame');
   });
 
+  testWidgets("AmbientBackdrop: the blown-up cover stays inside the backdrop (the wide room's chat column)", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(const SizedBox(width: 200, height: 300, child: AmbientBackdrop(cover: 'https://example.com/cover.jpg'))),
+    );
+    final cover = find.byKey(const ValueKey('ambient-backdrop-cover'));
+    expect(cover, findsOneWidget);
+    final scaled = find.ancestor(of: cover, matching: find.byType(Transform));
+    expect(tester.widget<Transform>(scaled.first).transform.getMaxScaleOnAxis(), greaterThan(1));
+    final clip = find.ancestor(of: scaled.first, matching: find.byType(ClipRect));
+    expect(
+      find.descendant(of: find.byType(AmbientBackdrop), matching: clip),
+      findsOneWidget,
+      reason: 'a transform paints outside its box; only a clip keeps it off the chat column',
+    );
+  });
+
   test("U.13: the close button's red and the recording note keep 4.5:1 with their text", () {
     double contrast(Color a, Color b) {
       final la = a.computeLuminance();

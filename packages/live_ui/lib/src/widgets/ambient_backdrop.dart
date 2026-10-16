@@ -14,6 +14,8 @@ const int ambientCoverDecodeWidth = 24;
 /// again per frame (3.x ran a radius-28 blur over the picture every frame).
 /// The same backdrop serves the portrait fullscreen, a portrait stream in
 /// landscape fullscreen, the wide room and the TV.
+/// The blown-up cover is clipped to the backdrop: a transform paints outside
+/// its box, and in the wide room 7 % of it showed over the chat column.
 class AmbientBackdrop extends StatelessWidget {
   /// Creates the backdrop of [cover] (an address, empty for none).
   const new({required this.cover, super.key});
@@ -25,25 +27,27 @@ class AmbientBackdrop extends StatelessWidget {
   Widget build(BuildContext context) {
     final url = cover.trim();
     return RepaintBoundary(
-      child: Stack(
-        key: const ValueKey('ambient-backdrop'),
-        fit: StackFit.expand,
-        children: [
-          const DecoratedBox(decoration: BoxDecoration(gradient: OnVideoColors.ambientFallback)),
-          if (url.isNotEmpty)
-            Transform.scale(
-              scale: 1.14,
-              child: LiveNetworkImage(
-                key: const ValueKey('ambient-backdrop-cover'),
-                url: url,
-                memCacheWidth: ambientCoverDecodeWidth,
-                filterQuality: FilterQuality.medium,
-                placeholder: (_) => const SizedBox.shrink(),
-                error: (_) => const SizedBox.shrink(),
+      child: ClipRect(
+        child: Stack(
+          key: const ValueKey('ambient-backdrop'),
+          fit: StackFit.expand,
+          children: [
+            const DecoratedBox(decoration: BoxDecoration(gradient: OnVideoColors.ambientFallback)),
+            if (url.isNotEmpty)
+              Transform.scale(
+                scale: 1.14,
+                child: LiveNetworkImage(
+                  key: const ValueKey('ambient-backdrop-cover'),
+                  url: url,
+                  memCacheWidth: ambientCoverDecodeWidth,
+                  filterQuality: FilterQuality.medium,
+                  placeholder: (_) => const SizedBox.shrink(),
+                  error: (_) => const SizedBox.shrink(),
+                ),
               ),
-            ),
-          const ColoredBox(color: OnVideoColors.ambientVeil),
-        ],
+            const ColoredBox(color: OnVideoColors.ambientVeil),
+          ],
+        ),
       ),
     );
   }
