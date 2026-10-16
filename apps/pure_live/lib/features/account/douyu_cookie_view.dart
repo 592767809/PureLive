@@ -12,6 +12,7 @@ import 'package:pure_live/features/account/account_services.dart';
 import 'package:pure_live/features/account/account_state.dart';
 import 'package:pure_live/features/account/account_widgets.dart';
 import 'package:pure_live/features/account/cookie_editor.dart';
+import 'package:pure_live/features/account/platform_web_login.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 
@@ -190,6 +191,8 @@ class _DouyuCookieViewState extends ConsumerState<DouyuCookieView> {
         multiline: true,
       ),
       extraInputs: [_ltp0, _did],
+      // K01.3: Douyu's own sign-in page; LTP0 comes with its cookies.
+      onWebLogin: hasPlatformWebLogin(SiteIds.douyu) ? () => openPlatformWebLogin(context, _platform) : null,
       hasStored: accountStored(stored) || stored.douyuLtp0 != null,
       onSave: _save,
       onSignOut: _signOut,

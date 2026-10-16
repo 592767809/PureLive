@@ -12,6 +12,7 @@ import 'package:pure_live/features/account/account_platforms.dart';
 import 'package:pure_live/features/account/account_services.dart';
 import 'package:pure_live/features/account/account_state.dart';
 import 'package:pure_live/features/account/bilibili_qr_login.dart';
+import 'package:pure_live/features/account/platform_web_login.dart';
 import 'package:pure_live/features/auth/auth_page.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
@@ -514,6 +515,72 @@ void main() {
       await _tap(tester, find.byKey(const ValueKey('account-cookie-save')));
       expect(harness.store.secrets.cookieFor(SiteIds.cc), 'NTES_SESS=abc');
       expect(_cardStatus(tester), '已保存，暂未用于请求（登录后加入弹幕待验证）');
+    });
+
+    testWidgets('K01.3: the official sign-in brings the cookies and saves them like a pasted cookie', (tester) async {
+      InAppWeb.available = true;
+      final previous = openPlatformWebLogin;
+      addTearDown(() {
+        InAppWeb.available = false;
+        openPlatformWebLogin = previous;
+      });
+      String? next;
+      final opened = <String>[];
+      openPlatformWebLogin = (context, platform) async {
+        opened.add(platform.id);
+        return next;
+      };
+      final harness = await _pump(tester);
+
+      // Kuaishou: not checked online, stored as it comes.
+      harness.router.go(RoutePath.kKuaishouCookie);
+      await _settle(tester);
+      expect(find.text('用快手官方登录'), findsOneWidget);
+      next = null;
+      await _tap(tester, find.byKey(const ValueKey('account-web-login')));
+      expect(opened, [SiteIds.kuaishou]);
+      expect(harness.store.secrets.cookieFor(SiteIds.kuaishou), isNull, reason: 'left without signing in');
+      next = 'userId=1; kuaishou.live.web_st=st';
+      await _tap(tester, find.byKey(const ValueKey('account-web-login')));
+      expect(harness.store.secrets.cookieFor(SiteIds.kuaishou), 'userId=1; kuaishou.live.web_st=st');
+
+      // Douyin: checked first; a login the platform refuses is not stored.
+      harness.router.go(RoutePath.kDouyinCookie);
+      await _settle(tester);
+      next = 'sessionid=bad';
+      await _tap(tester, find.byKey(const ValueKey('account-web-login')));
+      expect(harness.store.secrets.cookieFor(SiteIds.douyin), isNull);
+      expect(harness.toasts.last, '这段 Cookie 没有登录或已失效，未保存');
+      next = 'sessionid=ok';
+      await _tap(tester, find.byKey(const ValueKey('account-web-login')));
+      expect(harness.store.secrets.cookieFor(SiteIds.douyin), 'sessionid=ok');
+      expect(_cardStatus(tester), '已登录：Alice');
+
+      // Bilibili keeps its own pages.
+      harness.router.go(RoutePath.kSettingsAccount, extra: SiteIds.bilibili);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('account-web-login')), findsNothing);
+    });
+
+    testWidgets("K01.3: Douyu's official sign-in fills the renewal pair from its cookies", (tester) async {
+      InAppWeb.available = true;
+      final previous = openPlatformWebLogin;
+      addTearDown(() {
+        InAppWeb.available = false;
+        openPlatformWebLogin = previous;
+      });
+      openPlatformWebLogin = (context, platform) async => 'dy_auth=login; acf_auth=a; LTP0=long; dy_did=d1';
+      final harness = await _pump(tester, path: RoutePath.kDouyuAccountCookie);
+      expect(find.text('用斗鱼官方登录'), findsOneWidget);
+      await _tap(tester, find.byKey(const ValueKey('account-web-login')));
+      expect(harness.store.secrets.read(SecretRefs.douyuLtp0), 'long');
+      expect(harness.store.secrets.read(SecretRefs.douyuDid), 'd1');
+      expect(harness.store.secrets.cookieFor(SiteIds.douyu), contains('dy_auth=login'));
+    });
+
+    testWidgets('without an in-app browser the cookie pages have no official sign-in', (tester) async {
+      await _pump(tester, path: RoutePath.kHuyaCookie);
+      expect(find.byKey(const ValueKey('account-web-login')), findsNothing);
     });
 
     testWidgets('Douyu: the session on the card, the renewal group, a passport cookie, renew now, forced renewal', (

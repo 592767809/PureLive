@@ -127,6 +127,7 @@ class CookieEditorScaffold extends StatefulWidget {
     this.accounts,
     this.storedRevision = 0,
     this.verifiesOnSave = false,
+    this.onWebLogin,
     super.key,
   });
 
@@ -174,6 +175,10 @@ class CookieEditorScaffold extends StatefulWidget {
 
   /// Groups between the cookie and "退出登录" (Douyu's renewal).
   final List<Widget> extra;
+
+  /// Opens the platform's own sign-in page (K01.3); the cookies it brings
+  /// back are saved as a pasted cookie. Null: no such page here.
+  final Future<String?> Function()? onWebLogin;
 
   @override
   State<CookieEditorScaffold> createState() => _CookieEditorScaffoldState();
@@ -281,6 +286,17 @@ class _CookieEditorScaffoldState extends State<CookieEditorScaffold> {
     }
   }
 
+  /// The platform's own sign-in: its cookies go into the box and are saved
+  /// (checked first where the platform can tell who signed in).
+  Future<void> _webLogin() async {
+    final open = widget.onWebLogin;
+    if (open == null || _busy) return;
+    final cookie = await open();
+    if (cookie == null || !mounted) return;
+    _cookie.text = cleanPastedCookie(cookie);
+    await _save();
+  }
+
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
@@ -353,6 +369,26 @@ class _CookieEditorScaffoldState extends State<CookieEditorScaffold> {
         action: widget.statusAction,
       ),
       if (widget.accounts case final accounts?) ...[const SizedBox(height: 4), accounts],
+      if (widget.onWebLogin != null) ...[
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          key: const ValueKey('account-web-login'),
+          onPressed: _busy ? null : () => unawaited(_webLogin()),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(48),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: context.textStyles.t14.emphasis,
+          ),
+          icon: const Icon(AppIcons.webLogin, size: 20),
+          label: Text(i18n('account_web_login', args: {'name': platform.name})),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          i18n('account_web_login_desc', args: {'name': platform.name}),
+          textAlign: TextAlign.center,
+          style: context.textStyles.t12.copyWith(color: scheme.onSurfaceVariant),
+        ),
+      ],
       const SizedBox(height: 12),
       widget.tip,
       const SizedBox(height: 12),

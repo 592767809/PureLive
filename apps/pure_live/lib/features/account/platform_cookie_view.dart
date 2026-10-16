@@ -12,6 +12,7 @@ import 'package:pure_live/features/account/account_state.dart';
 import 'package:pure_live/features/account/account_widgets.dart';
 import 'package:pure_live/features/account/bilibili_accounts.dart';
 import 'package:pure_live/features/account/cookie_editor.dart';
+import 'package:pure_live/features/account/platform_web_login.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -274,6 +275,10 @@ class _PlatformCookieViewState extends ConsumerState<PlatformCookieView> {
         multiline: true,
       ),
       verifiesOnSave: _online,
+      // K01.3: the platform's own sign-in page (Bilibili has its own).
+      onWebLogin: _id != SiteIds.bilibili && hasPlatformWebLogin(_id)
+          ? () => openPlatformWebLogin(context, platform)
+          : null,
       hasStored: accountStored(stored),
       onSave: _save,
       onSignOut: _signOut,
