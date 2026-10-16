@@ -83,6 +83,11 @@ abstract final class AppMotion {
   /// first 0.15 s and gently at the end, without passing its place.
   static final SpringDescription pageTransitionSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 300);
 
+  /// The liquid glass bar's drop going to a destination (A01.6): mass 1,
+  /// stiffness 520, damping ratio 0.72, so it overshoots a little and
+  /// settles like a drop of water, in about 0.35 s.
+  static final SpringDescription dropSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 520, ratio: 0.72);
+
   /// Small controls (a switch's knob, a chip): Material 3's fast spatial
   /// spring, damping ratio 0.9, stiffness 1400.
   static final SpringDescription controlSpring = SpringDescription.withDampingRatio(

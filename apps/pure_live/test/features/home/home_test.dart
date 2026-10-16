@@ -11,12 +11,14 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/startup.dart';
+import 'package:pure_live/features/areas/areas_page.dart';
 import 'package:pure_live/features/favorite/favorite_page.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/features/home/home_page.dart';
 import 'package:pure_live/features/home/menu_button.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/popular/popular_page.dart';
+import 'package:pure_live/features/recorder/recorder_page.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/app_router.dart';
 import 'package:pure_live/routes/route_observer.dart';
@@ -108,25 +110,27 @@ void main() {
 
   testWidgets('phone: bottom bar of the saved menus; follows again refreshes them', (tester) async {
     final services = await _pump(tester, width: 400);
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    // A01.6: liquid glass by default.
+    expect(find.byType(LiquidGlassBar), findsOneWidget);
+    expect(find.byWidgetPredicate((widget) => '${widget.key}'.contains('home-nav-')), findsNWidgets(4));
     expect(find.widgetWithText(AppBar, '已开播'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(NavigationDestination, '热门'));
+    await tester.tap(_navItem('热门'));
     await tester.pumpAndSettle();
     // U.4b: the popular page's title place holds its platform tabs (3.x).
     expect(find.byType(PopularPage), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(NavigationDestination, '关注'));
+    await tester.tap(_navItem('关注'));
     await tester.pumpAndSettle();
     final before = HomeSignals.favoritesReselected.value;
-    await tester.tap(find.widgetWithText(NavigationDestination, '关注'));
+    await tester.tap(_navItem('关注'));
     await tester.pumpAndSettle();
     expect(HomeSignals.favoritesReselected.value, before + 1);
 
     // One destination: no bar (3.x).
     await tester.runAsync(() => services.store.settings.set(Settings.savedMenuIds, ['popular']));
     await tester.pumpAndSettle();
+    expect(find.byType(LiquidGlassBar), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);
     // U.4b: the popular page's title place holds its platform tabs (3.x).
     expect(find.byType(PopularPage), findsOneWidget);
@@ -307,7 +311,7 @@ void main() {
   testWidgets('rail from 600: menu, four tools with names, a line, then the four destinations (U.3b)', (tester) async {
     final services = await _pump(tester, width: 1280, height: 800);
     expect(find.byKey(const ValueKey('home-rail')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(LiquidGlassBar), findsNothing);
     // The page bars have no menu buttons on the rail (3.x).
     expect(find.descendant(of: find.byType(AppBar), matching: find.byTooltip('更多')), findsNothing);
     final rail = find.byKey(const ValueKey('home-rail'));
@@ -379,13 +383,13 @@ void main() {
   testWidgets('the rail starts at 600 wide (U.3b c6; 3.x: above 680)', (tester) async {
     var services = await _pump(tester, width: 600);
     expect(find.byKey(const ValueKey('home-rail')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(LiquidGlassBar), findsNothing);
     await tester.runAsync(services.close);
     await tester.pumpWidget(const SizedBox.shrink());
 
     services = await _pump(tester, width: 599);
     expect(find.byKey(const ValueKey('home-rail')), findsNothing);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(LiquidGlassBar), findsOneWidget);
     await tester.runAsync(services.close);
   });
 
@@ -409,31 +413,36 @@ void main() {
     await tester.runAsync(services.close);
   });
 
-  testWidgets('A01.5: liquid glass: the bar floats as a glass capsule over the page; off, the plain bar', (
+  testWidgets('A01.5, A01.6: liquid glass: the bar floats as a glass capsule over the page; off, the plain bar', (
     tester,
   ) async {
     // A status bar and a gesture area, as on a phone.
     tester.view.padding = const FakeViewPadding(top: 40, bottom: 20);
     tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 20);
     final services = await _pump(tester, width: 400);
-    expect(find.byType(GlassSurface), findsNothing);
-    final plain = tester.getRect(find.byType(NavigationBar));
-    expect(plain, const Rect.fromLTRB(0, 800, 400, 900));
-
-    await tester.runAsync(() => services.store.settings.set(Settings.liquidGlass, true));
-    await tester.pumpAndSettle();
-    expect(find.byType(GlassSurface), findsOneWidget);
-    expect(find.byKey(const ValueKey('glass-blur')), findsOneWidget);
-    // A capsule 12 in from the sides and above the gesture area, 68 high.
-    expect(tester.getRect(find.byType(NavigationBar)), const Rect.fromLTRB(12, 800, 388, 868));
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    // On by default (A01.6). A capsule 12 in from the sides and above the
+    // gesture area, 68 high.
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(tester.getRect(find.byType(LiquidGlassBar)), const Rect.fromLTRB(12, 800, 388, 868));
     // The page goes on under it, and its lists know how much it covers.
     expect(tester.getRect(find.byType(FavoritePage)).bottom, 900);
     final page = tester.element(find.byType(FavoritePage));
     expect(GlassBarInset.of(page), 100);
-    await tester.tap(find.widgetWithText(NavigationDestination, '热门'));
+    await tester.tap(_navItem('热门'));
     await tester.pumpAndSettle();
     expect(find.byType(PopularPage), findsOneWidget);
+
+    // Held and dragged along the bar, the drop follows; let go over the
+    // next destination, that one is chosen.
+    final from = tester.getCenter(_navItem('热门'));
+    final to = tester.getCenter(_navItem('分区'));
+    await tester.dragFrom(from, Offset(to.dx - from.dx, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(AreasPage), findsOneWidget);
+    // Dragged far past the last one it stays on the last one.
+    await tester.dragFrom(to, const Offset(600, 0));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecorderPage), findsOneWidget);
 
     // A larger system font: no overflow.
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
@@ -445,14 +454,14 @@ void main() {
     // The rail of a wide window has no glass.
     tester.view.physicalSize = const Size(1280, 800);
     await tester.pumpAndSettle();
-    expect(find.byType(GlassSurface), findsNothing);
+    expect(find.byType(LiquidGlassBar), findsNothing);
     tester.view.physicalSize = const Size(400, 900);
     await tester.pumpAndSettle();
 
     await tester.runAsync(() => services.store.settings.set(Settings.liquidGlass, false));
     await tester.pumpAndSettle();
-    expect(find.byType(GlassSurface), findsNothing);
-    expect(tester.getRect(find.byType(NavigationBar)), plain);
+    expect(find.byType(LiquidGlassBar), findsNothing);
+    expect(tester.getRect(find.byType(NavigationBar)), const Rect.fromLTRB(0, 800, 400, 900));
     await tester.runAsync(services.close);
   });
 
@@ -553,3 +562,6 @@ void main() {
     await tester.runAsync(services.close);
   });
 }
+
+/// A destination of the home page's liquid glass bar.
+Finder _navItem(String label) => find.descendant(of: find.byType(LiquidGlassBar), matching: find.text(label));

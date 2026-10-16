@@ -170,9 +170,10 @@ abstract final class Settings {
   /// Material You colours.
   static const enableDynamicTheme = BoolSetting('enableDynamicTheme', section: 'theme', defaultValue: false);
 
-  /// Liquid glass (A01.5): the home page's bottom bar floats as frosted
-  /// glass over the page. New in v4, off: the plain bar as before.
-  static const liquidGlass = BoolSetting('liquidGlass', section: 'theme', defaultValue: false);
+  /// Liquid glass (A01.5, A01.6): the home page's bottom bar floats as
+  /// liquid glass over the page. On since 5.2 (user 2026-10-16: "增加类似
+  /// Liquid Glass"); off: the plain bar as before.
+  static const liquidGlass = BoolSetting('liquidGlass', section: 'theme', defaultValue: true);
 
   /// Seed colour, `AARRGGBB` hex. The default is the brand blue (U.6b C-3);
   /// 3.x's default [legacyThemeColor] is moved to it once

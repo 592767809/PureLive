@@ -403,10 +403,10 @@ void main() {
 
     // The page is built anew when its tab comes back (before A11.6 it was at
     // the top).
-    await tester.tap(find.widgetWithText(NavigationDestination, '关注'));
+    await tester.tap(find.descendant(of: find.byType(LiquidGlassBar), matching: find.text('关注')));
     await tester.pumpAndSettle();
     expect(grid, findsNothing);
-    await tester.tap(find.widgetWithText(NavigationDestination, '热门'));
+    await tester.tap(find.descendant(of: find.byType(LiquidGlassBar), matching: find.text('热门')));
     await tester.pumpAndSettle();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.pumpAndSettle();

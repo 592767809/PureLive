@@ -40,6 +40,7 @@ export 'src/widgets/follow_pill.dart';
 export 'src/widgets/glass.dart';
 export 'src/widgets/json_tree.dart';
 export 'src/widgets/jump_buttons.dart';
+export 'src/widgets/liquid_glass_bar.dart';
 export 'src/widgets/listenable_selector.dart';
 export 'src/widgets/live_room_card.dart';
 export 'src/widgets/loading_styles.dart';

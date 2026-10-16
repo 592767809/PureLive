@@ -17,6 +17,7 @@ import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_record/live_record.dart';
 import 'package:live_store/live_store.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/app/services.dart';
@@ -219,7 +220,7 @@ void main() {
       await _pumpApp(tester, mode, height: 2000);
       await _check(tester, 'home: follows');
       for (final tab in ['热门', '分区', '录制中心']) {
-        await tester.tap(find.widgetWithText(NavigationDestination, tab).last);
+        await tester.tap(find.descendant(of: find.byType(LiquidGlassBar), matching: find.text(tab)).last);
         await _settle(tester);
         await _check(tester, 'home: $tab');
       }

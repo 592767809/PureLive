@@ -129,7 +129,7 @@ void main() {
   group('height classes (stage 1)', () {
     testWidgets("a phone's split screen keeps the upright layout: the bottom bar, short app bars", (tester) async {
       final services = await _pumpApp(tester, const Size(400, 420));
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(LiquidGlassBar), findsOneWidget);
       expect(find.byKey(const ValueKey('home-rail')), findsNothing);
       for (final page in [RoutePath.kAbout, RoutePath.kToolbox, RoutePath.kSettingsTags, RoutePath.kRecordSettings]) {
         await _open(tester, page);

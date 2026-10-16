@@ -41,6 +41,9 @@ dev_dependencies:
 flutter:
   # The widgets use Material icons (Icons.*).
   uses-material-design: true
+  # A01.6: the liquid glass of the floating bar.
+  shaders:
+    - shaders/liquid_glass.frag
   assets:
     - assets/images/video/
     - assets/platforms/
