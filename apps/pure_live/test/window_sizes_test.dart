@@ -10,6 +10,7 @@ import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_tiles.dart';
+import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 
@@ -67,6 +68,7 @@ Future<AppServices> _pumpApp(
   double textScale = 1,
   double appTextScale = 1,
   List<DisplayFeature> features = const [],
+  AppLanguage? language,
 }) async {
   tester.view
     ..physicalSize = size
@@ -83,9 +85,10 @@ Future<AppServices> _pumpApp(
     final services = await testServices();
     await services.store.settings.set(Settings.showSplashPage, false);
     await services.store.settings.set(Settings.textScaleFactor, appTextScale);
+    if (language != null) await services.store.settings.set(Settings.language, language.displayName);
     return services;
   }))!;
-  final strings = (await tester.runAsync(loadStrings))!;
+  final strings = (await tester.runAsync(() => loadStrings(language ?? AppLanguage.zh)))!;
   await tester.pumpWidget(
     ProviderScope(
       overrides: [appServicesProvider.overrideWithValue(services)],
@@ -117,6 +120,27 @@ Future<void> _open(WidgetTester tester, String path, {Object? arguments}) async 
 Future<void> _back(WidgetTester tester) async {
   AppNavigator.back<void>();
   await _settle(tester);
+}
+
+/// Opens the home, [_pages] and every settings section in turn, adding to
+/// [problems] what overflowed where ([where], filled by the error handler).
+Future<void> _visitAll(WidgetTester tester, String label, List<String> problems, List<String> where) async {
+  void fits(String page) {
+    if (tester.takeException() case final problem?) problems.add('$page $label: $problem $where');
+    where.clear();
+  }
+
+  fits('home');
+  for (final page in _pages) {
+    await _open(tester, page);
+    fits(page);
+    await _back(tester);
+  }
+  for (final section in SettingsSection.values.where((section) => section.route == null)) {
+    await _open(tester, RoutePath.kSettings, arguments: section.name);
+    fits('settings ${section.name}');
+    await _back(tester);
+  }
 }
 
 Future<void> _close(WidgetTester tester, AppServices services) async {
@@ -201,23 +225,33 @@ void main() {
         for (final scale in _textScales) {
           tester.platformDispatcher.textScaleFactorTestValue = scale;
           await _settle(tester);
-          void fits(String page) {
-            if (tester.takeException() case final problem?) problems.add('$page ×$scale: $problem $where');
-            where.clear();
-          }
-
-          fits('home');
-          for (final page in _pages) {
-            await _open(tester, page);
-            fits(page);
-            await _back(tester);
-          }
-          for (final section in SettingsSection.values.where((section) => section.route == null)) {
-            await _open(tester, RoutePath.kSettings, arguments: section.name);
-            fits('settings ${section.name}');
-            await _back(tester);
-          }
+          await _visitAll(tester, '×$scale', problems, where);
         }
+        FlutterError.onError = original;
+        await _close(tester, services);
+        expect(problems, isEmpty, reason: problems.join('\n'));
+      });
+    }
+
+    // Z05.2: the 5.4 languages run longer than Chinese (German, Russian) or
+    // need taller lines (Thai, Vietnamese); every page on an upright phone
+    // with the text 1.3 times as large, without an overflow.
+    for (final language in AppLanguage.values.where((language) => !language.isChinese && language != AppLanguage.en)) {
+      testWidgets('5.4 ${language.code}: the main pages and every settings page fit on an upright phone', (
+        tester,
+      ) async {
+        final services = await _pumpApp(tester, const Size(400, 869), textScale: 1.3, language: language);
+        expect(currentStrings?.language, language);
+        final problems = <String>[];
+        final where = <String>[];
+        final original = FlutterError.onError;
+        FlutterError.onError = (details) {
+          final match = RegExp(r'file:///\S+/lib/(\S+)').firstMatch(details.toString());
+          where.add(match?.group(1) ?? details.exceptionAsString().split('\n').first);
+          original?.call(details);
+        };
+        addTearDown(() => FlutterError.onError = original);
+        await _visitAll(tester, language.code, problems, where);
         FlutterError.onError = original;
         await _close(tester, services);
         expect(problems, isEmpty, reason: problems.join('\n'));

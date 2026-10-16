@@ -111,7 +111,7 @@ flutter:
   # The shell and live_ui's widgets use Material icons.
   uses-material-design: true
   assets:
-    # 3.x's translations (zh, en).
+    # The interface languages, one file each (AppLanguage.code).
     - assets/translations/
     - assets/icons/icon.png
     # Mozilla's CA bundle for FFmpeg's OpenSSL on Android and Linux (3.x).

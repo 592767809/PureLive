@@ -29,6 +29,7 @@ path = [
   { glob = "apps/pure_live/lib/routes/tv_router.dart", sub = "A17" },
   { glob = "apps/pure_live/lib/routes/", sub = "I01" },
   { glob = "apps/pure_live/lib/i18n/", sub = "Z05" },
+  { glob = "tools/i18n/", sub = "Z05" },
   { glob = "apps/pure_live/lib/tv/", sub = "A17" },
   { glob = "apps/pure_live/lib/shared/phone_bridge.dart", sub = "A17" },
   { glob = "apps/pure_live/lib/shared/net/lan_address.dart", sub = "J05" },

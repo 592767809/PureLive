@@ -125,7 +125,7 @@ List<String> mpvOptionsFor(MpvOptionKind kind, TargetPlatform platform) => switc
 String mpvOptionLabel(String key) {
   final names = _mpvLabels[key];
   if (names == null) return key;
-  final label = currentStrings?.language == AppLanguage.en ? names.$2 : names.$1;
+  final label = i18nChinese ? names.$1 : names.$2;
   return label == key ? key : '$label · $key';
 }
 
@@ -133,11 +133,11 @@ String mpvOptionLabel(String key) {
 /// "auto" of the decoder reads "启用任意可用解码器" (3.x).
 String mpvOptionName(String key, {MpvOptionKind? kind}) {
   if (kind == MpvOptionKind.decoder && key == 'auto') {
-    return currentStrings?.language == AppLanguage.en ? 'Any available decoder' : '启用任意可用解码器';
+    return i18nChinese ? '启用任意可用解码器' : 'Any available decoder';
   }
   final names = _mpvLabels[key];
   if (names == null) return key;
-  return currentStrings?.language == AppLanguage.en ? names.$2 : names.$1;
+  return i18nChinese ? names.$1 : names.$2;
 }
 
 /// Forget the remembered mini window (computers).

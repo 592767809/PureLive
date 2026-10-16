@@ -199,8 +199,8 @@ abstract final class Settings {
     scope: SettingScope.internal,
   );
 
-  /// Language display name (`简体中文`, `English`); 3.x's backups also used
-  /// `languageName`.
+  /// Language display name (`简体中文`, `English`, `日本語`…, the app's
+  /// `AppLanguage.displayName`); 3.x's backups also used `languageName`.
   static const language = StringSetting(
     'language',
     section: 'theme',

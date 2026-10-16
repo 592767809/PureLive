@@ -21,7 +21,7 @@ String platformName(String platform, {String? fallback}) =>
 String readableAudience(String value) {
   final count = parseAudienceNumber(value);
   if (count <= 0) return value.trim();
-  final english = currentStrings?.language == AppLanguage.en;
+  final english = !i18nChinese;
   if (!english && count >= 100000000) return '${_short(count / 100000000)}亿';
   if (!english && count >= 10000) return '${_short(count / 10000)}${i18n('count_wan')}';
   if (english && count >= 1000000) return '${_short(count / 1000000)}M';

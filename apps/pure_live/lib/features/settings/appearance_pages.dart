@@ -140,8 +140,9 @@ class ThemeColorTile extends ConsumerWidget {
   }
 }
 
-/// The language: English or 简体中文 (3.x); until one is picked the app
-/// follows the system, and the row shows the language in use.
+/// The language ([AppLanguage]: 3.x's English and 简体中文 plus the 5.4
+/// ones); until one is picked the app follows the system, and the row shows
+/// the language in use.
 class LanguageTile extends ConsumerWidget {
   /// Creates the row.
   const new({required this.entry, super.key});
@@ -529,7 +530,7 @@ class FontSizesPage extends ConsumerWidget {
 String loadingStyleName(String key) {
   final names = loadingStyleNames[key];
   if (names == null) return key;
-  return currentStrings?.language == AppLanguage.en ? names.$2 : names.$1;
+  return i18nChinese ? names.$1 : names.$2;
 }
 
 /// The loading animation: a still preview at the start of the row, the

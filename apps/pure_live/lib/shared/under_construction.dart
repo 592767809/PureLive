@@ -62,7 +62,7 @@ class UnderConstruction extends StatelessWidget {
     final key = routeTitleKeys[route.path];
     final phoneTab = showsHomeBarButtons(context, inHome: route.inHome);
     final detail = describe(route.arguments);
-    final building = currentStrings?.language == AppLanguage.en ? 'Under construction' : '建设中';
+    final building = i18nChinese ? '建设中' : 'Under construction';
     return Scaffold(
       appBar: AppBar(
         centerTitle: route.inHome && centredPageTitle,

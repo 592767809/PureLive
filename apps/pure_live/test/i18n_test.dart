@@ -78,8 +78,32 @@ void main() {
     expect(keptUnusedKeys.difference(keys), isEmpty, reason: 'kept keys that are gone');
   });
 
+  test("5.4: every language has a file with its base's keys, placeholders and line breaks", () {
+    final zh = read('zh');
+    final en = read('en');
+    final placeholder = RegExp(r'\{[A-Za-z0-9_]+\}');
+    List<String> marks(Object? text) => [for (final match in placeholder.allMatches('$text')) match.group(0)!]..sort();
+    final files = {for (final file in Directory('assets/translations').listSync().whereType<File>()) file.path};
+    expect(files, {for (final language in AppLanguage.values) 'assets/translations/${language.code}.json'});
+    for (final language in AppLanguage.values) {
+      if (language == AppLanguage.zh || language == AppLanguage.en) continue;
+      final base = language.isChinese ? zh : en;
+      final table = read(language.code);
+      expect(table.keys.toSet(), base.keys.toSet(), reason: '${language.code}: the same keys as its base');
+      for (final MapEntry(:key, :value) in table.entries) {
+        expect('$value'.trim(), isNotEmpty, reason: '${language.code} $key');
+        expect(marks(value), marks(base[key]), reason: '${language.code} $key: placeholders');
+        expect(
+          '\n'.allMatches('$value').length,
+          '\n'.allMatches('${base[key]}').length,
+          reason: '${language.code} $key',
+        );
+      }
+    }
+  });
+
   test('Z05.1: translation files are sorted by key and indented with four spaces', () {
-    for (final code in ['zh', 'en']) {
+    for (final code in [for (final language in AppLanguage.values) language.code]) {
       final text = File('assets/translations/$code.json').readAsStringSync();
       final table = jsonDecode(text) as Map<String, Object?>;
       final keys = table.keys.toList();
@@ -91,7 +115,7 @@ void main() {
 
   test('F.5a: the directory and audience notes are words for users, not field names', () {
     final jargon = RegExp(r'\b[a-z]+[A-Z]\w*|\b\w+_\w+');
-    for (final code in ['zh', 'en']) {
+    for (final code in [for (final language in AppLanguage.values) language.code]) {
       for (final MapEntry(:key, :value) in read(code).entries) {
         final note = key.endsWith('_directory_scope') || (key.startsWith('audience_') && key.endsWith('_detail'));
         if (note) expect(jargon.firstMatch('$value')?.group(0), isNull, reason: '$code $key');
@@ -152,6 +176,16 @@ void main() {
     await loadStrings(AppLanguage.en);
     expect(i18n('favorites_title'), isNot('关注'));
     expect(i18n('count_wan'), isNotEmpty);
+
+    // Traditional Chinese: its own words, the Chinese-only key from its own
+    // file and the English-only one from English.
+    await loadStrings(AppLanguage.zhHant);
+    expect(i18n('favorites_title'), '關注');
+    expect(i18n('count_wan'), '萬');
+    expect(i18n('double_click_to_exit'), read('en')['double_click_to_exit']);
+    expect(i18nChinese, isTrue);
+    await loadStrings(AppLanguage.en);
+    expect(i18nChinese, isFalse);
   });
 
   test('the language: the stored choice, else the device, else Chinese', () {
@@ -159,9 +193,30 @@ void main() {
     expect(AppLanguage.resolve(stored: '简体中文', preferred: const [Locale('en', 'US')]), AppLanguage.zh);
     // Never chosen: 3.x's easy_localization followed the device.
     expect(AppLanguage.resolve(stored: null, preferred: const [Locale('en', 'US')]), AppLanguage.en);
-    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('ja'), Locale('zh', 'TW')]), AppLanguage.zh);
-    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('ja')]), AppLanguage.zh);
     expect(AppLanguage.resolve(stored: 'Klingon', preferred: const [Locale('en')]), AppLanguage.en);
+    // 5.4: Taiwan, Hong Kong, Macao and the Hant script read Traditional.
+    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('zh', 'TW')]), AppLanguage.zhHant);
+    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('zh', 'HK')]), AppLanguage.zhHant);
+    expect(
+      AppLanguage.resolve(
+        stored: null,
+        preferred: const [Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')],
+      ),
+      AppLanguage.zhHant,
+    );
+    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('zh', 'CN')]), AppLanguage.zh);
+    expect(AppLanguage.resolve(stored: '繁體中文', preferred: const [Locale('zh')]), AppLanguage.zhHant);
+    expect(AppLanguage.resolve(stored: 'zh_Hant', preferred: const [Locale('en')]), AppLanguage.zhHant);
+    // A language the app does not speak goes on to the next, else Chinese.
+    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('xx'), Locale('zh', 'TW')]), AppLanguage.zhHant);
+    expect(AppLanguage.resolve(stored: null, preferred: const [Locale('xx')]), AppLanguage.zh);
+    // Every language is found by its own name, enum name and file code.
+    for (final language in AppLanguage.values) {
+      expect(AppLanguage.fromName(language.displayName), language);
+      expect(AppLanguage.fromName(language.name), language);
+      expect(AppLanguage.fromName(language.code), language);
+      expect(AppLanguage.ofLocale(language.locale), language);
+    }
   });
 
   test("the shared widgets' words come from 3.x's keys", () async {

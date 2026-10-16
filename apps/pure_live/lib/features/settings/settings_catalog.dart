@@ -461,7 +461,7 @@ List<SettingsEntry> _build() {
       (context, entry) => LanguageTile(entry: entry),
       desc: 'change_language_subtitle',
       settings: [Settings.language],
-      keywords: ['language', '语言', 'English', '中文'],
+      keywords: ['language', '语言', '中文', for (final language in AppLanguage.values) language.displayName],
     )
     // M14.1: the TV interface. The app follows a change at once (it builds
     // the other interface's routes), so no restart is needed.
