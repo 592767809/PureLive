@@ -201,6 +201,19 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
     if (!mounted) return;
     setState(() => _strings = currentStrings = strings);
     DesktopShell.current?.relabel();
+    // i18n() reads a global, not an inherited widget: pages that keep their
+    // state (the home under the settings page) would show the old words
+    // until something else rebuilt them, so every element builds once more.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      void rebuild(Element element) {
+        element
+          ..markNeedsBuild()
+          ..visitChildren(rebuild);
+      }
+
+      (context as Element).visitChildren(rebuild);
+    });
   }
 
   @override

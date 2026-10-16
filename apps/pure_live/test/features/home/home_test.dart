@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -19,6 +20,7 @@ import 'package:pure_live/features/home/menu_button.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/popular/popular_page.dart';
 import 'package:pure_live/features/recorder/recorder_page.dart';
+import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/app_router.dart';
 import 'package:pure_live/routes/route_observer.dart';
@@ -479,6 +481,31 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.tapAt(const Offset(200, 600));
     await tester.pumpAndSettle();
+    await tester.runAsync(services.close);
+  });
+
+  testWidgets('Z05.3: a language picked in the settings reaches the home under them at once, its state kept', (
+    tester,
+  ) async {
+    final services = await _pump(tester, width: 393);
+    final before = tester.state(find.byType(FavoritePage));
+    Finder label(String text) =>
+        find.descendant(of: find.byKey(const ValueKey('home-nav-favorites')), matching: find.text(text));
+    expect(label('关注'), findsOneWidget);
+    unawaited(AppNavigator.toNamed<void>(RoutePath.kSettings));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => services.store.settings.set(Settings.language, AppLanguage.ja.displayName));
+    // The words load from the asset bundle off the test's fake clock.
+    for (var i = 0; i < 20 && currentStrings?.language != AppLanguage.ja; i++) {
+      await tester.pump();
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    }
+    expect(currentStrings?.language, AppLanguage.ja);
+    AppNavigator.back<void>();
+    await tester.pumpAndSettle();
+    expect(label('フォロー'), findsOneWidget);
+    expect(find.textContaining('オンライン'), findsWidgets);
+    expect(tester.state(find.byType(FavoritePage)), same(before));
     await tester.runAsync(services.close);
   });
 
