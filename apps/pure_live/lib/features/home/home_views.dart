@@ -79,37 +79,24 @@ class HomeMobileView extends StatelessWidget {
           GlassMetrics.barMargin,
           safeBottom + GlassMetrics.barMargin,
         ),
-        child: DecoratedBox(
-          // The shadow only floating layers have (UI.md §9.3), soft and close.
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(GlassMetrics.barRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.32 : 0.12),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
+        child: SizedBox(
+          height: GlassMetrics.barHeight,
+          // A01.6: refraction and the drop where the shader runs, frosted
+          // glass elsewhere, a plain tint on a phone with little memory.
+          child: LiquidGlassBar(
+            blur: glassBlur,
+            refraction: glassBlur,
+            selectedIndex: index < 0 ? 0 : index,
+            onSelected: (index) => onSelected(menus[index]),
+            items: [
+              for (final menu in menus)
+                LiquidGlassBarItem(
+                  key: ValueKey('home-nav-${menu.id}'),
+                  icon: menu.icon,
+                  selectedIcon: menu.selectedIcon,
+                  label: i18n(menu.titleKey),
+                ),
             ],
-          ),
-          child: SizedBox(
-            height: GlassMetrics.barHeight,
-            // A01.6: refraction and the drop where the shader runs, frosted
-            // glass elsewhere, a plain tint on a phone with little memory.
-            child: LiquidGlassBar(
-              blur: glassBlur,
-              refraction: glassBlur,
-              selectedIndex: index < 0 ? 0 : index,
-              onSelected: (index) => onSelected(menus[index]),
-              items: [
-                for (final menu in menus)
-                  LiquidGlassBarItem(
-                    key: ValueKey('home-nav-${menu.id}'),
-                    icon: menu.icon,
-                    selectedIcon: menu.selectedIcon,
-                    label: i18n(menu.titleKey),
-                  ),
-              ],
-            ),
           ),
         ),
       ),

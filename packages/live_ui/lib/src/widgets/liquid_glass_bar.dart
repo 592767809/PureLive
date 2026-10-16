@@ -206,25 +206,39 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
           _placed = true;
           _drop.value = _centreOf(widget.selectedIndex);
         }
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onHorizontalDragStart: _onDragStart,
-          onHorizontalDragUpdate: _onDragUpdate,
-          onHorizontalDragEnd: _onDragEnd,
-          child: _LiquidGlass(
-            program: widget.refraction ? _program : null,
-            blur: widget.blur,
-            dark: dark,
-            tint: dark ? scheme.surfaceContainer : scheme.surfaceContainerHighest,
-            dropColor: scheme.primary,
-            moves: moves,
-            drop: _dropRect,
-            child: AnimatedBuilder(
-              animation: _drop,
-              builder: (context, _) => Row(
-                children: [
-                  for (final (index, item) in widget.items.indexed) Expanded(child: _destination(context, index, item)),
-                ],
+        // The shadow only floating layers have (UI.md §9.3), soft and close.
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(GlassMetrics.barRadius),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: dark ? 0.32 : 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onHorizontalDragStart: _onDragStart,
+            onHorizontalDragUpdate: _onDragUpdate,
+            onHorizontalDragEnd: _onDragEnd,
+            child: _LiquidGlass(
+              program: widget.refraction ? _program : null,
+              blur: widget.blur,
+              dark: dark,
+              tint: dark ? scheme.surfaceContainer : scheme.surfaceContainerHighest,
+              dropColor: scheme.primary,
+              moves: moves,
+              drop: _dropRect,
+              child: AnimatedBuilder(
+                animation: _drop,
+                builder: (context, _) => Row(
+                  children: [
+                    for (final (index, item) in widget.items.indexed)
+                      Expanded(child: _destination(context, index, item)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -291,7 +305,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: scheme.onSurface,
-                        fontWeight: chosen ? FontWeight.w600 : FontWeight.w500,
+                        fontWeight: chosen ? FontWeight.w600 : FontWeight.w400,
                         height: 1.2,
                       ),
                     ),
