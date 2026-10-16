@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 214 条；设置 266 个（分节默认 24 条、单独指定 102 个）；来源 35 个；通道 17 个。
+路径规则 214 条；设置 267 个（分节默认 24 条、单独指定 102 个）；来源 35 个；通道 17 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -46,7 +46,7 @@
 | G02 会话和恢复 | 1 |  |  |  |  |
 | G03 起播速度和弱网 | 1 |  |  |  |  |
 | G04 画面 |  | 3 |  |  |  |
-| G05 声音和媒体控制 | 1 | 4 |  |  | 1 |
+| G05 声音和媒体控制 | 1 | 5 |  |  | 1 |
 | H01 录制核心 | 2 | 1 |  |  |  |
 | H02 录制中心 | 6 |  |  |  |  |
 | H03 录制设置和存储 | 4 | 13 |  |  |  |
@@ -264,7 +264,7 @@
 ## G05 声音和媒体控制
 
 - 代码：`apps/pure_live/lib/features/live_play/logic/audio_focus.dart`
-- 设置：`defaultMobileVolume`、`defaultDesktopVolume`、`globalVolumeMute`、`roomVolumes`
+- 设置：`defaultMobileVolume`、`defaultDesktopVolume`、`volumeBoostDb`、`globalVolumeMute`、`roomVolumes`
 - 通道：`pure_live/device_controls`
 
 ## H01 录制核心
