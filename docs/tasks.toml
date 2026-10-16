@@ -4506,13 +4506,14 @@ note = "标签 v5.3.0（e55253f09）；发布页 https://github.com/wzgrx/PureLi
 id = "Y01.11"
 title = "5.4.0 全平台发布（Android、电视、Windows、Linux，构建号 5104）：15 种界面语言、音量增强"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-16"
 size = "中"
 tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
-done = 1
+done = 5
 from = "用户 2026-10-16：gate过了就推送，然后发布5.4.0稳定版本，全平台"
+note = "标签 v5.4.0（36bd9140a）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.4.0 （正式版，六个包和 SHA256SUMS.txt，哈希一致）；两个仓库的更新文件都是 5.4.0、5104；冒烟时修了切换语言后首页不更新（Z05.3）"
 
 [[task]]
 id = "Y02.1"
