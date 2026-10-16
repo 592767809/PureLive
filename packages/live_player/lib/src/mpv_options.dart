@@ -34,6 +34,7 @@ final class MpvEngineConfig {
     this.audioOutputDriver = 'auto',
     this.androidCompatibility = false,
     this.rtxVideoSuperResolution = false,
+    this.volumeGainDb = 0,
   });
 
   /// The platform the defaults are for.
@@ -61,6 +62,15 @@ final class MpvEngineConfig {
 
   /// Windows RTX Video Super Resolution (`enableRtxVsr`).
   final bool rtxVideoSuperResolution;
+
+  /// "音量增强": mpv `volume-gain` in dB on top of the volume (0 to
+  /// [maxVolumeGainDb]; 0 leaves the property alone). mpv adds it to the
+  /// sound before the output, so a stream that already peaks near full scale
+  /// can clip: it is the user's choice, off by default.
+  final int volumeGainDb;
+
+  /// The largest [volumeGainDb] (mpv's own `volume-gain-max` is 12).
+  static const maxVolumeGainDb = 12;
 
   /// Hardware decoders the settings may store per platform (iOS has its own
   /// list; the others share 3.x's `PlayerConsts.hardwareDecoder`).
@@ -153,6 +163,7 @@ final class MpvEngineConfig {
       // Leave a failing hardware decoder after the first failing frame.
       'hwdec-software-fallback': '1',
       'ao': ?audioOutput,
+      if (volumeGainDb > 0) 'volume-gain': '${volumeGainDb.clamp(0, maxVolumeGainDb)}',
       if (platform == MpvPlatform.macos) 'hwdec': 'no',
       if (platform == MpvPlatform.windows && rtxVideoSuperResolution) ...{
         'hwdec': 'd3d11va',

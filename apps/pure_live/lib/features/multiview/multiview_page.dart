@@ -149,6 +149,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     audioOutputDriver: settings.get(Settings.audioOutputDriver),
     androidCompatibility: settings.get(Settings.playerCompatMode),
     rtxVideoSuperResolution: settings.get(Settings.enableRtxVsr),
+    volumeGainDb: settings.get(Settings.volumeBoostDb),
   );
 
   void _onControllerChanged() {

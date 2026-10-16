@@ -718,4 +718,5 @@ MpvEngineConfig musicEngineConfig(SettingsStore settings) => MpvEngineConfig(
   hardwareDecoder: settings.get(Settings.videoHardwareDecoder),
   audioOutputDriver: settings.get(Settings.audioOutputDriver),
   androidCompatibility: settings.get(Settings.playerCompatMode),
+  volumeGainDb: settings.get(Settings.volumeBoostDb),
 );

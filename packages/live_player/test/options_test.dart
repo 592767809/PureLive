@@ -25,6 +25,13 @@ void main() {
     );
   });
 
+  test('wzgrx/pure_live#38: "音量增强" is mpv volume-gain in dB, absent when off, at most 12', () {
+    expect(const MpvEngineConfig().liveProperties.containsKey('volume-gain'), isFalse);
+    expect(const MpvEngineConfig(volumeGainDb: 6).liveProperties['volume-gain'], '6');
+    expect(const MpvEngineConfig(volumeGainDb: 30).liveProperties['volume-gain'], '12');
+    expect(const MpvEngineConfig(volumeGainDb: -3).liveProperties.containsKey('volume-gain'), isFalse);
+  });
+
   test('G03.1: the probe is 1 MiB / 1 s unless the build overrides it', () {
     // No --dart-define in the test run: 1 MiB / 1 s (3.x had 2 MiB / 2 s).
     expect(mpvProbeValues(), (probeSize: '1048576', analyzeDuration: '1'));

@@ -1089,6 +1089,9 @@ abstract final class AppIcons {
   /// The computers' default volume.
   static const IconData settingsDesktopVolume = Remix.volume_up_line;
 
+  /// "音量增强": the sound raised above the stream's own level.
+  static const IconData settingsVolumeBoost = Remix.sound_module_line;
+
   /// The preferred quality.
   static const IconData settingsQuality = Remix.hd_line;
 

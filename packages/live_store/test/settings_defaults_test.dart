@@ -147,6 +147,7 @@ const Map<String, Object> v3Defaults = {
   'danmakuSimilarityMaxCacheSize': 100,
   'defaultMobileVolume': 0.5,
   'defaultDesktopVolume': 1.0,
+  'volumeBoostDb': 0,
   'globalVolumeMute': false,
   'roomVolumes': '{}',
   'room_card_mobile_preset': 'normal',
@@ -383,6 +384,7 @@ const Map<String, (num?, num?)> ranges = {
   'blockLongDanmakuLength': (10, 100), // D02.2
   'defaultMobileVolume': (0, 1),
   'defaultDesktopVolume': (0, 1),
+  'volumeBoostDb': (0, 12),
   'page_default_size': (0, 100), // 0 = by width (J02.1); 3.x 1..100
   'autoRefreshInterval': (5, 360),
   'maxConcurrentRefresh': (1, 20),

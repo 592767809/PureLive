@@ -311,6 +311,12 @@ NOTES: dict[str, dict] = {
         'verdict': '直播间里手机音量固定 1、只有多画面读它，和 3.x 一样（3.x 的适配器在手机上强制 1.0，见 G05 说明）',
     },
     'defaultDesktopVolume': {'v3range': '0～1（同上）'},
+    'volumeBoostDb': {
+        **_new('wzgrx/pure_live#38'),
+        'v3range': '3.x 没有这个设置',
+        'verdict': 'v5.4 新加：mpv `volume-gain`（dB）加在音量之上，0 是关；直播间、多画面、电视和音乐都读它，换了设置下一次开播放器生效',
+        'ui': '单选：关闭、+3、+6、+9、+12 dB',
+    },
     'roomVolumes': {
         'kind': 'same',
         'verdict': '3.x 在 Hive 里存 JSON 字符串 `\'{}\'`，v4 存映射；每个房间的值读出时夹到 0～1（`live_player` 的 `roomVolume`）',

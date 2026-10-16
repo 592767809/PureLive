@@ -451,6 +451,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     audioOutputDriver: settings.get(Settings.audioOutputDriver),
     androidCompatibility: settings.get(Settings.playerCompatMode),
     rtxVideoSuperResolution: settings.get(Settings.enableRtxVsr),
+    volumeGainDb: settings.get(Settings.volumeBoostDb),
   );
 
   /// What decides whether a kept player fits ([PlayerStandby]): every field
@@ -464,6 +465,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     config.audioOutputDriver,
     config.androidCompatibility,
     config.rtxVideoSuperResolution,
+    config.volumeGainDb,
   );
 
   /// Picture-in-picture or the desktop mini window began or ended.

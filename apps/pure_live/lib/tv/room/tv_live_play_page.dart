@@ -42,6 +42,7 @@ MpvEngineConfig tvEngineConfig(SettingsStore settings) => MpvEngineConfig(
   audioOutputDriver: settings.get(Settings.audioOutputDriver),
   androidCompatibility: settings.get(Settings.playerCompatMode),
   rtxVideoSuperResolution: settings.get(Settings.enableRtxVsr),
+  volumeGainDb: settings.get(Settings.volumeBoostDb),
 );
 
 /// The basic TV room (pure_live_TV `LivePlayPage` and `PlayerKeyScope`;

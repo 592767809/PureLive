@@ -3208,6 +3208,17 @@ note = "多画面（可选）没做，等维护者决定；2026-10-15 收尾：�
 from = "docs v2 G 组核对（G05 说明“已知问题”；功能清点补 F-MINI-05）"
 
 [[task]]
+id = "G05.2"
+title = "音量增强：声音比平台 App 小时加几分贝（旧仓库 issue 38）"
+type = "功能"
+status = "完成"
+size = "小"
+tier = 2
+date = "2026-10-16"
+note = "量过：抖音、快手、虎牙、哔哩哔哩的流本身 -11～-23 LUFS；mpv 在增益 0 时输出就是流的电平（Linux 的 libmpv 写 WAV 量：-13.4 LUFS 对流的 -14.1），所以小声是平台 App 自己提高了声音。设置 volumeBoostDb（关闭、+3、+6、+9、+12 dB）走 mpv volume-gain；K90 上读回 12；本来就响的流会削顶（+12 dB 在虎牙上只多 5 LUFS），说明里写了。Android 的 FFmpeg 没有限幅滤镜。绿屏：K90 冷启动进房 3 次录屏没有出现，等反馈人的机型"
+from = "用户 2026-10-16：旧仓库 https://github.com/wzgrx/pure_live/issues/38（音量比原平台小、音质差、首次进房偶尔绿屏）"
+
+[[task]]
 id = "H01.1"
 title = "录制内核"
 type = "功能"

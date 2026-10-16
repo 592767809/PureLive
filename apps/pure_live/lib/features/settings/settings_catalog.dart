@@ -778,6 +778,18 @@ List<SettingsEntry> _build() {
       keywords: ['音量', 'volume'],
       when: _desktop,
     )
+    ..choice<int>(
+      'volume_boost',
+      'volume_boost',
+      Settings.volumeBoostDb,
+      AppIcons.settingsVolumeBoost,
+      () => [
+        for (final db in Settings.volumeBoostSteps)
+          (value: db, label: db == 0 ? i18n('volume_boost_off') : '+$db dB', description: null),
+      ],
+      desc: 'volume_boost_desc',
+      keywords: ['音量', '声音小', '增强', '响度', 'volume', 'boost', 'gain', 'loud'],
+    )
     ..group = 'video_quality_settings'
     ..choice<String>(
       'prefer_resolution',

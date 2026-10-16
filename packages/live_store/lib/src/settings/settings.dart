@@ -879,6 +879,21 @@ abstract final class Settings {
     max: 1,
   );
 
+  /// "音量增强" (issue wzgrx/pure_live#38): extra gain in dB on top of the
+  /// volume, for streams quieter than the platforms' own apps (which raise
+  /// their sound); one of [volumeBoostSteps], 0 is off.
+  static const volumeBoostDb = IntSetting(
+    'volumeBoostDb',
+    section: 'volume',
+    defaultValue: 0,
+    min: 0,
+    max: 12,
+    resetOutOfRange: true,
+  );
+
+  /// The choices of [volumeBoostDb].
+  static const volumeBoostSteps = [0, 3, 6, 9, 12];
+
   /// Mute everything.
   static const globalVolumeMute = BoolSetting('globalVolumeMute', section: 'volume', defaultValue: false);
 
@@ -1979,6 +1994,7 @@ abstract final class Settings {
     youtubeShowAllChat,
     defaultMobileVolume,
     defaultDesktopVolume,
+    volumeBoostDb,
     globalVolumeMute,
     roomVolumes,
     roomCardMobilePreset,
