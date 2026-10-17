@@ -271,6 +271,20 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _states = widget.runtime.session.states.listen((_) => _syncAutoPip());
     OverlayWindow.permitted.addListener(_syncAutoPipLater);
     _frame.addListener(_syncExclusionLater);
+    _settle.addStatusListener(_settleStatus);
+    // The system forgets the excluded strip while the app is away.
+    _lifecycle = AppLifecycleListener(
+      onResume: () {
+        _excluded = null;
+        _syncExclusionLater();
+      },
+    );
+  }
+
+  AppLifecycleListener? _lifecycle;
+
+  void _settleStatus(AnimationStatus status) {
+    if (!_settle.isAnimating) _syncExclusionLater();
   }
 
   /// Whether the user dragged the window: it may then go up to the status
@@ -295,13 +309,10 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
   void _syncExclusion() {
     if (!mounted) return;
     final layout = _layout;
-    final tucked =
-        layout != null &&
-        _dock != null &&
-        !_dragging &&
-        !_settle.isAnimating &&
-        !PictureInPicture.active.value &&
-        !OverlayWindow.active.value;
+    // Kept while a pull out of the side is under way (the system decides
+    // again on later moves on some phones); gone once it settled out.
+    if (_dragging || _settle.isAnimating) return;
+    final tucked = layout != null && _dock != null && !PictureInPicture.active.value && !OverlayWindow.active.value;
     final rect = tucked ? _rect(layout) : null;
     if (rect == _excluded) return;
     _excluded = rect;
@@ -328,6 +339,8 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     }
     OverlayWindow.permitted.removeListener(_syncAutoPipLater);
     _frame.removeListener(_syncExclusionLater);
+    _settle.removeStatusListener(_settleStatus);
+    _lifecycle?.dispose();
     if (_excluded != null) unawaited(SystemGestureExclusion.set(const []));
     _settle.dispose();
     _frame.dispose();
@@ -741,6 +754,7 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
                                 onPanStart: (_) => _dragStart(),
                                 onPanUpdate: (details) => _dragUpdate(details.delta),
                                 onPanEnd: (details) => _dragEnd(details.velocity.pixelsPerSecond),
+                                onPanCancel: () => _dragEnd(Offset.zero),
                               ),
                           ],
                         ),

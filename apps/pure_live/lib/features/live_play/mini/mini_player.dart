@@ -393,6 +393,9 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                     onPanStart: widget.onDragStart,
                     onPanUpdate: widget.onDragUpdate,
                     onPanEnd: widget.onDragEnd,
+                    // The system took the touch (an edge gesture): let go
+                    // where it is.
+                    onPanCancel: () => widget.onDragEnd?.call(DragEndDetails()),
                   )
                 : GestureDetector(
                     key: const ValueKey('mini-surface'),
