@@ -53,6 +53,7 @@ import 'package:pure_live/features/live_play/player/room_swipe.dart';
 import 'package:pure_live/features/live_play/record/record_panel.dart';
 import 'package:pure_live/features/live_play/switch_room/room_switch_panel.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/platform/screen_orientation.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
@@ -212,6 +213,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     super.initState();
     RoomCommands.current.value = _commands;
     DesktopWindow.fullScreen.addListener(_windowFullScreenChanged);
+    OverlayWindow.active.addListener(_overlayShown);
     _swipe = RoomSwipeController(onSwitch: _swipeTo, vsync: this);
     final (room, playlist) = switch (widget.route.arguments) {
       LiveRoomArgs(:final room, :final playlist) => (room, playlist),
@@ -504,6 +506,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   void dispose() {
     if (identical(RoomCommands.current.value, _commands)) RoomCommands.current.value = null;
     DesktopWindow.fullScreen.removeListener(_windowFullScreenChanged);
+    OverlayWindow.active.removeListener(_overlayShown);
     unawaited(RoomBackChannel.instance.release(this));
     unawaited(_autoFullscreen?.cancel());
     unawaited(_shape?.cancel());
@@ -532,12 +535,14 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     final runtime = _runtime;
     if (runtime != null) {
       final floating = FloatingRoom.instance;
-      final float = shouldFloatOnLeave(
-        enabled: _settings.get(Settings.floatPlay),
-        stage: runtime.controller.stage,
-        suppressed: _closingOnPurpose,
-        topRoute: liveRouteObserver.currentRoute.value,
-      );
+      final float =
+          _intoOverlay ||
+          shouldFloatOnLeave(
+            enabled: _settings.get(Settings.floatPlay),
+            stage: runtime.controller.stage,
+            suppressed: _closingOnPurpose,
+            topRoute: liveRouteObserver.currentRoute.value,
+          );
       final standby = _standby;
       if (float && floating.canShow) {
         floating.show(runtime);
@@ -644,6 +649,23 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         (ModalRoute.isCurrentOf(context) ?? true)) {
       setState(() => _display = RoomDisplay.fullscreen);
     }
+  }
+
+  /// Whether the page closes into the app's floating window (A07.25).
+  bool _intoOverlay = false;
+
+  /// The app's floating window over other apps showed while this room was
+  /// on top (A07.25): the room goes on in the in-app floating window, which
+  /// fills it, and this page opens again when the app comes back.
+  void _overlayShown() {
+    if (!mounted || !OverlayWindow.active.value || _intoOverlay) return;
+    final runtime = _runtime;
+    if (!(ModalRoute.isCurrentOf(context) ?? false) || runtime == null || FloatingRoom.instance.runtime != null) {
+      return;
+    }
+    _intoOverlay = true;
+    OverlayWindow.fromRoomPage = runtime.controller.room;
+    AppNavigator.back<void>();
   }
 
   /// Back to the room page.

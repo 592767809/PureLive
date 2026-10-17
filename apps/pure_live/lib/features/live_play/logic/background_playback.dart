@@ -13,6 +13,7 @@ import 'package:live_store/live_store.dart';
 import 'package:pure_live/features/live_play/logic/background_keeper.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/platform/overlay_window.dart';
 
 /// Whether this app may use picture-in-picture (U.2j c9).
 enum PipAvailability {
@@ -986,4 +987,32 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
     unawaited(RoomMediaNotification.hide(this));
     PictureInPicture.unbindPlayback(this);
   }
+}
+
+/// Arms what keeps the room on screen when the app is left (A07.25), as the
+/// user chose ([leaveAppWindow]): the system's picture-in-picture growing out
+/// of [picture] with the picture's [width]:[height], or the app's floating
+/// window at [window] (its place on the screen; without the permission
+/// nothing); only while [playing]. [owner] is the room page or the in-app
+/// floating window.
+Future<void> armLeaveWindow({
+  required LeaveAppWindow choice,
+  required bool playing,
+  required int width,
+  required int height,
+  required Rect window,
+  required double pixelRatio,
+  required Object owner,
+  Rect? picture,
+}) async {
+  final overlay = playing && choice == LeaveAppWindow.overlay && OverlayWindow.permitted.value;
+  await PictureInPicture.setAutoEnter(
+    enabled: playing && choice == LeaveAppWindow.pip,
+    width: width,
+    height: height,
+    picture: picture,
+    pixelRatio: pixelRatio,
+    owner: owner,
+  );
+  await OverlayWindow.arm(enabled: overlay, window: window, pixelRatio: pixelRatio, owner: owner);
 }

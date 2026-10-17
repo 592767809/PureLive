@@ -29,6 +29,7 @@ import 'package:pure_live/features/live_play/logic/room_runtime.dart';
 import 'package:pure_live/features/live_play/mini/floating_window.dart';
 import 'package:pure_live/features/live_play/mini/mini_player.dart';
 import 'package:pure_live/features/live_play/player/player_view.dart';
+import 'package:pure_live/platform/system_gestures.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/app_router.dart';
 import 'package:pure_live/routes/route_args.dart';
@@ -1143,6 +1144,68 @@ void main() {
       await _openRoom(tester);
       await _leaveRoom(tester, app);
       expect(tester.getRect(_window).left, 16);
+      await _close(tester, app);
+    });
+
+    testWidgets('K90 report: full-screen gestures: a tucked window shows past the back strip and is kept out of it', (
+      tester,
+    ) async {
+      final app = await _app(tester);
+      // The system's back gesture takes 30 of each side.
+      tester.view.systemGestureInsets = const FakeViewPadding(left: 30, right: 30);
+      addTearDown(tester.view.resetSystemGestureInsets);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      expect(SystemGestureExclusion.current, isEmpty);
+      var rect = tester.getRect(_window);
+      final drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(-40, 0));
+      await drag.moveBy(const Offset(-600, 0));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      rect = tester.getRect(_window);
+      expect(rect.right, 70, reason: '40 plus the 30 the back gesture takes: a finger can grab it outside');
+      await tester.pump();
+      expect(SystemGestureExclusion.current, [rect], reason: 'pulling it out does not go back');
+      // Brought back: the edge is the back gesture's again.
+      await tester.tapAt(Offset(50, rect.center.dy));
+      await tester.pump();
+      await _settle(tester);
+      await tester.pump();
+      expect(SystemGestureExclusion.current, isEmpty);
+      await _close(tester, app);
+    });
+
+    testWidgets('K90 report: dragged, it goes up to the status bar and down to the gesture bar', (tester) async {
+      final app = await _app(tester);
+      tester.view.padding = const FakeViewPadding(top: 40, bottom: 20);
+      tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 20);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final area = tester.getSize(find.byType(MaterialApp));
+      var rect = tester.getRect(_window);
+      expect(rect.bottom, lessThan(area.height - 20 - 16), reason: 'it first shows above the margins');
+      var drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(0, -40));
+      await drag.moveBy(const Offset(0, -2000));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      expect(tester.getRect(_window).top, 40, reason: 'right under the status bar');
+      rect = tester.getRect(_window);
+      drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(0, 40));
+      await drag.moveBy(const Offset(0, 3000));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      expect(tester.getRect(_window).bottom, area.height - 20, reason: 'right above the gesture bar');
       await _close(tester, app);
     });
 

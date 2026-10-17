@@ -47,6 +47,8 @@ path = [
   { glob = "apps/pure_live/lib/platform/plugins.dart", sub = "I01" },
   { glob = "apps/pure_live/lib/platform/recording_platform.dart", sub = "H01" },
   { glob = "apps/pure_live/lib/platform/secret_cipher.dart", sub = "J02" },
+  { glob = "apps/pure_live/lib/platform/overlay_window.dart", sub = "A07" },
+  { glob = "apps/pure_live/lib/platform/system_gestures.dart", sub = "A07" },
   { glob = "apps/pure_live/lib/platform/share_channel.dart", sub = "O03" },
   { glob = "apps/pure_live/lib/platform/system_*.dart", sub = "O04" },
 
@@ -159,6 +161,7 @@ path = [
 
   # ---- 原生：Android（Kotlin）、Windows、iOS 和 macOS 运行器 ----
   { glob = "apps/pure_live/android/**/MainActivity.kt", sub = "O02", note = "多个通道的宿主，待定" },
+  { glob = "apps/pure_live/android/**/FloatingOverlay.kt", sub = "A07" },
   { glob = "apps/pure_live/android/**/AppChannelsPlugin.kt", sub = "Q03", note = "原生 HTTP、加密、GBK、组播锁，待定" },
   { glob = "apps/pure_live/android/**/Recorder*.kt", sub = "O01" },
   { glob = "apps/pure_live/android/**/LiveAlerts.kt", sub = "O01" },
@@ -298,6 +301,7 @@ channel = [
   { name = "pure_live/device_controls", sub = "G05" },
   { name = "pure_live/clipboard", sub = "O03" },
   { name = "pure_live/finder", sub = "Y02" },
+  { name = "pure_live/overlay", sub = "A07" },
   { name = "pure_live/display_mode", sub = "O05" },
   { name = "pure_live/multicast_lock", sub = "N02" },
   { name = "pure_live/native_http", sub = "Q03" },
@@ -373,6 +377,7 @@ setting = [
   { key = "floatWindowPortraitScale", sub = "C02" },
   { key = "windowsPipAlwaysOnTop", sub = "C02" },
   { key = "autoPipOnLeave", sub = "C02" },
+  { key = "floatOverAppsOnLeave", sub = "C02" },
   { key = "useHardStopOnExit", sub = "C02" },
   { key = "enablePortraitStreamAdaptation", sub = "A07" },
   { key = "portraitAdaptiveHeight", sub = "A07" },

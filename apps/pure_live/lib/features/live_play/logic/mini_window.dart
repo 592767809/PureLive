@@ -23,6 +23,11 @@ enum MiniKind {
   /// The main window shrunk to a mini window (Windows; Linux and macOS with
   /// their desktop shell): the pin and the volume as well.
   desktop,
+
+  /// The app's own floating window over the other apps (A07.25): the in-app
+  /// window's buttons; dragging and the grip move and size the system
+  /// window.
+  overlay,
 }
 
 /// What a mini window shows over the picture (U.2j c8).
@@ -272,6 +277,19 @@ enum MiniDock {
 /// and to grab it.
 const double inAppMiniDockPeek = 40;
 
+/// How much of a window tucked into a side shows where the system's back
+/// gesture takes [gestureInset] of that edge (full-screen gestures): that
+/// much more, so a finger can grab it outside the gesture's strip and pull
+/// it back without going back (the user's K90 report).
+double inAppMiniPeekFor(double gestureInset) => inAppMiniDockPeek + gestureInset;
+
+/// The clearances a window the user moved keeps (the user's K90 report: it
+/// would not go higher or lower): only the status bar above and the
+/// system's gesture bar below; where it first shows keeps the margins and
+/// the home page's bottom bar ([inAppMiniBottomClearance]).
+({double top, double bottom}) inAppMiniReach({required double safeTop, required double safeBottom}) =>
+    (top: safeTop, bottom: safeBottom);
+
 /// The left of a window [width] wide in an [area] [width]-wide, kept
 /// [inAppMiniMargin] from the sides; a window too wide for both margins
 /// (A07.24: as wide as the phone) keeps none.
@@ -294,14 +312,15 @@ Offset inAppMiniOffset({
   required double topClearance,
   Offset? dragged,
   MiniDock? dock,
+  double peek = inAppMiniDockPeek,
 }) {
   final across = _horizontal(area.width, window.width);
   final maxTop = math.max(topClearance, area.height - window.height - bottomClearance);
   final wanted = dragged ?? Offset(across.max, maxTop);
   final top = wanted.dy.clamp(math.min(topClearance, maxTop), maxTop).toDouble();
   return switch (dock) {
-    MiniDock.left => Offset(inAppMiniDockPeek - window.width, top),
-    MiniDock.right => Offset(area.width - inAppMiniDockPeek, top),
+    MiniDock.left => Offset(peek - window.width, top),
+    MiniDock.right => Offset(area.width - peek, top),
     null => Offset(wanted.dx.clamp(across.min, across.max), top),
   };
 }
@@ -316,10 +335,11 @@ Offset inAppMiniDragOffset({
   required Offset wanted,
   required double topClearance,
   required double bottomClearance,
+  double peek = inAppMiniDockPeek,
 }) {
   final maxTop = math.max(topClearance, area.height - window.height - bottomClearance);
-  final left = math.min<double>(inAppMiniDockPeek - window.width, 0);
-  final right = math.max<double>(area.width - inAppMiniDockPeek, 0);
+  final left = math.min<double>(peek - window.width, 0);
+  final right = math.max<double>(area.width - peek, 0);
   return Offset(wanted.dx.clamp(left, right), wanted.dy.clamp(math.min(topClearance, maxTop), maxTop));
 }
 
@@ -338,6 +358,7 @@ const double inAppMiniFlingSeconds = 0.18;
   required Offset velocity,
   required double topClearance,
   required double bottomClearance,
+  double peek = inAppMiniDockPeek,
 }) {
   final carried = window.topLeft + velocity * inAppMiniFlingSeconds;
   final centre = carried.dx + window.width / 2;
@@ -354,6 +375,7 @@ const double inAppMiniFlingSeconds = 0.18;
       topClearance: topClearance,
       dragged: carried,
       dock: dock,
+      peek: peek,
     );
     return (offset: offset, dock: dock);
   }
