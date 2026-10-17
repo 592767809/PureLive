@@ -75,6 +75,7 @@ bool _windows(SettingsEnv env) => env.isWindows;
 
 /// Where the desktop shell runs (title bar, tray, closing, start-up; X02.1).
 bool _desktopShell(SettingsEnv env) => env.isWindows || env.isLinux;
+bool _mac(SettingsEnv env) => env.platform == TargetPlatform.macOS;
 bool _mobile(SettingsEnv env) => env.isMobile;
 bool _desktop(SettingsEnv env) => !env.isMobile;
 bool _refreshRate(SettingsEnv env) => env.hasRefreshRate;
@@ -1580,6 +1581,15 @@ List<SettingsEntry> _build() {
       settings: [Settings.dontAskExit, Settings.exitChoose],
       keywords: ['托盘', '关闭', 'close', '退出', '不再询问'],
       when: _desktopShell,
+    )
+    ..toggle(
+      'menu_bar_icon',
+      'settings_menu_bar_icon',
+      Settings.showMenuBarIcon,
+      AppIcons.settingsMenuBarIcon,
+      desc: 'settings_menu_bar_icon_desc',
+      keywords: ['菜单栏', '托盘', 'menu bar'],
+      when: _mac,
     )
     ..toggle(
       'new_window',

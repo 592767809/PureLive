@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Avviso",
     "settings_log_share": "Esporta / condividi",
+    "settings_menu_bar_icon": "Mostra icona nella barra dei menu",
+    "settings_menu_bar_icon_desc": "Se disattivata, apri la finestra dall’icona nel Dock; registrazione e avvisi continuano.",
     "settings_mpv_option_intro": "Solo le opzioni utilizzabili da questo dispositivo. Si applica con «Driver personalizzati» attivo.",
     "settings_nav_drag": "Trascina per riordinare",
     "settings_nav_footer": "Gli schermi larghi usano lo stesso ordine nella barra di navigazione laterale.",

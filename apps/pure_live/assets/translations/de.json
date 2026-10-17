@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Warnung",
     "settings_log_share": "Exportieren / teilen",
+    "settings_menu_bar_icon": "Symbol in der Menüleiste zeigen",
+    "settings_menu_bar_icon_desc": "Aus: Das Fenster öffnet sich über das Dock-Symbol; Aufnahmen und Live-Hinweise laufen weiter.",
     "settings_mpv_option_intro": "Nur die Optionen, die dieses Gerät nutzen kann. Gilt mit „Benutzerdefinierte Treiber“ an.",
     "settings_nav_drag": "Zum Umsortieren ziehen",
     "settings_nav_footer": "Breite Bildschirme nutzen dieselbe Reihenfolge in der seitlichen Navigationsleiste.",

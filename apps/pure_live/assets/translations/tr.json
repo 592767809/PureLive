@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Bilgi",
     "settings_log_level_warning": "Uyarı",
     "settings_log_share": "Dışa aktar / paylaş",
+    "settings_menu_bar_icon": "Menü çubuğunda simge göster",
+    "settings_menu_bar_icon_desc": "Kapalıyken pencereyi Dock simgesinden açın; kayıt ve yayın bildirimleri sürer.",
     "settings_mpv_option_intro": "Yalnızca bu cihazın kullanabildiği seçenekler. “Özel sürücüler” açıkken uygulanır.",
     "settings_nav_drag": "Yeniden sıralamak için sürükleyin",
     "settings_nav_footer": "Geniş ekranlar yan gezinme çubuğunda aynı sırayı kullanır.",

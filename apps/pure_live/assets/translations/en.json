@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Warning",
     "settings_log_share": "Export / share",
+    "settings_menu_bar_icon": "Show icon in menu bar",
+    "settings_menu_bar_icon_desc": "When off, open the window from the Dock icon; recording and live alerts carry on.",
     "settings_mpv_option_intro": "Only the options this device can use. Applies with \"Custom drivers\" on.",
     "settings_nav_drag": "Drag to reorder",
     "settings_nav_footer": "Wide screens use the same order in the side navigation bar.",

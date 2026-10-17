@@ -337,6 +337,7 @@ setting = [
   { key = "savedMenuIds", sub = "I01" },
   { key = "enableMultiView", sub = "N01" },
   { key = "enableNewWindowPlay", sub = "A16" },
+  { key = "showMenuBarIcon", sub = "A18" },
   { key = "showUnplayableInDiscover", sub = "I02" },
   { key = "detectClipboardRooms", sub = "O03" },
   { key = "douyuForceRenew", sub = "K02" },

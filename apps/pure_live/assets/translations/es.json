@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Información",
     "settings_log_level_warning": "Advertencia",
     "settings_log_share": "Exportar / compartir",
+    "settings_menu_bar_icon": "Mostrar icono en la barra de menús",
+    "settings_menu_bar_icon_desc": "Si está desactivado, abre la ventana desde el icono del Dock; la grabación y los avisos siguen.",
     "settings_mpv_option_intro": "Solo las opciones que este dispositivo puede usar. Se aplica con «Controladores personalizados» activado.",
     "settings_nav_drag": "Arrastra para reordenar",
     "settings_nav_footer": "Las pantallas anchas usan el mismo orden en la barra de navegación lateral.",

@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Peringatan",
     "settings_log_share": "Ekspor / bagikan",
+    "settings_menu_bar_icon": "Tampilkan ikon di bar menu",
+    "settings_menu_bar_icon_desc": "Jika mati, buka jendela dari ikon Dock; perekaman dan pemberitahuan siaran tetap berjalan.",
     "settings_mpv_option_intro": "Hanya opsi yang bisa dipakai perangkat ini. Berlaku saat \"Driver kustom\" aktif.",
     "settings_nav_drag": "Seret untuk mengurutkan",
     "settings_nav_footer": "Layar lebar memakai urutan yang sama di bilah navigasi samping.",

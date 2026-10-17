@@ -118,6 +118,10 @@ abstract final class Settings {
   /// "Open in new window" entry (Windows).
   static const enableNewWindowPlay = BoolSetting('enableNewWindowPlay', section: 'app', defaultValue: true);
 
+  /// New (docs/A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计 c7, K2): the Mac's menu bar icon;
+  /// off leaves the Dock icon, recording goes on.
+  static const showMenuBarIcon = BoolSetting('showMenuBarIcon', section: 'app', defaultValue: true);
+
   /// New (unified rule "受限……"): discovery pages hide rooms that cannot
   /// be played; on shows them. Follows and search always show them.
   static const showUnplayableInDiscover = BoolSetting('showUnplayableInDiscover', section: 'app', defaultValue: false);
@@ -1878,6 +1882,7 @@ abstract final class Settings {
     savedMenuIds,
     enableMultiView,
     enableNewWindowPlay,
+    showMenuBarIcon,
     showUnplayableInDiscover,
     detectClipboardRooms,
     douyuForceRenew,

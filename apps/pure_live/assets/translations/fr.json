@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Avertissement",
     "settings_log_share": "Exporter / partager",
+    "settings_menu_bar_icon": "Afficher l’icône dans la barre des menus",
+    "settings_menu_bar_icon_desc": "Désactivé, la fenêtre s’ouvre depuis l’icône du Dock ; l’enregistrement et les alertes continuent.",
     "settings_mpv_option_intro": "Seulement les options utilisables sur cet appareil. S’applique avec « Pilotes personnalisés » activé.",
     "settings_nav_drag": "Glisser pour réordonner",
     "settings_nav_footer": "Les écrans larges utilisent le même ordre dans la barre de navigation latérale.",

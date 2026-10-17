@@ -361,26 +361,39 @@ final class DesktopShell with WindowListener {
     liveRouteObserver.topPage.addListener(_retitle);
     if (_dataRoot case final root?) _shared = SharedDataWatch(_store, root)..start();
     if (primary) {
-      try {
-        _tray = DesktopTray.create(
-          onShow: show,
-          onHide: windowManager.hide,
-          onExit: _closer.exitFromTray,
-          mac: mac,
-          onRecordCenter: () async {
-            await show();
-            AppCommand.record.run();
-          },
-        )..setRecording(_activeRecordings);
-      } on Object catch (error, stack) {
-        // Without a tray, "minimize" minimizes to the taskbar (c7).
-        log('Tray failed', name: 'Desktop', error: error, stackTrace: stack);
-      }
+      // The Mac's menu bar icon can be turned off (A18.2 c7, K2).
+      if (!mac || _prefs.get(Settings.showMenuBarIcon)) _showTray();
       _settings = _prefs.changes.listen((setting) {
-        if (setting.key != Settings.enableStartUp.key) return;
-        unawaited(_applyStartup());
+        if (setting.key == Settings.enableStartUp.key) unawaited(_applyStartup());
+        if (mac && setting.key == Settings.showMenuBarIcon.key) {
+          if (_prefs.get(Settings.showMenuBarIcon)) {
+            _showTray();
+          } else {
+            _tray?.dispose();
+            _tray = null;
+          }
+        }
       });
       if (isReleaseBuild) unawaited(_applyStartup());
+    }
+  }
+
+  void _showTray() {
+    if (_tray != null) return;
+    try {
+      _tray = DesktopTray.create(
+        onShow: show,
+        onHide: windowManager.hide,
+        onExit: _closer.exitFromTray,
+        mac: DesktopWindow.macStyle,
+        onRecordCenter: () async {
+          await show();
+          AppCommand.record.run();
+        },
+      )..setRecording(_activeRecordings);
+    } on Object catch (error, stack) {
+      // Without a tray, "minimize" minimizes to the taskbar (c7).
+      log('Tray failed', name: 'Desktop', error: error, stackTrace: stack);
     }
   }
 

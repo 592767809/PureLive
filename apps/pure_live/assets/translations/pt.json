@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Aviso",
     "settings_log_share": "Exportar / compartilhar",
+    "settings_menu_bar_icon": "Mostrar ícone na barra de menus",
+    "settings_menu_bar_icon_desc": "Desligado, abra a janela pelo ícone do Dock; a gravação e os alertas continuam.",
     "settings_mpv_option_intro": "Só as opções que este dispositivo pode usar. Vale com \"Drivers personalizados\" ligado.",
     "settings_nav_drag": "Arraste para reordenar",
     "settings_nav_footer": "Telas largas usam a mesma ordem na barra de navegação lateral.",

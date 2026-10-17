@@ -2430,6 +2430,8 @@
     "settings_log_level_info": "資訊",
     "settings_log_level_warning": "警告",
     "settings_log_share": "匯出/分享",
+    "settings_menu_bar_icon": "在選單欄顯示圖示",
+    "settings_menu_bar_icon_desc": "關掉後用程式塢圖示開啟視窗；錄製和開播提醒照常。",
     "settings_mpv_option_intro": "只列出這臺裝置能用的選項。開啟“自定義驅動與硬體加速”後才生效。",
     "settings_nav_drag": "拖動排序",
     "settings_nav_footer": "寬屏時同樣的順序用在左側的導航欄。",

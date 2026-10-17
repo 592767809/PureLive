@@ -2431,6 +2431,8 @@
     "settings_log_level_info": "ข้อมูล",
     "settings_log_level_warning": "คำเตือน",
     "settings_log_share": "ส่งออก / แชร์",
+    "settings_menu_bar_icon": "แสดงไอคอนในแถบเมนู",
+    "settings_menu_bar_icon_desc": "เมื่อปิด ให้เปิดหน้าต่างจากไอคอนใน Dock การบันทึกและการแจ้งเตือนไลฟ์ยังทำงานต่อ",
     "settings_mpv_option_intro": "เฉพาะตัวเลือกที่อุปกรณ์นี้ใช้ได้ มีผลเมื่อเปิด \"ไดรเวอร์กำหนดเอง\"",
     "settings_nav_drag": "ลากเพื่อจัดลำดับ",
     "settings_nav_footer": "หน้าจอกว้างใช้ลำดับเดียวกันในแถบนำทางด้านข้าง",

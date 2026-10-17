@@ -514,6 +514,12 @@ void main() {
       expect(ids(android), isNot(contains('page_size_selector')));
       expect(ids(windows), containsAll(['rtx_vsr', 'pip_on_top', 'desktop_volume', 'new_window', 'page_goto']));
       expect(ids(ios), isNot(contains('dynamic_color')));
+      // A18.2 c6, c7: a Mac has its menu bar icon switch, no close question,
+      // no new windows; the others have no menu bar icon switch.
+      const mac = SettingsEnv(platform: TargetPlatform.macOS);
+      expect(ids(mac), contains('menu_bar_icon'));
+      expect(ids(mac), isNot(anyOf(contains('close_window'), contains('new_window'))));
+      expect(ids(windows), isNot(contains('menu_bar_icon')));
       // Ids are unique; the platform accounts row is named "平台账号" (U.10a K1).
       expect(settingsCatalog.map((entry) => entry.id).toSet(), hasLength(settingsCatalog.length));
       expect(settingsCatalog.firstWhere((entry) => entry.id == 'accounts').titleText, '平台账号');

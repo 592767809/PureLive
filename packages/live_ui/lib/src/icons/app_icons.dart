@@ -799,6 +799,9 @@ abstract final class AppIcons {
   /// Appearance (3.x "主题定制").
   static const IconData settingsAppearance = Remix.palette_line;
 
+  /// The Mac's menu bar icon on or off (A18.2 c7).
+  static const IconData settingsMenuBarIcon = Remix.layout_top_2_line;
+
   /// The bottom navigation bar's pages.
   static const IconData settingsNavigation = Remix.menu_line;
 

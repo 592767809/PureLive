@@ -27,6 +27,7 @@ const Map<String, Object> v3Defaults = {
   'savedMenuIds': ['favorites', 'popular', 'areas', 'record'],
   'enableMultiView': true,
   'enableNewWindowPlay': true,
+  'showMenuBarIcon': true,
   'hotAreasList': [
     'bilibili',
     'douyu',
