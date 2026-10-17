@@ -199,9 +199,12 @@ enum MiniGripCorner {
   bottomRight,
 }
 
-/// The grip's corner for a floating [window] in an [area]: the bottom one
-/// towards the middle, so pulling it outwards has room to grow (a grip at
-/// the corner the window sits in has none: 16 from the edge).
+/// Which way the floating [window]'s grip grows it in an [area]: towards
+/// the middle, where there is room (a window against the right edge grows
+/// leftwards). The grip itself always sits at the bottom right, the
+/// danmaku and picture-in-picture buttons at the bottom left (the user,
+/// 2026-10-17: they swapped sides as the window crossed the middle); its
+/// arrow shows the way.
 MiniGripCorner inAppMiniGripCorner({required Rect window, required Size area}) =>
     window.center.dx > area.width / 2 ? MiniGripCorner.bottomLeft : MiniGripCorner.bottomRight;
 

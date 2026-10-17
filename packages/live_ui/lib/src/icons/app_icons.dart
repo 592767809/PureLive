@@ -1173,6 +1173,12 @@ abstract final class AppIcons {
   /// Picture-in-picture on leaving the app.
   static const IconData settingsAutoPip = Icons.picture_in_picture_alt_rounded;
 
+  /// The mini window uses the system's picture-in-picture (A07.25).
+  static const IconData settingsSystemPip = Remix.picture_in_picture_2_line;
+
+  /// "显示在其他应用的上层" for the app's floating window (A07.25).
+  static const IconData settingsOverlayPermission = Remix.stack_line;
+
   /// How big the in-app floating window is (A07.22).
   static const IconData settingsMiniSize = Icons.photo_size_select_large_rounded;
 

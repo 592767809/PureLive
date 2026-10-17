@@ -386,15 +386,18 @@ abstract final class Settings {
   /// Windows PiP on top.
   static const windowsPipAlwaysOnTop = BoolSetting('windowsPipAlwaysOnTop', section: 'player', defaultValue: false);
 
-  /// Leaving the app from a playing room enters picture-in-picture (U.2j,
-  /// choice J1). New in v4, off by default; 3.x only had the button.
+  /// Leaving the app from a playing room goes into the mini window by itself
+  /// (U.2j, choice J1): the app's floating window, or the system's
+  /// picture-in-picture with [useSystemPip] (A07.25; before, always the
+  /// picture-in-picture). New in v4, off by default; 3.x only had the button.
   static const autoPipOnLeave = BoolSetting('autoPipOnLeave', section: 'player', defaultValue: false);
 
-  /// New (A07.25): leaving the app keeps the room in the app's own floating
-  /// window over the other apps ("显示在其他应用的上层"), instead of the
-  /// system's picture-in-picture; it wins over [autoPipOnLeave]. Off by
-  /// default, as before.
-  static const floatOverAppsOnLeave = BoolSetting('floatOverAppsOnLeave', section: 'player', defaultValue: false);
+  /// New (A07.25, D-042): the mini window button and [autoPipOnLeave] use the
+  /// system's picture-in-picture instead of the app's floating window over
+  /// other apps ("显示在其他应用的上层"). Off by default: the floating window;
+  /// a user who had [autoPipOnLeave] on keeps the picture-in-picture (set
+  /// once at start, `keepPictureInPicture`).
+  static const useSystemPip = BoolSetting('useSystemPip', section: 'player', defaultValue: false);
 
   /// NVIDIA RTX video super resolution.
   static const enableRtxVsr = BoolSetting('enableRtxVsr', section: 'player', defaultValue: false);
@@ -1933,7 +1936,7 @@ abstract final class Settings {
     floatWindowPortraitScale,
     windowsPipAlwaysOnTop,
     autoPipOnLeave,
-    floatOverAppsOnLeave,
+    useSystemPip,
     enableRtxVsr,
     useHardStopOnExit,
     enablePortraitStreamAdaptation,

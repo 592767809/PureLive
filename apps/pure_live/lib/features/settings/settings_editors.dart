@@ -1046,12 +1046,10 @@ class StartupTile extends ConsumerWidget {
   }
 }
 
-/// "离开应用后" (A07.25): what keeps a playing room on screen when the app is
-/// left — nothing, the system's picture-in-picture, or the app's own floating
-/// window over the other apps (Android; it needs "显示在其他应用的上层", which
-/// the row says and the dialog opens). Two settings behind it
-/// ([leaveAppWindow]); iPhones and iPads offer nothing else yet.
-class LeaveAppWindowTile extends ConsumerWidget {
+/// "悬浮窗权限" (A07.25): whether "显示在其他应用的上层" is given for the app's
+/// floating window, looked at again on every return; a tap opens the
+/// system's page for it (the user turns it on or off there).
+class OverlayPermissionTile extends StatelessWidget {
   /// Creates the row.
   const new({required this.entry, super.key});
 
@@ -1059,61 +1057,15 @@ class LeaveAppWindowTile extends ConsumerWidget {
   final SettingsEntry entry;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(storeProvider).settings;
-    watchSetting(ref, Settings.autoPipOnLeave);
-    watchSetting(ref, Settings.floatOverAppsOnLeave);
-    final android = defaultTargetPlatform == TargetPlatform.android;
-    final options = <SettingsChoice<LeaveAppWindow>>[
-      (
-        value: LeaveAppWindow.none,
-        label: i18n('leave_app_window_none'),
-        description: i18n('leave_app_window_none_desc'),
-      ),
-      (value: LeaveAppWindow.pip, label: i18n('leave_app_window_pip'), description: i18n('leave_app_window_pip_desc')),
-      if (android)
-        (
-          value: LeaveAppWindow.overlay,
-          label: i18n('leave_app_window_overlay'),
-          description: i18n('leave_app_window_overlay_desc'),
-        ),
-    ];
-    final value = leaveAppWindow(settings);
-    return ValueListenableBuilder<bool>(
-      valueListenable: OverlayWindow.permitted,
-      builder: (context, permitted, _) {
-        final missing = value == LeaveAppWindow.overlay && !permitted;
-        return SettingsLinkRow(
-          key: entry.rowKey,
-          icon: AppIcons.settingsAutoPip,
-          title: entry.titleText,
-          choice: true,
-          subtitle: missing ? i18n('overlay_permission_needed') : entry.descriptionText,
-          value: options.where((option) => option.value == value).firstOrNull?.label ?? '',
-          onTap: () async {
-            final picked = await showChoiceDialog<LeaveAppWindow>(
-              context: context,
-              title: entry.titleText,
-              options: options,
-              selected: value,
-              action: missing
-                  ? (
-                      label: i18n('overlay_permission_open'),
-                      onPressed: () => unawaited(OverlayWindow.openSettings()),
-                      key: const ValueKey('overlay-permission-open'),
-                    )
-                  : null,
-            );
-            if (picked == null || !context.mounted) return;
-            await setLeaveAppWindow(settings, picked);
-            // The floating window needs the permission first.
-            if (picked == LeaveAppWindow.overlay && !await OverlayWindow.refresh()) {
-              AppNavigator.toast(i18n('overlay_permission_needed'));
-              await OverlayWindow.openSettings();
-            }
-          },
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: OverlayWindow.permitted,
+    builder: (context, permitted, _) => SettingsLinkRow(
+      key: entry.rowKey,
+      icon: AppIcons.settingsOverlayPermission,
+      title: entry.titleText,
+      subtitle: entry.descriptionText,
+      value: i18n(permitted ? 'overlay_permission_on' : 'overlay_permission_off'),
+      onTap: () => unawaited(OverlayWindow.openSettings()),
+    ),
+  );
 }

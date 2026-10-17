@@ -180,7 +180,7 @@
 ## C02 小窗、画中画、后台播放
 
 - 代码：`apps/pure_live/lib/features/live_play/logic/background_playback.dart`、`apps/pure_live/lib/features/live_play/logic/mini_window.dart`、`apps/pure_live/lib/features/live_play/mini/room_mini_window.dart`
-- 设置：`enableBackgroundPlay`、`floatPlay`、`floatWindowSize`、`floatWindowLandscapeScale`、`floatWindowPortraitScale`、`windowsPipAlwaysOnTop`、`autoPipOnLeave`、`floatOverAppsOnLeave`、`useHardStopOnExit`
+- 设置：`enableBackgroundPlay`、`floatPlay`、`floatWindowSize`、`floatWindowLandscapeScale`、`floatWindowPortraitScale`、`windowsPipAlwaysOnTop`、`autoPipOnLeave`、`useSystemPip`、`useHardStopOnExit`
 - 通道：`pure_live/background_playback`
 
 ## C03 直播间工具

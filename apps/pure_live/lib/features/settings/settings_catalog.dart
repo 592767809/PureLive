@@ -935,14 +935,31 @@ List<SettingsEntry> _build() {
       settings: [Settings.floatWindowSize, Settings.floatWindowLandscapeScale, Settings.floatWindowPortraitScale],
       keywords: ['小窗', '大小', '尺寸', '悬浮窗', '画中画'],
     )
-    ..add(
+    ..toggle(
       'auto_pip',
-      'leave_app_window',
-      (context, entry) => LeaveAppWindowTile(entry: entry),
-      desc: 'leave_app_window_desc',
-      settings: [Settings.autoPipOnLeave, Settings.floatOverAppsOnLeave],
-      keywords: ['画中画', '小窗', '悬浮窗', '其他应用的上层', 'PiP'],
+      'auto_mini_on_leave',
+      Settings.autoPipOnLeave,
+      AppIcons.settingsAutoPip,
+      desc: 'auto_mini_on_leave_desc',
+      keywords: ['画中画', '小窗', '悬浮窗', 'PiP'],
       when: _mobile,
+    )
+    ..toggle(
+      'system_pip',
+      'use_system_pip',
+      Settings.useSystemPip,
+      AppIcons.settingsSystemPip,
+      desc: 'use_system_pip_desc',
+      keywords: ['画中画', '小窗', '悬浮窗', 'PiP'],
+      when: _android,
+    )
+    ..add(
+      'overlay_permission',
+      'overlay_permission',
+      (context, entry) => OverlayPermissionTile(entry: entry),
+      desc: 'overlay_permission_desc',
+      keywords: ['悬浮窗', '权限', '其他应用的上层'],
+      when: _android,
     )
     ..add(
       'pip_on_top',
