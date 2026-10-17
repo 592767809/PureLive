@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:ui' show AppExitResponse;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
@@ -46,6 +48,12 @@ abstract interface class WindowControls {
 /// desktop shell (phones, tests) only [fullScreen] changes and there is no
 /// mini window and no new window.
 abstract final class DesktopWindow {
+  /// Whether the window has the Mac's title row and closing
+  /// (docs/A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计): the system's three buttons instead of
+  /// [DesktopTitleBar]'s, and the red button only hides the window. Tests
+  /// set `debugDefaultTargetPlatformOverride`.
+  static bool get macStyle => defaultTargetPlatform == TargetPlatform.macOS;
+
   /// Whether the window fills the screen; the title bar hides meanwhile
   /// (3.x `GlobalPlayerState.isWindowFullscreen`).
   static final ValueNotifier<bool> fullScreen = ValueNotifier(false);
@@ -245,15 +253,18 @@ final class DesktopShell with WindowListener {
   StreamSubscription<int>? _recordings;
   int _activeRecordings = 0;
   String? _title;
+  AppLifecycleListener? _exitListener;
+  bool _quitting = false;
 
   /// The shell of this window; null before [start] and where it does not
   /// run.
   static DesktopShell? current;
 
-  /// Whether the shell runs here: Windows and Linux (X02.1; macOS is not
-  /// built). Everything else checks [current] and the window's abilities,
-  /// not the platform, so Linux gets the same title bar, tray and closing.
-  static bool get supported => Platform.isWindows || Platform.isLinux;
+  /// Whether the shell runs here: Windows, Linux (X02.1) and macOS (A18.2).
+  /// Everything else checks [current] and the window's abilities, not the
+  /// platform, so Linux gets the same title bar, tray and closing; macOS
+  /// differs only where [DesktopWindow.macStyle] says.
+  static bool get supported => Platform.isWindows || Platform.isLinux || Platform.isMacOS;
 
   /// Smallest window (UI_PLAN §5.3, U.13 c6; 3.x 400 × 300): it falls to
   /// the phone layout.
@@ -316,8 +327,13 @@ final class DesktopShell with WindowListener {
     DesktopWindow._setFullScreen = ({required on}) => windowManager.setFullScreen(on);
     DesktopWindow.controls = const _WindowManagerControls();
     DesktopWindow.miniHost = _mini = WindowManagerMiniHost(_prefs, normalMinimum: minimumSize);
-    DesktopWindow.resizeArea = (child) => DragToResizeArea(child: child);
-    DesktopWindow.newWindowLauncher = startWindowProcess;
+    final mac = DesktopWindow.macStyle;
+    // The Mac's window edges resize by themselves; a second app process is
+    // not how a Mac opens windows (A18.2 offers none).
+    if (!mac) {
+      DesktopWindow.resizeArea = (child) => DragToResizeArea(child: child);
+      DesktopWindow.newWindowLauncher = startWindowProcess;
+    }
     _closer = WindowCloser(
       settings: _prefs,
       primary: primary,
@@ -326,10 +342,13 @@ final class DesktopShell with WindowListener {
       ask: _ask,
       hide: windowManager.hide,
       minimize: windowManager.minimize,
-      exit: exit,
+      // macOS quits through the system (⌘Q's path), which asks [_exitRequested].
+      exit: mac ? windowManager.destroy : exit,
       show: show,
       failed: () => AppNavigator.toast(i18n('window_close_action_failed')),
+      hideOnClose: mac,
     );
+    if (mac) _exitListener = AppLifecycleListener(onExitRequested: _exitRequested);
     final recording = _recording;
     if (recording != null) {
       _activeRecordings = recording.activeCount;
@@ -403,6 +422,30 @@ final class DesktopShell with WindowListener {
   /// Closes this window's app: stops its recordings (what was recorded is
   /// kept), saves the window and leaves (3.x `exitDesktopApplication`).
   Future<void> exit() async {
+    await _beforeExit();
+    await windowManager.setPreventClose(false);
+    await windowManager.destroy();
+  }
+
+  /// macOS is asked to quit (⌘Q, the Dock's or the menu bar icon's "退出",
+  /// A18.2 c6): while recording it asks first; then the same as [exit]
+  /// before the system ends the app.
+  Future<AppExitResponse> _exitRequested() async {
+    if (_quitting) return AppExitResponse.exit;
+    final count = _activeRecordings;
+    if (count > 0) {
+      await show();
+      final context = AppNavigator.navigatorContext;
+      if (context != null && context.mounted && !await showQuitWhileRecordingDialog(context, recording: count)) {
+        return AppExitResponse.cancel;
+      }
+    }
+    _quitting = true;
+    await _beforeExit();
+    return AppExitResponse.exit;
+  }
+
+  Future<void> _beforeExit() async {
     await _saveGeometry();
     try {
       await _recording?.dispose().timeout(const Duration(seconds: 3));
@@ -414,8 +457,6 @@ final class DesktopShell with WindowListener {
     if (!primary) await _forget(recorderTasksKeyFor(_instanceId));
     _tray?.dispose();
     _tray = null;
-    await windowManager.setPreventClose(false);
-    await windowManager.destroy();
   }
 
   Future<void> _forget(String key) async {
@@ -544,6 +585,7 @@ final class DesktopShell with WindowListener {
   /// Stops listening (tests, shutdown).
   Future<void> dispose() async {
     windowManager.removeListener(this);
+    _exitListener?.dispose();
     liveRouteObserver.topPage.removeListener(_retitle);
     _saveTimer?.cancel();
     await _settings?.cancel();

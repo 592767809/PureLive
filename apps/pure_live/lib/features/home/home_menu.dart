@@ -92,4 +92,8 @@ abstract final class HomeSignals {
 
   /// How long the app must have been away before a resume refreshes.
   static const Duration resumeRefreshAfter = Duration(seconds: 15);
+
+  /// A destination asked for from outside the home (the Mac's ⌘1–⌘4 and
+  /// "显示" menu, A18.2 c4); the count makes a repeat a change.
+  static final ValueNotifier<(HomeMenu, int)?> select = ValueNotifier(null);
 }

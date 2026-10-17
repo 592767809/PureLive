@@ -9,7 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
+import 'package:pure_live/app/desktop/mac_menu_bar.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/fonts.dart';
 import 'package:pure_live/app/image_cache.dart';
@@ -317,6 +319,10 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
               result = AdaptiveRefreshRateScope(controller: _refreshRate, mode: refreshMode, child: result);
             }
             Widget framed = DesktopFrame(enabled: DesktopShell.current != null, child: result);
+            // The Mac's menu bar with the ⌘ keys (A18.2 c4), the iPad's ⌘
+            // keys (A18.1 c10).
+            if (DesktopShell.current != null) framed = MacMenuBar(child: framed);
+            framed = AppCommandShortcuts(child: framed);
             if (tv) framed = TvAppFrame(child: framed);
             return LiveUiScope(
               config: uiConfig,

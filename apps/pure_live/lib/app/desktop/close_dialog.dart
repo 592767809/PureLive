@@ -58,6 +58,7 @@ final class WindowCloser {
     required this.exit,
     required this.show,
     required this.failed,
+    this.hideOnClose = false,
   });
 
   /// The settings with the remembered answer.
@@ -90,6 +91,12 @@ final class WindowCloser {
   /// The window refused (3.x "窗口操作失败，请重试").
   final void Function() failed;
 
+  /// macOS (docs/A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计 c6): the red button and ⌘W only hide
+  /// the window, the app stays in the Dock and keeps recording; there is no
+  /// close dialog and no "不再询问". The menu bar icon's "退出" goes straight to
+  /// [exit], where quitting asks while recording (the desktop shell).
+  final bool hideOnClose;
+
   Future<void>? _running;
 
   /// The title bar's ✕, Alt+F4 or the system's close; one at a time.
@@ -99,6 +106,15 @@ final class WindowCloser {
   Future<void> exitFromTray() => _running ??= _exitFromTray().whenComplete(() => _running = null);
 
   Future<void> _close() async {
+    if (hideOnClose) {
+      try {
+        await hide();
+      } on Object catch (error, stack) {
+        log('Window hide failed', name: 'Desktop', error: error, stackTrace: stack);
+        failed();
+      }
+      return;
+    }
     final count = recordings();
     if (!primary) {
       if (count == 0) {
@@ -124,6 +140,10 @@ final class WindowCloser {
   }
 
   Future<void> _exitFromTray() async {
+    if (hideOnClose) {
+      await _do(CloseAction.exit);
+      return;
+    }
     final count = recordings();
     if (count == 0) {
       await _do(CloseAction.exit);
@@ -355,3 +375,14 @@ class _RecordingNote extends StatelessWidget {
     );
   }
 }
+
+/// Asks "要退出纯粹直播吗？" while [recording] rooms record (macOS ⌘Q, the
+/// Dock's or the menu bar icon's "退出"; A18.2 c6); true to quit.
+Future<bool> showQuitWhileRecordingDialog(BuildContext context, {required int recording}) => showAppConfirmDialog(
+  context: context,
+  title: i18n('quit_app_question'),
+  message: '${i18n('recording_rooms_count', args: {'count': '$recording'})}\n${i18n('window_close_recording_desc')}',
+  confirmLabel: i18n('exit_app'),
+  danger: true,
+  confirmKey: const ValueKey('quit-confirm'),
+);

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -368,6 +369,62 @@ void main() {
     });
   });
 
+  group('macOS (A18.2)', () {
+    testWidgets("the system's three buttons over a 28 high row with the name in the middle; nothing drawn (c2)", (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        final controls = await _pumpWindow(tester);
+        expect(find.byType(DesktopTitleBar), findsNothing, reason: 'no drawn minimize, maximize, close');
+        expect(tester.getRect(_key('mac-title-bar')), const Rect.fromLTWH(0, 0, 1280, 28));
+        expect(tester.getTopLeft(find.text('page')).dy, 28, reason: 'the page starts under the row');
+        final name = tester.getRect(find.text('纯粹直播'));
+        expect(name.center.dx, closeTo(640, 1), reason: 'centred like the system title');
+        await tester.drag(_key('mac-title-bar-drag'), const Offset(30, 0));
+        await tester.pumpAndSettle();
+        final drag = _key('mac-title-bar-drag');
+        await tester.tap(drag);
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.tap(drag);
+        await tester.pumpAndSettle();
+        expect(controls.calls, ['drag', 'maximize'], reason: 'dragging moves the window, a double click zooms it');
+
+        DesktopWindow.fullScreen.value = true;
+        await tester.pump();
+        expect(_key('mac-title-bar'), findsNothing, reason: 'the full screen space has the system bar');
+        DesktopWindow.fullScreen.value = false;
+        await tester.pump();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
+    testWidgets('quitting while recording: "要退出纯粹直播吗？", the count and what is kept; red "退出应用" (c6)', (tester) async {
+      final answer = Completer<bool>();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: const LiveTheme(primaryColor: _seed).light,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async => answer.complete(await showQuitWhileRecordingDialog(context, recording: 2)),
+                child: const Text('quit'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('quit'));
+      await tester.pumpAndSettle();
+      expect(find.text('要退出纯粹直播吗？'), findsOneWidget);
+      expect(find.text('正在录制 2 个直播间\n退出会停止录制，已经录下的部分会保存。'), findsOneWidget);
+      await tester.tap(_key('quit-confirm'));
+      await tester.pumpAndSettle();
+      expect(await answer.future, isTrue);
+    });
+  });
+
   group('close dialog', () {
     testWidgets('title, question, "不再询问" with the hint; minimize at the left, red exit at the right (c7, c8)', (
       tester,
@@ -474,7 +531,7 @@ void main() {
     var tray = true;
     var refuse = false;
 
-    WindowCloser closer({bool primary = true}) => WindowCloser(
+    WindowCloser closer({bool primary = true, bool mac = false}) => WindowCloser(
       settings: store.settings,
       primary: primary,
       hasTray: () => tray,
@@ -491,6 +548,7 @@ void main() {
       },
       show: () async => calls.add('show'),
       failed: () => calls.add('failed'),
+      hideOnClose: mac,
     );
 
     setUp(() async {
@@ -503,6 +561,23 @@ void main() {
       refuse = false;
     });
     tearDown(() => store.close());
+
+    test('macOS: the red button only hides the window, recording or not, never asking (A18.2 c6)', () async {
+      await store.settings.setAll({Settings.dontAskExit: true, Settings.exitChoose: 'exit'});
+      await closer(mac: true).close();
+      recording = 2;
+      tray = false;
+      await closer(mac: true).close();
+      expect(calls, ['hide', 'hide'], reason: 'the app stays in the Dock; ⌘Q quits');
+      expect(asked, isEmpty);
+    });
+
+    test("macOS: the menu bar icon's exit goes to the system's quitting, which asks itself (A18.2 c6)", () async {
+      recording = 1;
+      await closer(mac: true).exitFromTray();
+      expect(calls, ['exit']);
+      expect(asked, isEmpty);
+    });
 
     test('the main window asks, then does and remembers the answer (3.x)', () async {
       reply = (action: CloseAction.minimize, remember: false);

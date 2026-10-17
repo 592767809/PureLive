@@ -1,0 +1,36 @@
+# A18.2 记录
+
+## 2026-10-17
+
+用户：“发布5.4.1，没有苹果设备，继续做macOS和iPad”。没有 Mac 和苹果设备（D-041），验证只有 Dart 测试（`debugDefaultTargetPlatformOverride = TargetPlatform.macOS`）和 GitHub 构建机上的截图、AppleScript 检查。
+
+### 第 1 阶段：前提和“拿不准的地方”
+
+| 条 | 结论 |
+|---|---|
+| 前提 | macOS 工程（X05.1）能在构建机上构建，5.4.1 已发布 DMG；构建机上启动到首页 |
+| 1 菜单本地化 | 菜单改由 Dart 的 `PlatformMenuBar` 生成，文字跟应用的界面语言（15 种）；系统给的项（服务、隐藏、退出、进入全屏幕、窗口菜单）跟系统语言，为此 Info.plist 加了 `CFBundleLocalizations`（15 种）。构建机系统是英文，截图只能看到英文 |
+| 2 窗口按钮的位置 | 方案 A（按钮挪进应用顶上 52～56 高的一行）要移动系统按钮、改标题栏容器的大小，标题栏区域会不会挡住应用的点击只能在真机上看；**先用 K4 的方案 B**：一条和系统一样 28 高的标题行，系统三个按钮在原位，中间是应用名和主播名，拖动移动窗口、双击缩放；全屏和桌面小窗时不显示。方案 A 留到有 Mac 时再核对 |
+| 3 全屏空间里标题栏盖住上栏 | 全屏时不显示标题行（和 Windows 的自绘标题栏一样），系统的标题栏滑下来时盖在页面上面，是系统行为 |
+| 4 菜单栏图标 | 第 4 阶段 |
+| 5 离开全屏空间 | 第 4 阶段 |
+
+### 第 2 阶段：窗口和关闭（c2、c3、c6）
+
+- `DesktopShell.supported` 加上 macOS；`DesktopWindow.macStyle`（按 `defaultTargetPlatform`）决定 Mac 的不同之处，Windows、Linux 不变。
+- c2：`DesktopFrame` 在 Mac 上画 `MacTitleBar`（28 高，系统按钮），不画 `DesktopTitleBar`。
+- c3：没有毛玻璃（4.x 起就没有）。
+- c6：红色按钮和 ⌘W 只隐藏窗口（`WindowCloser.hideOnClose`，没有关闭对话框和“不再询问”），录制照常；`AppDelegate.applicationShouldTerminateAfterLastWindowClosed` 改成 false，点程序坞图标（`applicationShouldHandleReopen`）窗口回来；⌘Q、程序坞“退出”、菜单栏图标“退出”都走系统的退出，Flutter 先问 `AppLifecycleListener.onExitRequested`：录制中弹“要退出纯粹直播吗？正在录制 N 个直播间……”，取消就不退出；退出前保存窗口、停止录制（已录的保留）。窗口在设好大小位置前保持隐藏（`hiddenWindowAtLaunch`）。
+- Mac 上不开新窗口进程（Mac 不这样开窗口），窗口边缘用系统的缩放。
+
+### 第 3 阶段：菜单栏和快捷键（c4、c5）
+
+- `app/commands.dart`：一张命令表 `AppCommand`（⌘, 设置、⌘F 搜索直播、⌘L 链接解析、⌘Y 观看记录、⌘1～⌘4 关注 / 热门 / 分区 / 录制中心、⌘[ 返回），Mac 菜单栏和 iPad 键盘（A18.1 c10）共用；⌘1～⌘4 回到首页再切页（`HomeSignals.select`）。
+- `app/desktop/mac_menu_bar.dart`：纯粹直播（关于纯粹直播、检查更新…、设置… ⌘,、服务、隐藏、隐藏其他、全部显示、退出）、文件（链接解析… ⌘L、多画面、关闭窗口 ⌘W）、编辑（撤销、重做、剪切、拷贝、粘贴、全选：交给输入框的文本操作；搜索直播… ⌘F）、显示（关注 ⌘1 … 观看记录 ⌘Y、返回 ⌘[、进入全屏幕 ⌃⌘F）、播放（播放 / 暂停、刷新 ⌘R、全屏；只有直播间在最上面时可用，`RoomCommands`）、窗口（系统的）、帮助（项目主页、更新日志）。
+- 和设计的差别：菜单里写“观看记录”（应用里的叫法，U.5c Z1），不写“历史记录”；“播放”菜单先放三项，音量、弹幕、清晰度等留到第 4 阶段。
+
+### 测试
+
+- `test/desktop_window_test.dart`：Mac 的标题行（28 高、没有自绘按钮、名字居中、拖动和双击、全屏不显示）；红色按钮只隐藏、录制中也不问；菜单栏图标的“退出”直接走系统退出；退出确认的文字。改之前标题行那条失败。
+- `test/app_commands_test.dart`：菜单的顺序、文字和快捷键；“播放”只在直播间可用；Mac 上菜单交给系统，进直播间后重发；iPad 上 ⌘R 刷新直播间；⌘, 打开设置、⌘[ 返回、⌘2 回首页。
+- 构建机：`apple.yml` 的 macOS 启动步骤加了打开“显示”菜单截图、点红色按钮后应用还在、再打开窗口回来、退出后进程结束（AppleScript，构建机不给权限时只打印“not allowed”）。

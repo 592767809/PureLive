@@ -147,6 +147,61 @@ class DesktopTitleBar extends StatelessWidget {
   }
 }
 
+/// The Mac's title row (docs/A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计 c2): the system's
+/// three window buttons sit at its left (the shell hides only the system's
+/// title), the name with the room's streamer in the middle, the page's
+/// surface under it. Dragging moves the window, a double click zooms it.
+///
+/// It is the design's option B (K4), a row of its own the system's height:
+/// option A, the buttons inside the app's top row, has to move the
+/// system's buttons and was left for a check on a real Mac ("拿不准的地方"
+/// 2; there is no Mac here, D-041).
+class MacTitleBar extends StatelessWidget {
+  /// Creates the row.
+  const new({super.key});
+
+  /// The system's title bar height.
+  static const double height = 28;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final name = TextStyle(fontSize: 13, height: 1.2, fontWeight: FontWeight.w600, color: colors.onSurface);
+    final controls = DesktopWindow.controls;
+    return MediaQuery.withNoTextScaling(
+      child: Material(
+        key: const ValueKey('mac-title-bar'),
+        color: colors.surface,
+        child: GestureDetector(
+          key: const ValueKey('mac-title-bar-drag'),
+          behavior: HitTestBehavior.opaque,
+          onPanStart: (_) => unawaited(controls?.startDragging()),
+          onDoubleTap: () => unawaited(DesktopTitleBar._toggleMaximize(controls)),
+          child: SizedBox(
+            height: height,
+            // Clear of the three buttons on both sides, so the name stays
+            // centred in the window.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 80),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(i18n('app_name'), style: name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  _RoomName(
+                    style: name.copyWith(fontWeight: FontWeight.w400, color: colors.onSurface.withValues(alpha: 0.75)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// "· 晚风" while a room is the page on top (c11).
 class _RoomName extends StatefulWidget {
   const new({required this.style});
@@ -335,7 +390,8 @@ class DesktopFrame extends StatelessWidget {
         listenable: Listenable.merge([DesktopWindow.fullScreen, DesktopWindow.mini]),
         builder: (context, _) => Column(
           children: [
-            if (!DesktopWindow.fullScreen.value && !DesktopWindow.mini.value) const DesktopTitleBar(),
+            if (!DesktopWindow.fullScreen.value && !DesktopWindow.mini.value)
+              if (DesktopWindow.macStyle) const MacTitleBar() else const DesktopTitleBar(),
             Expanded(child: child),
           ],
         ),

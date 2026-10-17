@@ -56,6 +56,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    HomeSignals.select.addListener(_selectAsked);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       // Edge to edge (3.x); the bars' style is the app's SystemBarsScope
@@ -78,9 +79,14 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     );
   }
 
+  void _selectAsked() {
+    if (HomeSignals.select.value case (final menu, _)) _select(menu);
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    HomeSignals.select.removeListener(_selectAsked);
     _resumeTimer?.cancel();
     _updateTimer?.cancel();
     super.dispose();

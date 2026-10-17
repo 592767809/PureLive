@@ -107,7 +107,24 @@ jobs:
           sleep 40
           pgrep -x PureLive >/dev/null || { echo "PureLive stopped"; exit 1; }
           screencapture -x shots/macos.png
+          # A18.2 c4 and c6, as far as a machine without a person can look:
+          # the menu bar, the red button only hides the window, the Dock icon
+          # (opening the app again) brings it back, quitting ends it.
+          ui() { osascript -e "tell application \"System Events\" to tell process \"PureLive\" to $1" || echo "ui: not allowed: $1"; }
+          ui 'click menu bar item 4 of menu bar 1'
+          sleep 1
+          screencapture -x shots/macos-menu.png
+          ui 'key code 53'
+          ui 'click (first button of window 1 whose subrole is "AXCloseButton")'
+          sleep 3
+          if pgrep -x PureLive >/dev/null; then echo "close: still running"; else echo "close: the app ENDED"; fi
+          screencapture -x shots/macos-closed.png
+          open "$app"
+          sleep 4
+          screencapture -x shots/macos-reopened.png
           osascript -e 'quit app "PureLive"' || true
+          sleep 8
+          if pgrep -x PureLive >/dev/null; then echo "quit: still RUNNING"; else echo "quit: ended"; fi
           log show --last 2m --predicate 'process == "PureLive" AND eventMessage CONTAINS[c] "flutter"' --style compact | tail -n 80 || true
           find "$HOME/Library/Containers/com.mystyle.pureLive" -name '*.log' -exec cp {} shots/ \; 2>/dev/null || true
 

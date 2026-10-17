@@ -10,6 +10,7 @@ import 'package:live_core/live_core.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/network.dart';
 import 'package:pure_live/app/services.dart';
@@ -203,9 +204,12 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
 
   RoomPlatform get _platform => RoomPlatform.current();
 
+  late final RoomCommands _commands = _RoomMenu(this);
+
   @override
   void initState() {
     super.initState();
+    RoomCommands.current.value = _commands;
     _swipe = RoomSwipeController(onSwitch: _swipeTo, vsync: this);
     final (room, playlist) = switch (widget.route.arguments) {
       LiveRoomArgs(:final room, :final playlist) => (room, playlist),
@@ -496,6 +500,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
 
   @override
   void dispose() {
+    if (identical(RoomCommands.current.value, _commands)) RoomCommands.current.value = null;
     unawaited(RoomBackChannel.instance.release(this));
     unawaited(_autoFullscreen?.cancel());
     unawaited(_shape?.cancel());
@@ -1516,5 +1521,24 @@ class _ColumnHandle extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// The room's part of the Mac's "播放" menu (A18.2 c4): what space, R and F
+/// do here.
+final class _RoomMenu implements RoomCommands {
+  new(this._state);
+
+  final _LivePlayPageState _state;
+
+  @override
+  Future<void> togglePlay() async => await _state._controller?.session.togglePlayPause();
+
+  @override
+  Future<void> refresh() async => await _state._controller?.load();
+
+  @override
+  void toggleFullScreen() {
+    if (_state.mounted && !(_state._mini?.desktop ?? false)) _state._toggleFullscreen();
   }
 }
