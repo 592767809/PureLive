@@ -23,6 +23,7 @@ import 'package:pure_live/features/live_play/danmaku/message_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/iptv_guide.dart';
 import 'package:pure_live/features/live_play/dialogs/room_dialogs.dart';
 import 'package:pure_live/features/live_play/dialogs/stream_dialogs.dart';
+import 'package:pure_live/features/live_play/layout/edge_swipe_back.dart';
 import 'package:pure_live/features/live_play/layout/portrait_panel.dart';
 import 'package:pure_live/features/live_play/layout/room_details.dart';
 import 'package:pure_live/features/live_play/layout/room_header.dart';
@@ -794,11 +795,16 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         },
         child: Focus(
           autofocus: true,
-          child: _pip
-              ? _player(controller, settings, arrangement: ControlsArrangement.inline)
-              : _display == RoomDisplay.inline
-              ? _buildInline(context, controller, settings)
-              : _buildFullscreen(controller, settings),
+          // iOS's back swipe is off while the room holds its back (A18.1 c3).
+          child: EdgeSwipeBack(
+            enabled: defaultTargetPlatform == TargetPlatform.iOS && !_poppable && !_pip,
+            onBack: _back,
+            child: _pip
+                ? _player(controller, settings, arrangement: ControlsArrangement.inline)
+                : _display == RoomDisplay.inline
+                ? _buildInline(context, controller, settings)
+                : _buildFullscreen(controller, settings),
+          ),
         ),
       ),
     );

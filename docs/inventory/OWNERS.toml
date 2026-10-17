@@ -296,6 +296,7 @@ channel = [
   { name = "pure_live/background_guide", sub = "O01" },
   { name = "pure_live/background_playback", sub = "C02" },
   { name = "pure_live/device_controls", sub = "G05" },
+  { name = "pure_live/clipboard", sub = "O03" },
   { name = "pure_live/display_mode", sub = "O05" },
   { name = "pure_live/multicast_lock", sub = "N02" },
   { name = "pure_live/native_http", sub = "Q03" },

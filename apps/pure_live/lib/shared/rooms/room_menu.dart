@@ -78,7 +78,7 @@ Future<void> showRoomMenu(
     case _Choice.tags:
       await editRoomTags(context, store: store, room: room);
     case _Choice.share:
-      await shareRoom(room);
+      await shareRoom(room, origin: shareOrigin(context));
     case final RoomMenuAction action:
       action.onSelected();
   }
@@ -232,8 +232,9 @@ Future<void> _restore(LiveStore store, LiveRoom room, int index) async {
 
 /// Shares [room]'s share code (3.x `ShareCommandHandler.onShareRoomPressed`):
 /// the system share sheet on phones once the app has one
-/// ([SystemShare.sheet]), else the code is copied.
-Future<bool> shareRoom(LiveRoom room) async {
+/// ([SystemShare.sheet]), else the code is copied. An iPad's sheet points
+/// at [origin] (what was tapped, [shareOrigin]).
+Future<bool> shareRoom(LiveRoom room, {Rect? origin}) async {
   final code = encodeRoomShareCode(room);
   if (code.isEmpty) {
     AppNavigator.toast(i18n('share_failed'));
@@ -244,7 +245,7 @@ Future<bool> shareRoom(LiveRoom room) async {
   OwnClipboardTexts.remember(code);
   try {
     final sheet = SystemShare.sheet;
-    if (sheet != null && (Platform.isAndroid || Platform.isIOS)) return await sheet(code);
+    if (sheet != null && (Platform.isAndroid || Platform.isIOS)) return await sheet(code, origin: origin);
     await Clipboard.setData(ClipboardData(text: code));
     AppNavigator.toast(i18n('copied_to_clipboard'));
     return true;

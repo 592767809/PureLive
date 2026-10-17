@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
@@ -129,6 +130,10 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
 
   bool get _inApp => widget.package != null && widget.sources.isNotEmpty;
 
+  // iOS installs the IPA with AltStore, SideStore or TrollStore, not from the
+  // app: the main button opens the release page (A18.1 c13).
+  Uri? get _releasePage => defaultTargetPlatform == TargetPlatform.iOS ? Uri.tryParse(widget.info.releaseUrl) : null;
+
   void _toggleSkip(bool? value) {
     final skip = value ?? false;
     setState(() => _skip = skip);
@@ -142,6 +147,11 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
 
   void _primary() {
     final navigator = Navigator.of(context);
+    if (_releasePage case final page?) {
+      navigator.pop();
+      unawaited(AppNavigator.openExternal(page));
+      return;
+    }
     if (widget.package case final file? when _inApp) {
       final host = navigator.context;
       navigator.pop();
@@ -193,7 +203,9 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
     final primary = FilledButton(
       key: const ValueKey('new-version-update'),
       onPressed: _primary,
-      child: Text(i18n(_inApp ? 'update_download_install' : 'update')),
+      child: Text(
+        i18n(_releasePage != null ? 'update_go_download_page' : (_inApp ? 'update_download_install' : 'update')),
+      ),
     );
     return DialogButtonsTheme(
       child: DialogKeys(

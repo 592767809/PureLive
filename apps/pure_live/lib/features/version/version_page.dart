@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ffi' show Abi;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -265,7 +266,11 @@ class _Details extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        i18n('version_no_packages'),
+                        // iPhone and iPad: the IPAs are there, installed
+                        // with AltStore, SideStore or TrollStore (A18.1 c13).
+                        i18n(
+                          defaultTargetPlatform == TargetPlatform.iOS ? 'version_ios_packages' : 'version_no_packages',
+                        ),
                         style: context.textStyles.t14.copyWith(color: colors.onSurfaceVariant),
                       ),
                       const SizedBox(height: 12),
@@ -274,7 +279,13 @@ class _Details extends ConsumerWidget {
                         style: OutlinedButton.styleFrom(minimumSize: const Size(48, 48)),
                         onPressed: () => unawaited(_openExternal(release)),
                         icon: const Icon(AppIcons.openExternal, size: 18),
-                        label: Text(i18n('version_history_open_release')),
+                        label: Text(
+                          i18n(
+                            defaultTargetPlatform == TargetPlatform.iOS
+                                ? 'update_go_download_page'
+                                : 'version_history_open_release',
+                          ),
+                        ),
                       ),
                     ],
                   ),

@@ -20,6 +20,7 @@ import 'package:pure_live/platform/background_guide.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
+import 'package:pure_live/shared/rooms/share_code.dart';
 
 /// Where "open in the app" goes: the official page, and on Android the
 /// platform's own app when it has a link for it (3.x `RoomExternalOpener`).
@@ -351,7 +352,8 @@ class RoomMenuButton extends ConsumerWidget {
       case RoomMenuEntry.streamLink:
         showStreamPanel(context, controller, StreamUse.copy);
       case RoomMenuEntry.share:
-        await shareRoom(room);
+        // An iPad's sheet points at the menu button (A18.1 c7).
+        await shareRoom(room, origin: shareOrigin(context));
       case RoomMenuEntry.localInteraction:
         RoomPanelScope.maybeOf(context)?.open(RoomPanelKind.localInteraction);
       case RoomMenuEntry.newWindow:

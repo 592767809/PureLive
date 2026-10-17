@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:android_intent_plus/android_intent.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/misc.dart';
@@ -61,8 +62,21 @@ List<Override> pluginOverrides() => [
 
 /// The system share sheet with [file] (share_plus).
 Future<bool> shareFile(File file) async {
-  await SharePlus.instance.share(ShareParams(files: [XFile(file.path)]));
+  await SharePlus.instance.share(ShareParams(files: [XFile(file.path)], sharePositionOrigin: sheetOrigin(null)));
   return true;
+}
+
+/// Where an iPad's share sheet points (it needs a place, A18.1 c7): [tapped],
+/// else the middle of the window; elsewhere [tapped] as it is.
+Rect? sheetOrigin(Rect? tapped, {TargetPlatform? platform, Size? window}) {
+  if ((platform ?? defaultTargetPlatform) != TargetPlatform.iOS || (tapped != null && !tapped.isEmpty)) return tapped;
+  final size = window ?? _windowSize();
+  return Rect.fromCenter(center: size.center(Offset.zero), width: 1, height: 1);
+}
+
+Size _windowSize() {
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  return view.physicalSize / view.devicePixelRatio;
 }
 
 /// The update download folder (3.x `FileUtils.pickDirectory`).
@@ -96,8 +110,9 @@ Future<bool> openAndroidFolder(String path) async {
 }
 
 /// The system share sheet with [text] (share_plus); true once it was shown.
-Future<bool> shareText(String text) async {
-  await SharePlus.instance.share(ShareParams(text: text));
+/// An iPad's sheet points at [origin] ([sheetOrigin]).
+Future<bool> shareText(String text, {Rect? origin}) async {
+  await SharePlus.instance.share(ShareParams(text: text, sharePositionOrigin: sheetOrigin(origin)));
   return true;
 }
 

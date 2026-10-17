@@ -161,6 +161,46 @@ void main() {
       expect(prompts, hasLength(1));
     });
 
+    test('A18.1 c9: iOS asks before reading new text, and reads only after "识别"', () async {
+      var reads = 0;
+      var stamp = 7;
+      final asked = <int>[];
+      var answer = false;
+      final prompts = <LiveRoom>[];
+      final watcher = ClipboardRoomWatcher(
+        settings: services.store.settings,
+        prompt: (room) async {
+          prompts.add(room);
+          return RoomPromptChoice.dismiss;
+        },
+        open: (_) async {},
+        read: () async {
+          reads++;
+          return encodeRoomShareCode(_douyu);
+        },
+        stamp: () async => stamp,
+        confirm: () async {
+          asked.add(stamp);
+          return answer;
+        },
+      );
+      addTearDown(watcher.dispose);
+      await watcher.check();
+      expect(asked, [7]);
+      expect(reads, 0, reason: 'the hint went away: nothing read, so iOS asked nothing');
+      await watcher.check();
+      expect(asked, [7], reason: 'the same text is not offered again');
+      stamp = 8;
+      answer = true;
+      await watcher.check();
+      expect(asked, [7, 8]);
+      expect(reads, 1);
+      expect(prompts, hasLength(1));
+      stamp = -1;
+      await watcher.check();
+      expect(asked, [7, 8], reason: 'no text: no hint');
+    });
+
     testWidgets('a return to the app looks one second later (3.x)', (tester) async {
       var reads = 0;
       final watcher = ClipboardRoomWatcher(

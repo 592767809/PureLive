@@ -20,6 +20,20 @@ Future<String?> readClipboardText() async {
   }
 }
 
+const MethodChannel _iosClipboard = MethodChannel('pure_live/clipboard');
+
+/// iOS: how often the clipboard changed, -1 without text, null when unknown
+/// — read without reading the text, so iOS shows no "允许粘贴" (A18.1 c9).
+Future<int?> iosClipboardStamp() async {
+  try {
+    return await _iosClipboard.invokeMethod<int>('changeCount');
+  } on PlatformException {
+    return null;
+  } on MissingPluginException {
+    return null;
+  }
+}
+
 /// Looks at the clipboard once the app is up and one second after every
 /// return to the front, and offers the room of a share code found there
 /// (3.x `DesktopWindowMixin._checkShareCommand` with
@@ -30,7 +44,9 @@ Future<String?> readClipboardText() async {
 /// ([OwnClipboardTexts]); "进入房间" opens the room. New: the switch
 /// `detectClipboardRooms` (on); with [stamp] (Android) the clipboard is
 /// read only after it changed, so Android 12+ does not report "pasted from
-/// your clipboard" on every return. One look at a time.
+/// your clipboard" on every return; with [confirm] (iOS) the user is asked
+/// before the new text is read, so iOS asks "允许粘贴" only then. One look
+/// at a time.
 final class ClipboardRoomWatcher {
   /// Creates the watcher.
   new({
@@ -39,6 +55,7 @@ final class ClipboardRoomWatcher {
     required this.open,
     this.read = readClipboardText,
     this.stamp,
+    this.confirm,
     this.resumeDelay = const Duration(seconds: 1),
   });
 
@@ -59,6 +76,10 @@ final class ClipboardRoomWatcher {
 
   /// When the clipboard last changed (-1: empty; null: unknown).
   final Future<int?> Function()? stamp;
+
+  /// Asks whether to read the clipboard's new text (iOS: "剪贴板里有新内容，要识别
+  /// 分享口令吗？[识别]"); true reads it.
+  final Future<bool> Function()? confirm;
 
   /// The wait after the app comes back (3.x: one second, so the window has
   /// the focus Android needs to read the clipboard).
@@ -95,6 +116,7 @@ final class ClipboardRoomWatcher {
         if (changed < 0 || changed == _lastStamp) return;
         _lastStamp = changed;
       }
+      if (confirm case final ask? when !await ask()) return;
       final text = (await read())?.trim() ?? '';
       if (_disposed || text.isEmpty || text.length > maxText || text == _lastOffered) return;
       if (OwnClipboardTexts.contains(text)) return;

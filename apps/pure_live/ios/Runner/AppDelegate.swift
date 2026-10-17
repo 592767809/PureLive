@@ -18,6 +18,19 @@ import UIKit
       FlutterMethodChannel(name: "pure_live/secret_cipher", binaryMessenger: registrar.messenger())
         .setMethodCallHandler(SecretCipher.shared.handle)
     }
+    // Whether the clipboard has new text, without reading it (no "允许粘贴"
+    // prompt; A18.1 c9): the pasteboard's change count, -1 without text.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PureLiveClipboard") {
+      FlutterMethodChannel(name: "pure_live/clipboard", binaryMessenger: registrar.messenger())
+        .setMethodCallHandler { call, result in
+          guard call.method == "changeCount" else {
+            result(FlutterMethodNotImplemented)
+            return
+          }
+          let board = UIPasteboard.general
+          result(board.hasStrings ? board.changeCount : -1)
+        }
+    }
   }
 }
 

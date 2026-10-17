@@ -8,9 +8,11 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
+import 'package:live_ui/live_ui.dart' show AppToast;
 import 'package:pure_live/app/intake/clipboard_rooms.dart';
 import 'package:pure_live/app/intake/share_intake.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/share_channel.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
@@ -41,7 +43,8 @@ abstract final class SystemIntake {
         return await showRoomPrompt(context, room: room);
       },
       open: (room) => AppNavigator.toLiveRoomDetail(liveRoom: room),
-      stamp: native.clipboardStamp,
+      stamp: defaultTargetPlatform == TargetPlatform.iOS ? iosClipboardStamp : native.clipboardStamp,
+      confirm: defaultTargetPlatform == TargetPlatform.iOS ? askToReadClipboard : null,
     )..start();
     if (!native.available) return;
     final shares = ShareIntake(
@@ -121,4 +124,23 @@ Future<BuildContext?> appNavigatorReady({Duration timeout = const Duration(secon
 bool _pastSplash(BuildContext context) {
   final location = GoRouter.maybeOf(context)?.routerDelegate.currentConfiguration;
   return location != null && location.isNotEmpty && location.uri.path != RoutePath.kSplash;
+}
+
+/// iOS (A18.1 c9): "剪贴板里有新内容，要识别分享口令吗？" with "识别" at the
+/// bottom; true once it was tapped, false when the hint went away.
+Future<bool> askToReadClipboard() {
+  final answer = Completer<bool>();
+  AppNavigator.showToast(
+    AppToast(
+      i18n('clipboard_new_content_hint'),
+      actionLabel: i18n('clipboard_recognize'),
+      onAction: () {
+        if (!answer.isCompleted) answer.complete(true);
+      },
+    ),
+  );
+  Timer(AppToast.actionDuration + const Duration(seconds: 1), () {
+    if (!answer.isCompleted) answer.complete(false);
+  });
+  return answer.future;
 }

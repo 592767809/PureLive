@@ -1,0 +1,38 @@
+# A18.1 记录
+
+## 2026-10-17
+
+用户：“发布5.4.1，没有苹果设备，继续做macOS和iPad”。没有 iPhone、iPad 和 Mac（D-041），验证只有 Dart 测试（`debugDefaultTargetPlatformOverride = TargetPlatform.iOS`）和 GitHub 构建机上 iPhone 模拟器的启动截图。
+
+### 第 1 阶段：前提
+
+- X04.1：工程能在构建机上构建，5.4.1 发布了未签名 IPA 和 TrollStore IPA；iPhone 模拟器里启动到首页（液态玻璃底栏）。没有真机，“拿不准的地方”里要真机看的（画中画、灵动岛的确切让位、分享扩展）留到有设备时。
+
+### 第 2 阶段：纯 Dart 的部分
+
+| 条 | 做了什么 |
+|---|---|
+| c2 安全区 | 横屏全屏的上下栏（`SafeArea`）、锁定键（右边让 `padding.right`）、录制角标（左边让 `padding.left`）早就按系统给的让位排（B09 c2 为安卓刘海做的），iPhone 横屏的左右 59、下 21 同样让开；全屏时 `SystemUiMode.immersiveSticky` 在 iOS 上隐藏状态栏、主屏指示条自动变淡（Flutter 引擎）。没改代码 |
+| c3 左边缘滑动 | iOS 上直播间不让系统返回时（全屏、开着面板），从左边缘往右滑走直播间自己的返回：全屏时退出全屏、面板先关（`EdgeSwipeBack`，起点在左边 24 以内、滑过 64 或快速一甩）；普通时系统的滑动返回照旧 |
+| c7 iPad 分享 | iPad 的系统分享必须有弹出位置，没有会报错：分享口令时把点的按钮（直播间菜单按钮、详情里的“分享”、卡片）传给分享面板；不知道按钮时（日志分享）从窗口中间弹（`sheetOrigin`）；Android 不变 |
+| c9 剪贴板 | iOS 回到前台只查剪贴板的变化次数（原生 `pure_live/clipboard` 的 `changeCount`，有文字才算，不读内容，系统不弹“允许粘贴”）；有新文字时底部提示“剪贴板里有新内容，要识别分享口令吗？[识别]”，点了才读。提示用应用统一的带按钮提示（4 秒，A02.4），不是设计写的 6 秒 |
+| c11 宽度分档 | 首页、直播间早就只按窗口宽度换排法（600、840），分屏拖动只改宽度；播放会话在直播间页面里，换排法不重建页面。没改代码 |
+| c12 指针 | Flutter 在 iPad 上把触控板、鼠标当指针，悬停效果和电脑同一套代码；双指点按是系统的次要点按，长按菜单照旧。没改代码，要真机看 |
+| c13 更新 | iOS 上新版本对话框的主按钮是“去下载页”，打开发布页（IPA 用 AltStore、SideStore、TrollStore 装）；版本页“下载文件”说明 iPhone、iPad 的安装包在发布页，按钮“去下载页” |
+
+### 第 3 阶段：⌘ 快捷键（c10）的 Dart 层
+
+- 和 A18.2 共用 `app/commands.dart` 的命令表：iPad 接键盘时 ⌘, ⌘F ⌘L ⌘Y ⌘1～⌘4 ⌘[ 和直播间的 ⌘R 已生效（`AppCommandShortcuts`）；v3 的单键照旧。按住 ⌘ 时系统列出快捷键要原生 `UIKeyCommand`，还没做。
+
+### 测试
+
+- `test/platform/share_origin_test.dart`：iPad 分享总有位置；位置就是点的按钮。
+- `test/intake_test.dart`：iOS 先问再读，不点“识别”就不读，同一段文字不再问，没有文字不提示。
+- `test/features/live_play/edge_swipe_back_test.dart`：左边缘滑动返回；太短或从画面中间开始的是画面自己的手势；关掉时不拦。
+- `test/features/version/update_dialogs_test.dart`：iOS 的主按钮“去下载页”打开发布页。
+- `test/app_commands_test.dart`：iPad 上 ⌘R 刷新直播间。
+
+### 还没做
+
+- 第 3 阶段原生：按住 ⌘ 列出快捷键（`UIKeyCommand`）。
+- 第 4 阶段原生：系统画中画和自动画中画（c4）、锁屏“正在播放”（c5，`audio_service` 已注册、后台音频已开，要真机看）、分享扩展（c8）、台前调度窗口按钮让位（c11）。

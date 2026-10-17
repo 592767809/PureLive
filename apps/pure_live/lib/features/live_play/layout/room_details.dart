@@ -14,6 +14,7 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
+import 'package:pure_live/shared/rooms/share_code.dart';
 
 /// When a broadcast started, said the short way: `今天 19:18 开播`,
 /// `昨天 23:05 开播`, else `10-01 19:18 开播` (with the year when it is not
@@ -264,11 +265,13 @@ class _Content extends StatelessWidget {
             spacing: 12,
             runSpacing: 8,
             children: [
-              OutlinedButton.icon(
-                key: const ValueKey('live-play-details-share'),
-                onPressed: () => unawaited(shareRoom(room)),
-                icon: const Icon(AppIcons.share, size: 18),
-                label: Text(i18n('share')),
+              Builder(
+                builder: (button) => OutlinedButton.icon(
+                  key: const ValueKey('live-play-details-share'),
+                  onPressed: () => unawaited(shareRoom(room, origin: shareOrigin(button))),
+                  icon: const Icon(AppIcons.share, size: 18),
+                  label: Text(i18n('share')),
+                ),
               ),
               if (external != null)
                 OutlinedButton.icon(

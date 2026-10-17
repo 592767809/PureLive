@@ -2,6 +2,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:live_core/live_core.dart';
 
 /// The system share sheet (3.x `share_plus` on phones), or null where the
@@ -9,7 +10,17 @@ import 'package:live_core/live_core.dart';
 /// and sets `sheet` in `main`).
 abstract final class SystemShare {
   /// Hands the text to the share sheet; completes with whether it was shown.
-  static Future<bool> Function(String text)? sheet;
+  /// `origin` is the global rectangle of what was tapped: an iPad's share
+  /// sheet points at it (docs/A-界面设计/A18-苹果平台界面/A18.1-iOS和iPadOS差异设计 c7).
+  static Future<bool> Function(String text, {Rect? origin})? sheet;
+}
+
+/// The global rectangle of [context]'s widget, for [SystemShare.sheet];
+/// null when it has no size yet.
+Rect? shareOrigin(BuildContext context) {
+  final box = context.findRenderObject();
+  if (box is! RenderBox || !box.hasSize) return null;
+  return box.localToGlobal(Offset.zero) & box.size;
 }
 
 /// 3.x's room share code (`ShareCommandCodec.encodeShort`): a MessagePack map

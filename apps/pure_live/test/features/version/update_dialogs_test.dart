@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -219,6 +220,31 @@ void main() {
       await tester.tap(find.text('其他下载方式'));
       await tester.pumpAndSettle();
       expect(find.text('version page'), findsOneWidget);
+    });
+
+    testWidgets('A18.1 c13: on an iPhone or iPad the main button is "去下载页" and opens the release page', (tester) async {
+      final h = await _pump(tester);
+      final context = tester.element(find.text('home'));
+      final info = _info('9.0.0');
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      try {
+        unawaited(
+          showDialog<void>(
+            context: context,
+            builder: (_) =>
+                NewVersionDialog(info: info, package: _apk('9.0.0'), sources: const ['https://a.example/x.apk']),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('下载并安装'), findsNothing, reason: 'an IPA is not installed from the app');
+        await tester.tap(find.text('去下载页'));
+        await tester.pumpAndSettle();
+        expect(info.releaseUrl, startsWith('https://github.com/'));
+        expect(h.opened, [info.releaseUrl]);
+        expect(find.byKey(const ValueKey('new-version-dialog')), findsNothing);
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
     });
 
     testWidgets('wide: the skip box at the left of the button row; Enter is the main button, Esc cancels', (
