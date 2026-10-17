@@ -154,10 +154,11 @@ void main() {
     if (offered == pubspecVersion) expect(android.buildNumber, pubspecBuild);
     expect(android.androidAbis, {'arm64-v8a', 'armeabi-v7a', 'x86_64'});
     expect(android.isNewer, isFalse);
-    // A platform block overrides the top level; the release is on Linux too,
-    // and macOS stays on 3.2.10.
-    expect(UpdateInfo.fromJson(_versionJson(), platform: 'linux').version, offered);
-    expect(UpdateInfo.fromJson(_versionJson(), platform: 'macos').version, '3.2.10');
+    // A platform block overrides the top level; the release is on Linux,
+    // macOS and iOS too (5.4.1 brought the Apple platforms back from 3.2.10).
+    for (final platform in ['linux', 'macos', 'ios']) {
+      expect(UpdateInfo.fromJson(_versionJson(), platform: platform).version, offered, reason: platform);
+    }
     expect(() => UpdateInfo.fromJson({'version': '1.0.0'}, platform: 'android'), throwsFormatException);
 
     final releases = parseReleases(_releasesJson());
@@ -177,6 +178,12 @@ void main() {
       releases.firstWhere((release) => release.version == windowsInfo.version).files,
     );
     expect([for (final (title, _) in windows) title], containsAll(['exe_installer', 'portable_package']));
+    // The macOS card offers the disk image of the same release.
+    final macos = platformPackages('macos', windowsInfo, releases.first.files);
+    expect(
+      [for (final (title, file) in macos) '$title ${file.name.endsWith('-macos-universal.dmg')}'],
+      ['macos_package true'],
+    );
     // X02.1: Linux gets 3.x's tarball name.
     final linux = platformPackages('linux', windowsInfo, const [
       ReleaseFile(
