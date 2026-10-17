@@ -216,6 +216,10 @@ void main() {
       addTearDown(controller.dispose);
       await controller.firstCheck;
       await _until(() async => (await file.read())?.states.containsKey('douyu:1') ?? false);
+      // The start writes the file twice; the second must not land after the
+      // clock below moved on (its "next check" would then hold the
+      // background check back: the flaky failure of 2026-10-17).
+      await controller.backgroundSettled();
 
       // Frozen: the background check sees 甲 go live and tells of it.
       site.details['1'] = _room('1', status: LiveStatus.live);

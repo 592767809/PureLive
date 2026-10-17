@@ -168,7 +168,7 @@ final class FavoriteController extends ChangeNotifier {
     HomeSignals.resumedAfterBackground.addListener(_resumed);
     _scheduleAutoRefresh();
     _firstCheck = _verifyAll();
-    unawaited(_syncBackground());
+    _track(_syncBackground());
   }
 
   /// The order of live and replay follows, from the settings.
@@ -329,7 +329,7 @@ final class FavoriteController extends ChangeNotifier {
       if (_backgroundOn) liveAlerts?.tracker.adopt((await liveAlertBackground?.file.read())?.states ?? const {});
       if (_disposed) return;
       liveAlerts?.observe(result.rooms, covered: _covered(), quiet: !alert);
-      if (_backgroundOn) unawaited(_writeWatch());
+      if (_backgroundOn) _track(_writeWatch());
       lastFailed = result.failed;
       if (result.rooms.isNotEmpty) await store.follows.update(result.rooms);
       if (full) lastFullRefreshAt = _now();
@@ -360,11 +360,11 @@ final class FavoriteController extends ChangeNotifier {
         setting == Settings.liveAlertEnabled) {
       if (setting == Settings.liveAlertEnabled && !(liveAlerts?.enabled ?? false)) liveAlerts?.tracker.forget();
       _scheduleAutoRefresh();
-      unawaited(_syncBackground());
+      _track(_syncBackground());
     } else if (setting == Settings.liveAlertBackground ||
         setting == Settings.liveAlertTagIds ||
         setting == Settings.liveAlertRoomKeys) {
-      unawaited(_syncBackground());
+      _track(_syncBackground());
     } else if (setting == Settings.preferRealOnlineCounts ||
         setting == Settings.realOnlinePlatforms ||
         setting == Settings.hotAreasList) {
@@ -396,6 +396,23 @@ final class FavoriteController extends ChangeNotifier {
   /// on, where there is one.
   bool get _backgroundOn =>
       liveAlertBackground != null && (liveAlerts?.enabled ?? false) && store.settings.get(Settings.liveAlertBackground);
+
+  final Set<Future<void>> _backgroundWork = {};
+
+  void _track(Future<void> work) {
+    _backgroundWork.add(work);
+    unawaited(work.whenComplete(() => _backgroundWork.remove(work)));
+  }
+
+  /// Completes once every write of the background check's file started so
+  /// far is done (tests: a write still under way would land after the test
+  /// moved its clock on).
+  @visibleForTesting
+  Future<void> backgroundSettled() async {
+    while (_backgroundWork.isNotEmpty) {
+      await Future.wait(_backgroundWork.toList());
+    }
+  }
 
   /// Turns the background check on or off to match the settings; on, the
   /// shared file gets the covered follows now; off, it goes.
