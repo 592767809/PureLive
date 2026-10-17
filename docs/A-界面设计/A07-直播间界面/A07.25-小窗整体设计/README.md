@@ -174,4 +174,4 @@
 - 应用外（c8～c12、M10）：`android/.../FloatingOverlay.kt`（同一个引擎挪到悬浮窗；松手贴边、甩进边收起、点露出的那条拉回、把手、两指缩放、排除返回手势、离开时把位置和大小交回应用），`lib/platform/overlay_window.dart`。
 - 设置：键 `autoPipOnLeave`（文字改成“离开应用时自动小窗”）、新键 `useSystemPip`（老用户开过自动画中画的升级时自动打开，`keepPictureInPicture`）、`floatWindowPosition`、`floatOverlayTipShown`（内部）；15 种语言。
 - 撤回前的实现（`bd4096bf9` 等）里验证过的部分照用，和这版设计不同的地方都改掉了：小窗按钮不再退到桌面，悬浮窗跟出去不再看“自动小窗”开关，小窗上的画中画按钮只开系统画中画，把手和按钮按 J1。
-- 测试和真机见 [record.md](record.md)、[verify.md](verify.md)。
+- 测试和真机见 [record.md](record.md)、[verify.md](verify.md)：K90 上 13 项都通过（其中 3 项是改了以后复验的）。
