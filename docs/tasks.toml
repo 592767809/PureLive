@@ -4349,6 +4349,17 @@ old = ["T17e.1"]
 branch = ".claude/worktrees/agent-ab1a5d264e55120e5"
 note = "没合并的 Linux 桌面外壳半成品（旧编号 M12.6，提交 0dc0df759，36 个文件）在 branch 的工作区里，清理工作区前先看 X02.1；2026-10-15 Linux 运行器、桌面外壳打开、XDG 开机启动、flutter_inappwebview 的 Linux 替身（不用 WPE WebKit，Linux 没有应用内网页）、tools/release/package_linux.sh 打 linux-x64.tar.gz、更新文件 platforms.linux；WSL 里启动测过"
 [[task]]
+id = "X02.2"
+title = "Linux 版启动就停在“没能启动”（No secret store on linux）：给 Linux 补账号加密"
+type = "原生"
+status = "完成"
+date = "2026-10-17"
+size = "小"
+tier = 1
+note = "5.0.0～5.4.0 的 Linux 包都受影响：platformSecretCipher 只有 Android、Windows，Linux 上抛异常，启动进了失败页；发布检查只看“20 秒不退出”所以没发现（PROCESS 第 11 节第 4 条改成截图确认首页）。Linux 改用 OpenSSL libcrypto 的 AES-256-GCM，随机密钥存数据目录 secret.key（600）；找不到 libcrypto 时照 3.x 不加密保存。WSL 里启动截图到首页"
+from = "2026-10-17 做苹果平台的加密器时读代码发现，截图确认"
+
+[[task]]
 id = "X03.1"
 title = "电视外壳、焦点导航、直播浏览、基本直播间"
 type = "功能"

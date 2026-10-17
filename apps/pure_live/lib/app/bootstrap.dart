@@ -270,7 +270,7 @@ abstract final class AppBootstrap {
     timing?.step('tvDetect');
     final launch = LaunchArgs.parse(args);
     final dataRoot = await resolveDataRoot();
-    final cipher = platformSecretCipher();
+    final cipher = platformSecretCipher(dataRoot);
     timing?.step('dataRoot');
     // Shared: another desktop window's process may write at the same time
     // (a single process elsewhere, where it changes nothing).

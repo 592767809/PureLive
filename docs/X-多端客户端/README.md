@@ -69,7 +69,7 @@ Android 以外的客户端各自要做的“专属”工作：Windows、Linux、
 | 子分类 | 范围 | 进度 | 完成 / 全部 |
 |---|---|---|---:|
 | [X01 Windows](X01-Windows/README.md) | Windows 专属功能、键鼠、安装包和更新。 | `████████████████████` 100% | 3 / 3 |
-| [X02 Linux](X02-Linux/README.md) | Linux 构建和打包。 | `████████████████████` 100% | 1 / 1 |
+| [X02 Linux](X02-Linux/README.md) | Linux 构建和打包。 | `████████████████████` 100% | 2 / 2 |
 | [X03 电视](X03-电视/README.md) | 电视外壳、焦点导航、以 pure_live_TV 为基线的并入。 | `████████████████████` 100% | 1 / 1 |
 | [X04 iOS和iPadOS](X04-iOS和iPadOS/README.md) | 构建、签名、平台差异。 | — | 0 / 0 |
 | [X05 macOS](X05-macOS/README.md) | 构建、签名、平台差异。 | — | 0 / 0 |

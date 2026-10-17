@@ -235,7 +235,7 @@ to = ["A07.13"]                # 去向：实现这个提议或反馈的任务�
 1. **版本号**：换安装包就必须改版本号（3.x 只比较版本号；4.x 从 Y02.1 起版本号相同时再比构建号，但 3.x 用户仍然只认版本号）；构建号同时加一。打标签前跑 `python3 tools/release/check_version.py`，和 master 上的 `assets/version.json` 比，版本号没变或构建号没变大就不通过。Android 的 versionCode = ABI 编号 × 1000 + 构建号（v7a 6、arm64 7、x86_64 9）。
 2. 改 `apps/pure_live/pubspec.yaml` 和 `features/version/app_version.dart`，写发布说明（[Y03](Y-发布和运营/Y03-发布说明和README/README.md) 的 `releases/`）。
 3. 构建：`flutter build apk --release --split-per-abi`（门禁不在跑的时候）；签名用维护者调试密钥（和 3.x 同一证书，见 D-006）。
-4. 检查：包名、versionCode、签名证书、通知图标资源、16 KB 对齐（命令见 [Y01](Y-发布和运营/Y01-版本签名和发布/README.md) 的记录）。
+4. 检查：包名、versionCode、签名证书、通知图标资源、16 KB 对齐（命令见 [Y01](Y-发布和运营/Y01-版本签名和发布/README.md) 的记录）。Linux 和 Windows 包要启动后截图，确认进了首页：只看“进程没退出”不够，启动失败页也不会退出（5.0.0～5.4.0 的 Linux 包一直停在“没能启动”，没被发现）。
 5. 用同一提交的测试包在 K90 上冒烟。
 6. 打标签、建发布页、上传安装包和 SHA256SUMS。
 7. **最后**改 `assets/version.json` 和 `assets/releases.json`（5.x 从本仓库 master 读它们检查更新），门禁通过后推送。

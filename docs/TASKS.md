@@ -2,7 +2,7 @@
 
 # 任务清单
 
-共 20 组、109 个子分类、383 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
+共 20 组、109 个子分类、384 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
 
 ## A 界面设计
 
@@ -927,6 +927,7 @@ Windows、Linux、电视、苹果平台的客户端专属工作（打包、原�
 | 编号 | 任务 | 类型 | 档位 | 状态 | 阶段 | 资料 |
 |---|---|---|---|---|---|---|
 | X02.1 | Linux 构建和打包 | 发布 | 第三档 | 完成 | — | [设计或说明](X-多端客户端/X02-Linux/X02.1-Linux构建和打包/README.md)、[任务书](X-多端客户端/X02-Linux/X02.1-Linux构建和打包/brief.md) |
+| X02.2 | Linux 版启动就停在“没能启动”（No secret store on linux）：给 Linux 补账号加密 | 原生 | 第一档 | 完成 | — | — |
 
 ### [X03 电视](X-多端客户端/X03-电视/README.md)
 

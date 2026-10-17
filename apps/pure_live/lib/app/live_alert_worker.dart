@@ -26,7 +26,7 @@ Future<void> liveAlertWorkerMain() async {
   var posted = 0;
   LiveStore? store;
   try {
-    store = await LiveStore.memory(cipher: AndroidKeystoreCipher());
+    store = await LiveStore.memory(cipher: NativeChannelCipher());
     final proxy = SettingsProxyPolicy(store.settings);
     final http = IoLiveHttp(proxy: proxy);
     final sites = buildSiteRegistry(
