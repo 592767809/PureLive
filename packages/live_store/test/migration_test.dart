@@ -252,7 +252,7 @@ void main() {
         documentsDirectory: p.join(temp.path, 'docs'),
       );
       expect(files, [p.join(old.path, 'AppData', 'HIVE_DB', 'app_settings.hive')]);
-      expect(LegacyLocations.android(documentsDirectory: '/data/app_flutter'), [
+      expect(LegacyLocations.documents(documentsDirectory: '/data/app_flutter'), [
         '/data/app_flutter/PURE_LIVE/HIVE_DB/app_settings.hive',
       ]);
     });

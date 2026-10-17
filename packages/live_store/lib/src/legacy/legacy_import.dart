@@ -24,9 +24,11 @@ abstract final class LegacyLocations {
   /// The box name 3.x used.
   static const boxFile = 'app_settings.hive';
 
-  /// Android: `<documents>/PURE_LIVE/HIVE_DB/app_settings.hive`
-  /// (`getApplicationDocumentsDirectory`, which is `app_flutter`).
-  static List<String> android({required String documentsDirectory}) => [
+  /// Every platform but Windows: `<documents>/PURE_LIVE/HIVE_DB/app_settings.hive`
+  /// (`getApplicationDocumentsDirectory`: `app_flutter` on Android, the
+  /// app's Documents on iOS, the sandbox container's Documents on macOS,
+  /// the XDG documents folder on Linux).
+  static List<String> documents({required String documentsDirectory}) => [
     p.join(documentsDirectory, 'PURE_LIVE', 'HIVE_DB', boxFile),
   ];
 

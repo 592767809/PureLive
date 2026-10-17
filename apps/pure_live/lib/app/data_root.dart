@@ -49,10 +49,10 @@ Future<bool> isWritableDirectory(Directory directory) async {
 /// 3.x's settings boxes on this device, main source first (M9
 /// `LegacyLocations`); empty where 3.x never ran.
 Future<List<String>> legacyHiveFiles() async {
-  if (Platform.isAndroid) {
+  if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS || Platform.isLinux) {
     final documents = await getApplicationDocumentsDirectory();
     return [
-      for (final path in LegacyLocations.android(documentsDirectory: documents.path))
+      for (final path in LegacyLocations.documents(documentsDirectory: documents.path))
         if (File(path).existsSync()) path,
     ];
   }
