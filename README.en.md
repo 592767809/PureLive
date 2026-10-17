@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.0</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/v5.4.0.md">Release notes (Chinese)</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.1</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/v5.4.1.md">Release notes (Chinese)</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#supported-platforms">Platforms</a>
   &nbsp;·&nbsp; <a href="#building-from-source">Build</a>
@@ -30,7 +30,7 @@
 
 Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chinese platforms such as Bilibili, Douyu, Huya, Douyin and Kuaishou together with international ones such as Twitch, YouTube and SOOP, plus the IPTV channels you import yourself. Follows, danmaku, recording and multiview all live in one place, so you don't need a separate app for every platform.
 
-**5.0 was the first release for every platform.** Since 4.0 the network layer, platform adapters, danmaku, playback, recording, storage and every screen have been rewritten (features are based on 3.x, playback is mpv only). 5.0 ships **Android phones and tablets, Android TV, Windows and Linux** from one codebase and one design. You can install over 3.x and 4.x and keep your follows, settings and history. 5.1 added video (Bilibili VOD), music, wallpapers and TV-style settings to the TV interface, and per-streamer live alerts. 5.2 was about smoothness: no more stutter the first time you open a platform or a room, damped overscroll on every list and pager, spring page transitions, and a liquid-glass bottom bar on the home screen. 5.3 adds official sign-in for Douyu, Huya, Douyin, Kuaishou, YY, NetEase CC, Twitch and SOOP: the platform's own sign-in page opens in the app and the login is saved automatically. 5.4 adds Traditional Chinese and twelve more interface languages (Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish) and a volume boost.
+**5.0 was the first release for every platform.** Since 4.0 the network layer, platform adapters, danmaku, playback, recording, storage and every screen have been rewritten (features are based on 3.x, playback is mpv only). 5.0 ships **Android phones and tablets, Android TV, Windows and Linux** from one codebase and one design. You can install over 3.x and 4.x and keep your follows, settings and history. 5.1 added video (Bilibili VOD), music, wallpapers and TV-style settings to the TV interface, and per-streamer live alerts. 5.2 was about smoothness: no more stutter the first time you open a platform or a room, damped overscroll on every list and pager, spring page transitions, and a liquid-glass bottom bar on the home screen. 5.3 adds official sign-in for Douyu, Huya, Douyin, Kuaishou, YY, NetEase CC, Twitch and SOOP: the platform's own sign-in page opens in the app and the login is saved automatically. 5.4 adds Traditional Chinese and twelve more interface languages (Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish) and a volume boost. 5.4.1 fixes the Linux build not starting and is the first 5.x release for macOS, iOS and iPadOS (built on GitHub's macOS runners, not signed by Apple).
 
 > The app's interface comes in 15 languages: Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish (switch in Settings → Appearance; until you pick one it follows the system). The foreign languages were machine-assisted and not yet reviewed by native speakers; corrections are welcome. Release notes and in-depth docs are written in Chinese.
 
@@ -332,7 +332,8 @@ Download the package for your platform from [Releases](https://github.com/wzgrx/
 | **Android TV and TV boxes** | Android 8.0+ | The same APK as the phone: it starts in the TV interface on a TV (switch in Settings → Appearance → Interface mode) |
 | **Windows** | Windows 10, 11 (64-bit) | `…-windows-x64-setup.exe` (installer) or `…-windows-x64-portable.zip` (portable, data in `UserData` next to the program) |
 | **Linux** | x86_64, GTK 3 desktop | `…-linux-x64.tar.gz`: extract and run `pure_live`; the README.txt inside explains adding it to the app menu |
-| iOS, iPadOS, macOS | — | Not available yet (needs a Mac to build and sign) |
+| **macOS** | macOS 12+, Intel and Apple silicon | `…-macos-universal.dmg`: open it and drag PureLive into Applications. It is not signed by Apple: if macOS cannot verify the developer the first time, click “Open Anyway” in System Settings → Privacy & Security |
+| **iPhone, iPad** | iOS, iPadOS 15+ | `…-ios-unsigned.ipa` with AltStore or SideStore (signed with your own Apple ID; a free account renews every 7 days); `…-ios-trollstore.ipa` on devices with TrollStore |
 
 - If Android says “install unknown apps”, allow your browser or file manager in the settings it opens.
 - The Linux build has no in-app web sign-in (official sign-in, Bilibili web sign-in): enter a cookie, or sign in on a phone or Windows and bring the account over with device sync.
@@ -402,13 +403,14 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Roadmap
 
-| Client | 5.4.0 (now) | Later |
+| Client | 5.4.1 (now) | Later |
 |---|---|---|
 | **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms, 15 interface languages | Keep up with platform changes |
 | **Android TV** | Stable: Live, Video (Bilibili VOD) and Music modes, wallpapers, TV-style settings, type on your phone via QR code | Verify and tune on more TVs |
 | **Windows** | Stable: custom title bar, tray, close behaviour, launch at startup, desktop floating window, rooms in new windows, official sign-in | Native network channel for Kick on Windows |
 | **Linux** | Stable: the same desktop shell as Windows | In-app web sign-in |
-| **iOS, iPadOS, macOS** | Platform differences designed | Needs a Mac to build and sign |
+| **macOS** | Beta: the Windows interface, built on GitHub's macOS runners, not yet used on a real Mac | Mac menu bar, title bar, closing the window without quitting, menu bar icon, recording |
+| **iOS, iPadOS** | Beta: the Android interface, unsigned IPA and TrollStore IPA, only opened in the simulator | iPad split view, keyboard shortcuts and Stage Manager, recording |
 
 ## Feedback and contributing
 

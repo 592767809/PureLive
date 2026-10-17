@@ -74,17 +74,12 @@ Mac 客户端的工程层：`macos/` 运行器、Xcode 工程、沙盒和权限�
 属于 [X 多端客户端](../README.md)。
 
 - 代码：`apps/pure_live/macos/`、`.github/workflows/apple.yml`
-- 进度：`████████████░░░░░░░░` 60%
+- 进度：`████████████████████` 100%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
-| X05.1 | macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行 | 功能 | 开发中 | 2026-10-17 | — | [设计或说明](X05.1-macOS工程和构建/README.md)、[任务书](X05.1-macOS工程和构建/brief.md) |
+| X05.1 | macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行 | 功能 | 完成 | 2026-10-17 | — | [设计或说明](X05.1-macOS工程和构建/README.md)、[任务书](X05.1-macOS工程和构建/brief.md) |
 | X05.2 | macOS 签名、公证和分发，应用内更新 | 发布 | 不做 | 2026-10-15 | — | [设计或说明](X05.2-macOS签名和分发/README.md)、[任务书](X05.2-macOS签名和分发/brief.md) |
-
-## 还没完成的
-
-- **X05.1 macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行**（开发中，第三档，规模 大）
-  - 说明：2026-10-17 D-041：同一个 apple.yml 构建 macOS（通用二进制，ad-hoc 签名，沙盒），打 DMG 和 ZIP，构建机上启动截图；包名 com.mystyle.pureLive（和 3.x 一样），macOS 12 起；加密密钥放容器里的 secret.key（ad-hoc 签名用 Keychain 会反复弹窗）；桌面外壳（窗口、托盘）还没接
 
 <!-- docs:生成结束 -->

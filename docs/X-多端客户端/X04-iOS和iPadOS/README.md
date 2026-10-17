@@ -75,16 +75,11 @@ iPhone 和 iPad 客户端的工程层：`ios/` 运行器、Xcode 工程和权限
 属于 [X 多端客户端](../README.md)。
 
 - 代码：`apps/pure_live/ios/`、`.github/workflows/apple.yml`
-- 进度：`████████████░░░░░░░░` 60%
+- 进度：`████████████████████` 100%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
-| X04.1 | iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包 | 发布 | 开发中 | 2026-10-17 | — | [设计或说明](X04.1-苹果平台的构建和签名/README.md)、[任务书](X04.1-苹果平台的构建和签名/brief.md) |
-
-## 还没完成的
-
-- **X04.1 iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包**（开发中，第三档，规模 中）
-  - 说明：2026-10-17 用户：“可以用GitHub云构建，不买开发者账号”（D-041）。.github/workflows/apple.yml 在 macos-15 上 flutter build ios --no-codesign，打未签名 IPA（AltStore、SideStore）和 ad-hoc 签名的 TrollStore IPA，模拟器里启动截图；包名 com.mystyle.purelive.liu（和 3.x 一样），iOS 15 起；账号加密走 pure_live/secret_cipher 通道（CryptoKit AES-GCM，密钥在 Keychain）
+| X04.1 | iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包 | 发布 | 完成 | 2026-10-17 | — | [设计或说明](X04.1-苹果平台的构建和签名/README.md)、[任务书](X04.1-苹果平台的构建和签名/brief.md) |
 
 <!-- docs:生成结束 -->

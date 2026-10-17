@@ -1858,23 +1858,23 @@ note = "2026-10-15 做完电视设置；快速测试修了导航栏说明、分�
 id = "A18.1"
 title = "iOS 和 iPadOS 差异设计"
 type = "界面"
-status = "不做"
-date = "2026-10-15"
+status = "已确认"
+date = "2026-10-17"
 size = "中"
 tier = 3
 old = ["U.17a", "T19a.1"]
-note = "2026-10-15 用户定 5.0.0 只做 Android、Windows、Linux、电视：本机没有 Mac，苹果平台不能构建和签名，README 写明暂不提供"
+note = "设计第 1 版 2026-10-01 评审确认；2026-10-15 曾因没有 Mac 定为不做。2026-10-17 用户：苹果平台用 GitHub 云构建（D-041），“没有苹果设备，继续做macOS和iPad”：照设计做，验证只靠 Dart 测试和构建机模拟器截图"
 
 [[task]]
 id = "A18.2"
 title = "macOS 差异设计"
 type = "界面"
-status = "不做"
-date = "2026-10-15"
+status = "已确认"
+date = "2026-10-17"
 size = "中"
 tier = 3
 old = ["U.17b", "T19b.1"]
-note = "同 A18.1"
+note = "设计第 1 版 2026-10-01 评审确认；2026-10-15 曾因没有 Mac 定为不做。2026-10-17 用户：“没有苹果设备，继续做macOS和iPad”（D-041）：照任务书 4 个阶段做，验证只靠 Dart 测试和构建机截图"
 
 [[task]]
 id = "C01.1"
@@ -4372,22 +4372,22 @@ old = ["M14.1", "T18a.1"]
 id = "X04.1"
 title = "iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-17"
 size = "中"
 tier = 3
 old = ["T19c.1"]
-note = "2026-10-17 用户：“可以用GitHub云构建，不买开发者账号”（D-041）。.github/workflows/apple.yml 在 macos-15 上 flutter build ios --no-codesign，打未签名 IPA（AltStore、SideStore）和 ad-hoc 签名的 TrollStore IPA，模拟器里启动截图；包名 com.mystyle.purelive.liu（和 3.x 一样），iOS 15 起；账号加密走 pure_live/secret_cipher 通道（CryptoKit AES-GCM，密钥在 Keychain）"
+note = "2026-10-17 用户：“可以用GitHub云构建，不买开发者账号”（D-041）；没有苹果设备。.github/workflows/apple.yml 在 macos-15 上 flutter build ios --no-codesign，打未签名 IPA（AltStore、SideStore）和 ad-hoc 签名的 TrollStore IPA，iPhone 模拟器里启动截图到首页（模拟器只编 arm64：录制 FFmpeg 的模拟器切片只有 arm64）；包名 com.mystyle.purelive.liu（和 3.x 一样），iOS 15 起；账号加密走 pure_live/secret_cipher 通道（CryptoKit AES-GCM，密钥在 Keychain）；3.x 数据从 Documents/PURE_LIVE 导入。5.4.1 第一次发布"
 
 [[task]]
 id = "X05.1"
 title = "macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行"
 type = "功能"
-status = "开发中"
+status = "完成"
 date = "2026-10-17"
 size = "大"
 tier = 3
-note = "2026-10-17 D-041：同一个 apple.yml 构建 macOS（通用二进制，ad-hoc 签名，沙盒），打 DMG 和 ZIP，构建机上启动截图；包名 com.mystyle.pureLive（和 3.x 一样），macOS 12 起；加密密钥放容器里的 secret.key（ad-hoc 签名用 Keychain 会反复弹窗）；桌面外壳（窗口、托盘）还没接"
+note = "2026-10-17 D-041：同一个 apple.yml 构建 macOS（通用二进制，ad-hoc 签名，沙盒），打 DMG 和 ZIP，构建机上启动截图到首页；包名 com.mystyle.pureLive（和 3.x 一样），macOS 12 起；加密密钥放容器里的 secret.key（ad-hoc 签名用 Keychain 会反复弹窗）；3.x 数据从容器的 Documents/PURE_LIVE 导入。Mac 的标题栏、菜单栏、关窗不退出在 A18.2；5.4.1 第一次发布"
 
 [[task]]
 id = "X05.2"
@@ -4397,7 +4397,7 @@ status = "不做"
 date = "2026-10-15"
 size = "中"
 tier = 3
-note = "同 A18.1"
+note = "没有苹果开发者账号（D-041）：不签名、不公证，第一次打开要“仍要打开”；应用内更新照 3.x 下载 DMG（A18.2 c10 “在访达中显示”）"
 
 [[task]]
 id = "Y01.1"
@@ -4525,6 +4525,18 @@ stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90
 done = 5
 from = "用户 2026-10-16：gate过了就推送，然后发布5.4.0稳定版本，全平台"
 note = "标签 v5.4.0（36bd9140a）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.4.0 （正式版，六个包和 SHA256SUMS.txt，哈希一致）；两个仓库的更新文件都是 5.4.0、5104；冒烟时修了切换语言后首页不更新（Z05.3）"
+
+[[task]]
+id = "Y01.12"
+title = "5.4.1 全平台发布（Android、电视、Windows、Linux、macOS、iOS，构建号 5105）：Linux 启动修复，第一批 5.x 苹果安装包"
+type = "发布"
+status = "开发中"
+date = "2026-10-17"
+size = "中"
+tier = 1
+stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
+done = 1
+from = "用户 2026-10-17：发布5.4.1，没有苹果设备，继续做macOS和iPad"
 
 [[task]]
 id = "Y02.1"
