@@ -141,7 +141,27 @@ List<PlatformMenuItem> macMenus({RoomCommands? room}) {
           shortcut: refreshActivator,
           onSelected: room == null ? null : () => unawaited(room.refresh()),
         ),
-        PlatformMenuItem(label: i18n('live_play_fullscreen'), onSelected: room?.toggleFullScreen),
+        PlatformMenuItemGroup(
+          members: [
+            PlatformMenuItem(label: i18n('menu_volume'), onSelected: room?.volume),
+            PlatformMenuItem(
+              label: i18n('show_danmaku'),
+              onSelected: room == null ? null : () => unawaited(room.toggleDanmaku()),
+            ),
+            PlatformMenuItem(label: i18n('danmaku_settings'), onSelected: room?.danmakuSettings),
+            PlatformMenuItem(
+              label: i18n('audio_only_mode'),
+              onSelected: room == null ? null : () => unawaited(room.toggleAudioOnly()),
+            ),
+            PlatformMenuItem(label: i18n('record'), onSelected: room?.record),
+          ],
+        ),
+        PlatformMenuItemGroup(
+          members: [
+            PlatformMenuItem(label: i18n('live_play_fullscreen'), onSelected: room?.toggleFullScreen),
+            PlatformMenuItem(label: i18n('menu_window_fullscreen'), onSelected: room?.toggleWindowFullScreen),
+          ],
+        ),
       ],
     ),
     PlatformMenu(

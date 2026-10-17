@@ -1571,4 +1571,31 @@ final class _RoomMenu implements RoomCommands {
   void toggleFullScreen() {
     if (_state.mounted && !(_state._mini?.desktop ?? false)) _state._toggleFullscreen();
   }
+
+  @override
+  void toggleWindowFullScreen() {
+    if (_state.mounted && _state._platform.desktop) _state._toggleWindowFullscreen();
+  }
+
+  @override
+  Future<void> toggleDanmaku() async {
+    final settings = _state.ref.read(storeProvider).settings;
+    await settings.set(Settings.hideDanmaku, !settings.get(Settings.hideDanmaku));
+  }
+
+  @override
+  void danmakuSettings() => _state._panels.open(RoomPanelKind.danmaku);
+
+  @override
+  Future<void> toggleAudioOnly() async {
+    final controller = _state._controller;
+    if (controller == null || controller.stage != RoomStage.playing) return;
+    await controller.setAudioOnly(enabled: !controller.audioOnly);
+  }
+
+  @override
+  void volume() => _state._panels.open(RoomPanelKind.volume);
+
+  @override
+  void record() => _state._panels.open(RoomPanelKind.record);
 }

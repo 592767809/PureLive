@@ -103,6 +103,24 @@ abstract interface class RoomCommands {
   /// Into or out of the room's full screen (v3's F).
   void toggleFullScreen();
 
+  /// Into or out of the full screen inside the window (desktops).
+  void toggleWindowFullScreen();
+
+  /// Flying danmaku on or off.
+  Future<void> toggleDanmaku();
+
+  /// The danmaku settings panel.
+  void danmakuSettings();
+
+  /// Sound only, or the picture back.
+  Future<void> toggleAudioOnly();
+
+  /// The volume panel.
+  void volume();
+
+  /// The recording panel.
+  void record();
+
   /// The room on top, or null.
   static final ValueNotifier<RoomCommands?> current = ValueNotifier(null);
 }

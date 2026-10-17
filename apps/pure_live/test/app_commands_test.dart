@@ -26,6 +26,24 @@ final class _FakeRoom implements RoomCommands {
 
   @override
   void toggleFullScreen() => calls.add('fullscreen');
+
+  @override
+  void toggleWindowFullScreen() => calls.add('window');
+
+  @override
+  Future<void> toggleDanmaku() async => calls.add('danmaku');
+
+  @override
+  void danmakuSettings() => calls.add('danmaku settings');
+
+  @override
+  Future<void> toggleAudioOnly() async => calls.add('audio');
+
+  @override
+  void volume() => calls.add('volume');
+
+  @override
+  void record() => calls.add('record');
 }
 
 String _keys(MenuSerializableShortcut? shortcut) {
@@ -55,18 +73,31 @@ void main() {
     expect(_items(menus[1]), ['链接解析… ⌘L', '多画面', '关闭窗口 ⌘W']);
     expect(_items(menus[2]), ['撤销 ⌘Z', '重做 ⇧⌘Z', '剪切 ⌘X', '拷贝 ⌘C', '粘贴 ⌘V', '全选 ⌘A', '搜索直播… ⌘F']);
     expect(_items(menus[3]), ['关注 ⌘1', '热门 ⌘2', '分区 ⌘3', '录制中心 ⌘4', '观看记录 ⌘Y', '返回 ⌘[']);
-    expect(_items(menus[4]), ['播放 / 暂停', '刷新 ⌘R', '全屏']);
+    expect(_items(menus[4]), ['播放 / 暂停', '刷新 ⌘R', '音量', '显示弹幕', '弹幕设置', '纯音频模式', '录制', '全屏', '窗口内全屏']);
     expect(_items(menus[6]), ['项目主页', '更新日志']);
   });
 
-  test('A18.2 c4: "播放" works only in a room; there it plays, reloads and goes full screen', () {
-    List<PlatformMenuItem> playback(RoomCommands? room) => (macMenus(room: room)[4] as PlatformMenu).menus;
+  test('A18.2 c4: "播放" works only in a room; there each item does its button\'s thing', () {
+    List<PlatformMenuItem> playback(RoomCommands? room) => [
+      for (final item in (macMenus(room: room)[4] as PlatformMenu).menus)
+        if (item is PlatformMenuItemGroup) ...item.members else item,
+    ];
     expect([for (final item in playback(null)) item.onSelected], everyElement(isNull), reason: 'greyed elsewhere');
     final room = _FakeRoom();
     for (final item in playback(room)) {
       item.onSelected!();
     }
-    expect(room.calls, ['play', 'refresh', 'fullscreen']);
+    expect(room.calls, [
+      'play',
+      'refresh',
+      'volume',
+      'danmaku',
+      'danmaku settings',
+      'audio',
+      'record',
+      'fullscreen',
+      'window',
+    ]);
   });
 
   testWidgets('A18.2 c4: on a Mac the menus go to the system, and change when a room opens', (tester) async {
