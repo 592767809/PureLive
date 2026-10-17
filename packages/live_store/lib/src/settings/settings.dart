@@ -373,18 +373,6 @@ abstract final class Settings {
     max: 4,
   );
 
-  /// New (A07.26, the user: "位置也要记住，跨重启保存"): where the in-app
-  /// floating window was left, kept across restarts — `x,y` as fractions of
-  /// the screen's width and height, or `left,y` / `right,y` tucked into a
-  /// side; empty for the corner. Internal: a place on this device's screen,
-  /// not for backups.
-  static const floatWindowPosition = StringSetting(
-    'floatWindowPosition',
-    section: 'player',
-    defaultValue: '',
-    scope: SettingScope.internal,
-  );
-
   /// New (A07.22): [floatWindowLandscapeScale] for a portrait picture's
   /// window (each kept on its own, as upstream pure_live a25facd94).
   static const floatWindowPortraitScale = DoubleSetting(
@@ -1946,7 +1934,6 @@ abstract final class Settings {
     floatWindowSize,
     floatWindowLandscapeScale,
     floatWindowPortraitScale,
-    floatWindowPosition,
     windowsPipAlwaysOnTop,
     autoPipOnLeave,
     useSystemPip,

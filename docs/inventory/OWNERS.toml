@@ -375,7 +375,6 @@ setting = [
   { key = "floatWindowSize", sub = "C02" },
   { key = "floatWindowLandscapeScale", sub = "C02" },
   { key = "floatWindowPortraitScale", sub = "C02" },
-  { key = "floatWindowPosition", sub = "C02" },
   { key = "windowsPipAlwaysOnTop", sub = "C02" },
   { key = "autoPipOnLeave", sub = "C02" },
   { key = "useSystemPip", sub = "C02" },
