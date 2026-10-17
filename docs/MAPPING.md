@@ -502,7 +502,7 @@
 | T18d.3 | [A17.7](A-界面设计/A17-电视界面/A17.7-电视音乐/README.md) | 电视音乐 |
 | T19a.1 | [A18.1](A-界面设计/A18-苹果平台界面/A18.1-iOS和iPadOS差异设计/README.md) | iOS 和 iPadOS 差异设计 |
 | T19b.1 | [A18.2](A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计/README.md) | macOS 差异设计 |
-| T19c.1 | [X04.1](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/README.md) | 苹果平台的构建和签名 |
+| T19c.1 | [X04.1](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/README.md) | iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包 |
 
 ## 旧的组编号
 

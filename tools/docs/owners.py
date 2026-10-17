@@ -19,8 +19,9 @@ gone), a task id in the 依据 or 备注 column of docs/inventory/FEATURES.md th
 the registry does not have, and a stale docs/inventory/OWNERS.md.
 
 Code files: the Dart files of apps/pure_live/lib/ and packages/*/lib/, the
-Kotlin files of apps/pure_live/android/, the Windows runner and the scripts
-under tools/. Standard library only (the gate runs it).
+Kotlin files of apps/pure_live/android/, the Windows runner, the Swift files
+of the iOS and macOS runners and the scripts under tools/. Standard library
+only (the gate runs it).
 
 usage:
   python3 tools/docs/owners.py            check, write docs/inventory/OWNERS.md
@@ -55,6 +56,8 @@ CODE = [
     ('packages/*/lib', ('.dart',)),
     ('apps/pure_live/android', ('.kt',)),
     ('apps/pure_live/windows/runner', ('.cpp', '.h')),
+    ('apps/pure_live/ios/Runner', ('.swift',)),
+    ('apps/pure_live/macos/Runner', ('.swift',)),
     ('tools', ('.py', '.sh', '.dart', '.ps1', '.js', '.c')),
 ]
 SKIP = {'build', 'node_modules', '__pycache__'}

@@ -1,0 +1,198 @@
+# iOS, iPadOS and macOS builds on GitHub's macOS runners (D-041): the only
+# build that is not made on our own machines, because they have no Mac.
+# No Apple developer account, so nothing is signed by Apple:
+#   - iOS: an unsigned IPA (AltStore / SideStore sign it with the user's own
+#     Apple ID) and an ad-hoc signed IPA for TrollStore;
+#   - macOS: the ad-hoc signed app as DMG and ZIP (first start: right-click →
+#     Open, or System Settings → Privacy & Security → Open Anyway).
+# Started by hand (Actions → Apple → Run workflow). Each run also starts the
+# macOS app and the iOS app in the simulator and keeps a screenshot of each,
+# so a build that cannot reach the home page is seen (PROCESS §11.4).
+name: Apple
+
+on:
+  workflow_dispatch:
+    inputs:
+      ios:
+        description: Build iOS / iPadOS
+        type: boolean
+        default: true
+      macos:
+        description: Build macOS
+        type: boolean
+        default: true
+      simulator:
+        description: Start the iOS app in the simulator and take a screenshot
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  apple:
+    name: Apple
+    runs-on: macos-15
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Toolchain
+        id: toolchain
+        run: |
+          set -euo pipefail
+          grep -E '^FLUTTER_VERSION=' toolchain.env >> "$GITHUB_ENV"
+          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' -print | sort -V | tail -n 1)
+          if [[ -n "$xcode" ]]; then sudo xcode-select --switch "$xcode/Contents/Developer"; fi
+          xcodebuild -version
+          version=$(sed -n 's/^version: \([0-9.]*\)+\([0-9]*\)$/\1/p' apps/pure_live/pubspec.yaml)
+          build=$(sed -n 's/^version: \([0-9.]*\)+\([0-9]*\)$/\2/p' apps/pure_live/pubspec.yaml)
+          echo "name=PureLive-$version-$build" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Packages and native bundles
+        run: |
+          set -euo pipefail
+          flutter --version
+          flutter pub get --enforce-lockfile
+          bash tools/ffmpeg_kit/fetch.sh ios
+          bash tools/ffmpeg_kit/fetch.sh macos
+
+      # ---- macOS ----
+      - name: Build macOS
+        if: ${{ inputs.macos }}
+        working-directory: apps/pure_live
+        run: flutter build macos --release
+
+      - name: Check and pack macOS
+        if: ${{ inputs.macos }}
+        run: |
+          set -euo pipefail
+          name="${{ steps.toolchain.outputs.name }}"
+          app=apps/pure_live/build/macos/Build/Products/Release/PureLive.app
+          test -x "$app/Contents/MacOS/PureLive"
+          lipo -info "$app/Contents/MacOS/PureLive"
+          find "$app/Contents/Frameworks" -maxdepth 1 -name '*.framework' | sort
+          # Ad-hoc signature with the sandbox entitlements ("Sign to Run Locally").
+          codesign --verify --deep --strict "$app"
+          codesign -d --entitlements - "$app"
+          mkdir -p out
+          ditto -c -k --sequesterRsrc --keepParent "$app" "out/$name-macos-universal.zip"
+          stage="$RUNNER_TEMP/dmg"
+          mkdir -p "$stage"
+          ditto "$app" "$stage/PureLive.app"
+          ln -s /Applications "$stage/Applications"
+          hdiutil create -volname "纯粹直播" -srcfolder "$stage" -ov -format UDZO "out/$name-macos-universal.dmg"
+
+      - name: Start macOS app
+        if: ${{ inputs.macos }}
+        run: |
+          set -euo pipefail
+          app=apps/pure_live/build/macos/Build/Products/Release/PureLive.app
+          mkdir -p shots
+          open "$app"
+          sleep 40
+          pgrep -x PureLive >/dev/null || { echo "PureLive stopped"; exit 1; }
+          screencapture -x shots/macos.png
+          osascript -e 'quit app "PureLive"' || true
+          log show --last 2m --predicate 'process == "PureLive"' --style compact | tail -n 80 || true
+
+      # ---- iOS / iPadOS ----
+      - name: Build iOS
+        if: ${{ inputs.ios }}
+        working-directory: apps/pure_live
+        run: flutter build ios --release --no-codesign
+
+      - name: Pack iOS
+        if: ${{ inputs.ios }}
+        run: |
+          set -euo pipefail
+          name="${{ steps.toolchain.outputs.name }}"
+          app=apps/pure_live/build/ios/iphoneos/Runner.app
+          test -x "$app/Runner"
+          lipo -info "$app/Runner"
+          find "$app/Frameworks" -maxdepth 1 -name '*.framework' | sort
+          mkdir -p out
+          pack() { # <app> <ipa>
+            local work="$RUNNER_TEMP/ipa-$RANDOM"
+            mkdir -p "$work/Payload"
+            ditto "$1" "$work/Payload/Runner.app"
+            (cd "$work" && zip -qry "$2" Payload)
+          }
+          # Unsigned: AltStore / SideStore sign it with the user's Apple ID.
+          pack "$app" "$GITHUB_WORKSPACE/out/$name-ios-unsigned.ipa"
+          # TrollStore: ad-hoc signed, inside out (frameworks, dylibs, app).
+          ent="$RUNNER_TEMP/trollstore.plist"
+          cat > "$ent" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>get-task-allow</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+          signed="$RUNNER_TEMP/trollstore/Runner.app"
+          mkdir -p "$(dirname "$signed")"
+          ditto "$app" "$signed"
+          while IFS= read -r item; do codesign -f -s - "$item"; done \
+            < <(find "$signed" \( -name '*.framework' -o -name '*.dylib' \) -print)
+          codesign -f -s - --entitlements "$ent" "$signed"
+          codesign --verify --deep --strict "$signed"
+          pack "$signed" "$GITHUB_WORKSPACE/out/$name-ios-trollstore.ipa"
+
+      - name: Start iOS app in the simulator
+        if: ${{ inputs.ios && inputs.simulator }}
+        working-directory: apps/pure_live
+        run: |
+          set -euo pipefail
+          flutter build ios --simulator --debug
+          device=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          ids = [d["udid"] for runtime, ds in sorted(devices.items(), reverse=True) if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")]
+          print(ids[0])')
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl install "$device" build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$device" com.mystyle.purelive.liu
+          sleep 60
+          mkdir -p ../../shots
+          xcrun simctl io "$device" screenshot ../../shots/ios-simulator.png
+          xcrun simctl spawn "$device" log show --last 2m --predicate 'process == "Runner"' --style compact | tail -n 80 || true
+
+      - name: Checksums
+        if: ${{ always() }}
+        run: |
+          mkdir -p out shots
+          (cd out && shasum -a 256 * > SHA256SUMS.txt 2>/dev/null || true; cat SHA256SUMS.txt || true)
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: ${{ steps.toolchain.outputs.name }}-apple
+          path: out/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: ${{ always() }}
+        with:
+          name: screenshots
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 14

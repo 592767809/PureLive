@@ -17,7 +17,12 @@ target="$root/.ffmpeg_kit"
 filter="${1:-}"
 mkdir -p "$cache" "$target"
 
-sha() { sha256sum "$1" | cut -d' ' -f1; }
+# sha256sum on Linux, shasum on macOS (the Apple build on GitHub's macOS runners).
+if command -v sha256sum >/dev/null; then
+  sha() { sha256sum "$1" | cut -d' ' -f1; }
+else
+  sha() { shasum -a 256 "$1" | cut -d' ' -f1; }
+fi
 
 while IFS=$'\t' read -r name hash url; do
   [[ -z $name || $name == \#* ]] && continue

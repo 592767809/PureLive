@@ -43,6 +43,11 @@ app.*.map.json
 **/*.pfx
 **/*.key
 **/*.csr
+**/*.p12
+**/*.mobileprovision
+**/*.provisionprofile
+**/*.p8
+**/*.cer
 
 # Local build and release outputs
 /local-artifacts/

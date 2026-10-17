@@ -912,7 +912,7 @@ HTTP 和 WebSocket、请求头、压缩、代理和镜像、原生 HTTP 通道�
 
 Windows、Linux、电视、苹果平台的客户端专属工作（打包、原生、平台差异）；各端的界面在 A16～A18。
 
-`████████████████████` 100%
+`█████████████████░░░` 87%
 
 ### [X01 Windows](X-多端客户端/X01-Windows/README.md)
 
@@ -939,13 +939,13 @@ Windows、Linux、电视、苹果平台的客户端专属工作（打包、原�
 
 | 编号 | 任务 | 类型 | 档位 | 状态 | 阶段 | 资料 |
 |---|---|---|---|---|---|---|
-| X04.1 | 苹果平台的构建和签名 | 发布 | 第三档 | 不做 | — | [设计或说明](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/README.md)、[任务书](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/brief.md) |
+| X04.1 | iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包 | 发布 | 第三档 | 开发中 | — | [设计或说明](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/README.md)、[任务书](X-多端客户端/X04-iOS和iPadOS/X04.1-苹果平台的构建和签名/brief.md) |
 
 ### [X05 macOS](X-多端客户端/X05-macOS/README.md)
 
 | 编号 | 任务 | 类型 | 档位 | 状态 | 阶段 | 资料 |
 |---|---|---|---|---|---|---|
-| X05.1 | macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行 | 功能 | 第三档 | 不做 | — | [设计或说明](X-多端客户端/X05-macOS/X05.1-macOS工程和构建/README.md)、[任务书](X-多端客户端/X05-macOS/X05.1-macOS工程和构建/brief.md) |
+| X05.1 | macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行 | 功能 | 第三档 | 开发中 | — | [设计或说明](X-多端客户端/X05-macOS/X05.1-macOS工程和构建/README.md)、[任务书](X-多端客户端/X05-macOS/X05.1-macOS工程和构建/brief.md) |
 | X05.2 | macOS 签名、公证和分发，应用内更新 | 发布 | 第三档 | 不做 | — | [设计或说明](X-多端客户端/X05-macOS/X05.2-macOS签名和分发/README.md)、[任务书](X-多端客户端/X05-macOS/X05.2-macOS签名和分发/brief.md) |
 
 ## Y 发布和运营

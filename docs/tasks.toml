@@ -682,13 +682,13 @@ code = "电视模式代码"
 id = "X04"
 title = "iOS和iPadOS"
 scope = "构建、签名、平台差异。"
-code = "—"
+code = "`apps/pure_live/ios/`、`.github/workflows/apple.yml`"
 
 [[sub]]
 id = "X05"
 title = "macOS"
 scope = "构建、签名、平台差异。"
-code = "—"
+code = "`apps/pure_live/macos/`、`.github/workflows/apple.yml`"
 
 [[sub]]
 id = "Y01"
@@ -4370,24 +4370,24 @@ old = ["M14.1", "T18a.1"]
 
 [[task]]
 id = "X04.1"
-title = "苹果平台的构建和签名"
+title = "iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包"
 type = "发布"
-status = "不做"
-date = "2026-10-15"
+status = "开发中"
+date = "2026-10-17"
 size = "中"
 tier = 3
 old = ["T19c.1"]
-note = "同 A18.1"
+note = "2026-10-17 用户：“可以用GitHub云构建，不买开发者账号”（D-041）。.github/workflows/apple.yml 在 macos-15 上 flutter build ios --no-codesign，打未签名 IPA（AltStore、SideStore）和 ad-hoc 签名的 TrollStore IPA，模拟器里启动截图；包名 com.mystyle.purelive.liu（和 3.x 一样），iOS 15 起；账号加密走 pure_live/secret_cipher 通道（CryptoKit AES-GCM，密钥在 Keychain）"
 
 [[task]]
 id = "X05.1"
 title = "macOS 工程和构建：生成 macos/、沙盒和权限、Keychain 加密、桌面外壳，能在 Mac 上运行"
 type = "功能"
-status = "不做"
-date = "2026-10-15"
+status = "开发中"
+date = "2026-10-17"
 size = "大"
 tier = 3
-note = "同 A18.1"
+note = "2026-10-17 D-041：同一个 apple.yml 构建 macOS（通用二进制，ad-hoc 签名，沙盒），打 DMG 和 ZIP，构建机上启动截图；包名 com.mystyle.pureLive（和 3.x 一样），macOS 12 起；加密密钥放容器里的 secret.key（ad-hoc 签名用 Keychain 会反复弹窗）；桌面外壳（窗口、托盘）还没接"
 
 [[task]]
 id = "X05.2"

@@ -155,7 +155,7 @@ path = [
   { glob = "apps/pure_live/lib/shared/rooms/", sub = "A09" },
   { glob = "apps/pure_live/lib/shared/under_construction.dart", sub = "A02" },
 
-  # ---- 原生：Android（Kotlin）和 Windows 运行器 ----
+  # ---- 原生：Android（Kotlin）、Windows、iOS 和 macOS 运行器 ----
   { glob = "apps/pure_live/android/**/MainActivity.kt", sub = "O02", note = "多个通道的宿主，待定" },
   { glob = "apps/pure_live/android/**/AppChannelsPlugin.kt", sub = "Q03", note = "原生 HTTP、加密、GBK、组播锁，待定" },
   { glob = "apps/pure_live/android/**/Recorder*.kt", sub = "O01" },
@@ -166,6 +166,8 @@ path = [
   { glob = "apps/pure_live/android/**/PermissionsPlugin.kt", sub = "O04" },
   { glob = "apps/pure_live/android/**/SystemAccessPlugin.kt", sub = "O04" },
   { glob = "apps/pure_live/windows/runner/", sub = "X01" },
+  { glob = "apps/pure_live/ios/Runner/", sub = "X04" },
+  { glob = "apps/pure_live/macos/Runner/", sub = "X05" },
 
   # ---- packages ----
   { glob = "packages/live_cast/", sub = "N02" },
