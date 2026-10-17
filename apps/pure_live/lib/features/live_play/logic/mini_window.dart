@@ -276,6 +276,30 @@ enum MiniDock {
   right,
 }
 
+/// The floating window's place as `Settings.floatWindowPosition` keeps it
+/// (A07.26): [offset]'s left and top as fractions of [area], or the side
+/// and the top when tucked into [dock]; empty for none (the corner).
+String encodeMiniPlacement({required Offset? offset, required MiniDock? dock, required Size area}) {
+  if (offset == null || area.width <= 0 || area.height <= 0) return '';
+  String fraction(double value, double of) => (value / of).clamp(-1.0, 2.0).toStringAsFixed(4);
+  final top = fraction(offset.dy, area.height);
+  return dock == null ? '${fraction(offset.dx, area.width)},$top' : '${dock.name},$top';
+}
+
+/// The place [text] keeps ([encodeMiniPlacement]) in [area]; null when
+/// there is none or it cannot be read. [inAppMiniOffset] keeps it on screen.
+({Offset offset, MiniDock? dock})? decodeMiniPlacement(String text, Size area) {
+  final parts = text.split(',');
+  if (parts.length != 2) return null;
+  final top = double.tryParse(parts[1]);
+  if (top == null || !top.isFinite) return null;
+  final dock = MiniDock.values.where((side) => side.name == parts[0]).firstOrNull;
+  if (dock != null) return (offset: Offset(0, top * area.height), dock: dock);
+  final left = double.tryParse(parts[0]);
+  if (left == null || !left.isFinite) return null;
+  return (offset: Offset(left * area.width, top * area.height), dock: null);
+}
+
 /// How much of a tucked-away window shows (A07.24): enough to see it plays
 /// and to grab it.
 const double inAppMiniDockPeek = 40;

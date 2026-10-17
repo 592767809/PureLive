@@ -385,6 +385,18 @@ void main() {
       expect(settled, (offset: const Offset(0, 300 + 0.18 * 0), dock: null));
     });
 
+    test('A07.26: the place kept across restarts is a fraction of the screen, or a side and a height', () {
+      const area = Size(400, 800);
+      expect(encodeMiniPlacement(offset: null, dock: null, area: area), '', reason: 'the corner');
+      expect(encodeMiniPlacement(offset: const Offset(100, 200), dock: null, area: area), '0.2500,0.2500');
+      expect(encodeMiniPlacement(offset: const Offset(-180, 400), dock: MiniDock.left, area: area), 'left,0.5000');
+      expect(decodeMiniPlacement('0.2500,0.2500', const Size(800, 400)), (offset: const Offset(200, 100), dock: null));
+      expect(decodeMiniPlacement('right,0.5000', area), (offset: const Offset(0, 400), dock: MiniDock.right));
+      for (final broken in ['', 'x', '1,2,3', 'up,0.5', '0.1,nope']) {
+        expect(decodeMiniPlacement(broken, area), isNull, reason: broken);
+      }
+    });
+
     test('A07.22: the grip on the bottom corner towards the middle; outwards grows; the far top corner stays', () {
       const area = Size(393, 852);
       const right = Rect.fromLTWH(157, 632, 220, 124);
@@ -1149,6 +1161,34 @@ void main() {
       await _openRoom(tester);
       await _leaveRoom(tester, app);
       expect(tester.getRect(_window).left, 16);
+      await _close(tester, app);
+    });
+
+    testWidgets('A07.26: the place the user left it in is kept across a restart', (tester) async {
+      final app = await _app(tester);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final corner = tester.getRect(_window);
+      final drag = await tester.startGesture(corner.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(-40, 0));
+      await drag.moveBy(const Offset(-200, -300));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      final left = tester.getRect(_window);
+      expect(left.left, 16);
+      expect(app.services.store.settings.get(Settings.floatWindowPosition), isNotEmpty);
+      // A restart: the run's memory is gone, the setting stays.
+      await tester.tap(find.byKey(const ValueKey('mini-close')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      FloatingRoom.instance.placement = null;
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final back = tester.getRect(_window).topLeft;
+      expect(back.dx, closeTo(left.left, 0.5));
+      expect(back.dy, closeTo(left.top, 0.5));
       await _close(tester, app);
     });
 

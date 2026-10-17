@@ -282,6 +282,7 @@ const Map<String, Object> newInV4 = {
   'floatWindowSize': 'medium', // A07.22 (V01.5; A07.8 c6's size)
   'floatWindowLandscapeScale': 1.0, // A07.22: 1 = not resized
   'floatWindowPortraitScale': 1.0, // A07.22
+  'floatWindowPosition': '',
   'portraitFullscreenSwipeSwitch': false, // A07.2, A07.3
   'livePlayChatCollapsed': false, // A07.5
   'roomSwitcherLayout': 'grid', // A07.13, D-022

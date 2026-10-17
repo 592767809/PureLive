@@ -263,6 +263,8 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _dragged = placement?.offset;
     _free = placement?.offset != null;
     _dock = placement?.dock;
+    // A07.26: the first window of a run opens where the last run left it.
+    _restoreSaved = placement == null;
     unawaited(
       PictureInPicture.supported().then((supported) {
         if (mounted && supported != _pipSupported) setState(() => _pipSupported = supported);
@@ -285,6 +287,24 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
 
   void _settleStatus(AnimationStatus status) {
     if (!_settle.isAnimating) _syncExclusionLater();
+  }
+
+  /// Whether the saved place ([Settings.floatWindowPosition]) is still to be
+  /// put back, once the area is known.
+  bool _restoreSaved = false;
+
+  /// Keeps the window's place across restarts (A07.26), as fractions of
+  /// the area, so a turned or another screen puts it where it belongs.
+  void _savePlacement() {
+    final layout = _layout;
+    if (layout == null) return;
+    final placement = widget.room.placement;
+    unawaited(
+      widget.runtime.controller.store.settings.set(
+        Settings.floatWindowPosition,
+        encodeMiniPlacement(offset: placement?.offset, dock: placement?.dock, area: layout.area),
+      ),
+    );
   }
 
   /// Whether the user dragged the window: it may then go up to the status
@@ -546,6 +566,7 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _dock = dock;
     _dragged = to;
     widget.room.placement = (offset: to, dock: dock);
+    _savePlacement();
     final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     if (still || (from - to).distance < 0.5) {
       _settle.stop();
@@ -639,6 +660,7 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _dragged = (window.topLeft - corner).distance < 0.5 ? null : window.topLeft;
     if (_dragged == null) _free = false;
     widget.room.placement = _dragged == null ? null : (offset: _dragged!, dock: null);
+    _savePlacement();
     _moved();
     _placeGrip();
     _syncAutoPipLater();
@@ -696,6 +718,18 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     return LayoutBuilder(
       builder: (context, constraints) {
         final area = constraints.biggest;
+        // A07.26: where the last run left it, once the area is known (not in
+        // a picture-in-picture or floating window, which fill it).
+        if (_restoreSaved && !pip && area.width > 0 && area.height > 0) {
+          _restoreSaved = false;
+          final saved = decodeMiniPlacement(runtime.controller.store.settings.get(Settings.floatWindowPosition), area);
+          if (saved != null) {
+            _dragged = saved.offset;
+            _dock = saved.dock;
+            _free = true;
+            widget.room.placement = saved;
+          }
+        }
         return ListenableBuilder(
           listenable: runtime.orientation,
           builder: (context, _) => StreamBuilder<PlaybackState>(
