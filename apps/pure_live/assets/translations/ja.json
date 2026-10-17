@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "再生中に既定で弾幕を表示",
     "show_goto_button": "ページ移動ボタンを表示",
     "show_goto_button_subtitle": "ページ番号を入力して素早く移動できます",
+    "show_in_finder": "Finder に表示",
     "show_page_size_selector": "1ページの件数の選択を表示",
     "show_page_size_selector_subtitle": "コントロールバーに1ページの件数のドロップダウンを表示",
     "show_scroll_to_top": "トップへ戻るボタンを表示",

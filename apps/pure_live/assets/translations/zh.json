@@ -2550,6 +2550,7 @@
     "show_danmaku_subtitle": "播放直播时默认开启弹幕显示",
     "show_goto_button": "显示页码跳转按钮",
     "show_goto_button_subtitle": "开启后支持手动输入页码进行快速跳转",
+    "show_in_finder": "在访达中显示",
     "show_page_size_selector": "显示单页数量选择器",
     "show_page_size_selector_subtitle": "在列表控制条显示每页显示行数下拉选单",
     "show_scroll_to_top": "显示一键置顶按钮",

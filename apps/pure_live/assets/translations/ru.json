@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Показывать danmaku по умолчанию во время воспроизведения",
     "show_goto_button": "Показывать кнопку перехода к странице",
     "show_goto_button_subtitle": "Позволяет ввести номер страницы для быстрого перехода",
+    "show_in_finder": "Показать в Finder",
     "show_page_size_selector": "Показывать выбор размера страницы",
     "show_page_size_selector_subtitle": "Показывает в панели управления выпадающий список числа на странице",
     "show_scroll_to_top": "Показывать кнопку наверх",

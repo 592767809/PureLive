@@ -298,6 +298,24 @@ void main() {
       await _close(tester, room);
     });
 
+    testWidgets("A18.2 c8: a Mac's full screen space and the room's full screen are one", (tester) async {
+      final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.macOS);
+      addTearDown(() => DesktopWindow.fullScreen.value = false);
+      await _tap(tester, 'live-play-fullscreen');
+      expect(_key('live-play-desktop-split'), findsNothing);
+      // Left with the green button or the system's Esc: the room leaves too.
+      DesktopWindow.fullScreen.value = false;
+      await tester.pump(const Duration(seconds: 1));
+      expect(_key('live-play-desktop-split'), findsOneWidget);
+      // The green button in the room: the picture fills the screen.
+      DesktopWindow.fullScreen.value = true;
+      await tester.pump(const Duration(seconds: 1));
+      expect(_key('live-play-desktop-split'), findsNothing);
+      DesktopWindow.fullScreen.value = false;
+      await tester.pump(const Duration(seconds: 1));
+      await _close(tester, room);
+    });
+
     testWidgets('Windows: the clock, no orientation; the volume before leaving', (tester) async {
       final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.windows);
       await _tap(tester, 'live-play-fullscreen');

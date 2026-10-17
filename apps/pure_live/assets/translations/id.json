@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Aktifkan tampilan danmaku secara bawaan saat diputar",
     "show_goto_button": "Tampilkan Tombol Ke Halaman",
     "show_goto_button_subtitle": "Memungkinkan memasukkan nomor halaman untuk melompat cepat",
+    "show_in_finder": "Tampilkan di Finder",
     "show_page_size_selector": "Tampilkan Pemilih Ukuran Halaman",
     "show_page_size_selector_subtitle": "Menampilkan menu tarik-turun item per halaman di bilah kontrol",
     "show_scroll_to_top": "Tampilkan Tombol Gulir ke Atas",

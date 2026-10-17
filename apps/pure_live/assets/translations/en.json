@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Enable danmaku display by default during playback",
     "show_goto_button": "Show Go-To Page Button",
     "show_goto_button_subtitle": "Enables manual page number input for quick jumping",
+    "show_in_finder": "Show in Finder",
     "show_page_size_selector": "Show Page Size Selector",
     "show_page_size_selector_subtitle": "Displays a dropdown menu for items per page in the control bar",
     "show_scroll_to_top": "Show Scroll-to-Top Button",

@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Activar la visualización del danmaku por defecto durante la reproducción",
     "show_goto_button": "Mostrar botón Ir a página",
     "show_goto_button_subtitle": "Permite escribir un número de página para saltar rápido",
+    "show_in_finder": "Mostrar en Finder",
     "show_page_size_selector": "Mostrar selector de tamaño de página",
     "show_page_size_selector_subtitle": "Muestra un menú desplegable de elementos por página en la barra de control",
     "show_scroll_to_top": "Mostrar botón para volver arriba",

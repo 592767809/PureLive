@@ -2550,6 +2550,7 @@
     "show_danmaku_subtitle": "播放直播時預設開啟彈幕顯示",
     "show_goto_button": "顯示頁碼跳轉按鈕",
     "show_goto_button_subtitle": "開啟後支援手動輸入頁碼進行快速跳轉",
+    "show_in_finder": "在訪達中顯示",
     "show_page_size_selector": "顯示單頁數量選擇器",
     "show_page_size_selector_subtitle": "在列表控制條顯示每頁顯示行數下拉選單",
     "show_scroll_to_top": "顯示一鍵置頂按鈕",

@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Activer l’affichage du danmaku par défaut pendant la lecture",
     "show_goto_button": "Afficher le bouton Aller à la page",
     "show_goto_button_subtitle": "Permet de saisir un numéro de page pour y aller rapidement",
+    "show_in_finder": "Afficher dans le Finder",
     "show_page_size_selector": "Afficher le sélecteur de taille de page",
     "show_page_size_selector_subtitle": "Affiche un menu déroulant d’éléments par page dans la barre de contrôle",
     "show_scroll_to_top": "Afficher le bouton retour en haut",

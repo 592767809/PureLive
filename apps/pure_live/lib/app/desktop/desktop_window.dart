@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
+import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/close_dialog.dart';
 import 'package:pure_live/app/desktop/mini_window.dart';
 import 'package:pure_live/app/desktop/shared_data.dart';
@@ -361,8 +362,16 @@ final class DesktopShell with WindowListener {
     if (_dataRoot case final root?) _shared = SharedDataWatch(_store, root)..start();
     if (primary) {
       try {
-        _tray = DesktopTray.create(onShow: show, onHide: windowManager.hide, onExit: _closer.exitFromTray)
-          ..setRecording(_activeRecordings);
+        _tray = DesktopTray.create(
+          onShow: show,
+          onHide: windowManager.hide,
+          onExit: _closer.exitFromTray,
+          mac: mac,
+          onRecordCenter: () async {
+            await show();
+            AppCommand.record.run();
+          },
+        )..setRecording(_activeRecordings);
       } on Object catch (error, stack) {
         // Without a tray, "minimize" minimizes to the taskbar (c7).
         log('Tray failed', name: 'Desktop', error: error, stackTrace: stack);

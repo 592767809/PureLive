@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 219 条；设置 267 个（分节默认 24 条、单独指定 102 个）；来源 35 个；通道 18 个。
+路径规则 219 条；设置 267 个（分节默认 24 条、单独指定 102 个）；来源 35 个；通道 19 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -92,7 +92,7 @@
 | X04 iOS和iPadOS | 1 |  |  |  |  |
 | X05 macOS | 1 |  |  |  |  |
 | Y01 版本签名和发布 | 2 |  |  |  |  |
-| Y02 更新通道 | 1 | 5 |  |  |  |
+| Y02 更新通道 | 1 | 5 |  |  | 1 |
 | Z01 工具链和依赖 | 1 |  |  |  |  |
 | Z02 门禁 | 1 |  |  |  |  |
 | Z03 清点和归属 | 1 |  |  |  |  |
@@ -485,6 +485,7 @@
 
 - 代码：`apps/pure_live/lib/features/version/update_feed.dart`
 - 设置：`enableAutoCheckUpdate`、`useGitHubOriginForUpdates`、`skippedUpdateVersion`、`downloadDirectoryPath`、`downloadDirectoryDecisionMade`
+- 通道：`pure_live/finder`
 
 ## Z01 工具链和依赖
 

@@ -211,6 +211,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   void initState() {
     super.initState();
     RoomCommands.current.value = _commands;
+    DesktopWindow.fullScreen.addListener(_windowFullScreenChanged);
     _swipe = RoomSwipeController(onSwitch: _swipeTo, vsync: this);
     final (room, playlist) = switch (widget.route.arguments) {
       LiveRoomArgs(:final room, :final playlist) => (room, playlist),
@@ -502,6 +503,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   @override
   void dispose() {
     if (identical(RoomCommands.current.value, _commands)) RoomCommands.current.value = null;
+    DesktopWindow.fullScreen.removeListener(_windowFullScreenChanged);
     unawaited(RoomBackChannel.instance.release(this));
     unawaited(_autoFullscreen?.cancel());
     unawaited(_shape?.cancel());
@@ -620,6 +622,28 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _restorePortrait = false;
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     await ScreenOrientation.portrait();
+  }
+
+  /// The window went into or out of the screen's full screen by itself
+  /// (A18.2 c8): leaving it any way (the Mac's green button, ⌃⌘F, Esc of
+  /// the system) leaves the room's full screen too; on a Mac the green
+  /// button in the room fills the screen with the picture, as the room's
+  /// full screen button does.
+  void _windowFullScreenChanged() {
+    if (!mounted || !_platform.desktop) return;
+    final on = DesktopWindow.fullScreen.value;
+    final filling = _display == RoomDisplay.fullscreen || _display == RoomDisplay.portraitFullscreen;
+    if (!on && filling) {
+      setState(() {
+        _display = RoomDisplay.inline;
+        _entryHint = false;
+      });
+    } else if (on &&
+        _display == RoomDisplay.inline &&
+        DesktopWindow.macStyle &&
+        (ModalRoute.isCurrentOf(context) ?? true)) {
+      setState(() => _display = RoomDisplay.fullscreen);
+    }
   }
 
   /// Back to the room page.

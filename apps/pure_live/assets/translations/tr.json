@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "Oynatma sırasında danmaku görünümünü varsayılan olarak aç",
     "show_goto_button": "Sayfaya Git Düğmesini Göster",
     "show_goto_button_subtitle": "Hızlı atlamak için sayfa numarası girmeyi sağlar",
+    "show_in_finder": "Finder’da Göster",
     "show_page_size_selector": "Sayfa Boyutu Seçicisini Göster",
     "show_page_size_selector_subtitle": "Denetim çubuğunda sayfa başına öğe açılır menüsünü gösterir",
     "show_scroll_to_top": "En Üste Kaydırma Düğmesini Göster",

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
@@ -330,6 +332,18 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
     });
   }
 
+  /// macOS (A18.2 c10): the downloaded DMG or ZIP selected in a Finder
+  /// window, where it is opened and the app dragged into "应用程序".
+  Future<void> _revealInFinder() async {
+    final file = _file;
+    if (file == null) return;
+    if (await revealInFinder(file.path) || !mounted) return;
+    setState(() {
+      _message = i18n('download_open_folder_failed', args: {'path': file.parent.path});
+      _messageIsError = false;
+    });
+  }
+
   Future<void> _openFolder() async {
     final file = _file;
     if (file == null) return;
@@ -372,7 +386,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
     if (_opening) return;
     switch (_phase) {
       case UpdateDownloadPhase.done:
-        unawaited(_install());
+        unawaited(defaultTargetPlatform == TargetPlatform.macOS ? _revealInFinder() : _install());
       case UpdateDownloadPhase.failed:
         unawaited(_start());
       case UpdateDownloadPhase.downloading:
@@ -555,6 +569,16 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
             label: Text(i18n('download_open_again')),
           ),
         ];
+      case UpdateDownloadPhase.done when defaultTargetPlatform == TargetPlatform.macOS:
+        leading = [close];
+        trailing = [
+          FilledButton.icon(
+            key: const ValueKey('update-download-reveal'),
+            onPressed: () => unawaited(_revealInFinder()),
+            icon: const Icon(AppIcons.openFolder, size: 18),
+            label: Text(i18n('show_in_finder')),
+          ),
+        ];
       case UpdateDownloadPhase.done:
         leading = [close];
         trailing = [
@@ -640,5 +664,19 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         ),
       ),
     );
+  }
+}
+
+const MethodChannel _finder = MethodChannel('pure_live/finder');
+
+/// Selects [path] in a Finder window (macOS, native `pure_live/finder`);
+/// false when it could not (tests replace the channel).
+Future<bool> revealInFinder(String path) async {
+  try {
+    return await _finder.invokeMethod<bool>('reveal', {'path': path}) ?? false;
+  } on PlatformException {
+    return false;
+  } on MissingPluginException {
+    return false;
   }
 }

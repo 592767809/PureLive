@@ -443,6 +443,46 @@ void main() {
       expect(File('${folder.path}/${_apk('9.0.0').name}').existsSync(), isTrue);
     });
 
+    testWidgets('A18.2 c10: on a Mac a finished download has one button, "在访达中显示"', (tester) async {
+      final folder = _temp();
+      final http = _GatedHttp(size: 1024);
+      final revealed = <Object?>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pure_live/finder'), (
+        call,
+      ) async {
+        revealed.add((call.method, (call.arguments as Map)['path']));
+        return true;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('pure_live/finder'),
+          null,
+        ),
+      );
+      final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
+      final context = tester.element(find.text('home'));
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      try {
+        unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+        await tester.pump();
+        await _until(tester, () => http.opens > 0);
+        http.body.add(List.filled(1024, 1));
+        unawaited(http.body.close());
+        await _until(tester, () => find.text('v9.0.0 已下载').evaluate().isNotEmpty);
+        expect(find.text('打开文件夹'), findsNothing);
+        expect(find.text('立即安装'), findsNothing);
+        expect(_x(tester, '关闭'), lessThan(_x(tester, '在访达中显示')));
+        await tester.tap(find.text('在访达中显示'));
+        await tester.pumpAndSettle();
+        expect(revealed, [('reveal', '${folder.path}/${_apk('9.0.0').name}')]);
+        expect(h.opened, isEmpty, reason: 'nothing is opened, the DMG is shown');
+        await tester.tap(find.text('关闭'));
+        await tester.pumpAndSettle();
+      } finally {
+        debugDefaultTargetPlatformOverride = null;
+      }
+    });
+
     testWidgets('unknown size, then a failure: the line, retry, browser and close', (tester) async {
       final folder = _temp();
       final http = _GatedHttp();

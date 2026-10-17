@@ -674,6 +674,24 @@ void main() {
       expect(trayTooltip(recording: 0), '纯粹直播');
       expect(trayTooltip(recording: 2), '纯粹直播 · 正在录制 2 个');
     });
+
+    test('the Mac\'s menu bar icon: "录制中心…" under the count while recording (A18.2 c7)', () {
+      expect(trayMenuRows(recording: 0, mac: true), [TrayRow.window, TrayRow.separator, TrayRow.exit]);
+      expect(trayMenuRows(recording: 1, mac: true), [
+        TrayRow.recording,
+        TrayRow.recordCenter,
+        TrayRow.separator,
+        TrayRow.window,
+        TrayRow.separator,
+        TrayRow.exit,
+      ]);
+      expect(trayRowLabel(TrayRow.recordCenter, visible: true, recording: 1), '录制中心…');
+      // Its two pictures are in the app: one colour, and with the red dot.
+      for (final asset in ['assets/icons/tray_template.png', 'assets/icons/tray_recording.png']) {
+        expect(File(asset).existsSync(), isTrue, reason: asset);
+        expect(File('pubspec.yaml').readAsStringSync(), contains('- $asset'));
+      }
+    });
   });
 
   group('window', () {

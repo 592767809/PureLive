@@ -2551,6 +2551,7 @@
     "show_danmaku_subtitle": "เปิดการแสดง danmaku เป็นค่าเริ่มต้นขณะเล่น",
     "show_goto_button": "แสดงปุ่มไปที่หน้า",
     "show_goto_button_subtitle": "ให้ป้อนหมายเลขหน้าเพื่อข้ามได้เร็ว",
+    "show_in_finder": "แสดงใน Finder",
     "show_page_size_selector": "แสดงตัวเลือกจำนวนต่อหน้า",
     "show_page_size_selector_subtitle": "แสดงเมนูแบบเลื่อนลงของจำนวนต่อหน้าในแถบควบคุม",
     "show_scroll_to_top": "แสดงปุ่มกลับขึ้นบน",

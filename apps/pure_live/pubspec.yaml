@@ -114,6 +114,8 @@ flutter:
     # The interface languages, one file each (AppLanguage.code).
     - assets/translations/
     - assets/icons/icon.png
+    - assets/icons/tray_template.png
+    - assets/icons/tray_recording.png
     # Mozilla's CA bundle for FFmpeg's OpenSSL on Android and Linux (3.x).
     - assets/certificates/
     # The cloud font list of the font manager (3.x).
