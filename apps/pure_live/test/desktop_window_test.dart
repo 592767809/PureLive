@@ -695,6 +695,13 @@ void main() {
   });
 
   group('window', () {
+    test('the window is never larger than the screen, nor smaller than 360 × 400', () {
+      expect(fitWindowSize(const Size(1280, 800), const Size(1024, 743)), const Size(1024, 743));
+      expect(fitWindowSize(const Size(1280, 800), const Size(1920, 1050)), const Size(1280, 800));
+      expect(fitWindowSize(const Size(100, 100), null), DesktopShell.minimumSize);
+      expect(fitWindowSize(const Size(1280, 800), const Size(300, 300)), DesktopShell.minimumSize);
+    });
+
     test('a remembered place off every display goes back to the middle (c6)', () {
       const displays = [Rect.fromLTWH(0, 0, 1920, 1040)];
       expect(titleRowOnScreen(const Offset(100, 80), const Size(1280, 720), displays), isTrue);

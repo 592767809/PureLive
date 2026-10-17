@@ -296,9 +296,12 @@ final class DesktopShell with WindowListener {
 
   Future<void> _start() async {
     await windowManager.ensureInitialized();
-    final size = Size(
-      _prefs.get(Settings.windowWidth).clamp(minimumSize.width, double.infinity),
-      _prefs.get(Settings.windowHeight).clamp(minimumSize.height, double.infinity),
+    // Never larger than the screen's work area (a size kept from a bigger
+    // display, or the default on a small one, put the window's left part
+    // off the screen on the Mac runner).
+    final size = fitWindowSize(
+      Size(_prefs.get(Settings.windowWidth), _prefs.get(Settings.windowHeight)),
+      await _workArea(),
     );
     final position = primary ? parseWindowPosition(await _store.meta.get(windowPositionKey)) : null;
     final maximize = primary && await _store.meta.get(windowMaximizedKey) == '1';
@@ -394,6 +397,16 @@ final class DesktopShell with WindowListener {
     } on Object catch (error, stack) {
       // Without a tray, "minimize" minimizes to the taskbar (c7).
       log('Tray failed', name: 'Desktop', error: error, stackTrace: stack);
+    }
+  }
+
+  /// The primary display's work area, or null when unknown.
+  Future<Size?> _workArea() async {
+    try {
+      final display = await screenRetriever.getPrimaryDisplay();
+      return display.visibleSize ?? display.size;
+    } on Object {
+      return null;
     }
   }
 
@@ -630,6 +643,18 @@ final class DesktopShell with WindowListener {
 bool titleRowOnScreen(Offset position, Size size, List<Rect> displays) {
   final title = Rect.fromLTWH(position.dx + 40, position.dy, (size.width - 80).clamp(40, double.infinity), 32);
   return displays.any((area) => area.overlaps(title));
+}
+
+/// The window's size from [wanted]: at least [DesktopShell.minimumSize], at
+/// most the display's [workArea] when it is known.
+Size fitWindowSize(Size wanted, Size? workArea) {
+  const minimum = DesktopShell.minimumSize;
+  double fit(double value, double low, double? high) {
+    final top = high == null ? double.infinity : (high < low ? low : high);
+    return value.clamp(low, top);
+  }
+
+  return Size(fit(wanted.width, minimum.width, workArea?.width), fit(wanted.height, minimum.height, workArea?.height));
 }
 
 /// `x,y` of a stored window position; null when missing or unreadable.
