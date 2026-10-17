@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,8 +15,6 @@ import 'package:pure_live/features/live_play/logic/room_runtime.dart';
 import 'package:pure_live/features/live_play/mini/mini_player.dart';
 import 'package:pure_live/features/live_play/mini/room_mini_window.dart';
 import 'package:pure_live/i18n/i18n.dart';
-import 'package:pure_live/platform/overlay_window.dart';
-import 'package:pure_live/platform/system_gestures.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -56,20 +53,6 @@ class _FloatingRoomLayerState extends State<FloatingRoomLayer> {
     liveRouteObserver.openPopups.addListener(_changed);
     liveRouteObserver.currentRoute.addListener(_changed);
     PictureInPicture.active.addListener(_changed);
-    OverlayWindow.active.addListener(_overlayChanged);
-  }
-
-  /// The app's floating window came or went (A07.25). Coming back, a room
-  /// whose page the window took over opens its page again (the same player).
-  void _overlayChanged() {
-    _changed();
-    if (OverlayWindow.active.value) return;
-    final room = OverlayWindow.fromRoomPage;
-    OverlayWindow.fromRoomPage = null;
-    final runtime = _room.runtime;
-    if (room != null && runtime != null && runtime.holds(room)) {
-      unawaited(AppNavigator.toLiveRoomDetail(liveRoom: runtime.controller.room));
-    }
   }
 
   @override
@@ -80,7 +63,6 @@ class _FloatingRoomLayerState extends State<FloatingRoomLayer> {
     liveRouteObserver.openPopups.removeListener(_changed);
     liveRouteObserver.currentRoute.removeListener(_changed);
     PictureInPicture.active.removeListener(_changed);
-    OverlayWindow.active.removeListener(_overlayChanged);
     _entry?.remove();
     _entry?.dispose();
     super.dispose();
@@ -113,8 +95,7 @@ class _FloatingRoomLayerState extends State<FloatingRoomLayer> {
     if (runtime == null) return const SizedBox.shrink();
     // Hidden, not stopped, while a menu, dialog or sheet is open (3.x
     // `PopupAwareVisibility`).
-    final hidden =
-        liveRouteObserver.openPopups.value > 0 && !PictureInPicture.active.value && !OverlayWindow.active.value;
+    final hidden = liveRouteObserver.openPopups.value > 0 && !PictureInPicture.active.value;
     return Offstage(
       offstage: hidden,
       child: _FloatingWindow(
@@ -122,22 +103,8 @@ class _FloatingRoomLayerState extends State<FloatingRoomLayer> {
         runtime: runtime,
         route: liveRouteObserver.currentRoute.value,
         room: _room,
-        onBackToRoom: () {
-          // From the floating window over other apps: back into the app,
-          // into the room (A07.25).
-          if (OverlayWindow.active.value) {
-            OverlayWindow.fromRoomPage = null;
-            unawaited(OverlayWindow.backToApp());
-          }
-          unawaited(AppNavigator.toLiveRoomDetail(liveRoom: runtime.controller.room));
-        },
-        onClose: () {
-          if (OverlayWindow.active.value) {
-            OverlayWindow.fromRoomPage = null;
-            unawaited(OverlayWindow.close());
-          }
-          unawaited(_room.close());
-        },
+        onBackToRoom: () => unawaited(AppNavigator.toLiveRoomDetail(liveRoom: runtime.controller.room)),
+        onClose: () => unawaited(_room.close()),
       ),
     );
   }
@@ -174,10 +141,6 @@ final class _Layout {
     required this.ratio,
     required this.topClearance,
     required this.bottomClearance,
-    required this.reachTop,
-    required this.reachBottom,
-    required this.peekLeft,
-    required this.peekRight,
     required this.sizeName,
     required this.stored,
     required this.portraitWindow,
@@ -188,18 +151,6 @@ final class _Layout {
   final double ratio;
   final double topClearance;
   final double bottomClearance;
-
-  /// How far a window the user moved may go ([inAppMiniReach]).
-  final double reachTop;
-  final double reachBottom;
-
-  /// How much of a window tucked into the left or right side shows
-  /// ([inAppMiniPeekFor]).
-  final double peekLeft;
-  final double peekRight;
-
-  /// The peek for [dock].
-  double peekOf(MiniDock? dock) => dock == MiniDock.left ? peekLeft : peekRight;
   final String sizeName;
 
   /// The kept resize of this picture's kind (A07.22).
@@ -261,7 +212,6 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     super.initState();
     final placement = widget.room.placement;
     _dragged = placement?.offset;
-    _free = placement?.offset != null;
     _dock = placement?.dock;
     unawaited(
       PictureInPicture.supported().then((supported) {
@@ -269,48 +219,6 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
       }),
     );
     _states = widget.runtime.session.states.listen((_) => _syncAutoPip());
-    OverlayWindow.permitted.addListener(_syncAutoPipLater);
-    _frame.addListener(_syncExclusionLater);
-  }
-
-  /// Whether the user dragged the window: it may then go up to the status
-  /// bar and down to the system's gesture bar ([inAppMiniReach]).
-  bool _free = false;
-
-  Rect? _excluded;
-  bool _exclusionQueued = false;
-
-  void _syncExclusionLater() {
-    if (_exclusionQueued) return;
-    _exclusionQueued = true;
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      _exclusionQueued = false;
-      _syncExclusion();
-    });
-  }
-
-  /// A window tucked into a side keeps its strip out of the system's back
-  /// gesture, so pulling it back out does not go back (the user's K90
-  /// report); nothing otherwise.
-  void _syncExclusion() {
-    if (!mounted) return;
-    final layout = _layout;
-    final tucked =
-        layout != null &&
-        _dock != null &&
-        !_dragging &&
-        !_settle.isAnimating &&
-        !PictureInPicture.active.value &&
-        !OverlayWindow.active.value;
-    final rect = tucked ? _rect(layout) : null;
-    if (rect == _excluded) return;
-    _excluded = rect;
-    unawaited(
-      SystemGestureExclusion.set(
-        rect == null ? const [] : [rect],
-        pixelRatio: View.maybeOf(context)?.devicePixelRatio ?? 1,
-      ),
-    );
   }
 
   @override
@@ -322,13 +230,7 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
   @override
   void dispose() {
     unawaited(_states?.cancel());
-    if (_armed ?? false) {
-      unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
-      unawaited(OverlayWindow.arm(enabled: false, owner: this));
-    }
-    OverlayWindow.permitted.removeListener(_syncAutoPipLater);
-    _frame.removeListener(_syncExclusionLater);
-    if (_excluded != null) unawaited(SystemGestureExclusion.set(const []));
+    if (_armed ?? false) unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
     _settle.dispose();
     _frame.dispose();
     _grip.dispose();
@@ -342,31 +244,19 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
   /// "离开应用时自动画中画" on, while it plays and no room page is on top
   /// (a room page arms its own); it grows out of the window.
   void _syncAutoPip() {
-    if (!mounted || defaultTargetPlatform != TargetPlatform.android) return;
+    if (!mounted || !_pipSupported) return;
     final runtime = widget.runtime;
     final status = runtime.session.state.status;
-    final choice = leaveAppWindow(runtime.controller.store.settings);
     final armed = shouldAutoEnterPip(
-      enabled: choice != LeaveAppWindow.none,
+      enabled: runtime.controller.store.settings.get(Settings.autoPipOnLeave),
       onTop: widget.route != RoutePath.kLivePlay,
       stage: runtime.controller.stage,
       status: status,
       audioOnly: runtime.controller.audioOnly,
     );
     final layout = _layout;
-    final away = PictureInPicture.active.value || OverlayWindow.active.value;
-    final rect = armed && layout != null && !away ? _rect(layout) : null;
-    // Away from the app the window stays armed as it was.
-    if (away) return;
-    final overlay = OverlayWindow.permitted.value;
-    if (armed == _armed &&
-        choice == _armedChoice &&
-        overlay == _armedOverlay &&
-        (!armed || (_armedSize == _pictureSize && _armedRect == rect))) {
-      return;
-    }
-    _armedChoice = choice;
-    _armedOverlay = overlay;
+    final rect = armed && layout != null && !PictureInPicture.active.value ? _rect(layout) : null;
+    if (armed == _armed && (!armed || (_armedSize == _pictureSize && _armedRect == rect))) return;
     final titled = armed && !(_armed ?? false);
     _armed = armed;
     _armedSize = _pictureSize;
@@ -375,21 +265,16 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
       unawaited(PictureInPicture.update(title: _title, subtitle: runtime.controller.room.title));
     }
     unawaited(
-      armLeaveWindow(
-        choice: choice,
-        playing: armed && rect != null,
+      PictureInPicture.setAutoEnter(
+        enabled: armed,
         width: _pictureSize.$1,
         height: _pictureSize.$2,
         picture: rect,
-        window: rect ?? Rect.zero,
         pixelRatio: View.maybeOf(context)?.devicePixelRatio ?? 1,
         owner: this,
       ),
     );
   }
-
-  LeaveAppWindow? _armedChoice;
-  bool? _armedOverlay;
 
   String get _title {
     final room = widget.runtime.controller.room;
@@ -440,27 +325,21 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     if (_settle.isAnimating && run != null) {
       offset = run.at(_settle.value);
     } else if (_dragging) {
-      final wanted = _dragged ?? Offset.zero;
       offset = inAppMiniDragOffset(
         area: layout.area,
         window: size,
-        wanted: wanted,
-        topClearance: layout.reachTop,
-        bottomClearance: layout.reachBottom,
-        peek: layout.peekOf(wanted.dx + size.width / 2 < layout.area.width / 2 ? MiniDock.left : MiniDock.right),
+        wanted: _dragged ?? Offset.zero,
+        topClearance: layout.topClearance,
+        bottomClearance: layout.bottomClearance,
       );
     } else {
-      // Only a window the user dragged reaches the bars; one resized in
-      // its corner keeps the corner's clearances.
-      final moved = _free || _dock != null;
       offset = inAppMiniOffset(
         area: layout.area,
         window: size,
         dragged: _dragged,
         dock: _dock,
-        topClearance: moved ? layout.reachTop : layout.topClearance,
-        bottomClearance: moved ? layout.reachBottom : layout.bottomClearance,
-        peek: layout.peekOf(_dock),
+        topClearance: layout.topClearance,
+        bottomClearance: layout.bottomClearance,
       );
     }
     return offset & size;
@@ -482,7 +361,6 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _dragging = true;
     _dock = null;
     _dragged = from;
-    _free = true;
     _grip.value = null;
     _moved();
   }
@@ -504,9 +382,8 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
       area: layout.area,
       window: window,
       velocity: velocity,
-      topClearance: layout.reachTop,
-      bottomClearance: layout.reachBottom,
-      peek: layout.peekOf(window.center.dx < layout.area.width / 2 ? MiniDock.left : MiniDock.right),
+      topClearance: layout.topClearance,
+      bottomClearance: layout.bottomClearance,
     );
     _slide(from: window.topLeft, to: settled.offset, dock: settled.dock, velocity: velocity);
   }
@@ -547,8 +424,8 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
       area: layout.area,
       window: window.size,
       dragged: window.topLeft,
-      topClearance: layout.reachTop,
-      bottomClearance: layout.reachBottom,
+      topClearance: layout.topClearance,
+      bottomClearance: layout.bottomClearance,
     );
     _slide(from: window.topLeft, to: inside, dock: null);
   }
@@ -609,7 +486,6 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     _scale = kept;
     _resizeFrom = null;
     _dragged = (window.topLeft - corner).distance < 0.5 ? null : window.topLeft;
-    if (_dragged == null) _free = false;
     widget.room.placement = _dragged == null ? null : (offset: _dragged!, dock: null);
     _moved();
     _placeGrip();
@@ -629,41 +505,32 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     final portraitScale = watchSetting(ref, Settings.floatWindowPortraitScale);
     final keepOn = watchSetting(ref, Settings.enableScreenKeepOn);
     watchSetting(ref, Settings.autoPipOnLeave);
-    watchSetting(ref, Settings.floatOverAppsOnLeave);
     _syncAutoPipLater();
     // A07.24: in Android's picture-in-picture the window is the whole
-    // screen, the picture alone (the system draws the buttons); A07.25: in
-    // the app's floating window over other apps it is the whole view, with
-    // the in-app window's buttons.
-    final overlay = OverlayWindow.active.value;
-    final pip = PictureInPicture.active.value || overlay;
+    // screen, the picture alone (the system draws the buttons).
+    final pip = PictureInPicture.active.value;
     // Built once per change of the room or the settings; a drag does not
     // come here (A07.24).
     final surface = MiniPlayerSurface(
       controller: runtime.controller,
       reconnect: runtime.reconnect,
-      kind: overlay ? MiniKind.overlay : (pip ? MiniKind.systemPip : MiniKind.inApp),
-      onPip: _pipSupported && !overlay ? () => unawaited(_enterPip()) : null,
+      kind: pip ? MiniKind.systemPip : MiniKind.inApp,
+      onPip: _pipSupported ? () => unawaited(_enterPip()) : null,
       // F.1a: kept on while it plays only with "屏幕常亮" on.
       video: LiveVideoView(session: runtime.session, fit: fit, keepScreenOn: keepOn),
       onBackToRoom: widget.onBackToRoom,
       onClose: widget.onClose,
-      // Over other apps the system window moves and sizes with the finger.
-      onDragStart: (_) => overlay ? unawaited(OverlayWindow.dragStart()) : _dragStart(),
-      onDragUpdate: (details) => overlay ? null : _dragUpdate(details.delta),
-      onDragEnd: (details) => overlay ? null : _dragEnd(details.velocity.pixelsPerSecond),
+      onDragStart: (_) => _dragStart(),
+      onDragUpdate: (details) => _dragUpdate(details.delta),
+      onDragEnd: (details) => _dragEnd(details.velocity.pixelsPerSecond),
       // A07.22: the grip on the bottom corner towards the middle, and two
       // fingers anywhere. Only the window's size changes: the player is not
       // rebuilt.
       resizeGrip: _grip,
-      onResizeStart: overlay
-          ? ({required pinch}) {
-              if (!pinch) unawaited(OverlayWindow.resizeStart(left: _grip.value == MiniGripCorner.bottomLeft));
-            }
-          : _resizeStart,
-      onGripMove: overlay ? null : _gripMove,
-      onPinch: overlay ? null : (factor) => _resizeTo(_resizeFromScale * factor),
-      onResizeEnd: overlay ? null : _resizeEnd,
+      onResizeStart: _resizeStart,
+      onGripMove: _gripMove,
+      onPinch: (factor) => _resizeTo(_resizeFromScale * factor),
+      onResizeEnd: _resizeEnd,
     );
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -698,11 +565,6 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
                 area: area,
                 ratio: ratio,
                 topClearance: media.viewPadding.top + inAppMiniMargin,
-                reachTop: media.viewPadding.top,
-                reachBottom: media.viewPadding.bottom,
-                // Full-screen gestures take a strip of each side for back.
-                peekLeft: inAppMiniPeekFor(media.systemGestureInsets.left),
-                peekRight: inAppMiniPeekFor(media.systemGestureInsets.right),
                 bottomClearance: inAppMiniBottomClearance(
                   route: widget.route,
                   width: area.width,

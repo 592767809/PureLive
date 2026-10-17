@@ -747,8 +747,6 @@ class _ResizeGrip extends StatelessWidget {
     child: Tooltip(
       message: i18n('mini_window_resize'),
       excludeFromSemantics: true,
-      // A tap says what it is for (it only drags; a tap did nothing).
-      triggerMode: TooltipTriggerMode.tap,
       child: GestureDetector(
         key: const ValueKey('mini-resize'),
         behavior: HitTestBehavior.opaque,

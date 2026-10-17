@@ -72,10 +72,7 @@ void main() {
       }
       // c3: the left-the-room switch says what it does; c4 is new.
       expect(_inRow('float_play', _text('离开直播间时小窗播放')), findsOneWidget);
-      // A07.25: what keeps the room on screen when the app is left, one of
-      // three (the system's picture-in-picture or the app's floating window).
-      expect(_inRow('auto_pip', _text('离开应用后')), findsOneWidget);
-      expect(_inRow('auto_pip', _text('不保留画面')), findsOneWidget);
+      expect(_inRow('auto_pip', _text('离开应用时自动画中画')), findsOneWidget);
       // The floating-window danmaku keeps one entry, on the overview (U.6a c7).
       expect(settingsRow('pip_danmaku'), findsNothing);
       // U.12d: "弹幕关键词过滤" is "弹幕屏蔽".

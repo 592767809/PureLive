@@ -390,12 +390,6 @@ abstract final class Settings {
   /// choice J1). New in v4, off by default; 3.x only had the button.
   static const autoPipOnLeave = BoolSetting('autoPipOnLeave', section: 'player', defaultValue: false);
 
-  /// New (A07.25): leaving the app keeps the room in the app's own floating
-  /// window over the other apps ("显示在其他应用的上层"), instead of the
-  /// system's picture-in-picture; it wins over [autoPipOnLeave]. Off by
-  /// default, as before.
-  static const floatOverAppsOnLeave = BoolSetting('floatOverAppsOnLeave', section: 'player', defaultValue: false);
-
   /// NVIDIA RTX video super resolution.
   static const enableRtxVsr = BoolSetting('enableRtxVsr', section: 'player', defaultValue: false);
 
@@ -1933,7 +1927,6 @@ abstract final class Settings {
     floatWindowPortraitScale,
     windowsPipAlwaysOnTop,
     autoPipOnLeave,
-    floatOverAppsOnLeave,
     enableRtxVsr,
     useHardStopOnExit,
     enablePortraitStreamAdaptation,

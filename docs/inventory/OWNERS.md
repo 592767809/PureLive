@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 222 条；设置 269 个（分节默认 24 条、单独指定 104 个）；来源 35 个；通道 20 个。
+路径规则 219 条；设置 268 个（分节默认 24 条、单独指定 103 个）；来源 35 个；通道 19 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -15,7 +15,7 @@
 | A03 动效和手感 | 3 |  |  |  |  |
 | A04 尺寸和适配 | 1 |  |  |  |  |
 | A06 首页和全局 | 3 |  |  |  |  |
-| A07 直播间界面 | 4 | 12 |  |  | 1 |
+| A07 直播间界面 | 1 | 12 |  |  |  |
 | A08 弹幕界面 | 5 | 11 |  |  |  |
 | A09 浏览界面 | 9 | 10 |  |  |  |
 | A10 录制界面 | 6 |  |  |  |  |
@@ -27,7 +27,7 @@
 | A17 电视界面 | 3 | 19 |  |  |  |
 | A18 苹果平台界面 | 2 | 1 |  |  |  |
 | C01 进房和房间逻辑 | 2 | 3 |  |  |  |
-| C02 小窗、画中画、后台播放 | 3 | 9 |  |  | 1 |
+| C02 小窗、画中画、后台播放 | 3 | 8 |  |  | 1 |
 | C03 直播间工具 |  | 2 |  |  |  |
 | D01 平台弹幕协议 | 1 | 1 |  | 30 |  |
 | D02 过滤和屏蔽 | 2 | 10 |  |  |  |
@@ -123,9 +123,8 @@
 
 ## A07 直播间界面
 
-- 代码：`apps/pure_live/lib/platform/overlay_window.dart`、`apps/pure_live/lib/platform/system_gestures.dart`、`apps/pure_live/lib/features/live_play/`、`apps/pure_live/android/**/FloatingOverlay.kt`
+- 代码：`apps/pure_live/lib/features/live_play/`
 - 设置：`enablePortraitStreamAdaptation`、`portraitAdaptiveHeight`、`portraitLayoutMode`、`portraitFullscreenPolicy`、`portraitFullscreenDisplayMode`、`portraitPipFollowSource`、`portraitDanmakuMode`、`rememberPortraitRoomOverride`、`portraitFullscreenSwipeSwitch`、`portraitRoomOverrides`、`livePlayChatCollapsed`、`roomSwitcherLayout`
-- 通道：`pure_live/overlay`
 
 ## A08 弹幕界面
 
@@ -180,7 +179,7 @@
 ## C02 小窗、画中画、后台播放
 
 - 代码：`apps/pure_live/lib/features/live_play/logic/background_playback.dart`、`apps/pure_live/lib/features/live_play/logic/mini_window.dart`、`apps/pure_live/lib/features/live_play/mini/room_mini_window.dart`
-- 设置：`enableBackgroundPlay`、`floatPlay`、`floatWindowSize`、`floatWindowLandscapeScale`、`floatWindowPortraitScale`、`windowsPipAlwaysOnTop`、`autoPipOnLeave`、`floatOverAppsOnLeave`、`useHardStopOnExit`
+- 设置：`enableBackgroundPlay`、`floatPlay`、`floatWindowSize`、`floatWindowLandscapeScale`、`floatWindowPortraitScale`、`windowsPipAlwaysOnTop`、`autoPipOnLeave`、`useHardStopOnExit`
 - 通道：`pure_live/background_playback`
 
 ## C03 直播间工具

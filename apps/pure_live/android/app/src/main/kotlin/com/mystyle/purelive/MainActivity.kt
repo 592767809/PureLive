@@ -20,7 +20,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
-import android.os.Bundle
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
@@ -226,20 +225,8 @@ class MainActivity : AudioServiceActivity() {
      */
     override fun onFlutterUiDisplayed() {}
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        // A new activity while the app's floating window shows (A07.25): its
-        // own view takes the engine back.
-        FloatingOverlay.onNewActivity()
-        super.onCreate(savedInstanceState)
-    }
-
-    // The app's floating window keeps the app on screen (A07.25): its
-    // stopping is not reported while the window takes over.
-    override fun shouldDispatchAppLifecycleState(): Boolean = !FloatingOverlay.leaving && !FloatingOverlay.showing
-
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        FloatingOverlay.attach(this, flutterEngine)
         if (!flutterEngine.plugins.has(AppChannelsPlugin::class.java)) {
             flutterEngine.plugins.add(AppChannelsPlugin())
         }
@@ -308,12 +295,6 @@ class MainActivity : AudioServiceActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "moveToBack" -> result.success(moveTaskToBack(true))
-                // The in-app floating window tucked into a side: its strip is
-                // kept out of the system's back gesture (Android 10+).
-                "setGestureExclusion" -> {
-                    setGestureExclusion(call.argument<List<List<Number>>>("rects") ?: emptyList())
-                    result.success(null)
-                }
                 "isTelevision" -> result.success(isTelevision())
                 "setSplashTheme" -> {
                     setSplashTheme(call.argument<String>("mode"))
@@ -622,21 +603,8 @@ class MainActivity : AudioServiceActivity() {
         applyPictureInPictureParams()
     }
 
-    /** [rects] are left, top, right, bottom in physical pixels of the app's view. */
-    private fun setGestureExclusion(rects: List<List<Number>>) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
-        val view = findViewById<android.view.View>(io.flutter.embedding.android.FlutterActivity.FLUTTER_VIEW_ID) ?: return
-        view.systemGestureExclusionRects = rects.mapNotNull { r ->
-            if (r.size < 4) null else Rect(r[0].toInt(), r[1].toInt(), r[2].toInt(), r[3].toInt())
-        }
-    }
-
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        // The app's own floating window, when chosen, instead of the system's
-        // picture-in-picture (A07.25).
-        FloatingOverlay.onLeaving(this)
-        if (FloatingOverlay.leaving) return
         if (!autoEnterPip || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || isInPictureInPictureMode || !pictureInPictureAllowed()) return
         try {
@@ -815,7 +783,6 @@ class MainActivity : AudioServiceActivity() {
     }
 
     override fun onStart() {
-        FloatingOverlay.onReturn(this)
         super.onStart()
         registerDisplayListener()
         scheduleDisplayModeRefresh(delayMillis = 0)
@@ -885,10 +852,6 @@ class MainActivity : AudioServiceActivity() {
         unregisterDisplayListener()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) unregisterPredictiveBack()
         super.onStop()
-        if (FloatingOverlay.leaving && !FloatingOverlay.show(this)) {
-            // The window did not show: the app left as usual.
-            flutterEngine?.lifecycleChannel?.appIsPaused()
-        }
     }
 
     override fun onDestroy() {

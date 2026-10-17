@@ -11,7 +11,6 @@ import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/mini_window.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
-import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -325,24 +324,17 @@ final class _AutoPip {
   void start() {
     _states = _room.session.states.listen((_) => _sync());
     _settings = mini.settings.changes.listen((setting) {
-      if (setting.key == Settings.autoPipOnLeave.key ||
-          setting.key == Settings.floatOverAppsOnLeave.key ||
-          setting.key == Settings.floatWindowSize.key ||
-          setting.key == Settings.portraitPipFollowSource.key) {
-        _sync();
-      }
+      if (setting.key == Settings.autoPipOnLeave.key || setting.key == Settings.portraitPipFollowSource.key) _sync();
     });
     _room.addListener(_sync);
     liveRouteObserver.currentRoute.addListener(_sync);
-    OverlayWindow.permitted.addListener(_sync);
     _sync();
   }
 
   void _sync() {
     final state = _room.session.state;
-    final choice = leaveAppWindow(mini.settings);
     final armed = shouldAutoEnterPip(
-      enabled: choice != LeaveAppWindow.none,
+      enabled: mini.settings.get(Settings.autoPipOnLeave),
       onTop: liveRouteObserver.currentRoute.value == RoutePath.kLivePlay,
       stage: _room.stage,
       status: state.status,
@@ -350,50 +342,23 @@ final class _AutoPip {
     );
     final (width, height) = mini._pictureSize;
     final picture = armed ? mini.pictureRect : null;
-    final overlay = OverlayWindow.permitted.value;
-    if (armed == _armed &&
-        choice == _choice &&
-        overlay == _overlay &&
-        (!armed || (_size == (width, height) && _picture == picture))) {
-      return;
-    }
+    if (armed == _armed && (!armed || (_size == (width, height) && _picture == picture))) return;
     final titled = armed && !(_armed ?? false);
     _armed = armed;
-    _choice = choice;
-    _overlay = overlay;
     _size = (width, height);
     _picture = picture;
     if (armed) mini._shownSize = (width, height);
     if (titled) unawaited(PictureInPicture.update(title: mini._title, subtitle: _room.room.title));
     unawaited(
-      armLeaveWindow(
-        choice: choice,
-        playing: armed,
+      PictureInPicture.setAutoEnter(
+        enabled: armed,
         width: width,
         height: height,
         picture: picture,
-        window: _overlayWindow(width / height),
         pixelRatio: mini.pixelRatio,
         owner: this,
       ),
     );
-  }
-
-  LeaveAppWindow? _choice;
-  bool? _overlay;
-
-  /// The app's floating window from the room page (A07.25): the in-app
-  /// window's size in the bottom right corner.
-  Rect _overlayWindow(double aspectRatio) {
-    final view = WidgetsBinding.instance.platformDispatcher.views.first;
-    final screen = view.physicalSize / view.devicePixelRatio;
-    final size = inAppMiniWindowSize(
-      screen: screen,
-      aspectRatio: aspectRatio,
-      size: mini.settings.get(Settings.floatWindowSize),
-    );
-    final bottom = view.padding.bottom / view.devicePixelRatio + inAppMiniMargin;
-    return Offset(screen.width - size.width - inAppMiniMargin, screen.height - size.height - bottom) & size;
   }
 
   Rect? _picture;
@@ -410,11 +375,7 @@ final class _AutoPip {
     unawaited(_settings?.cancel());
     _room.removeListener(_sync);
     liveRouteObserver.currentRoute.removeListener(_sync);
-    OverlayWindow.permitted.removeListener(_sync);
-    if (_armed ?? false) {
-      unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
-      unawaited(OverlayWindow.arm(enabled: false, owner: this));
-    }
+    if (_armed ?? false) unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
   }
 }
 

@@ -935,13 +935,13 @@ List<SettingsEntry> _build() {
       settings: [Settings.floatWindowSize, Settings.floatWindowLandscapeScale, Settings.floatWindowPortraitScale],
       keywords: ['小窗', '大小', '尺寸', '悬浮窗', '画中画'],
     )
-    ..add(
+    ..toggle(
       'auto_pip',
-      'leave_app_window',
-      (context, entry) => LeaveAppWindowTile(entry: entry),
-      desc: 'leave_app_window_desc',
-      settings: [Settings.autoPipOnLeave, Settings.floatOverAppsOnLeave],
-      keywords: ['画中画', '小窗', '悬浮窗', '其他应用的上层', 'PiP'],
+      'auto_pip_on_leave',
+      Settings.autoPipOnLeave,
+      AppIcons.settingsAutoPip,
+      desc: 'auto_pip_on_leave_desc',
+      keywords: ['画中画', '小窗', 'PiP'],
       when: _mobile,
     )
     ..add(

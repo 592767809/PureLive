@@ -17,7 +17,6 @@ import 'package:pure_live/features/record_settings/record_settings_dialogs.dart'
 import 'package:pure_live/features/recorder/recorder_page.dart';
 import 'package:pure_live/features/settings/data_tools.dart';
 import 'package:pure_live/i18n/i18n.dart';
-import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/in_app_web.dart';
 import 'package:pure_live/shared/qr_scan.dart';
@@ -48,8 +47,6 @@ void installPluginHooks(AppServices services) {
   if (Platform.isAndroid) RecordFolderOpener.android = openAndroidFolder;
   if (Platform.isAndroid || Platform.isIOS) QrScan.camera = MobileQrCamera.new;
   unawaited(InAppWeb.detect().then((value) => InAppWeb.available = value));
-  // The app's floating window over other apps (A07.25).
-  OverlayWindow.start();
 }
 
 /// The page hooks that are providers (`ProviderScope.overrides` in `main`):
