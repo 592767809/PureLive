@@ -108,7 +108,8 @@ jobs:
           pgrep -x PureLive >/dev/null || { echo "PureLive stopped"; exit 1; }
           screencapture -x shots/macos.png
           osascript -e 'quit app "PureLive"' || true
-          log show --last 2m --predicate 'process == "PureLive"' --style compact | tail -n 80 || true
+          log show --last 2m --predicate 'process == "PureLive" AND eventMessage CONTAINS[c] "flutter"' --style compact | tail -n 80 || true
+          find "$HOME/Library/Containers/com.mystyle.pureLive" -name '*.log' -exec cp {} shots/ \; 2>/dev/null || true
 
       # ---- iOS / iPadOS ----
       - name: Build iOS
@@ -173,7 +174,9 @@ jobs:
           sleep 60
           mkdir -p ../../shots
           xcrun simctl io "$device" screenshot ../../shots/ios-simulator.png
-          xcrun simctl spawn "$device" log show --last 2m --predicate 'process == "Runner"' --style compact | tail -n 80 || true
+          xcrun simctl spawn "$device" log show --last 2m --predicate 'process == "Runner" AND eventMessage CONTAINS[c] "flutter"' --style compact | tail -n 80 || true
+          data=$(xcrun simctl get_app_container "$device" com.mystyle.purelive.liu data)
+          find "$data" -name '*.log' -exec cp {} ../../shots/ \; 2>/dev/null || true
 
       - name: Checksums
         if: ${{ always() }}
