@@ -29,6 +29,8 @@ import 'package:pure_live/features/live_play/logic/room_runtime.dart';
 import 'package:pure_live/features/live_play/mini/floating_window.dart';
 import 'package:pure_live/features/live_play/mini/mini_player.dart';
 import 'package:pure_live/features/live_play/player/player_view.dart';
+import 'package:pure_live/platform/overlay_window.dart';
+import 'package:pure_live/platform/system_gestures.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/app_router.dart';
 import 'package:pure_live/routes/route_args.dart';
@@ -68,6 +70,9 @@ final class _App {
   FakeDanmaku get danmaku => danmakus.last;
 }
 
+/// "小窗用系统画中画" for the next [_app] (the picture-in-picture tests).
+bool _systemPip = false;
+
 /// The app's shape: a home page, the room and multi-view, with the floating
 /// window over them (as `PureLiveApp` puts it).
 Future<_App> _app(
@@ -85,6 +90,7 @@ Future<_App> _app(
   final services = (await tester.runAsync(testServices))!;
   await tester.runAsync(loadStrings);
   await tester.runAsync(() => services.store.settings.set(Settings.floatPlay, floatPlay));
+  await tester.runAsync(() => services.store.settings.set(Settings.useSystemPip, _systemPip));
   final engines = <FakeEngine>[];
   final danmakus = <FakeDanmaku>[];
   final toasts = <String>[];
@@ -183,6 +189,14 @@ Future<void> _leaveRoom(WidgetTester tester, _App app) async {
   await tester.pump();
   await tester.pump(const Duration(seconds: 1));
   await _settle(tester);
+  await _glided(tester);
+}
+
+/// Lets the window's glide (A07.25 M1, M8) finish: a ticker's first frame is
+/// its start, so one long frame and one to draw the end.
+Future<void> _glided(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 1));
+  await tester.pump();
 }
 
 Future<void> _close(WidgetTester tester, _App app) async {
@@ -357,6 +371,20 @@ void main() {
       );
     });
 
+    test('A07.25 c5, c6: a fifth of a tucked window shows, at least 56 and 32 past the back strip; '
+        'its middle is kept from back; after a restart it opens untucked', () {
+      expect(inAppMiniPeekFor(gestureInset: 0, width: 220), 56);
+      expect(inAppMiniPeekFor(gestureInset: 0, width: 393), closeTo(78.6, 0.01));
+      expect(inAppMiniPeekFor(gestureInset: 30, width: 220), 62);
+      const tall = Rect.fromLTWH(-200, 100, 249, 442);
+      expect(inAppMiniExclusion(tall), const Rect.fromLTWH(-200, 221, 249, 200));
+      const short = Rect.fromLTWH(337, 400, 220, 124);
+      expect(inAppMiniExclusion(short), short);
+      const area = Size(393, 852);
+      expect(inAppMiniUntucked(dock: MiniDock.left, top: 300, area: area), const Offset(0, 300));
+      expect(inAppMiniUntucked(dock: MiniDock.right, top: 300, area: area), const Offset(393, 300));
+    });
+
     test('A07.24: released, it carries on with the fling, then goes to the nearer side or tucks into one', () {
       const area = Size(393, 852);
       ({Offset offset, MiniDock? dock}) settle(Rect window, Offset velocity) =>
@@ -379,14 +407,27 @@ void main() {
       expect(settled, (offset: const Offset(0, 300 + 0.18 * 0), dock: null));
     });
 
+    test('A07.25 c6: the place kept across restarts is a fraction of the screen, or a side and a height', () {
+      const area = Size(400, 800);
+      expect(encodeMiniPlacement(offset: null, dock: null, area: area), '', reason: 'the corner');
+      expect(encodeMiniPlacement(offset: const Offset(100, 200), dock: null, area: area), '0.2500,0.2500');
+      expect(encodeMiniPlacement(offset: const Offset(-180, 400), dock: MiniDock.left, area: area), 'left,0.5000');
+      expect(decodeMiniPlacement('0.2500,0.2500', const Size(800, 400)), (offset: const Offset(200, 100), dock: null));
+      expect(decodeMiniPlacement('right,0.5000', area), (offset: const Offset(0, 400), dock: MiniDock.right));
+      for (final broken in ['', 'x', '1,2,3', 'up,0.5', '0.1,nope']) {
+        expect(decodeMiniPlacement(broken, area), isNull, reason: broken);
+      }
+    });
+
     test('A07.22: the grip on the bottom corner towards the middle; outwards grows; the far top corner stays', () {
       const area = Size(393, 852);
       const right = Rect.fromLTWH(157, 632, 220, 124);
       expect(inAppMiniGripCorner(window: right, area: area), MiniGripCorner.bottomLeft);
       expect(inAppMiniGripCorner(window: right.shift(const Offset(-140, 0)), area: area), MiniGripCorner.bottomRight);
       // Leftwards on a left grip grows, rightwards shrinks, the picture's
-      // shape kept; up and down do not count: up and to the left (towards
-      // the middle, from the bottom-right corner) grows it.
+      // shape kept; up does not count: up and to the left (towards the
+      // middle, from the bottom-right corner) grows it. A07.25 c2: down
+      // grows it too when it went further that way.
       expect(
         inAppMiniGripExtent(from: right.size, corner: MiniGripCorner.bottomLeft, moved: const Offset(-50, 4)),
         270,
@@ -398,7 +439,12 @@ void main() {
       );
       expect(
         inAppMiniGripExtent(from: right.size, corner: MiniGripCorner.bottomRight, moved: const Offset(5, 31)),
-        225,
+        closeTo(220 + 31 * 220 / 124, 0.001),
+      );
+      expect(
+        inAppMiniGripExtent(from: right.size, corner: MiniGripCorner.bottomLeft, moved: const Offset(8, 40)),
+        closeTo(220 + 40 * 220 / 124, 0.001),
+        reason: 'against the left edge: straight down grows it',
       );
       const portrait = Size(149, 264);
       expect(
@@ -963,12 +1009,17 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200));
         final video = find.descendant(of: _window, matching: find.byType(LiveVideoView));
         expect(video, findsOneWidget);
-        for (final see in [Opacity, AnimatedOpacity, FadeTransition]) {
+        for (final see in [AnimatedOpacity, FadeTransition]) {
           expect(
             find.ancestor(of: video, matching: find.byType(see)),
             findsNothing,
             reason: '$see over the video',
           );
+        }
+        // A07.25 M2, M3: the leaving fade's Opacity stays in the tree, fully
+        // opaque (a full Opacity draws no layer).
+        for (final fade in tester.widgetList<Opacity>(find.ancestor(of: video, matching: find.byType(Opacity)))) {
+          expect(fade.opacity, 1, reason: 'the video is not see-through while dragged');
         }
         await gesture.up();
         await tester.pump();
@@ -1015,7 +1066,7 @@ void main() {
 
       // Any size between: back to 250 wide (as wide as the phone, the grip
       // is on the bottom-right corner; inwards shrinks it).
-      expect(_inKey('mini-resize', find.byIcon(AppIcons.miniResizeBottomRight)), findsOneWidget);
+      expect(_inKey('mini-resize', find.byType(CustomPaint)), findsOneWidget);
       final grip2 = tester.getRect(find.byKey(const ValueKey('mini-resize')));
       final shrink = await tester.startGesture(grip2.center);
       await shrink.moveBy(const Offset(-40, 0));
@@ -1117,7 +1168,8 @@ void main() {
       await _settle(tester);
       rect = tester.getRect(_window);
       expect(rect.left, 16);
-      // Pulled past the left edge and let go: tucked in, 40 shows.
+      // Pulled past the left edge and let go: tucked in, a fifth of it and at
+      // least 56 shows (A07.25 c5), with its handle.
       drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
       await drag.moveBy(const Offset(-40, 0));
       await drag.moveBy(const Offset(-120, 0));
@@ -1126,8 +1178,11 @@ void main() {
       await tester.pump();
       await _settle(tester);
       rect = tester.getRect(_window);
-      expect(rect.right, 40);
+      expect(rect.right, 56);
       expect(find.byKey(const ValueKey('floating-window-tucked')), findsOneWidget);
+      final handle = tester.getRect(find.byKey(const ValueKey('floating-window-handle')));
+      expect(handle.right, 56 - inAppMiniHandleInset, reason: 'on the strip, away from the edge');
+      expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('floating-window-handle'))).opacity, 1);
       expect(app.engine.opens, hasLength(1), reason: 'it plays on');
       // A tap on the strip brings it back.
       await tester.tapAt(Offset(20, rect.center.dy));
@@ -1143,6 +1198,190 @@ void main() {
       await _openRoom(tester);
       await _leaveRoom(tester, app);
       expect(tester.getRect(_window).left, 16);
+      await _close(tester, app);
+    });
+
+    testWidgets('A07.25 M1, M3: it comes out of the picture and glides to its corner; ✕ fades it before it stops', (
+      tester,
+    ) async {
+      final app = await _app(tester);
+      await _openRoom(tester);
+      final picture = tester.getRect(find.byType(LiveVideoView).first);
+      app.router.pop();
+      Rect? first;
+      for (var i = 0; i < 6 && first == null; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        if (_window.evaluate().isNotEmpty) first = tester.getRect(_inWindow(find.byType(MiniPlayerSurface)));
+      }
+      final corner = tester.getRect(_window);
+      expect(first, isNotNull);
+      expect(first!.width, greaterThan(corner.width), reason: 'drawn where the picture was, as large');
+      expect(first.center.dy, closeTo(picture.center.dy, 1));
+      await _settle(tester);
+      await _glided(tester);
+      expect(tester.getRect(_inWindow(find.byType(MiniPlayerSurface))), corner, reason: 'arrived, drawn as laid out');
+
+      // ✕: smaller and fading first, then the room stops.
+      await tester.tap(find.byKey(const ValueKey('mini-close')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 90));
+      expect(_window, findsOneWidget);
+      final fade = tester.widget<Opacity>(
+        find.ancestor(of: find.byType(MiniPlayerSurface), matching: find.byType(Opacity)).first,
+      );
+      expect(fade.opacity, inExclusiveRange(0, 1));
+      expect(app.engine.disposed, isFalse);
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(seconds: 1));
+      expect(_window, findsNothing);
+      await _close(tester, app);
+    });
+
+    testWidgets('A07.25 c8: back from over other apps, the window is where and as large as it was left there', (
+      tester,
+    ) async {
+      final app = await _app(tester);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      OverlayWindow.placed.value = (rect: const Rect.fromLTWH(-200, 300, 260, 146.25), tucked: 'left');
+      await tester.pump();
+      await _settle(tester);
+      final rect = tester.getRect(_window);
+      expect(rect.width, closeTo(260, 0.5));
+      expect(rect.right, 56 * 260 / 220 > 56 ? closeTo(inAppMiniPeekFor(gestureInset: 0, width: 260), 0.5) : 56);
+      expect(rect.top, closeTo(300, 0.5));
+      expect(find.byKey(const ValueKey('floating-window-tucked')), findsOneWidget);
+      expect(app.services.store.settings.get(Settings.floatWindowLandscapeScale), closeTo(260 / 220.08, 0.001));
+      await _close(tester, app);
+    });
+
+    testWidgets('A07.25 K90 check: flicked hard into a side it tucks in and can be pulled out again', (tester) async {
+      final app = await _app(tester);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      await tester.pump(const Duration(seconds: 4));
+      var rect = tester.getRect(_window);
+      // A fast flick to the right edge, the finger lifting at the edge.
+      await tester.flingFrom(rect.center, const Offset(380, 0), 3000);
+      await tester.pump();
+      await _settle(tester);
+      await _glided(tester);
+      rect = tester.getRect(_window);
+      expect(rect.left, closeTo(393 - 56, 0.5), reason: 'tucked into the right side');
+      expect(find.byKey(const ValueKey('floating-window-tucked')), findsOneWidget);
+      expect(tester.widget<AnimatedOpacity>(find.byKey(const ValueKey('floating-window-handle'))).opacity, 1);
+      // Pulled out by its handle.
+      final handle = tester.getCenter(find.byKey(const ValueKey('floating-window-handle')));
+      final drag = await tester.startGesture(handle);
+      await drag.moveBy(const Offset(-30, 0));
+      await drag.moveBy(const Offset(-200, 0));
+      await tester.pump(const Duration(milliseconds: 500));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      await _glided(tester);
+      rect = tester.getRect(_window);
+      expect(rect.right, closeTo(393 - 16, 0.5), reason: 'out, against the right side');
+      expect(find.byKey(const ValueKey('floating-window-tucked')), findsNothing);
+      await _close(tester, app);
+    });
+
+    testWidgets('A07.25 c6: the place the user left it in is kept across a restart', (tester) async {
+      final app = await _app(tester);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final corner = tester.getRect(_window);
+      final drag = await tester.startGesture(corner.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(-40, 0));
+      await drag.moveBy(const Offset(-200, -300));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      final left = tester.getRect(_window);
+      expect(left.left, 16);
+      expect(app.services.store.settings.get(Settings.floatWindowPosition), isNotEmpty);
+      // A restart: the run's memory is gone, the setting stays.
+      await tester.tap(find.byKey(const ValueKey('mini-close')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      FloatingRoom.instance.placement = null;
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final back = tester.getRect(_window).topLeft;
+      expect(back.dx, closeTo(left.left, 0.5));
+      expect(back.dy, closeTo(left.top, 0.5));
+      await _close(tester, app);
+    });
+
+    testWidgets('K90 report: full-screen gestures: a tucked window shows past the back strip and is kept out of it', (
+      tester,
+    ) async {
+      final app = await _app(tester);
+      // The system's back gesture takes 30 of each side.
+      tester.view.systemGestureInsets = const FakeViewPadding(left: 30, right: 30);
+      addTearDown(tester.view.resetSystemGestureInsets);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      var rect = tester.getRect(_window);
+      // A07.25: while the buttons show, only the grip in the corner is kept
+      // out of the back gesture (against an edge it lies in the strip).
+      expect(SystemGestureExclusion.current, [
+        Rect.fromLTRB(rect.right - miniButtonSize, rect.bottom - miniButtonSize, rect.right, rect.bottom),
+      ]);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pump();
+      expect(SystemGestureExclusion.current, isEmpty, reason: 'the buttons went');
+      final drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(-40, 0));
+      await drag.moveBy(const Offset(-600, 0));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      rect = tester.getRect(_window);
+      expect(rect.right, 62, reason: 'A07.25 c5: 32 past the 30 the back gesture takes: a finger can grab it outside');
+      final handle = tester.getRect(find.byKey(const ValueKey('floating-window-handle')));
+      expect(handle.left, greaterThan(30), reason: 'the handle is outside the back strip');
+      await tester.pump();
+      expect(SystemGestureExclusion.current, [inAppMiniExclusion(rect)], reason: 'pulling it out does not go back');
+      // Brought back: the edge is the back gesture's again.
+      await tester.tapAt(Offset(50, rect.center.dy));
+      await tester.pump();
+      await _settle(tester);
+      await tester.pump();
+      expect(SystemGestureExclusion.current, isEmpty);
+      await _close(tester, app);
+    });
+
+    testWidgets('K90 report: dragged, it goes up to the status bar and down to the gesture bar', (tester) async {
+      final app = await _app(tester);
+      tester.view.padding = const FakeViewPadding(top: 40, bottom: 20);
+      tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 20);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
+      await _openRoom(tester);
+      await _leaveRoom(tester, app);
+      final area = tester.getSize(find.byType(MaterialApp));
+      var rect = tester.getRect(_window);
+      expect(rect.bottom, lessThan(area.height - 20 - 16), reason: 'it first shows above the margins');
+      var drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(0, -40));
+      await drag.moveBy(const Offset(0, -2000));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      expect(tester.getRect(_window).top, 40, reason: 'right under the status bar');
+      rect = tester.getRect(_window);
+      drag = await tester.startGesture(rect.topLeft + const Offset(70, 100));
+      await drag.moveBy(const Offset(0, 40));
+      await drag.moveBy(const Offset(0, 3000));
+      await tester.pump(const Duration(seconds: 1));
+      await drag.up();
+      await tester.pump();
+      await _settle(tester);
+      expect(tester.getRect(_window).bottom, area.height - 20, reason: 'right above the gesture bar');
       await _close(tester, app);
     });
 
@@ -1182,7 +1421,7 @@ void main() {
       await _close(tester, app);
     });
 
-    testWidgets('A07.22: the grip on the bottom corner towards the middle pulls it larger, kept for next time', (
+    testWidgets('A07.22: the grip at the bottom right pulls it larger towards the middle, kept for next time', (
       tester,
     ) async {
       final app = await _app(tester);
@@ -1191,14 +1430,16 @@ void main() {
       var rect = tester.getRect(_window);
       expect(rect.width, closeTo(220.08, 0.01));
 
-      // Shown with the buttons: a 48 disc on the bottom-left corner (the
-      // window sits on the right), an arrow out of the corner.
+      // Shown with the buttons: A07.25 c3, a quarter disc with a bracket
+      // drawn in the bottom right corner itself, 48 to touch.
       final grip = find.byKey(const ValueKey('mini-resize'));
       expect(_inWindow(grip), findsOneWidget);
-      expect(_inKey('mini-resize', find.byIcon(AppIcons.miniResizeBottomLeft)), findsOneWidget);
+      expect(_inKey('mini-resize', find.byType(CustomPaint)), findsOneWidget);
       final gripRect = tester.getRect(grip);
       expect(gripRect.size, const Size(48, 48));
-      expect(gripRect.bottomLeft - rect.bottomLeft, const Offset(4, -4));
+      // Always at the bottom right (the user, 2026-10-17); against the right
+      // edge it grows leftwards.
+      expect(gripRect.bottomRight, rect.bottomRight);
       expect(_opacityOf(tester, 'mini-resize'), 1);
 
       // 80 to the left (past the drag slop): 300 wide, its right edge and
@@ -1465,6 +1706,9 @@ void main() {
       calls = [];
       status = 'allowed';
       entry = 'entered';
+      // These are about the system's picture-in-picture, which the user
+      // switches on (D-042).
+      _systemPip = true;
       PictureInPicture.debugAndroid = true;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('pure_live/pip'),
@@ -1485,10 +1729,101 @@ void main() {
     });
 
     tearDown(() {
+      _systemPip = false;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('pure_live/pip'),
         null,
       );
+    });
+
+    testWidgets('A07.25 c7-c9: the mini window button shrinks the room into the in-app window and the app stays; '
+        'leaving takes it over other apps when allowed, else a toast says so once', (tester) async {
+      _systemPip = false;
+      final overlay = <MethodCall>[];
+      var permitted = false;
+      OverlayWindow.debugAndroid = true;
+      addTearDown(() {
+        OverlayWindow.debugAndroid = null;
+        OverlayWindow.permitted.value = false;
+      });
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pure_live/overlay'), (
+        call,
+      ) async {
+        overlay.add(call);
+        return switch (call.method) {
+          'status' => permitted,
+          'openSettings' => true,
+          _ => null,
+        };
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          const MethodChannel('pure_live/overlay'),
+          null,
+        ),
+      );
+      final shown = <AppToast>[];
+      final previous = AppNavigator.showToast;
+      AppNavigator.showToast = shown.add;
+      addTearDown(() => AppNavigator.showToast = previous);
+      final app = await _app(tester);
+      await _openRoom(tester);
+      // c7: no permission asked, no system picture-in-picture: the room page
+      // closes into the in-app window, on the same player.
+      await tester.tap(find.byKey(const ValueKey('live-play-pip')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await _settle(tester);
+      await _glided(tester);
+      expect(find.text('首页'), findsOneWidget);
+      expect(_window, findsOneWidget);
+      expect(app.engines, hasLength(1));
+      expect(app.engine.opens, hasLength(1), reason: 'the same player plays on');
+      expect(shown, isEmpty);
+      expect(calls.where((call) => call.method == 'enter'), isEmpty, reason: 'not the system picture-in-picture');
+      final rect = tester.getRect(_window);
+      expect(rect.right, 393 - 16);
+      expect(rect.bottom, closeTo(852 - 80 - 16, 0.01));
+
+      // c9: not allowed, leaving the app arms nothing; back, a toast says
+      // the window can stay over other apps, once ever.
+      await tester.pump();
+      expect(overlay.where((call) => call.method == 'arm' && (call.arguments as Map)['enabled'] == true), isEmpty);
+      Future<void> leaveAndComeBack() async {
+        for (final state in const [
+          AppLifecycleState.inactive,
+          AppLifecycleState.hidden,
+          AppLifecycleState.paused,
+          AppLifecycleState.hidden,
+          AppLifecycleState.inactive,
+          AppLifecycleState.resumed,
+        ]) {
+          tester.binding.handleAppLifecycleStateChanged(state);
+          await tester.pump();
+        }
+      }
+
+      await leaveAndComeBack();
+      expect(shown.single.message, '小窗可以留在其他应用上面播放');
+      expect(shown.single.actionLabel, '去开启');
+      shown.single.onAction!();
+      await tester.pump();
+      expect(overlay.last.method, 'openSettings');
+      await leaveAndComeBack();
+      expect(shown, hasLength(1), reason: 'once ever');
+
+      // c8: allowed, leaving the app takes this window along where it is,
+      // whatever "离开应用时自动小窗" says (it is off).
+      permitted = true;
+      // Given in the system settings; looked at again on the way back.
+      OverlayWindow.permitted.value = true;
+      await tester.pump();
+      await _settle(tester);
+      final armed = overlay.lastWhere((call) => call.method == 'arm').arguments as Map;
+      expect(armed['enabled'], isTrue);
+      expect(armed['x'], (rect.left * tester.view.devicePixelRatio).round());
+      expect(armed['width'], (rect.width * tester.view.devicePixelRatio).round());
+      await _close(tester, app);
     });
 
     testWidgets('c9: turned off in the system settings: a toast with "去设置" and ✕, no dialog (B09 c8)', (tester) async {

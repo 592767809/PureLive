@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 219 条；设置 268 个（分节默认 24 条、单独指定 103 个）；来源 35 个；通道 19 个。
+路径规则 221 条；设置 271 个（分节默认 24 条、单独指定 103 个）；来源 35 个；通道 20 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -15,7 +15,7 @@
 | A03 动效和手感 | 3 |  |  |  |  |
 | A04 尺寸和适配 | 1 |  |  |  |  |
 | A06 首页和全局 | 3 |  |  |  |  |
-| A07 直播间界面 | 1 | 12 |  |  |  |
+| A07 直播间界面 | 3 | 12 |  |  | 1 |
 | A08 弹幕界面 | 5 | 11 |  |  |  |
 | A09 浏览界面 | 9 | 10 |  |  |  |
 | A10 录制界面 | 6 |  |  |  |  |
@@ -43,7 +43,7 @@
 | E05 平台框架和模型 | 1 |  |  |  |  |
 | E06 平台层升级 | 1 |  |  |  |  |
 | E07 平台巡检 | 1 |  |  |  |  |
-| G01 引擎 | 3 | 8 |  |  |  |
+| G01 引擎 | 3 | 11 |  |  |  |
 | G02 会话和恢复 | 1 |  |  |  |  |
 | G03 起播速度和弱网 | 1 |  |  |  |  |
 | G04 画面 |  | 3 |  |  |  |
@@ -123,8 +123,9 @@
 
 ## A07 直播间界面
 
-- 代码：`apps/pure_live/lib/features/live_play/`
+- 代码：`apps/pure_live/lib/platform/overlay_window.dart`、`apps/pure_live/android/**/FloatingOverlay.kt`、`apps/pure_live/lib/features/live_play/`
 - 设置：`enablePortraitStreamAdaptation`、`portraitAdaptiveHeight`、`portraitLayoutMode`、`portraitFullscreenPolicy`、`portraitFullscreenDisplayMode`、`portraitPipFollowSource`、`portraitDanmakuMode`、`rememberPortraitRoomOverride`、`portraitFullscreenSwipeSwitch`、`portraitRoomOverrides`、`livePlayChatCollapsed`、`roomSwitcherLayout`
+- 通道：`pure_live/overlay`
 
 ## A08 弹幕界面
 
@@ -255,7 +256,7 @@
 ## G01 引擎
 
 - 代码：`packages/live_media/`、`packages/live_player/lib/src/engine*.dart`、`packages/live_player/lib/src/mpv_*.dart`
-- 设置：`videoPlayerKey`、`enableCodec`、`preferH264`、`playerCompatMode`、`customPlayerOutput`、`videoOutputDriver`、`audioOutputDriver`、`videoHardwareDecoder`
+- 设置：`videoPlayerKey`、`enableCodec`、`preferH264`、`playerCompatMode`、`customPlayerOutput`、`videoOutputDriver`、`audioOutputDriver`、`videoHardwareDecoder`、`floatWindowPosition`、`useSystemPip`、`floatOverlayTipShown`
 
 ## G02 会话和恢复
 

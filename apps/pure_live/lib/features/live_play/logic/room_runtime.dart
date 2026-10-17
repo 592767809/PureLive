@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui' show Offset;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
@@ -145,9 +145,22 @@ final class FloatingRoom extends ChangeNotifier {
     });
   }
 
+  /// Where the picture was on screen when the room page handed its room
+  /// over (A07.25 M1): the new window comes out of it. Taken once by the
+  /// window ([takeEnterFrom]).
+  Rect? _enterFrom;
+
+  /// The rectangle the new window grows out of, once.
+  Rect? takeEnterFrom() {
+    final from = _enterFrom;
+    _enterFrom = null;
+    return from;
+  }
+
   /// Plays [runtime] in the floating window (the room page closed); a room
-  /// already floating stops. Without a layer it stops at once.
-  void show(RoomRuntime runtime) {
+  /// already floating stops. Without a layer it stops at once. [from] is
+  /// where the room page showed the picture (the window comes out of it).
+  void show(RoomRuntime runtime, {Rect? from}) {
     if (identical(runtime, _runtime)) return;
     if (!canShow) {
       unawaited(_release(runtime));
@@ -155,6 +168,7 @@ final class FloatingRoom extends ChangeNotifier {
     }
     final previous = _runtime;
     _runtime = runtime;
+    _enterFrom = from;
     notifyListeners();
     if (previous != null) unawaited(_release(previous));
   }

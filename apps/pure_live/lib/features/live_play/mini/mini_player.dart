@@ -88,6 +88,7 @@ class MiniPlayerSurface extends StatefulWidget {
     this.onPinch,
     this.onResizeEnd,
     this.onPip,
+    this.buttonsShown,
     super.key,
   });
 
@@ -108,6 +109,10 @@ class MiniPlayerSurface extends StatefulWidget {
 
   /// Stops and closes (button 2).
   final VoidCallback? onClose;
+
+  /// Told whether the buttons show (the floating window keeps its grip out
+  /// of the system's back gesture meanwhile, A07.25).
+  final ValueNotifier<bool>? buttonsShown;
 
   /// The desktop mini window stays on top (button 4).
   final bool pinned;
@@ -351,6 +356,8 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
 
   @override
   Widget build(BuildContext context) {
+    // Only a note for the floating window, which redraws nothing on it.
+    widget.buttonsShown?.value = _shown;
     final room = _room;
     final content = Stack(
       fit: StackFit.expand,
@@ -393,6 +400,9 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                     onPanStart: widget.onDragStart,
                     onPanUpdate: widget.onDragUpdate,
                     onPanEnd: widget.onDragEnd,
+                    // The system took the touch (an edge gesture): let go
+                    // where it is.
+                    onPanCancel: () => widget.onDragEnd?.call(DragEndDetails()),
                   )
                 : GestureDetector(
                     key: const ValueKey('mini-surface'),
@@ -523,16 +533,15 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                   ),
                 ),
               // A07.24: the danmaku switch and picture-in-picture along the
-              // bottom, away from the grip, when the window is tall enough.
+              // bottom left (the grip is at the bottom right), when the window
+              // is tall enough.
               if (size.height >= miniBottomRowMinHeight && size.width >= miniBottomRowMinWidth)
                 ValueListenableBuilder<MiniGripCorner?>(
                   valueListenable: widget.resizeGrip ?? _noGrip,
                   builder: (context, grip, _) => _fade(
                     shown: shown,
                     child: Align(
-                      alignment: !_desktop && grip == MiniGripCorner.bottomLeft
-                          ? Alignment.bottomRight
-                          : Alignment.bottomLeft,
+                      alignment: Alignment.bottomLeft,
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Row(
@@ -605,19 +614,11 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                       ? const SizedBox.shrink()
                       : _fade(
                           shown: shown,
+                          // A07.25 c2, c3: always in the bottom right corner
+                          // itself; [corner] is only the way it grows.
                           child: Align(
-                            alignment: corner == MiniGripCorner.bottomLeft
-                                ? Alignment.bottomLeft
-                                : Alignment.bottomRight,
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: _ResizeGrip(
-                                corner: corner,
-                                onStart: _onGripStart,
-                                onUpdate: _onGripUpdate,
-                                onEnd: _onGripEnd,
-                              ),
-                            ),
+                            alignment: Alignment.bottomRight,
+                            child: _ResizeGrip(onStart: _onGripStart, onUpdate: _onGripUpdate, onEnd: _onGripEnd),
                           ),
                         ),
                 ),
@@ -730,13 +731,14 @@ class _MiniButton extends StatelessWidget {
   );
 }
 
-/// The floating window's resize grip (A07.22): a corner button's disc with
-/// an arrow out of the corner; dragging it outwards grows the window, the
-/// picture's shape kept. 48 to touch (A04).
+/// The floating window's resize grip (A07.22, A07.25 c3): a quarter disc in
+/// the window's bottom right corner with a corner bracket in it, unlike the
+/// round buttons (a round one read as a button and a tap "did nothing");
+/// dragging it sizes the window, the picture's shape kept, and a tap says
+/// so. 48 to touch (A04).
 class _ResizeGrip extends StatelessWidget {
-  const new({required this.corner, required this.onStart, required this.onUpdate, required this.onEnd});
+  const new({required this.onStart, required this.onUpdate, required this.onEnd});
 
-  final MiniGripCorner corner;
   final GestureDragStartCallback onStart;
   final GestureDragUpdateCallback onUpdate;
   final VoidCallback onEnd;
@@ -747,6 +749,8 @@ class _ResizeGrip extends StatelessWidget {
     child: Tooltip(
       message: i18n('mini_window_resize'),
       excludeFromSemantics: true,
+      // A tap says what it is for (it only drags; a tap did nothing).
+      triggerMode: TooltipTriggerMode.tap,
       child: GestureDetector(
         key: const ValueKey('mini-resize'),
         behavior: HitTestBehavior.opaque,
@@ -754,20 +758,49 @@ class _ResizeGrip extends StatelessWidget {
         onPanUpdate: onUpdate,
         onPanEnd: (_) => onEnd(),
         onPanCancel: onEnd,
-        child: SizedBox.square(
+        child: const SizedBox.square(
           dimension: miniButtonSize,
-          child: DecoratedBox(
-            decoration: const BoxDecoration(color: OnVideoColors.button, shape: BoxShape.circle),
-            child: Icon(
-              corner == MiniGripCorner.bottomLeft ? AppIcons.miniResizeBottomLeft : AppIcons.miniResizeBottomRight,
-              size: 20,
-              color: OnVideoColors.foreground,
-            ),
-          ),
+          child: CustomPaint(painter: _GripPainter()),
         ),
       ),
     ),
   );
+}
+
+/// [_ResizeGrip]'s picture: a 44 quarter disc on [OnVideoColors.button] in
+/// the bottom right corner, a white bracket inside it.
+class _GripPainter extends CustomPainter {
+  const new();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const radius = 44.0;
+    final corner = size.bottomRight(Offset.zero);
+    final disc = Path()
+      ..moveTo(corner.dx, corner.dy)
+      ..lineTo(corner.dx - radius, corner.dy)
+      ..arcToPoint(Offset(corner.dx, corner.dy - radius), radius: const Radius.circular(radius))
+      ..close();
+    canvas.drawPath(disc, Paint()..color = OnVideoColors.button);
+    const inset = 9.0;
+    const arm = 15.0;
+    final bracket = Path()
+      ..moveTo(corner.dx - inset - arm, corner.dy - inset)
+      ..lineTo(corner.dx - inset, corner.dy - inset)
+      ..lineTo(corner.dx - inset, corner.dy - inset - arm);
+    canvas.drawPath(
+      bracket,
+      Paint()
+        ..color = OnVideoColors.foreground
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GripPainter oldDelegate) => false;
 }
 
 /// The desktop mini window's pin (c3): the theme's primary colour while on

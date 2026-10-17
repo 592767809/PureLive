@@ -508,14 +508,6 @@ abstract final class AppIcons {
   /// The desktop mini window does not stay on top.
   static const IconData unpinned = Remix.pushpin_line;
 
-  /// The in-app floating window's resize grip on its bottom-left corner
-  /// (docs/A-界面设计/A07-直播间界面/A07.22-小窗改大小和尺寸设置): an arrow out of the
-  /// corner, the way it grows.
-  static const IconData miniResizeBottomLeft = Icons.south_west_rounded;
-
-  /// The grip on the bottom-right corner.
-  static const IconData miniResizeBottomRight = Icons.south_east_rounded;
-
   // ---- room cards, browsing pages and their dialogs (docs/A-界面设计/A09-浏览界面/A09.1-房间卡片–U.4f) ----
 
   /// A cover that is loading or failed to load (3.x's cover placeholder).
@@ -1172,6 +1164,12 @@ abstract final class AppIcons {
 
   /// Picture-in-picture on leaving the app.
   static const IconData settingsAutoPip = Icons.picture_in_picture_alt_rounded;
+
+  /// The mini window uses the system's picture-in-picture (A07.25).
+  static const IconData settingsSystemPip = Remix.picture_in_picture_2_line;
+
+  /// "显示在其他应用的上层" for the app's floating window (A07.25).
+  static const IconData settingsOverlayPermission = Remix.stack_line;
 
   /// How big the in-app floating window is (A07.22).
   static const IconData settingsMiniSize = Icons.photo_size_select_large_rounded;

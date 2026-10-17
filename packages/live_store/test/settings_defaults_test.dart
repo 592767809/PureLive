@@ -277,10 +277,13 @@ const Map<String, Object> newInV4 = {
   'liquidGlass': true, // A01.6: liquid glass by default (A01.5 had the plain bar)
   'themeColorMigration': 0, // A11.2
   'preferH264': true, // UPGRADES 22-3
-  'autoPipOnLeave': false, // A07.8
+  'autoPipOnLeave': false,
+  'useSystemPip': false, // A07.25 c12
+  'floatOverlayTipShown': false, // A07.25 c9
   'floatWindowSize': 'medium', // A07.22 (V01.5; A07.8 c6's size)
   'floatWindowLandscapeScale': 1.0, // A07.22: 1 = not resized
   'floatWindowPortraitScale': 1.0, // A07.22
+  'floatWindowPosition': '', // A07.25 c6
   'portraitFullscreenSwipeSwitch': false, // A07.2, A07.3
   'livePlayChatCollapsed': false, // A07.5
   'roomSwitcherLayout': 'grid', // A07.13, D-022

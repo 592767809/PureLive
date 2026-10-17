@@ -11,6 +11,7 @@ import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/mini_window.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -22,8 +23,10 @@ import 'package:pure_live/routes/route_path.dart';
 /// - [supported]: whether to show it (Android with picture-in-picture, a
 ///   desktop with the mini window);
 /// - [preparing]: grey it out while a switch is under way;
-/// - [enter]: Android's system picture-in-picture (with the "无法打开画中画"
-///   dialog when the system turned it off, c9), or the desktop mini window.
+/// - [enter]: on Android the in-app floating window (the page closes into
+///   it, A07.25 c7), or the system's picture-in-picture with "改用系统画中画"
+///   (with the "无法打开画中画" toast when the system turned it off, c9); the
+///   desktop mini window on a computer.
 ///
 /// The page shows only the picture while [compact] (picture-in-picture, the
 /// moment before it, the desktop mini window) and the mini window's buttons
@@ -35,8 +38,10 @@ class RoomMiniWindow extends ChangeNotifier {
     required this.settings,
     required this.leaveFullscreen,
     required this.closeRoom,
+    VoidCallback? shrinkToMini,
     bool? android,
-  }) : android = android ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+  }) : shrinkToMini = shrinkToMini ?? closeRoom,
+       android = android ?? (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
     PictureInPicture.active.addListener(_changed);
     preparing.addListener(_changed);
     DesktopWindow.mini.addListener(_desktopChanged);
@@ -57,6 +62,10 @@ class RoomMiniWindow extends ChangeNotifier {
   /// Closes the room page without the in-app floating window (the desktop
   /// mini window's ✕).
   final VoidCallback closeRoom;
+
+  /// Closes the room page into the in-app floating window (the mini window
+  /// button on Android, A07.25 c7).
+  final VoidCallback shrinkToMini;
 
   /// Android: the system's picture-in-picture.
   final bool android;
@@ -99,7 +108,11 @@ class RoomMiniWindow extends ChangeNotifier {
   /// Whether this platform has a mini window for the room.
   Future<bool> supported() async {
     if (DesktopWindow.miniAvailable) return true;
-    if (android) return await PictureInPicture.supported();
+    // The in-app floating window needs nothing of the system (A07.25 c7);
+    // "改用系统画中画" needs Android 8's picture-in-picture.
+    if (android) {
+      return PictureInPicture.onAndroid && (!settings.get(Settings.useSystemPip) || await PictureInPicture.supported());
+    }
     return false;
   }
 
@@ -172,7 +185,16 @@ class RoomMiniWindow extends ChangeNotifier {
       await _enterDesktop();
       return;
     }
-    if (android) await _enterPip();
+    if (!android) return;
+    // A07.25 c7: the room shrinks into the in-app floating window and the app
+    // stays (5.4.1 went to the system's picture-in-picture, which "改用系统画中画"
+    // keeps); leaving the app then takes the window along when allowed.
+    if (miniWindowKind(settings) == LeaveAppWindow.overlay) {
+      await leaveFullscreen();
+      if (!_disposed) shrinkToMini();
+    } else {
+      await _enterPip();
+    }
   }
 
   Future<void> _enterPip() async {
@@ -307,9 +329,10 @@ class RoomMiniWindow extends ChangeNotifier {
   }
 }
 
-/// Keeps Android's "enter picture-in-picture when leaving" in step with the
-/// room (J1): only while the setting is on, the room page is on top and the
-/// picture plays.
+/// Keeps leaving the app from the room page in step with the room (J1,
+/// "离开应用时自动小窗"): the app's floating window or, with "改用系统画中画", the
+/// system's picture-in-picture, armed only while the setting is on, the room
+/// page is on top and the picture plays.
 final class _AutoPip {
   new(this.mini);
 
@@ -324,17 +347,36 @@ final class _AutoPip {
   void start() {
     _states = _room.session.states.listen((_) => _sync());
     _settings = mini.settings.changes.listen((setting) {
-      if (setting.key == Settings.autoPipOnLeave.key || setting.key == Settings.portraitPipFollowSource.key) _sync();
+      if (setting.key == Settings.autoPipOnLeave.key ||
+          setting.key == Settings.useSystemPip.key ||
+          setting.key == Settings.floatWindowSize.key ||
+          setting.key == Settings.portraitPipFollowSource.key) {
+        _sync();
+      }
     });
     _room.addListener(_sync);
     liveRouteObserver.currentRoute.addListener(_sync);
+    OverlayWindow.permitted.addListener(_sync);
+    // A07.25 c9: armed for the floating window but not allowed, leaving the
+    // app hides the room; back, the toast says once how to keep it.
+    _lifecycle = AppLifecycleListener(
+      onPause: () {
+        if ((_armed ?? false) && _choice == LeaveAppWindow.overlay && !OverlayWindow.permitted.value) {
+          OverlayTip.missed();
+        }
+      },
+      onResume: () => OverlayTip.comeBack(mini.settings),
+    );
     _sync();
   }
 
+  AppLifecycleListener? _lifecycle;
+
   void _sync() {
     final state = _room.session.state;
+    final choice = leaveAppWindow(mini.settings);
     final armed = shouldAutoEnterPip(
-      enabled: mini.settings.get(Settings.autoPipOnLeave),
+      enabled: choice != LeaveAppWindow.none,
       onTop: liveRouteObserver.currentRoute.value == RoutePath.kLivePlay,
       stage: _room.stage,
       status: state.status,
@@ -342,24 +384,37 @@ final class _AutoPip {
     );
     final (width, height) = mini._pictureSize;
     final picture = armed ? mini.pictureRect : null;
-    if (armed == _armed && (!armed || (_size == (width, height) && _picture == picture))) return;
+    final overlay = OverlayWindow.permitted.value;
+    if (armed == _armed &&
+        choice == _choice &&
+        overlay == _overlay &&
+        (!armed || (_size == (width, height) && _picture == picture))) {
+      return;
+    }
     final titled = armed && !(_armed ?? false);
     _armed = armed;
+    _choice = choice;
+    _overlay = overlay;
     _size = (width, height);
     _picture = picture;
     if (armed) mini._shownSize = (width, height);
     if (titled) unawaited(PictureInPicture.update(title: mini._title, subtitle: _room.room.title));
     unawaited(
-      PictureInPicture.setAutoEnter(
-        enabled: armed,
+      armLeaveWindow(
+        choice: choice,
+        playing: armed,
         width: width,
         height: height,
         picture: picture,
+        window: overlayWindowRect(mini.settings, width / height),
         pixelRatio: mini.pixelRatio,
         owner: this,
       ),
     );
   }
+
+  LeaveAppWindow? _choice;
+  bool? _overlay;
 
   Rect? _picture;
 
@@ -375,7 +430,12 @@ final class _AutoPip {
     unawaited(_settings?.cancel());
     _room.removeListener(_sync);
     liveRouteObserver.currentRoute.removeListener(_sync);
-    if (_armed ?? false) unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
+    OverlayWindow.permitted.removeListener(_sync);
+    _lifecycle?.dispose();
+    if (_armed ?? false) {
+      unawaited(PictureInPicture.setAutoEnter(enabled: false, owner: this));
+      unawaited(OverlayWindow.arm(enabled: false, owner: this));
+    }
   }
 }
 
@@ -405,4 +465,44 @@ void showPipDisabledToast() => AppNavigator.showToast(
 
 Future<void> _openPipSettings() async {
   if (!await PictureInPicture.openSettings()) AppNavigator.toast(i18n('pip_enter_failed'));
+}
+
+/// The app's floating window from a room page (A07.25): the in-app window's
+/// size ("小窗大小") for a picture of [aspectRatio], in the bottom right corner.
+Rect overlayWindowRect(SettingsStore settings, double aspectRatio) {
+  final view = WidgetsBinding.instance.platformDispatcher.views.first;
+  final screen = view.physicalSize / view.devicePixelRatio;
+  final size = inAppMiniWindowSize(
+    screen: screen,
+    aspectRatio: aspectRatio,
+    size: settings.get(Settings.floatWindowSize),
+  );
+  final bottom = view.padding.bottom / view.devicePixelRatio + inAppMiniMargin;
+  return Offset(screen.width - size.width - inAppMiniMargin, screen.height - size.height - bottom) & size;
+}
+
+/// Leaving the app without "显示在其他应用的上层" hid the floating window (A07.25
+/// c9, choice J2): back in the app, once ever, a toast says it can stay
+/// over other apps, with "去开启" (the system's page for it).
+abstract final class OverlayTip {
+  static bool _missed = false;
+
+  /// The window would have gone over the other apps had it been allowed.
+  static void missed() => _missed = true;
+
+  /// Back in the app: the toast, the first time only.
+  static void comeBack(SettingsStore settings) {
+    if (!_missed) return;
+    _missed = false;
+    if (OverlayWindow.permitted.value || settings.get(Settings.floatOverlayTipShown)) return;
+    unawaited(settings.set(Settings.floatOverlayTipShown, true));
+    AppNavigator.showToast(
+      AppToast(
+        i18n('overlay_tip'),
+        key: const ValueKey('overlay-tip'),
+        actionLabel: i18n('overlay_permission_open'),
+        onAction: () => unawaited(OverlayWindow.openSettings()),
+      ),
+    );
+  }
 }

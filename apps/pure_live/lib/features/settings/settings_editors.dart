@@ -15,6 +15,7 @@ import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_tiles.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/display_mode.dart';
+import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -1043,4 +1044,28 @@ class StartupTile extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "在其他应用上层显示小窗" (A07.25 c11): whether "显示在其他应用的上层" is given
+/// for the floating window, looked at again on every return; a tap opens
+/// the system's page for it (the user turns it on or off there).
+class OverlayPermissionTile extends StatelessWidget {
+  /// Creates the row.
+  const new({required this.entry, super.key});
+
+  /// The entry drawn.
+  final SettingsEntry entry;
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<bool>(
+    valueListenable: OverlayWindow.permitted,
+    builder: (context, permitted, _) => SettingsLinkRow(
+      key: entry.rowKey,
+      icon: AppIcons.settingsOverlayPermission,
+      title: entry.titleText,
+      subtitle: entry.descriptionText,
+      value: i18n(permitted ? 'overlay_permission_on' : 'overlay_permission_off'),
+      onTap: () => unawaited(OverlayWindow.openSettings()),
+    ),
+  );
 }

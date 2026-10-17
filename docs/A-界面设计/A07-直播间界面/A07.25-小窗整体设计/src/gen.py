@@ -291,15 +291,15 @@ def now_swap():
 
 # ---------- the new design ----------
 def new_phone():
-    win = window(DX, DY, PW, PH, n=5, inner=buttons(PW, PH, grip='bl', grip_style='corner', n=True))
-    return page(W, H, 3, home_phone() + win + '<div class="cap" style="left:16px;top:104px">新设计：样子照 5.4.1，只换把手的样子</div>' + syn())
+    win = window(DX, DY, PW, PH, n=5, inner=buttons(PW, PH, grip='br', grip_style='corner', n=True))
+    return page(W, H, 3, home_phone() + win + '<div class="cap" style="left:16px;top:104px">新设计：把手固定在右下角，换成角上的样子</div>' + syn())
 
 
 def new_large():
     w, h = 340, 191
     x, y = W - M - w, H - INSET - NAV - M - h
-    win = window(x, y, w, h, n=5, inner=buttons(w, h, grip='bl', grip_style='corner', n=True))
-    return page(W, H, 3, home_phone() + win + '<div class="cap" style="left:16px;top:104px">新设计：放大以后，位置一律照 5.4.1 刚出现时的样子</div>' + syn())
+    win = window(x, y, w, h, n=5, inner=buttons(w, h, grip='br', grip_style='corner', n=True))
+    return page(W, H, 3, home_phone() + win + '<div class="cap" style="left:16px;top:104px">新设计：弹幕开关和画中画固定在左下角，不换边</div>' + syn())
 
 
 def grip_sheet():
@@ -314,24 +314,24 @@ def grip_sheet():
                 f'<div class="ctitle" style="left:{cx}px;top:{cy + ch + 8}px">{title}</div>'
                 f'<div class="ctext" style="left:{cx}px;top:{cy + ch + 30}px;width:{cw}px">{text}</div>')
 
-    # 1. on the right: pull left / down = bigger, the top-right corner stays
+    # 1. on the right: the grip at the bottom right; left or down = bigger, the top-right corner stays
     w0, h0, w1, h1 = 176, 99, 300, 169
     x0, y0 = cw - 12 - w0, 30
     b1 = ('<div class="edge" style="right:0"></div>'
           + f'<div class="ghost" style="left:{cw - 12 - w1}px;top:{y0}px;width:{w1}px;height:{h1}px"></div>'
-          + window(x0, y0, w0, h0, inner=buttons(w0, h0, grip='bl', grip_style='corner'), dm=False)
-          + svg(arrow(x0 + 18, y0 + h0 - 14, cw - 12 - w1 + 22, y0 + h1 - 18), w=cw, h=ch)
-          + f'<div class="lbl" style="left:{cw - 12 - w1 + 4}px;top:{y0 + h1 + 8}px">往左、往下拉：变大（右上角不动）</div>'
-          + f'<div class="lbl" style="left:{cw - 12 - w1 + 4}px;top:{y0 + h1 + 32}px">往右、往上推：变小</div>')
-    out += cell(pad, pad, '① 小窗在右边：按住左下角往外拉', '把手一直在左下角（5.4.1 刚出现时的位置），不换边。画面比例不变，从 160 宽一直拉到和屏幕一样宽，中间任何大小都能停。', b1)
-    # 2. on the left: no room to the left, pull down
+          + window(x0, y0, w0, h0, inner=buttons(w0, h0, grip='br', grip_style='corner'), dm=False)
+          + svg(arrow(x0 + w0 - 20, y0 + h0 - 16, cw - 12 - w1 + 60, y0 + h1 - 30), arrow(x0 + w0 - 20, y0 + h0 - 16, x0 + w0 - 20, y0 + h1 + 2), w=cw, h=ch)
+          + f'<div class="lbl" style="left:{cw - 12 - w1 + 4}px;top:{y0 + h1 + 8}px">往左或往下拉：变大（右上角不动）</div>'
+          + f'<div class="lbl" style="left:{cw - 12 - w1 + 4}px;top:{y0 + h1 + 32}px">往右推：变小</div>')
+    out += cell(pad, pad, '① 小窗在右边：右下角的把手往左或往下拉', '把手一直在右下角，不换边（你选的）。靠右边时往右没地方，往左拉就是变大，窗口往屏幕中间长；往下拉也变大。画面比例不变，从 160 宽一直到和屏幕一样宽。', b1)
+    # 2. on the left: right or down = bigger, the top-left corner stays
     x0 = 12
     b2 = ('<div class="edge" style="left:0"></div>'
           + f'<div class="ghost" style="left:12px;top:{y0}px;width:{w1}px;height:{h1}px"></div>'
-          + window(x0, y0, w0, h0, inner=buttons(w0, h0, grip='bl', grip_style='corner'), dm=False)
-          + svg(arrow(x0 + 18, y0 + h0 - 14, x0 + 18, y0 + h1 + 4), w=cw, h=ch)
-          + f'<div class="lbl" style="left:{x0 + 34}px;top:{y0 + h1 + 8}px">靠左边时往下拉也变大，窗口往右长</div>')
-    out += cell(pad + cw + gap, pad, '② 小窗在左边：往下拉', '左边没地方了，往下拉一样变大；屏幕放不下的那部分自动往右、往上让，窗口始终在屏幕里。', b2)
+          + window(x0, y0, w0, h0, inner=buttons(w0, h0, grip='br', grip_style='corner'), dm=False)
+          + svg(arrow(x0 + w0 - 20, y0 + h0 - 16, x0 + w1 - 30, y0 + h1 - 20), w=cw, h=ch)
+          + f'<div class="lbl" style="left:{x0 + 34}px;top:{y0 + h1 + 8}px">靠左边时往右、往下拉变大（左上角不动）</div>')
+    out += cell(pad + cw + gap, pad, '② 小窗在左边：往右或往下拉', '同一个把手，往屏幕中间那边拉就是变大，往回推变小。把手所在的角离屏幕边太近时，这一块不触发系统返回手势（K90 上发现的）。', b2)
     # 3. pinch anywhere
     w2, h2 = 220, 124
     x2, y2 = (cw - w2) // 2, 70
@@ -342,10 +342,10 @@ def grip_sheet():
     out += cell(pad, pad + ch + 92, '③ 两指缩放（照 5.4.1）', '按钮没显示时，两指放在画面任何地方都行，和系统画中画一样。', b3)
     # 4. a tap on the grip says what it is
     x3, y3 = 90, 70
-    b4 = (window(x3, y3, w2, h2, inner=buttons(w2, h2, grip='bl', grip_style='corner'), dm=False)
-          + f'<div class="tap" style="left:{x3 + 6}px;top:{y3 + h2 - 40}px"></div>'
-          + f'<div class="tip" style="left:{x3 - 40}px;top:{y3 + h2 + 12}px;font-size:13px">按住拖动改大小</div>')
-    out += cell(pad + cw + gap, pad + ch + 92, '④ 点一下把手', '把手不是按钮：点一下只弹出“按住拖动改大小”。它的样子换成角上的四分之一圆和直角线，和圆形按钮区分开。', b4)
+    b4 = (window(x3, y3, w2, h2, inner=buttons(w2, h2, grip='br', grip_style='corner'), dm=False)
+          + f'<div class="tap" style="left:{x3 + w2 - 40}px;top:{y3 + h2 - 40}px"></div>'
+          + f'<div class="tip" style="left:{x3 + w2 - 120}px;top:{y3 + h2 + 12}px;font-size:13px">拖动调整小窗大小</div>')
+    out += cell(pad + cw + gap, pad + ch + 92, '④ 点一下把手', '把手不是按钮：点一下只弹出“拖动调整小窗大小”。它的样子换成角上的四分之一圆和直角线，和圆形按钮区分开。', b4)
     return page(SW, SH, 2, out, root='win')
 
 
@@ -414,7 +414,7 @@ def new_outside1():
 
 def new_outside2():
     w, h = 220, 124
-    win = window(W - M - w, TOP + 4, w, h, inner=buttons(w, h, grip='bl', grip_style='corner'))
+    win = window(W - M - w, TOP + 4, w, h, inner=buttons(w, h, grip='br', grip_style='corner'))
     note = ('<div class="cap big" style="left:16px;right:16px;top:470px">在别的应用里也能拖到最上面。点“回到直播间”打开纯粹直播的这个直播间；'
             '✕ 停止播放并关掉小窗</div>')
     return page(W, H, 3, other_app() + win + note + syn(), root='ph')
@@ -432,11 +432,11 @@ def new_tip():
 def new_settings():
     S = smock
     rows = [
-        S.sw('离开直播间时小窗播放', '返回离开直播间后，画面缩成小窗继续播放', on=True, n=1, tag='keep'),
-        S.link('小窗大小', '在小窗上两指缩放或拖左下角的把手也能调，会记住', val='中', n=2, tag='keep'),
-        S.sw('离开应用时自动小窗', '在直播间回到桌面或切到别的应用，画面缩成小窗留在其他应用上面；纯音频、暂停、未开播时除外', on=False, n=3, tag='chg'),
-        S.link('在其他应用上层显示小窗', '小窗开着时离开应用，小窗留在其他应用上面。要在系统设置里打开“显示在其他应用的上层”', val='未开启', n=4, tag='add'),
-        S.sw('改用系统画中画', '小窗按钮和离开应用时都用系统画中画：不用悬浮窗权限，但只有系统的几个按钮，不能收边', on=False, n=5, tag='add'),
+        S.sw('离开直播间时小窗播放', '返回离开直播间后，画面缩成应用内小窗继续播放', on=True, n=1, tag='keep'),
+        S.link('小窗大小', '应用内小窗有多大；在小窗上两指缩放或拖动角上的把手也能调，会记住', val='中', n=2, tag='keep'),
+        S.sw('离开应用时自动小窗', '在直播间回桌面或切到别的应用，缩成小窗留在其他应用上面；纯音频、暂停时除外', on=False, n=3, tag='chg'),
+        S.link('在其他应用上层显示小窗', '离开应用时小窗留在其他应用上面；要在系统设置里打开“显示在其他应用的上层”', val='未开启', n=4, tag='add'),
+        S.sw('改用系统画中画', '小窗按钮和离开应用都用系统画中画：不用悬浮窗权限，但按钮少、不能收边', on=False, n=5, tag='add'),
         S.link('小窗弹幕', '小窗和画中画里的弹幕样式', n=6, tag='keep'),
     ]
     body = S.bar('视频') + '<div style="padding:4px 0 24px">' + S.sec('小窗') + S.grp(rows) + '</div>'
@@ -450,9 +450,9 @@ def j1_sheet():
     w, h = 320, 180
     out = '<div class="sheet0"></div>'
     opts = [
-        ('A（建议）把手固定在左下角', '照 5.4.1 刚出现时的样子，以后不换边；往左、往下拉变大。弹幕和画中画按钮固定在右下角。', 'bl', 'corner'),
-        ('B 两个下角都能拉', '左下、右下各一个把手，哪边有地方拉哪边；弹幕和画中画按钮挪到底边中间（和 5.4.1 不一样）。', 'both', 'corner'),
-        ('C 照 5.4.1', '把手在朝屏幕中间的那个下角，小窗换到屏幕另一半时，把手和弹幕、画中画按钮对调。', 'bl', 'disc'),
+        ('定了：把手右下角，弹幕和画中画左下角', '你选的（2026-10-18）：以后不换边。靠右边时把手往左拉变大。', 'br', 'corner'),
+        ('第 1 版建议的 A：把手左下角', '没采用。', 'bl', 'corner'),
+        ('5.4.1：跟着屏幕左右半边换', '没采用：会换位置。', 'bl', 'disc'),
     ]
     for i, (title, text, grip, style) in enumerate(opts):
         cx = pad + i * (cw + gap)
@@ -464,12 +464,55 @@ def j1_sheet():
     return page(SW, SH, 2, out, root='win')
 
 
+def motion_sheet():
+    """A07.25 M1-M5: the moves, drawn as a strip of moments."""
+    cw, ch, gap, pad = 280, 300, 20, 24
+    SW, SH = pad * 2 + cw * 4 + gap * 3, pad * 2 + ch + 120
+    out = '<div class="sheet0"></div>'
+
+    def cell(i, title, text, body):
+        cx = pad + i * (cw + gap)
+        return (f'<div class="cell" style="left:{cx}px;top:{pad}px;width:{cw}px;height:{ch}px"><div class="scr"></div>{body}</div>'
+                f'<div class="ctitle" style="left:{cx}px;top:{pad + ch + 8}px">{title}</div>'
+                f'<div class="ctext" style="left:{cx}px;top:{pad + ch + 30}px;width:{cw}px">{text}</div>')
+
+    # M1: out of the picture into the corner
+    big = (0, 20, cw, cw * 9 // 16)
+    small = (cw - 12 - 120, ch - 12 - 68, 120, 68)
+    mid = tuple(round(a + (b - a) * 0.55) for a, b in zip(big, small))
+    b = (f'<div class="ghost" style="left:{big[0]}px;top:{big[1]}px;width:{big[2]}px;height:{big[3]}px;border-style:dotted"></div>'
+         + f'<div class="ghost" style="left:{mid[0]}px;top:{mid[1]}px;width:{mid[2]}px;height:{mid[3]}px;border-style:dotted"></div>'
+         + window(*small, dm=False)
+         + svg(arrow(big[0] + big[2] / 2, big[1] + big[3] / 2, small[0] + 40, small[1] + 20), w=cw, h=ch))
+    out += cell(0, 'M1 缩成小窗', '点小窗按钮或返回离开直播间：画面从直播间里的位置直接飞到小窗的位置、同时缩小，直播间页面在下面照常退出。弹簧（AppMotion.floatingSpring，约 0.3 秒），中途不重建播放器。', b)
+    # M3: ✕
+    w3 = (80, 110, 120, 68)
+    b = (window(*w3, dm=False, style='opacity:.35;transform:scale(.85)')
+         + f'<div class="ghost" style="left:{w3[0]}px;top:{w3[1]}px;width:{w3[2]}px;height:{w3[3]}px;border-style:dotted"></div>'
+         + f'<div class="lbl" style="left:40px;top:{w3[1] + 90}px">缩到 0.85、变透明，0.18 秒</div>')
+    out += cell(1, 'M2、M3 回直播间、关闭', '点 ✕：缩小并淡出（0.18 秒）再停播放；点回到直播间：稍放大并淡出（0.12 秒）再打开直播间。系统“移除动画”开着时直接到位。', b)
+    # M4/M5: settle and tuck
+    b = (window(cw - 40, 120, 120, 68, dm=False, inner='<div class="hd" style="left:10px;top:16px"></div>')
+         + f'<div class="ghost" style="left:60px;top:120px;width:120px;height:68px;border-style:dotted"></div>'
+         + svg(arrow(130, 150, cw - 30, 150), w=cw, h=ch)
+         + '<div class="lbl" style="left:20px;top:210px">带着手指的速度滑过去，到边就停</div>')
+    out += cell(2, 'M4、M5 松手、收边', '松手后带着手指速度滑到近的一边（照 5.4.1 / A03.4）；甩出边就收起，收好后竖条把手淡入（0.15 秒）；点一下或拖出来，同一根弹簧滑回来。', b)
+    # M8: the bottom bar comes, the window moves up
+    b = ('<div style="position:absolute;left:0;right:0;bottom:0;height:46px;background:var(--scc)"></div>'
+         + f'<div class="ghost" style="left:{cw - 12 - 120}px;top:{ch - 12 - 68}px;width:120px;height:68px;border-style:dotted"></div>'
+         + window(cw - 12 - 120, ch - 46 - 12 - 68, 120, 68, dm=False)
+         + svg(arrow(cw - 72, ch - 40, cw - 72, ch - 70), w=cw, h=ch)
+         + '<div class="lbl" style="left:12px;top:40px">换到有底部导航的页面、转屏、改“小窗大小”</div>')
+    out += cell(3, 'M8 自己挪位置', '不是手指挪的位置变化（底部导航出现、转屏、窗口大小设置）：同一根弹簧平滑挪过去，不跳。手指拖动、改大小时不加这个动画（跟手）。', b)
+    return page(SW, SH, 2, out, root='win')
+
+
 OUT = {
     'now-phone': now_phone(), 'now-large': now_large(), 'now-swap': now_swap(),
     'new-phone': new_phone(), 'new-large': new_large(), 'new-grip': grip_sheet(), 'new-reach': new_reach(),
     'new-tuck-1': new_tuck1(), 'new-tuck-2': new_tuck2(), 'new-entry-1': new_entry1(), 'new-entry-2': new_entry2(),
     'new-outside-1': new_outside1(), 'new-outside-2': new_outside2(), 'new-tip': new_tip(), 'new-settings': new_settings(),
-    'j1-grip': j1_sheet(),
+    'j1-grip': j1_sheet(), 'new-motion': motion_sheet(),
 }
 for name, html in OUT.items():
     open(os.path.join(HERE, name + '.html'), 'w', encoding='utf-8').write(html)

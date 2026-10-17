@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_core/live_core.dart';
@@ -53,6 +54,7 @@ import 'package:pure_live/features/live_play/player/room_swipe.dart';
 import 'package:pure_live/features/live_play/record/record_panel.dart';
 import 'package:pure_live/features/live_play/switch_room/room_switch_panel.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/platform/screen_orientation.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
@@ -212,6 +214,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     super.initState();
     RoomCommands.current.value = _commands;
     DesktopWindow.fullScreen.addListener(_windowFullScreenChanged);
+    OverlayWindow.active.addListener(_overlayShown);
     _swipe = RoomSwipeController(onSwitch: _swipeTo, vsync: this);
     final (room, playlist) = switch (widget.route.arguments) {
       LiveRoomArgs(:final room, :final playlist) => (room, playlist),
@@ -367,6 +370,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
             settings: settings,
             leaveFullscreen: _exitFullscreen,
             closeRoom: _closeOnPurpose,
+            shrinkToMini: _shrinkToMini,
           )
           ..addListener(_onMini)
           ..startAutoPip();
@@ -504,6 +508,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   void dispose() {
     if (identical(RoomCommands.current.value, _commands)) RoomCommands.current.value = null;
     DesktopWindow.fullScreen.removeListener(_windowFullScreenChanged);
+    OverlayWindow.active.removeListener(_overlayShown);
     unawaited(RoomBackChannel.instance.release(this));
     unawaited(_autoFullscreen?.cancel());
     unawaited(_shape?.cancel());
@@ -530,17 +535,22 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       ..removeListener(_onPanel)
       ..dispose();
     final runtime = _runtime;
-    if (runtime != null) {
+    // Handed to the floating window as the page began to close (A07.25 M1).
+    if (runtime != null && !_handedOver) {
       final floating = FloatingRoom.instance;
-      final float = shouldFloatOnLeave(
-        enabled: _settings.get(Settings.floatPlay),
-        stage: runtime.controller.stage,
-        suppressed: _closingOnPurpose,
-        topRoute: liveRouteObserver.currentRoute.value,
-      );
+      final float =
+          _intoMini ||
+          _intoOverlay ||
+          shouldFloatOnLeave(
+            enabled: _settings.get(Settings.floatPlay),
+            stage: runtime.controller.stage,
+            suppressed: _closingOnPurpose,
+            topRoute: liveRouteObserver.currentRoute.value,
+          );
       final standby = _standby;
       if (float && floating.canShow) {
-        floating.show(runtime);
+        // A07.25 M1: the window comes out of where the picture was.
+        floating.show(runtime, from: _leavingPicture);
       } else {
         final Future<void> Function() release;
         if (standby == null || _settings.get(Settings.useHardStopOnExit)) {
@@ -644,6 +654,72 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         (ModalRoute.isCurrentOf(context) ?? true)) {
       setState(() => _display = RoomDisplay.fullscreen);
     }
+  }
+
+  /// Whether the page closes into the app's floating window (A07.25).
+  bool _intoOverlay = false;
+
+  /// Whether the page closes into the in-app floating window whatever
+  /// "离开直播间时小窗播放" says: the mini window button (A07.25 c7).
+  bool _intoMini = false;
+
+  /// Where the picture was as the page closed (A07.25 M1).
+  Rect? _leavingPicture;
+
+  /// Whether the floating window already plays the room (A07.25 M1).
+  bool _handedOver = false;
+
+  /// Hands the room to the in-app floating window as the page begins to
+  /// close (A07.25 M1): the window comes out of the picture and goes to its
+  /// corner while the page leaves under it (the page goes on drawing the
+  /// same player until it is gone). Waiting for the page's end would show the
+  /// picture again where it was after the page had slid away.
+  void _handOver() {
+    final runtime = _runtime;
+    if (_handedOver || !mounted || runtime == null) return;
+    final floating = FloatingRoom.instance;
+    final float =
+        _intoMini ||
+        _intoOverlay ||
+        shouldFloatOnLeave(
+          enabled: _settings.get(Settings.floatPlay),
+          stage: runtime.controller.stage,
+          suppressed: _closingOnPurpose,
+          topRoute: liveRouteObserver.currentRoute.value,
+        );
+    if (!float || !floating.canShow) return;
+    _handedOver = true;
+    floating.show(runtime, from: _leavingPicture);
+  }
+
+  /// The mini window button (A07.25 c7): the room shrinks into the in-app
+  /// floating window and the page before it shows; the app stays.
+  void _shrinkToMini() {
+    if (!mounted) return;
+    _intoMini = true;
+    _leavingPicture = _mini?.pictureRect;
+    _handOver();
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      AppNavigator.offAllNamed(RoutePath.kInitial);
+    }
+  }
+
+  /// The app's floating window over other apps showed while this room was
+  /// on top (A07.25): the room goes on in the in-app floating window, which
+  /// fills it, and this page opens again when the app comes back.
+  void _overlayShown() {
+    if (!mounted || !OverlayWindow.active.value || _intoOverlay) return;
+    final runtime = _runtime;
+    if (!(ModalRoute.isCurrentOf(context) ?? false) || runtime == null || FloatingRoom.instance.runtime != null) {
+      return;
+    }
+    _intoOverlay = true;
+    _leavingPicture = null;
+    OverlayWindow.fromRoomPage = runtime.controller.room;
+    AppNavigator.back<void>();
   }
 
   /// Back to the room page.
@@ -796,7 +872,14 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     return PopScope(
       canPop: _poppable,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _back();
+        if (didPop) {
+          // A07.25 M1: where the picture is, while it still is; the window
+          // takes over once the page below is known (the next frame).
+          _leavingPicture ??= _mini?.pictureRect;
+          SchedulerBinding.instance.addPostFrameCallback((_) => _handOver());
+        } else {
+          _back();
+        }
       },
       child: CallbackShortcuts(
         bindings: {

@@ -373,6 +373,18 @@ abstract final class Settings {
     max: 4,
   );
 
+  /// New (A07.25 c6, the user: "位置也要记住，跨重启保存"): where the in-app
+  /// floating window was left, kept across restarts — `x,y` as fractions of
+  /// the screen's width and height, or `left,y` / `right,y` tucked into a
+  /// side; empty for the corner. Internal: a place on this device's screen,
+  /// not for backups.
+  static const floatWindowPosition = StringSetting(
+    'floatWindowPosition',
+    section: 'player',
+    defaultValue: '',
+    scope: SettingScope.internal,
+  );
+
   /// New (A07.22): [floatWindowLandscapeScale] for a portrait picture's
   /// window (each kept on its own, as upstream pure_live a25facd94).
   static const floatWindowPortraitScale = DoubleSetting(
@@ -386,9 +398,29 @@ abstract final class Settings {
   /// Windows PiP on top.
   static const windowsPipAlwaysOnTop = BoolSetting('windowsPipAlwaysOnTop', section: 'player', defaultValue: false);
 
-  /// Leaving the app from a playing room enters picture-in-picture (U.2j,
-  /// choice J1). New in v4, off by default; 3.x only had the button.
+  /// Leaving the app from a playing room goes into the mini window by itself
+  /// (U.2j, choice J1): the app's floating window, or the system's
+  /// picture-in-picture with [useSystemPip] (A07.25; before, always the
+  /// picture-in-picture). New in v4, off by default; 3.x only had the button.
   static const autoPipOnLeave = BoolSetting('autoPipOnLeave', section: 'player', defaultValue: false);
+
+  /// New (A07.25 c12, D-042, "改用系统画中画"): the mini window button,
+  /// leaving the app with the mini window and [autoPipOnLeave] use the
+  /// system's picture-in-picture instead of the in-app window and its
+  /// floating window over other apps ("显示在其他应用的上层"). Off by default;
+  /// a user who had [autoPipOnLeave] on keeps the picture-in-picture (set
+  /// once at start, `keepPictureInPicture`).
+  static const useSystemPip = BoolSetting('useSystemPip', section: 'player', defaultValue: false);
+
+  /// New (A07.25 c9): the toast saying the floating window can stay over
+  /// other apps ("显示在其他应用的上层") was shown; it shows once. Internal: a
+  /// note of this device's.
+  static const floatOverlayTipShown = BoolSetting(
+    'floatOverlayTipShown',
+    section: 'player',
+    defaultValue: false,
+    scope: SettingScope.internal,
+  );
 
   /// NVIDIA RTX video super resolution.
   static const enableRtxVsr = BoolSetting('enableRtxVsr', section: 'player', defaultValue: false);
@@ -1925,8 +1957,11 @@ abstract final class Settings {
     floatWindowSize,
     floatWindowLandscapeScale,
     floatWindowPortraitScale,
+    floatWindowPosition,
     windowsPipAlwaysOnTop,
     autoPipOnLeave,
+    useSystemPip,
+    floatOverlayTipShown,
     enableRtxVsr,
     useHardStopOnExit,
     enablePortraitStreamAdaptation,

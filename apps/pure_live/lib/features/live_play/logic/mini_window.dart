@@ -23,6 +23,11 @@ enum MiniKind {
   /// The main window shrunk to a mini window (Windows; Linux and macOS with
   /// their desktop shell): the pin and the volume as well.
   desktop,
+
+  /// The app's own floating window over the other apps (A07.25): the in-app
+  /// window's buttons; dragging and the grip move and size the system
+  /// window.
+  overlay,
 }
 
 /// What a mini window shows over the picture (U.2j c8).
@@ -194,25 +199,31 @@ enum MiniGripCorner {
   bottomRight,
 }
 
-/// The grip's corner for a floating [window] in an [area]: the bottom one
-/// towards the middle, so pulling it outwards has room to grow (a grip at
-/// the corner the window sits in has none: 16 from the edge).
+/// Which way the floating [window]'s grip grows it in an [area]: towards
+/// the middle, where there is room (a window against the right edge grows
+/// leftwards). The grip itself always sits at the bottom right, the
+/// danmaku and picture-in-picture buttons at the bottom left (A07.25 c2,
+/// the user's choice: they no longer swap sides as the window crosses the
+/// middle).
 MiniGripCorner inAppMiniGripCorner({required Rect window, required Size area}) =>
     window.center.dx > area.width / 2 ? MiniGripCorner.bottomLeft : MiniGripCorner.bottomRight;
 
-/// The long side a grip drag asks for (A07.22): the window's long side when
-/// the drag began ([from]) plus the way the finger [moved] sideways since:
-/// away from the window (leftwards on a [MiniGripCorner.bottomLeft] grip)
-/// grows it, the picture's shape kept. Up and down do not count: a window
-/// resting on the bottom has no room below, and a finger pulling it larger
-/// towards the middle of the screen goes up as well (by the upright axis it
-/// would shrink it; upstream media_core 7319d2d took the axis moved
-/// further).
+/// The long side a grip drag asks for (A07.22, A07.25 c2): the window's long
+/// side when the drag began ([from]) plus the way the finger [moved] since,
+/// the picture's shape kept. Sideways, towards the way the window grows
+/// ([corner]: leftwards for [MiniGripCorner.bottomLeft]) makes it larger and
+/// back makes it smaller; down makes it larger too when it went further
+/// that way (a window against the left edge has no room to the left of its
+/// grip). Up does not count: a finger pulling the window larger towards the
+/// middle of the screen goes up as well (by the upright axis it would
+/// shrink it; upstream media_core 7319d2d took the axis moved further).
 double inAppMiniGripExtent({required Size from, required MiniGripCorner corner, required Offset moved}) {
   final portrait = from.width < from.height;
   final wider = corner == MiniGripCorner.bottomLeft ? -moved.dx : moved.dx;
   final long = portrait ? from.height : from.width;
-  return long + (portrait ? wider * from.height / from.width : wider);
+  final byWidth = portrait ? wider * from.height / from.width : wider;
+  final byHeight = portrait ? moved.dy : moved.dy * from.width / from.height;
+  return long + (byHeight > 0 && byHeight > byWidth ? byHeight : byWidth);
 }
 
 /// How a resize moves the floating window (A07.22).
@@ -268,9 +279,78 @@ enum MiniDock {
   right,
 }
 
+/// The floating window's place as `Settings.floatWindowPosition` keeps it
+/// (A07.25 c6): [offset]'s left and top as fractions of [area], or the side
+/// and the top when tucked into [dock]; empty for none (the corner).
+String encodeMiniPlacement({required Offset? offset, required MiniDock? dock, required Size area}) {
+  if (offset == null || area.width <= 0 || area.height <= 0) return '';
+  String fraction(double value, double of) => (value / of).clamp(-1.0, 2.0).toStringAsFixed(4);
+  final top = fraction(offset.dy, area.height);
+  return dock == null ? '${fraction(offset.dx, area.width)},$top' : '${dock.name},$top';
+}
+
+/// The place [text] keeps ([encodeMiniPlacement]) in [area]; null when
+/// there is none or it cannot be read. [inAppMiniOffset] keeps it on screen.
+({Offset offset, MiniDock? dock})? decodeMiniPlacement(String text, Size area) {
+  final parts = text.split(',');
+  if (parts.length != 2) return null;
+  final top = double.tryParse(parts[1]);
+  if (top == null || !top.isFinite) return null;
+  final dock = MiniDock.values.where((side) => side.name == parts[0]).firstOrNull;
+  if (dock != null) return (offset: Offset(0, top * area.height), dock: dock);
+  final left = double.tryParse(parts[0]);
+  if (left == null || !left.isFinite) return null;
+  return (offset: Offset(left * area.width, top * area.height), dock: null);
+}
+
 /// How much of a tucked-away window shows (A07.24): enough to see it plays
 /// and to grab it.
 const double inAppMiniDockPeek = 40;
+
+/// How much of a window [width] wide tucked into a side shows (A07.25 c5):
+/// a fifth of it, at least [inAppMiniPeekMin], and where the system's back
+/// gesture takes [gestureInset] of that edge (full-screen gestures) at
+/// least that much more than [inAppMiniPeekBeyondGesture], so the handle
+/// and a finger fit outside the gesture's strip (the user's K90 report:
+/// pulling it back went back).
+double inAppMiniPeekFor({required double gestureInset, required double width}) =>
+    math.max(math.max(width / 5, inAppMiniPeekMin), gestureInset + inAppMiniPeekBeyondGesture);
+
+/// The least of a tucked window that shows (A07.25 c5).
+const double inAppMiniPeekMin = 56;
+
+/// How much of a tucked window shows beyond the back gesture's strip.
+const double inAppMiniPeekBeyondGesture = 32;
+
+/// How far the handle on a tucked window's strip sits from the strip's
+/// inner edge (A07.25 c5): away from the screen's edge.
+const double inAppMiniHandleInset = 14;
+
+/// The most of an edge Android keeps out of its back gesture (200 dp per
+/// edge; `View.setSystemGestureExclusionRects`).
+const double systemGestureExclusionMaxHeight = 200;
+
+/// The part of a tucked [window] kept out of the system's back gesture
+/// (A07.25 c5): its middle, at most [systemGestureExclusionMaxHeight] high
+/// (a taller portrait picture's window keeps the part by the handle).
+Rect inAppMiniExclusion(Rect window) => Rect.fromCenter(
+  center: window.center,
+  width: window.width,
+  height: math.min(window.height, systemGestureExclusionMaxHeight),
+);
+
+/// Where a window kept tucked into [dock] at [top] opens after a restart
+/// (A07.25 c6, choice J4): against that side, at that height, not tucked
+/// (a window hidden at the edge on start-up would look gone).
+Offset inAppMiniUntucked({required MiniDock dock, required double top, required Size area}) =>
+    Offset(dock == MiniDock.left ? 0 : area.width, top);
+
+/// The clearances a window the user moved keeps (the user's K90 report: it
+/// would not go higher or lower): only the status bar above and the
+/// system's gesture bar below; where it first shows keeps the margins and
+/// the home page's bottom bar ([inAppMiniBottomClearance]).
+({double top, double bottom}) inAppMiniReach({required double safeTop, required double safeBottom}) =>
+    (top: safeTop, bottom: safeBottom);
 
 /// The left of a window [width] wide in an [area] [width]-wide, kept
 /// [inAppMiniMargin] from the sides; a window too wide for both margins
@@ -294,14 +374,15 @@ Offset inAppMiniOffset({
   required double topClearance,
   Offset? dragged,
   MiniDock? dock,
+  double peek = inAppMiniDockPeek,
 }) {
   final across = _horizontal(area.width, window.width);
   final maxTop = math.max(topClearance, area.height - window.height - bottomClearance);
   final wanted = dragged ?? Offset(across.max, maxTop);
   final top = wanted.dy.clamp(math.min(topClearance, maxTop), maxTop).toDouble();
   return switch (dock) {
-    MiniDock.left => Offset(inAppMiniDockPeek - window.width, top),
-    MiniDock.right => Offset(area.width - inAppMiniDockPeek, top),
+    MiniDock.left => Offset(peek - window.width, top),
+    MiniDock.right => Offset(area.width - peek, top),
     null => Offset(wanted.dx.clamp(across.min, across.max), top),
   };
 }
@@ -316,10 +397,11 @@ Offset inAppMiniDragOffset({
   required Offset wanted,
   required double topClearance,
   required double bottomClearance,
+  double peek = inAppMiniDockPeek,
 }) {
   final maxTop = math.max(topClearance, area.height - window.height - bottomClearance);
-  final left = math.min<double>(inAppMiniDockPeek - window.width, 0);
-  final right = math.max<double>(area.width - inAppMiniDockPeek, 0);
+  final left = math.min<double>(peek - window.width, 0);
+  final right = math.max<double>(area.width - peek, 0);
   return Offset(wanted.dx.clamp(left, right), wanted.dy.clamp(math.min(topClearance, maxTop), maxTop));
 }
 
@@ -338,6 +420,7 @@ const double inAppMiniFlingSeconds = 0.18;
   required Offset velocity,
   required double topClearance,
   required double bottomClearance,
+  double peek = inAppMiniDockPeek,
 }) {
   final carried = window.topLeft + velocity * inAppMiniFlingSeconds;
   final centre = carried.dx + window.width / 2;
@@ -354,6 +437,7 @@ const double inAppMiniFlingSeconds = 0.18;
       topClearance: topClearance,
       dragged: carried,
       dock: dock,
+      peek: peek,
     );
     return (offset: offset, dock: dock);
   }

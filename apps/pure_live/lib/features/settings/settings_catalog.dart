@@ -937,12 +937,31 @@ List<SettingsEntry> _build() {
     )
     ..toggle(
       'auto_pip',
-      'auto_pip_on_leave',
+      'auto_mini_on_leave',
       Settings.autoPipOnLeave,
       AppIcons.settingsAutoPip,
-      desc: 'auto_pip_on_leave_desc',
-      keywords: ['画中画', '小窗', 'PiP'],
+      desc: 'auto_mini_on_leave_desc',
+      keywords: ['画中画', '小窗', '悬浮窗', 'PiP'],
       when: _mobile,
+    )
+    // A07.25 c11, c12: the floating window over other apps needs the
+    // system's permission; the system's picture-in-picture is the other way.
+    ..add(
+      'overlay_permission',
+      'overlay_permission',
+      (context, entry) => OverlayPermissionTile(entry: entry),
+      desc: 'overlay_permission_desc',
+      keywords: ['悬浮窗', '权限', '其他应用的上层', '小窗'],
+      when: _android,
+    )
+    ..toggle(
+      'system_pip',
+      'use_system_pip',
+      Settings.useSystemPip,
+      AppIcons.settingsSystemPip,
+      desc: 'use_system_pip_desc',
+      keywords: ['画中画', '小窗', '悬浮窗', 'PiP'],
+      when: _android,
     )
     ..add(
       'pip_on_top',
