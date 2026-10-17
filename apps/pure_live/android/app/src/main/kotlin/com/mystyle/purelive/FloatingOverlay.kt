@@ -36,8 +36,7 @@ import kotlin.math.roundToInt
  *
  * Channel `pure_live/overlay`: `status` (whether the permission is given),
  * `openSettings`, `arm {enabled, x, y, width, height}` (the window's place on
- * the screen in pixels), `enterNow {x, y, width, height}` (the mini window
- * button: to the background now, the window there), `close`, `backToApp`, `dragStart`,
+ * the screen in pixels), `close`, `backToApp`, `dragStart`,
  * `resizeStart {left, top}`; to Dart `changed` (true / false).
  */
 object FloatingOverlay {
@@ -52,13 +51,6 @@ object FloatingOverlay {
     private var armedY = 0
     private var armedWidth = 0
     private var armedHeight = 0
-
-    // The mini window button's place (`enterNow`): used once, by the next show.
-    private var nowX = 0
-    private var nowY = 0
-    private var nowWidth = 0
-    private var nowHeight = 0
-    private var now = false
 
     /** The app is being left with the window armed: lifecycle not reported. */
     var leaving = false
@@ -106,20 +98,6 @@ object FloatingOverlay {
                         armedHeight = call.argument<Number>("height")?.toInt() ?: 0
                         result.success(null)
                     }
-                    "enterNow" -> {
-                        val host = this@FloatingOverlay.activity.get()
-                        if (host == null || !permitted(host)) {
-                            result.success(false)
-                        } else {
-                            nowX = call.argument<Number>("x")?.toInt() ?: 0
-                            nowY = call.argument<Number>("y")?.toInt() ?: 0
-                            nowWidth = call.argument<Number>("width")?.toInt() ?: 0
-                            nowHeight = call.argument<Number>("height")?.toInt() ?: 0
-                            now = nowWidth > 0 && nowHeight > 0
-                            leaving = now
-                            result.success(now && host.moveTaskToBack(true))
-                        }
-                    }
                     "close" -> {
                         close()
                         result.success(null)
@@ -156,7 +134,7 @@ object FloatingOverlay {
 
     /** Home or recents (`onUserLeaveHint`): the window shows once the activity stops. */
     fun onLeaving(activity: Activity) {
-        leaving = now || (armed && armedWidth > 0 && armedHeight > 0 && permitted(activity))
+        leaving = armed && armedWidth > 0 && armedHeight > 0 && permitted(activity)
     }
 
     /** The activity stopped; false when the window did not show (the lifecycle goes on as usual). */
@@ -168,8 +146,8 @@ object FloatingOverlay {
         val surface = FlutterSurfaceView(context)
         val overlay = FlutterView(context, surface)
         val layout = WindowManager.LayoutParams(
-            if (now) nowWidth else armedWidth,
-            if (now) nowHeight else armedHeight,
+            armedWidth,
+            armedHeight,
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
@@ -177,10 +155,9 @@ object FloatingOverlay {
             PixelFormat.OPAQUE,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = if (now) nowX else armedX
-            y = if (now) nowY else armedY
+            x = armedX
+            y = armedY
         }
-        now = false
         return try {
             activity.findViewById<FlutterView>(FlutterActivity.FLUTTER_VIEW_ID)?.detachFromFlutterEngine()
             overlay.attachToFlutterEngine(engine)
@@ -208,7 +185,6 @@ object FloatingOverlay {
     /** The activity comes back (or a new one starts): the window goes, the activity's view draws again. */
     fun onReturn(activity: Activity) {
         leaving = false
-        now = false
         if (!showing) return
         removeWindow()
         engine?.let { activity.findViewById<FlutterView>(FlutterActivity.FLUTTER_VIEW_ID)?.attachToFlutterEngine(it) }

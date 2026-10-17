@@ -9,36 +9,32 @@ import 'package:live_store/live_store.dart';
 
 /// What keeps a playing room on screen when the app is left
 /// (docs/A-界面设计/A07-直播间界面/A07.25-应用悬浮窗): nothing (the room plays on or
-/// pauses as "后台播放" says), the app's floating window over the other apps,
-/// or the system's picture-in-picture.
+/// pauses as "后台播放" says), the system's picture-in-picture, or the app's
+/// own floating window over the other apps.
 enum LeaveAppWindow {
-  /// Nothing ("离开应用时自动小窗" off, the default as before).
+  /// Nothing (the default, as before).
   none,
 
-  /// The system's picture-in-picture ([Settings.useSystemPip]).
+  /// The system's picture-in-picture (`autoPipOnLeave`).
   pip,
 
-  /// The app's floating window (the default kind of mini window).
+  /// The app's floating window (`floatOverAppsOnLeave`).
   overlay,
 }
 
-/// The mini window the button and leaving the app use (D-042): the app's
-/// floating window unless [Settings.useSystemPip].
-LeaveAppWindow miniWindowKind(SettingsStore settings) =>
-    settings.get(Settings.useSystemPip) ? LeaveAppWindow.pip : LeaveAppWindow.overlay;
-
-/// What leaving the app does: nothing unless "离开应用时自动小窗"
-/// ([Settings.autoPipOnLeave]), else [miniWindowKind].
-LeaveAppWindow leaveAppWindow(SettingsStore settings) =>
-    settings.get(Settings.autoPipOnLeave) ? miniWindowKind(settings) : LeaveAppWindow.none;
-
-/// Once (A07.25): a user who had "离开应用时自动画中画" on before the floating
-/// window came keeps the picture-in-picture; everyone else gets the floating
-/// window. Writes [Settings.useSystemPip] the first time only.
-Future<void> keepPictureInPicture(SettingsStore settings) async {
-  if (settings.isSet(Settings.useSystemPip)) return;
-  await settings.set(Settings.useSystemPip, settings.get(Settings.autoPipOnLeave));
+/// The user's choice in [settings]; the floating window wins when both are
+/// set.
+LeaveAppWindow leaveAppWindow(SettingsStore settings) {
+  if (settings.get(Settings.floatOverAppsOnLeave)) return LeaveAppWindow.overlay;
+  if (settings.get(Settings.autoPipOnLeave)) return LeaveAppWindow.pip;
+  return LeaveAppWindow.none;
 }
+
+/// Writes [choice] to the two settings behind it.
+Future<void> setLeaveAppWindow(SettingsStore settings, LeaveAppWindow choice) => settings.setAll({
+  Settings.floatOverAppsOnLeave: choice == LeaveAppWindow.overlay,
+  Settings.autoPipOnLeave: choice == LeaveAppWindow.pip,
+});
 
 /// The app's own floating window over other apps on Android (A07.25; native
 /// `FloatingOverlay`, channel `pure_live/overlay`): when the app is left
@@ -112,18 +108,6 @@ abstract final class OverlayWindow {
       'height': ((place?.height ?? 0) * pixelRatio).round(),
     });
   }
-
-  /// The mini window button (A07.25): the app goes to the background now and
-  /// the floating window shows at [window] (logical pixels, [pixelRatio]
-  /// physical ones each). False without the permission.
-  static Future<bool> enterNow({required Rect window, double pixelRatio = 1}) async =>
-      await _invoke<bool>('enterNow', {
-        'x': (window.left * pixelRatio).round(),
-        'y': (window.top * pixelRatio).round(),
-        'width': (window.width * pixelRatio).round(),
-        'height': (window.height * pixelRatio).round(),
-      }) ??
-      false;
 
   /// The window's ✕: it goes, the app stays in the background.
   static Future<void> close() => _invoke<void>('close');

@@ -29,7 +29,6 @@ import 'package:pure_live/features/live_play/logic/room_runtime.dart';
 import 'package:pure_live/features/live_play/mini/floating_window.dart';
 import 'package:pure_live/features/live_play/mini/mini_player.dart';
 import 'package:pure_live/features/live_play/player/player_view.dart';
-import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/platform/system_gestures.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/app_router.dart';
@@ -70,9 +69,6 @@ final class _App {
   FakeDanmaku get danmaku => danmakus.last;
 }
 
-/// "小窗用系统画中画" for the next [_app] (the picture-in-picture tests).
-bool _systemPip = false;
-
 /// The app's shape: a home page, the room and multi-view, with the floating
 /// window over them (as `PureLiveApp` puts it).
 Future<_App> _app(
@@ -90,7 +86,6 @@ Future<_App> _app(
   final services = (await tester.runAsync(testServices))!;
   await tester.runAsync(loadStrings);
   await tester.runAsync(() => services.store.settings.set(Settings.floatPlay, floatPlay));
-  await tester.runAsync(() => services.store.settings.set(Settings.useSystemPip, _systemPip));
   final engines = <FakeEngine>[];
   final danmakus = <FakeDanmaku>[];
   final toasts = <String>[];
@@ -1250,7 +1245,7 @@ void main() {
       await _close(tester, app);
     });
 
-    testWidgets('A07.22: the grip at the bottom right pulls it larger towards the middle, kept for next time', (
+    testWidgets('A07.22: the grip on the bottom corner towards the middle pulls it larger, kept for next time', (
       tester,
     ) async {
       final app = await _app(tester);
@@ -1266,9 +1261,7 @@ void main() {
       expect(_inKey('mini-resize', find.byIcon(AppIcons.miniResizeBottomLeft)), findsOneWidget);
       final gripRect = tester.getRect(grip);
       expect(gripRect.size, const Size(48, 48));
-      // Always at the bottom right (the user, 2026-10-17); its arrow says it
-      // grows leftwards here, against the right edge.
-      expect(gripRect.bottomRight - rect.bottomRight, const Offset(-4, -4));
+      expect(gripRect.bottomLeft - rect.bottomLeft, const Offset(4, -4));
       expect(_opacityOf(tester, 'mini-resize'), 1);
 
       // 80 to the left (past the drag slop): 300 wide, its right edge and
@@ -1535,9 +1528,6 @@ void main() {
       calls = [];
       status = 'allowed';
       entry = 'entered';
-      // These are about the system's picture-in-picture, which the user
-      // switches on (D-042).
-      _systemPip = true;
       PictureInPicture.debugAndroid = true;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('pure_live/pip'),
@@ -1558,67 +1548,10 @@ void main() {
     });
 
     tearDown(() {
-      _systemPip = false;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
         const MethodChannel('pure_live/pip'),
         null,
       );
-    });
-
-    testWidgets('D-042: by default the mini window button opens the app floating window, not the system one', (
-      tester,
-    ) async {
-      _systemPip = false;
-      final overlay = <MethodCall>[];
-      var permitted = false;
-      OverlayWindow.debugAndroid = true;
-      addTearDown(() {
-        OverlayWindow.debugAndroid = null;
-        OverlayWindow.permitted.value = false;
-      });
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(const MethodChannel('pure_live/overlay'), (
-        call,
-      ) async {
-        overlay.add(call);
-        return switch (call.method) {
-          'status' => permitted,
-          'enterNow' => true,
-          'openSettings' => true,
-          _ => null,
-        };
-      });
-      addTearDown(
-        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          const MethodChannel('pure_live/overlay'),
-          null,
-        ),
-      );
-      final shown = <AppToast>[];
-      final previous = AppNavigator.showToast;
-      AppNavigator.showToast = shown.add;
-      addTearDown(() => AppNavigator.showToast = previous);
-      final app = await _app(tester);
-      await _openRoom(tester);
-      final button = find.byKey(const ValueKey('live-play-pip'));
-      // Without "显示在其他应用的上层": a toast that opens it; nothing else.
-      await tester.tap(button);
-      await _settle(tester);
-      final toast = shown.single;
-      expect(toast.message, '小窗需要“显示在其他应用的上层”权限');
-      expect(toast.actionLabel, '去开启权限');
-      expect(overlay.where((call) => call.method == 'enterNow'), isEmpty);
-      expect(calls.where((call) => call.method == 'enter'), isEmpty, reason: 'not the system picture-in-picture');
-      toast.onAction!();
-      await _settle(tester);
-      expect(overlay.last.method, 'openSettings');
-      // Given: the app goes to the floating window in the bottom right.
-      permitted = true;
-      await tester.tap(button);
-      await _settle(tester);
-      final enter = overlay.lastWhere((call) => call.method == 'enterNow').arguments as Map;
-      expect((enter['width'] as int) > 0 && (enter['height'] as int) > 0, isTrue);
-      expect(calls.where((call) => call.method == 'enter'), isEmpty);
-      await _close(tester, app);
     });
 
     testWidgets('c9: turned off in the system settings: a toast with "去设置" and ✕, no dialog (B09 c8)', (tester) async {

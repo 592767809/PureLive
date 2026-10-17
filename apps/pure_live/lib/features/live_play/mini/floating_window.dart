@@ -409,24 +409,9 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     return room.nick.isNotEmpty ? room.nick : room.title;
   }
 
-  /// The window's mini window button (A07.24): the app's floating window over
-  /// other apps from where this one is (A07.25, D-042), or the system's
-  /// picture-in-picture when the user chose it.
+  /// The window's picture-in-picture button (A07.24).
   Future<void> _enterPip() async {
     final layout = _layout;
-    if (miniWindowKind(widget.runtime.controller.store.settings) == LeaveAppWindow.overlay) {
-      if (!await OverlayWindow.refresh()) {
-        showOverlayPermissionToast();
-        return;
-      }
-      if (layout == null || !mounted) return;
-      final entered = await OverlayWindow.enterNow(
-        window: _rect(layout),
-        pixelRatio: View.maybeOf(context)?.devicePixelRatio ?? 1,
-      );
-      if (!entered) AppNavigator.toast(i18n('pip_enter_failed'));
-      return;
-    }
     final availability = await PictureInPicture.availability();
     if (!mounted) return;
     if (availability == PipAvailability.disabled) {
@@ -657,7 +642,7 @@ class _FloatingWindowState extends ConsumerState<_FloatingWindow> with SingleTic
     final portraitScale = watchSetting(ref, Settings.floatWindowPortraitScale);
     final keepOn = watchSetting(ref, Settings.enableScreenKeepOn);
     watchSetting(ref, Settings.autoPipOnLeave);
-    watchSetting(ref, Settings.useSystemPip);
+    watchSetting(ref, Settings.floatOverAppsOnLeave);
     _syncAutoPipLater();
     // A07.24: in Android's picture-in-picture the window is the whole
     // screen, the picture alone (the system draws the buttons); A07.25: in

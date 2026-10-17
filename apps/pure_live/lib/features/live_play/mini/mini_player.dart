@@ -526,15 +526,16 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                   ),
                 ),
               // A07.24: the danmaku switch and picture-in-picture along the
-              // bottom left (the grip is at the bottom right), when the window
-              // is tall enough.
+              // bottom, away from the grip, when the window is tall enough.
               if (size.height >= miniBottomRowMinHeight && size.width >= miniBottomRowMinWidth)
                 ValueListenableBuilder<MiniGripCorner?>(
                   valueListenable: widget.resizeGrip ?? _noGrip,
                   builder: (context, grip, _) => _fade(
                     shown: shown,
                     child: Align(
-                      alignment: Alignment.bottomLeft,
+                      alignment: !_desktop && grip == MiniGripCorner.bottomLeft
+                          ? Alignment.bottomRight
+                          : Alignment.bottomLeft,
                       child: Padding(
                         padding: const EdgeInsets.all(4),
                         child: Row(
@@ -607,10 +608,10 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
                       ? const SizedBox.shrink()
                       : _fade(
                           shown: shown,
-                          // Always at the bottom right; [corner] is the way
-                          // it grows (its arrow).
                           child: Align(
-                            alignment: Alignment.bottomRight,
+                            alignment: corner == MiniGripCorner.bottomLeft
+                                ? Alignment.bottomLeft
+                                : Alignment.bottomRight,
                             child: Padding(
                               padding: const EdgeInsets.all(4),
                               child: _ResizeGrip(

@@ -100,8 +100,6 @@ class RoomMiniWindow extends ChangeNotifier {
   /// Whether this platform has a mini window for the room.
   Future<bool> supported() async {
     if (DesktopWindow.miniAvailable) return true;
-    // The app's floating window needs Android 8 (overlay windows), as the
-    // picture-in-picture does.
     if (android) return await PictureInPicture.supported();
     return false;
   }
@@ -175,28 +173,7 @@ class RoomMiniWindow extends ChangeNotifier {
       await _enterDesktop();
       return;
     }
-    if (!android) return;
-    // D-042: the app's floating window unless the user chose the system's
-    // picture-in-picture.
-    if (miniWindowKind(settings) == LeaveAppWindow.overlay) {
-      await _enterOverlay();
-    } else {
-      await _enterPip();
-    }
-  }
-
-  /// The app's floating window now (A07.25): in the bottom right corner at
-  /// the in-app window's size; the room page then hands the room to the
-  /// in-app floating window, which fills it.
-  Future<void> _enterOverlay() async {
-    if (!await OverlayWindow.refresh()) {
-      showOverlayPermissionToast();
-      return;
-    }
-    final (width, height) = _pictureSize;
-    if (!await OverlayWindow.enterNow(window: overlayWindowRect(settings, width / height), pixelRatio: pixelRatio)) {
-      if (!_disposed) AppNavigator.toast(i18n('pip_enter_failed'));
-    }
+    if (android) await _enterPip();
   }
 
   Future<void> _enterPip() async {
@@ -349,7 +326,7 @@ final class _AutoPip {
     _states = _room.session.states.listen((_) => _sync());
     _settings = mini.settings.changes.listen((setting) {
       if (setting.key == Settings.autoPipOnLeave.key ||
-          setting.key == Settings.useSystemPip.key ||
+          setting.key == Settings.floatOverAppsOnLeave.key ||
           setting.key == Settings.floatWindowSize.key ||
           setting.key == Settings.portraitPipFollowSource.key) {
         _sync();
@@ -395,7 +372,7 @@ final class _AutoPip {
         width: width,
         height: height,
         picture: picture,
-        window: overlayWindowRect(mini.settings, width / height),
+        window: _overlayWindow(width / height),
         pixelRatio: mini.pixelRatio,
         owner: this,
       ),
@@ -404,6 +381,20 @@ final class _AutoPip {
 
   LeaveAppWindow? _choice;
   bool? _overlay;
+
+  /// The app's floating window from the room page (A07.25): the in-app
+  /// window's size in the bottom right corner.
+  Rect _overlayWindow(double aspectRatio) {
+    final view = WidgetsBinding.instance.platformDispatcher.views.first;
+    final screen = view.physicalSize / view.devicePixelRatio;
+    final size = inAppMiniWindowSize(
+      screen: screen,
+      aspectRatio: aspectRatio,
+      size: mini.settings.get(Settings.floatWindowSize),
+    );
+    final bottom = view.padding.bottom / view.devicePixelRatio + inAppMiniMargin;
+    return Offset(screen.width - size.width - inAppMiniMargin, screen.height - size.height - bottom) & size;
+  }
 
   Rect? _picture;
 
@@ -454,29 +445,3 @@ void showPipDisabledToast() => AppNavigator.showToast(
 Future<void> _openPipSettings() async {
   if (!await PictureInPicture.openSettings()) AppNavigator.toast(i18n('pip_enter_failed'));
 }
-
-/// The app's floating window from a room page (A07.25): the in-app window's
-/// size ("小窗大小") for a picture of [aspectRatio], in the bottom right corner.
-Rect overlayWindowRect(SettingsStore settings, double aspectRatio) {
-  final view = WidgetsBinding.instance.platformDispatcher.views.first;
-  final screen = view.physicalSize / view.devicePixelRatio;
-  final size = inAppMiniWindowSize(
-    screen: screen,
-    aspectRatio: aspectRatio,
-    size: settings.get(Settings.floatWindowSize),
-  );
-  final bottom = view.padding.bottom / view.devicePixelRatio + inAppMiniMargin;
-  return Offset(screen.width - size.width - inAppMiniMargin, screen.height - size.height - bottom) & size;
-}
-
-/// The app's floating window needs "显示在其他应用的上层" (A07.25): a toast that
-/// waits for "去开启" (the system's page for it) or ✕.
-void showOverlayPermissionToast() => AppNavigator.showToast(
-  AppToast(
-    i18n('overlay_permission_needed'),
-    key: const ValueKey('overlay-permission-toast'),
-    actionLabel: i18n('overlay_permission_open'),
-    onAction: () => unawaited(OverlayWindow.openSettings()),
-    persistent: true,
-  ),
-);

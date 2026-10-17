@@ -278,7 +278,7 @@ const Map<String, Object> newInV4 = {
   'themeColorMigration': 0, // A11.2
   'preferH264': true, // UPGRADES 22-3
   'autoPipOnLeave': false,
-  'useSystemPip': false, // A07.8
+  'floatOverAppsOnLeave': false, // A07.8
   'floatWindowSize': 'medium', // A07.22 (V01.5; A07.8 c6's size)
   'floatWindowLandscapeScale': 1.0, // A07.22: 1 = not resized
   'floatWindowPortraitScale': 1.0, // A07.22

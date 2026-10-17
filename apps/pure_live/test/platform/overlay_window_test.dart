@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_store/live_store.dart';
@@ -15,46 +14,18 @@ const _overlay = MethodChannel('pure_live/overlay');
 void main() {
   setUpAll(() async => currentStrings = await loadStrings());
 
-  test(
-    'D-042: the mini window is the app floating window unless the system one is chosen; leaving only when asked',
-    () async {
-      final store = await LiveStore.memory(cipher: FakeCipher());
-      addTearDown(store.close);
-      final settings = store.settings;
-      expect(
-        miniWindowKind(settings),
-        LeaveAppWindow.overlay,
-        reason: 'the button: the app floating window by default',
-      );
-      expect(
-        leaveAppWindow(settings),
-        LeaveAppWindow.none,
-        reason: 'leaving the app does nothing unless asked, as before',
-      );
-      await settings.set(Settings.autoPipOnLeave, true);
-      expect(leaveAppWindow(settings), LeaveAppWindow.overlay);
-      await settings.set(Settings.useSystemPip, true);
-      expect((miniWindowKind(settings), leaveAppWindow(settings)), (LeaveAppWindow.pip, LeaveAppWindow.pip));
-    },
-  );
-
-  test('once: who had "离开应用时自动画中画" on keeps the picture-in-picture; others get the floating window', () async {
+  test('A07.25: one choice over two settings; the floating window wins, none is as before', () async {
     final store = await LiveStore.memory(cipher: FakeCipher());
     addTearDown(store.close);
     final settings = store.settings;
+    expect(leaveAppWindow(settings), LeaveAppWindow.none, reason: 'old users see nothing new');
     await settings.set(Settings.autoPipOnLeave, true);
-    await keepPictureInPicture(settings);
-    expect(settings.get(Settings.useSystemPip), isTrue);
-    // Chosen since: never overwritten.
-    await settings.set(Settings.useSystemPip, false);
-    await keepPictureInPicture(settings);
-    expect(settings.get(Settings.useSystemPip), isFalse);
-
-    final fresh = await LiveStore.memory(cipher: FakeCipher());
-    addTearDown(fresh.close);
-    await keepPictureInPicture(fresh.settings);
-    expect(fresh.settings.get(Settings.useSystemPip), isFalse);
-    expect(fresh.settings.isSet(Settings.useSystemPip), isTrue);
+    expect(leaveAppWindow(settings), LeaveAppWindow.pip, reason: 'an old "自动画中画" stays');
+    await setLeaveAppWindow(settings, LeaveAppWindow.overlay);
+    expect(leaveAppWindow(settings), LeaveAppWindow.overlay);
+    expect(settings.get(Settings.autoPipOnLeave), isFalse);
+    await setLeaveAppWindow(settings, LeaveAppWindow.none);
+    expect((settings.get(Settings.autoPipOnLeave), settings.get(Settings.floatOverAppsOnLeave)), (false, false));
   });
 
   group('arming', () {
@@ -131,26 +102,17 @@ void main() {
     });
   });
 
-  testWidgets(
-    'A07.25: the video settings: automatic mini window, the system picture-in-picture switch, the permission',
-    (tester) async {
-      OverlayWindow.permitted.value = false;
-      final h = await pumpSettings(tester, height: 2600, arguments: 'video');
-      for (final (id, text) in [
-        ('auto_pip', '离开应用时自动小窗'),
-        ('system_pip', '小窗用系统画中画'),
-        ('overlay_permission', '悬浮窗权限'),
-      ]) {
-        await tester.ensureVisible(settingsRow(id));
-        expect(
-          find.descendant(of: settingsRow(id), matching: find.text(text)),
-          findsOneWidget,
-          reason: id,
-        );
-      }
-      expect(find.descendant(of: settingsRow('overlay_permission'), matching: find.text('未开启')), findsOneWidget);
-      await tapSettings(tester, find.descendant(of: settingsRow('system_pip'), matching: find.byType(Switch)));
-      expect(h.services.store.settings.get(Settings.useSystemPip), isTrue);
-    },
-  );
+  testWidgets('A07.25: "离开应用后" offers three on Android; the floating window asks for the permission', (tester) async {
+    final h = await pumpSettings(tester, height: 2600, arguments: 'video');
+    final row = settingsRow('auto_pip');
+    await tester.ensureVisible(row);
+    expect(find.descendant(of: row, matching: find.text('不保留画面')), findsOneWidget);
+    await tapSettings(tester, row);
+    for (final label in ['不保留画面', '系统画中画', '应用悬浮窗']) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
+    await tapSettings(tester, find.text('系统画中画').last);
+    expect(h.services.store.settings.get(Settings.autoPipOnLeave), isTrue);
+    expect(find.descendant(of: row, matching: find.text('系统画中画')), findsOneWidget);
+  });
 }

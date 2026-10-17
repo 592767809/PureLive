@@ -22,7 +22,6 @@ import 'package:pure_live/app/startup.dart';
 import 'package:pure_live/app/ui_mode.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/native_http.dart';
-import 'package:pure_live/platform/overlay_window.dart';
 import 'package:pure_live/platform/platform_services.dart';
 import 'package:pure_live/platform/recording_platform.dart';
 import 'package:pure_live/platform/secret_cipher.dart';
@@ -290,8 +289,6 @@ abstract final class AppBootstrap {
       );
     }
     timing?.step('legacy');
-    // A07.25: who had "离开应用时自动画中画" on keeps the picture-in-picture.
-    await keepPictureInPicture(store.settings);
     final services = wire(store: store, cipher: cipher, launch: launch, dataRoot: dataRoot, iptvLibrary: iptvLibrary);
     timing?.step('wire');
     return services;
