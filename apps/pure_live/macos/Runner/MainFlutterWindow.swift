@@ -1,6 +1,5 @@
 import Cocoa
 import FlutterMacOS
-import window_manager
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -15,12 +14,5 @@ class MainFlutterWindow: NSWindow {
     ).setMethodCallHandler(SecretCipher.shared.handle)
 
     super.awakeFromNib()
-  }
-
-  // Stays hidden until the desktop shell has given it its size and place
-  // (window_manager's waitUntilReadyToShow).
-  override public func order(_ place: NSWindow.OrderingMode, relativeTo otherWin: Int) {
-    super.order(place, relativeTo: otherWin)
-    hiddenWindowAtLaunch()
   }
 }
