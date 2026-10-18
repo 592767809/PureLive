@@ -4572,6 +4572,19 @@ from = "用户 2026-10-18：发布5.4.2"
 note = "标签 v5.4.2（605bb8e9c）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.4.2 （正式版，十个包和 SHA256SUMS.txt，哈希一致；苹果四个包由 apple-publish.yml 从运行 39081728701 挂上）；两个仓库的更新文件都是 5.4.2、5106。内容：A07.25 小窗整体设计、A18.2 macOS、A18.1 iPhone 和 iPad"
 
 [[task]]
+id = "Y01.14"
+title = "5.4.3 全平台发布（Android、电视、Windows、Linux、macOS、iOS，构建号 5107）：iPhone 和 iPad 的分享扩展、后台和锁屏播放、⌘ 快捷键列表"
+type = "发布"
+status = "开发中"
+date = "2026-10-18"
+size = "中"
+tier = 1
+stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
+done = 1
+from = "用户 2026-10-18：发布5.4.3"
+note = "内容：A18.1 第 3、4 阶段（分享扩展、后台和锁屏播放、⌘ 快捷键列表）"
+
+[[task]]
 id = "Y02.1"
 title = "同版本换包时应用内收不到更新提示：以后发布一律改版本号，或让比较带上构建号"
 type = "发布"
