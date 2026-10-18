@@ -60,3 +60,9 @@
 - `test/app_commands_test.dart`：iPad 把命令表交给系统，系统按键时执行；原生接上后同一个键不执行两次。
 - `test/intake_test.dart`：iOS 分享扩展的文字作为分享到达；Android 才有的调用不发。
 - 构建机：`apple.yml` 检查包里有 `PlugIns/ShareExtension.appex` 和 URL 方案，TrollStore 包连扩展一起签；模拟器打开 `purelive-share://share?text=…` 后截图 `ios-share.png`。
+
+### 构建机核对（运行 39088442351，6e67dad6f）
+
+- 第一次构建（39086959261）编译失败：`AppDelegate` 里存命令表的属性叫 `keyCommands`，和 `UIResponder` 自带的属性重名；改名 `pureLiveKeys` 后通过。
+- 包里有 `PlugIns/ShareExtension.appex`（`com.mystyle.purelive.liu.ShareExtension`，`com.apple.share-services`，5.4.2），应用的 URL 方案是 `purelive-share`；TrollStore 包连扩展一起签，`codesign --verify --deep --strict` 通过。
+- 模拟器里 `simctl openurl purelive-share://share?text=…`：系统弹出“在‘纯粹直播’中打开？”（从外面打开别的应用的链接系统都会问），说明方案已注册、指向这个应用；构建机点不了这个按钮，之后进应用的部分靠 `test/intake_test.dart`。从分享扩展打开时会不会也问、⌘ 列表、锁屏“正在播放”、后台不画画面，都要真机看。
