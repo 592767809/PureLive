@@ -5,7 +5,7 @@
 ## 范围
 
 - 包括：
-  - GitHub `wzgrx/pure_live` 的 issue（用 `gh --repo wzgrx/pure_live issue list`、`issue view` 看）；用户在对话里直接提的问题（例如 2026-10-02 的 01～09）。
+  - GitHub `wzgrx/PureLive` 的 issue（5.0.0 起；用 `gh --repo wzgrx/PureLive issue list`、`issue view` 看；旧仓库 `wzgrx/pure_live` 已关闭 issue）；用户在对话里直接提的问题（例如 2026-10-02 的 01～09）。
   - 每条反馈一个任务：`from` 写来源（issue 链接或“用户”），`to` 写修它的任务；README 写原话、复现、根因线索、去向和回复。
   - 修好、发布以后回复 issue 并关闭（PROCESS 第 6 节最后一段、第 12 节“每次发布后”）。
 - 不包括（归哪里）：
@@ -15,7 +15,8 @@
 
 ## 现状：做到哪、怎么工作的
 
-- **issue 现状**（2026-10-07，`gh --repo wzgrx/pure_live issue list --state all`）：一共 9 个（#29～#37），全部关闭，没有打开的。#29～#35 是 3.x 时期的（2026-08-24～09-27，3.x 里处理）；4.x 发布后来了 #36、#37（2026-10-02），当天修复、随构建号 5001 发布、回复“已经修复”后关闭。仓库现在没有 issue 模板（`.github/` 不在 master 上）。
+- **issue 现状**：旧仓库 `wzgrx/pure_live` 一共 9 个（#29～#37），全部关闭，issue 已停用；#29～#35 是 3.x 时期的，#36、#37 在 4.x 修复后关闭。新仓库 `wzgrx/PureLive`（2026-10-18）有 2 个（#1 斗鱼扫码登录、#2 斗鱼 Cookie 登录被拒），都已关闭。
+- **入口和模板**（V02.5，2026-10-18）：仓库不接受空白 issue，只能用 `.github/ISSUE_TEMPLATE/` 的四个表单：问题反馈（`1-bug.yml`）、直播平台失效（`2-platform.yml`）、功能需求（`3-feature.yml`）、翻译和文字（`4-translation.yml`）；入口页（`config.yml`）放最新版本、功能说明和私下报告安全问题的链接。给用户看的流程、标签、时限、不受理的范围在根目录 [CONTRIBUTING.md](../../../CONTRIBUTING.md)，安全问题在 [SECURITY.md](../../../SECURITY.md)，PR 检查清单在 `.github/PULL_REQUEST_TEMPLATE.md`。
 - **任务**：4 个，都“完成”（2026-10-02）：
 
 | 任务 | 来源 | 去向 | 去向的状态（2026-10-07） |
@@ -26,11 +27,13 @@
 | V02.4 issue #37 切换直播间要旧版小卡片 | GitHub #37 | A07.13 | 待真机（S02.5 1A-17～1A-22、1B-17） |
 
 - **“完成”的意思**：V02 的任务“完成”= 反馈已复现或归类、去向任务已合并并随版本发布、需要回复的已回复。修复有没有在真机上验证过，看去向任务的状态（现在都是“待真机”）。
-- **怎么走**（PROCESS 第 6 节）：
-  1. 登记：一条 V02 任务，`from` 写 issue 链接或“用户”，标题写现象。
-  2. 复现：在 K90 测试包上照描述走一遍（S02 的上机做法），写现象、截图、根因线索（文件:行）。
-  3. 归类：是 bug 就在目标组开任务（或并进已有任务）并写进 `to`；是新功能就进 V01；不做的进 V04 并回复原因。
-  4. 修好、发布后：在 issue 里回复（说明在哪个版本修的、怎么用），关闭；V02 任务改“完成”。
+- **怎么走**（PROCESS 第 6 节；标签和对用户的时限见 CONTRIBUTING.md 第 3 节）：
+  1. 分类（7 天内）：新 issue 自动带“待分类”和类型标签（bug、平台失效、enhancement、翻译）。看表单是否填全：缺复现需要的信息就评论写明缺什么、换成“需要补充信息”，14 天没有补充就关闭（补充后重开）；重复的标 duplicate、指向原 issue 后关闭；不受理的（CONTRIBUTING.md 第 5 节）标 wontfix 或 invalid、写原因后关闭。
+  2. 登记：一条 V02 任务，`from` 写 issue 链接，标题写现象，README 抄原话（表单各项）。
+  3. 复现：在 K90 测试包上照描述走一遍（S02 的上机做法），写现象、截图、根因线索（文件:行）；复现了就换成“已复现”并在 issue 里说一句。
+  4. 归类：是 bug 就在目标组开任务（或并进已有任务）并写进 `to`；是新功能就进 V01 提议（PROCESS 第 6 节 1～4 步，确认要做的标“已计划”）；不做的进 V04、标 wontfix 并回复原因。
+  5. 修复合并到 master 后标“已修复待发布”，不关闭。
+  6. 发布后（PROCESS 第 12 节“每次发布后”）：在 issue 里回复在哪个版本修的、怎么用，去掉“已修复待发布”，关闭；V02 任务改“完成”。
 
 ## 代码地图
 
@@ -38,9 +41,11 @@
 
 | 工具 | 用途 |
 |---|---|
-| `gh --repo wzgrx/pure_live issue list --state all` | 看全部 issue（一律带 `--repo`，见 CLAUDE.md） |
-| `gh --repo wzgrx/pure_live issue view <号> --comments`、`--json number,title,body,comments,state,closedAt` | 读原话和回复 |
-| `gh --repo wzgrx/pure_live issue comment <号> --body …`、`issue close <号>` | 回复和关闭（**只在发布后、由维护者做**） |
+| `gh --repo wzgrx/PureLive issue list --state all`、`--label 待分类` | 看全部 issue、待分类的（一律带 `--repo`，见 CLAUDE.md） |
+| `gh --repo wzgrx/PureLive issue view <号> --comments`、`--json number,title,body,comments,state,closedAt,labels` | 读原话和回复 |
+| `gh --repo wzgrx/PureLive issue edit <号> --add-label 已复现 --remove-label 待分类` | 换状态标签 |
+| `gh --repo wzgrx/PureLive issue comment <号> --body …`、`issue close <号>` | 回复和关闭（**修复的只在发布后、由维护者做**） |
+| `.github/ISSUE_TEMPLATE/*.yml`、`CONTRIBUTING.md`、`SECURITY.md`、`.github/PULL_REQUEST_TEMPLATE.md` | 表单、流程、安全问题、PR 清单（改流程时一起改） |
 
 ## 3.x 基线
 
@@ -53,7 +58,7 @@
 |---|---|---|---|
 | #36、#37 回复“已经修复”时，修复（O05.2、A07.13）还没在真机上看过 | V02.1 | 万一真机上不对，用户已经被告知修好了 | S02.5 看完后：通过就不用动；不通过就在 issue 里补一条说明、修好后再回复（V02.1 的“留下的问题”） |
 | 用户 10-02 的问题 01、05、07、09 没有留下原话，只有整理后的说法 | V02.2 | 以后核对“是不是修到点上”只能看整理后的意思 | 以后登记反馈时把原话抄进 README |
-| 仓库没有 issue 模板 | `.github/` 不在 master | 反馈里常缺版本、机型、平台、直播间 | 没有任务；要加的话在 Y 组登记（发布和运营） |
+| 表单只能要求“填了”，不能检查填得对不对（例如版本号格式、日志是不是调试等级） | `.github/ISSUE_TEMPLATE/` | 仍可能缺有用的信息 | 分类时人工看，缺的按第 1 步要求补充 |
 
 ## 相关决定和规范
 
@@ -68,8 +73,8 @@
 ## 路线
 
 1. S02.5 做完后核对 V02.2～V02.4 的去向：都通过就不用动；有不通过的在 issue 补说明。
-2. 以后每次发布后（PROCESS 第 12 节）：`gh --repo wzgrx/pure_live issue list` 看新 issue，逐个登记成 V02 任务。
-3. 需要的话在 Y 组登记“加 issue 模板”（版本、机型、平台、直播间链接、复现步骤）。
+2. 以后每次发布后（PROCESS 第 12 节）：`gh --repo wzgrx/PureLive issue list` 看新 issue，按上面的步骤分类、登记、回复。
+3. 表单的平台列表、端、版本示例随平台和版本变化更新（新增或去掉平台时改 `2-platform.yml`）。
 
 <!-- docs:生成开始（下面由 tools/docs/docs.py 根据 docs/tasks.toml 生成，不要手改） -->
 
@@ -87,5 +92,6 @@
 | V02.2 | 用户 2026-10-02 提的问题 01～09（暂停图标、录制图标、横屏菜单、哔哩哔哩昵称、暂停时弹幕、切换直播间、点画面恢复播放、重复入口、全面分析）（去向：[A07.10](../../A-界面设计/A07-直播间界面/A07.10-暂停状态/README.md)、[A10.3](../../A-界面设计/A10-录制界面/A10.3-录制按钮和状态图标/README.md)、[A02.3](../../A-界面设计/A02-组件/A02.3-贴着按钮的小菜单/README.md)、[D02.1](../../D-弹幕/D02-过滤和屏蔽/D02.1-打码昵称不能屏蔽/README.md)、[D01.32](../../D-弹幕/D01-平台弹幕协议/D01.32-哔哩哔哩访客昵称和粉丝牌/README.md)、[A07.13](../../A-界面设计/A07-直播间界面/A07.13-切换直播间面板/README.md)、[A07.12](../../A-界面设计/A07-直播间界面/A07.12-直播间子弹窗统一/README.md)、[A07.11](../../A-界面设计/A07-直播间界面/A07.11-直播间小问题合集/README.md)） | 验证 | 完成 | 2026-10-02 | — | [设计或说明](V02.2-用户10月2日的问题/README.md) |
 | V02.3 | issue #36：横屏全屏不随手机方向翻转（去向：[O05.2](../../O-Android系统集成/O05-方向、刷新率、常亮/O05.2-横屏全屏随手机方向翻转/README.md)） | 验证 | 完成 | 2026-10-02 | — | [设计或说明](V02.3-issue36横屏翻转/README.md) |
 | V02.4 | issue #37：切换直播间想要旧版小卡片，加新旧切换（去向：[A07.13](../../A-界面设计/A07-直播间界面/A07.13-切换直播间面板/README.md)） | 验证 | 完成 | 2026-10-02 | — | [设计或说明](V02.4-issue37切换直播间/README.md) |
+| V02.5 | issue 表单和反馈流程：问题反馈、平台失效、功能需求、翻译四个表单，状态标签、时限、安全问题私下报告 | 文档 | 完成 | 2026-10-18 | — | — |
 
 <!-- docs:生成结束 -->

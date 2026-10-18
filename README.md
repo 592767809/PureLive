@@ -413,9 +413,10 @@ docs/                   开发计划、模块记录、界面设计和功能清�
 
 ## 反馈和参与
 
-- 遇到问题或有建议，请到 [Issues](https://github.com/wzgrx/PureLive/issues) 反馈。报告播放问题时请写上平台、直播间链接、清晰度和线路，以及“设置 → 日志管理”里导出的日志。
-- 安全问题（例如可能泄露账号或 Cookie 的漏洞）请不要公开提 Issue，请用 GitHub 的 [Security Advisory](https://github.com/wzgrx/PureLive/security/advisories/new) 私密提交，修好之前只有维护者能看到。
-- 欢迎提交 Pull Request。改动请先跑通门禁；代码规范是 very_good_analysis、行宽 120，公开接口写文档注释。
+- 遇到问题或有建议，请到 [Issues](https://github.com/wzgrx/PureLive/issues/new/choose) 选一个表单提交：[问题反馈](https://github.com/wzgrx/PureLive/issues/new?template=1-bug.yml)、[直播平台失效](https://github.com/wzgrx/PureLive/issues/new?template=2-platform.yml)、[功能需求](https://github.com/wzgrx/PureLive/issues/new?template=3-feature.yml)、[翻译和文字](https://github.com/wzgrx/PureLive/issues/new?template=4-translation.yml)。版本、设备、复现步骤是必填的；播放、闪退和平台问题请附“设置 → 日志管理”里导出的日志（先把记录等级调到“调试”）。
+- 提交以后会经过哪些步骤（待分类、需要补充信息、已复现、已计划、已修复待发布）、多久有回复、哪些不受理、功能需求怎么决定，见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+- 安全问题（例如可能泄露账号或 Cookie 的漏洞）请不要公开提 Issue，见 [SECURITY.md](SECURITY.md)，用 GitHub 的 [Security Advisory](https://github.com/wzgrx/PureLive/security/advisories/new) 私密提交，修好之前只有维护者能看到。
+- 欢迎提交 Pull Request，要求见 [CONTRIBUTING.md](CONTRIBUTING.md) 第 6 节。改动请先跑通门禁；代码规范是 very_good_analysis、行宽 120，公开接口写文档注释。
 
 ## 开源许可
 

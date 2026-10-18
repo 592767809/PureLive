@@ -415,9 +415,10 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Feedback and contributing
 
-- Report problems and ideas in [Issues](https://github.com/wzgrx/PureLive/issues). For playback problems, include the platform, room link, quality and line, and the log exported from Settings → Log Management.
-- Security issues (e.g. anything that could leak accounts or cookies): please don't open a public issue; report privately via a GitHub [Security Advisory](https://github.com/wzgrx/PureLive/security/advisories/new), visible only to maintainers until fixed.
-- Pull requests are welcome. Please make the gate pass first; code style is very_good_analysis, 120-character lines, and doc comments on public APIs.
+- Report problems and ideas through one of the [issue forms](https://github.com/wzgrx/PureLive/issues/new/choose): bug report, platform broken, feature request, or translation (English is fine). Version, device and steps to reproduce are required; for playback, crash and platform problems attach the log exported from Settings → Log Management (set the level to Debug first).
+- What happens after you submit (labels, response times, what is out of scope, how feature requests are decided) is in [CONTRIBUTING.md](CONTRIBUTING.md) (Chinese).
+- Security issues (e.g. anything that could leak accounts or cookies): please don't open a public issue; see [SECURITY.md](SECURITY.md) and report privately via a GitHub [Security Advisory](https://github.com/wzgrx/PureLive/security/advisories/new), visible only to maintainers until fixed.
+- Pull requests are welcome; see section 6 of [CONTRIBUTING.md](CONTRIBUTING.md). Please make the gate pass first; code style is very_good_analysis, 120-character lines, and doc comments on public APIs.
 
 ## License
 

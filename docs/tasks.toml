@@ -4208,6 +4208,17 @@ from = "GitHub issue #37"
 to = ["A07.13"]
 
 [[task]]
+id = "V02.5"
+title = "issue 表单和反馈流程：问题反馈、平台失效、功能需求、翻译四个表单，状态标签、时限、安全问题私下报告"
+type = "文档"
+status = "完成"
+date = "2026-10-18"
+size = "小"
+tier = 2
+from = "用户 2026-10-18：给我的项目增加严格和详细的issue反馈，功能需求等反馈流程和模板"
+note = "`.github/ISSUE_TEMPLATE/`（1-bug、2-platform、3-feature、4-translation、config：不接受空白 issue），CONTRIBUTING.md（入口、提交前、状态标签和时限、需求怎么决定、不受理、提交代码），SECURITY.md（私下报告），PR 模板；GitHub 上建了状态标签，开了私下报告漏洞"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"
