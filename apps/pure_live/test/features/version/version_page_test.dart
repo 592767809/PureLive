@@ -339,7 +339,17 @@ void main() {
     final feed = _FakeFeed(history: parseReleases(_releasesJson()));
     await _pump(tester, const AboutPage(route: RouteArgs(RoutePath.kVersionHistory)), feed);
     expect(find.byKey(const ValueKey('release-history-mobile-list')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('release-history-mobile-3.2.11')));
+    // The list grows with every release: scroll until the oldest is built.
+    final oldest = find.byKey(const ValueKey('release-history-mobile-3.2.11'));
+    await tester.scrollUntilVisible(
+      oldest,
+      300,
+      scrollable: find
+          .descendant(of: find.byKey(const ValueKey('release-history-mobile-list')), matching: find.byType(Scrollable))
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(oldest);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('release-history-detail-scroll')), findsOneWidget);
     expect(
@@ -610,9 +620,15 @@ void main() {
     expect(find.byKey(const ValueKey('release-history-desktop-layout')), findsOneWidget);
     // The newest release is open first.
     expect(find.byKey(ValueKey('release-history-detail-${feed.history!.first.version}')), findsOneWidget);
-    // The list grows with every release: the oldest entry is below the fold.
+    // The list grows with every release: scroll until the oldest is built.
     final oldest = find.byKey(const ValueKey('release-history-desktop-3.2.11'));
-    await tester.ensureVisible(oldest);
+    await tester.scrollUntilVisible(
+      oldest,
+      300,
+      scrollable: find
+          .descendant(of: find.byKey(const ValueKey('release-history-desktop-list')), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(oldest);
     await tester.pumpAndSettle();

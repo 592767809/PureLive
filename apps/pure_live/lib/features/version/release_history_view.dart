@@ -135,6 +135,7 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
         SizedBox(
           width: fold?.start ?? 320,
           child: ListView.builder(
+            key: const ValueKey('release-history-desktop-list'),
             physics: const PureLiveScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             itemCount: _releases.length,
