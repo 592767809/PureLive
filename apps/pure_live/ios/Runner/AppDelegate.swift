@@ -6,7 +6,7 @@ import UIKit
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   /// The key commands Dart gave (A18.1 c10): `id`, `title`, `input`, `group`.
-  private var keyCommands: [[String: Any]] = []
+  private var pureLiveKeys: [[String: Any]] = []
   private var keyCommandsTitle = ""
   private var keyCommandsChannel: FlutterMethodChannel?
   /// A room is on top: its ⌘R is offered.
@@ -55,7 +55,7 @@ import UIKit
         switch call.method {
         case "set":
           let arguments = call.arguments as? [String: Any]
-          self.keyCommands = arguments?["commands"] as? [[String: Any]] ?? []
+          self.pureLiveKeys = arguments?["commands"] as? [[String: Any]] ?? []
           self.keyCommandsTitle = arguments?["title"] as? String ?? ""
           UIMenuSystem.main.setNeedsRebuild()
           result(true)
@@ -74,10 +74,10 @@ import UIKit
   /// The app's own menu of key commands, one inline section per group.
   override func buildMenu(with builder: UIMenuBuilder) {
     super.buildMenu(with: builder)
-    guard builder.system == .main, !keyCommands.isEmpty else { return }
+    guard builder.system == .main, !pureLiveKeys.isEmpty else { return }
     var order: [String] = []
     var groups: [String: [UIKeyCommand]] = [:]
-    for entry in keyCommands {
+    for entry in pureLiveKeys {
       guard let id = entry["id"] as? String, let title = entry["title"] as? String,
         let input = entry["input"] as? String, let group = entry["group"] as? String
       else { continue }
