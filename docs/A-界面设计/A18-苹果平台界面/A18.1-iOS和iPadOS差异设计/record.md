@@ -32,7 +32,31 @@
 - `test/features/version/update_dialogs_test.dart`：iOS 的主按钮“去下载页”打开发布页。
 - `test/app_commands_test.dart`：iPad 上 ⌘R 刷新直播间。
 
-### 还没做
+### 还没做（当天）
 
 - 第 3 阶段原生：按住 ⌘ 列出快捷键（`UIKeyCommand`）。
-- 第 4 阶段原生：系统画中画和自动画中画（c4）、锁屏“正在播放”（c5，`audio_service` 已注册、后台音频已开，要真机看）、分享扩展（c8）、台前调度窗口按钮让位（c11）。
+- 第 4 阶段原生：系统画中画和自动画中画（c4）、锁屏“正在播放”（c5）、分享扩展（c8）、台前调度窗口按钮让位（c11）。
+
+## 2026-10-18
+
+用户：“继续完善macOS和iPad”。仍然没有设备，验证是 Dart 测试和构建机（编译、包里有没有、模拟器截图）。
+
+### 第 3 阶段：按住 ⌘ 的列表（c10 原生）
+
+- Dart 把命令表（标题、分组、键、文字跟应用语言）发给原生 `pure_live/key_commands`；`AppDelegate.buildMenu(with:)` 把它做成 `UIKeyCommand`，放在主菜单“窗口”前面一组（iPadOS 26 的菜单栏、按住 ⌘ 的列表都从这里来）。按键由系统收到后回调 Dart 的 `run`，`⌘R` 只有在直播间里才可用（`canPerformAction`）。
+- 原生接上以后 Dart 自己的 `CallbackShortcuts` 不再挂，免得同一个键执行两次；原生没接上（旧系统、模拟器以外的意外）时照旧用 Dart 的。
+
+### 第 4 阶段：原生
+
+| 条 | 做了什么 |
+|---|---|
+| c5 后台和锁屏 | iOS 也用播放会话（`audio_session` 的音乐会话，后台、锁屏有声音）和“正在播放”（`audio_service`，锁屏和控制中心显示房间、主播、暂停）；以前只在 Android 上开。`media_kit_video` 的 iOS 画面用 OpenGL ES，系统会结束在后台调用 GL 的应用，所以退到后台时停止画面、只放声音，回前台接着画（补丁见 `third_party/media_kit_video/PURELIVE_PATCH.md`） |
+| c8 分享扩展 | 新的 `ShareExtension`（系统分享面板里的“纯粹直播”）：收网址和文字，拼成 `purelive-share://share?text=…` 打开应用，应用收到后和 Android 的分享一样识别房间。文件（图片里的口令）要 App Group，没做 |
+| c4 画中画 | 没做：`media_kit` 的 iOS 画面是 GL 纹理，系统画中画要 `AVSampleBufferDisplayLayer` 一路的帧，工作量大，没有真机也看不了效果 |
+| c11 台前调度 | 没做：窗口左上角按钮的让位要 iPadOS 26 真机或模拟器的窗口模式才能看 |
+
+### 测试
+
+- `test/app_commands_test.dart`：iPad 把命令表交给系统，系统按键时执行；原生接上后同一个键不执行两次。
+- `test/intake_test.dart`：iOS 分享扩展的文字作为分享到达；Android 才有的调用不发。
+- 构建机：`apple.yml` 检查包里有 `PlugIns/ShareExtension.appex` 和 URL 方案，TrollStore 包连扩展一起签；模拟器打开 `purelive-share://share?text=…` 后截图 `ios-share.png`。

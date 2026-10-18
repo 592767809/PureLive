@@ -72,3 +72,12 @@ When updating the pinned media-kit revision:
    stalled CDN advances to the next line, a 0×0 candidate never replaces the
    active texture, remounting reasserts viewport size, and explicit pause never
    triggers the watchdog.
+
+## iOS: no OpenGL ES frame in the background (2026-10-18)
+
+`ios/.../plugin/TextureHW.swift` skips `render` while the app is in the
+background (`AppVisibility`, following `didEnterBackground` /
+`willEnterForeground`). iOS ends an app that issues OpenGL ES commands in the
+background; with PureLive's background play (A18.1 c5) mpv keeps playing the
+sound and the next frame is drawn once the app is back. The simulator's
+software path (`TextureSW`) has no GL and is unchanged.

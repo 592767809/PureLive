@@ -434,4 +434,35 @@ void main() {
     );
     expect(SharedPayload.fromChannel('junk').isEmpty, isTrue);
   });
+
+  testWidgets("A18.1 c8: on iOS the share extension's text arrives as a share; the Android-only calls stay away", (
+    tester,
+  ) async {
+    const channel = MethodChannel('pure_live/test_share_ios');
+    final asked = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      asked.add(call.method);
+      if (call.method == 'listen') {
+        return [
+          {'text': 'https://live.bilibili.com/6'},
+        ];
+      }
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+    final native = ShareChannel(channel: channel, android: false, ios: true);
+    expect(native.available, isTrue);
+    final got = <String?>[];
+    await native.listen((payload) => got.add(payload.text));
+    expect(got, ['https://live.bilibili.com/6'], reason: 'the share that opened the app');
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      channel.name,
+      const StandardMethodCodec().encodeMethodCall(const MethodCall('shared', {'text': '【纯粹直播】口令'})),
+      (_) {},
+    );
+    expect(got.last, '【纯粹直播】口令');
+    expect(await native.clipboardStamp(), isNull);
+    await native.setRecentRooms(const []);
+    expect(asked, ['listen'], reason: "the clipboard stamp and the launcher shortcuts are Android's");
+  });
 }

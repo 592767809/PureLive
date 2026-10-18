@@ -32,9 +32,12 @@ final class SystemAudioFocus implements AudioFocusPort {
   /// The app's one session.
   static final SystemAudioFocus instance = SystemAudioFocus._();
 
-  /// Whether the system has an audio focus the room handles: Android only
-  /// (the desktop and TV builds are another task; tests run on the host).
-  static bool get available => Platform.isAndroid;
+  /// Whether the system has an audio focus the room handles: Android, and
+  /// iOS (A18.1 c5: the session as music is what keeps the sound going with
+  /// the app away or the phone locked, and plays with the ring switch off;
+  /// calls pause it as on Android). The desktops have none; tests run on the
+  /// host.
+  static bool get available => Platform.isAndroid || Platform.isIOS;
 
   Future<AudioSession>? _session;
 

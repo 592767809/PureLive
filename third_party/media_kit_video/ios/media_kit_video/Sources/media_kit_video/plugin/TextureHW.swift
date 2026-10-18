@@ -1,5 +1,6 @@
 import Flutter
 import OpenGLES
+import UIKit
 
 #if SWIFT_PACKAGE
   import Mpv
@@ -29,6 +30,7 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
 
     super.init()
 
+    AppVisibility.start()
     self.initMPV()
   }
 
@@ -157,7 +159,9 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
   }
 
   public func render(_ size: CGSize) {
-    guard renderContext != nil else { return }
+    // PureLive: iOS ends an app that draws with OpenGL ES in the background;
+    // with background play the sound goes on and the picture waits.
+    guard renderContext != nil, !AppVisibility.away else { return }
     let textureContext = textureContexts.nextAvailable()
     if textureContext == nil {
       return
@@ -212,5 +216,44 @@ public class TextureHW: NSObject, FlutterTexture, ResizableTextureProtocol {
       NSLog("Cannot get OpenGLES function pointer!")
     }
     return addr
+  }
+}
+
+/// PureLive: whether the app is in the background, for the render threads
+/// (`UIApplication.applicationState` is main-thread only).
+enum AppVisibility {
+  private static let lock = NSLock()
+  private static var isAway = false
+  private static var started = false
+
+  static var away: Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return isAway
+  }
+
+  private static func set(_ value: Bool) {
+    lock.lock()
+    isAway = value
+    lock.unlock()
+  }
+
+  /// Follows the app in and out of the background, once.
+  static func start() {
+    lock.lock()
+    let first = !started
+    started = true
+    lock.unlock()
+    guard first else { return }
+    let center = NotificationCenter.default
+    center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { _ in
+      set(true)
+    }
+    center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { _ in
+      set(false)
+    }
+    DispatchQueue.main.async {
+      set(UIApplication.shared.applicationState == .background)
+    }
   }
 }

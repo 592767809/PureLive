@@ -426,13 +426,14 @@ List<audio.MediaControl> mediaControls({required bool playing}) => [
 
 /// The system media notification of the room playing (3.x
 /// `LiveAudioService` + `LiveAudioHandler`, audio_service): title,
-/// streamer, cover, play/pause and stop; on Android only.
+/// streamer, cover, play/pause and stop; on Android, and on iOS as the lock
+/// screen's and the control centre's "正在播放" (A18.1 c5).
 abstract final class RoomMediaNotification {
   static Future<_RoomAudioHandler?>? _handler;
   static Object? _owner;
 
   /// Whether this platform shows it.
-  static bool get available => !kIsWeb && Platform.isAndroid;
+  static bool get available => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
   /// Sees every [show] (`show true`), [update] (`update false`) and [hide]
   /// (`hide`), also where [available] is false.

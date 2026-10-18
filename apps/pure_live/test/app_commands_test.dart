@@ -144,6 +144,72 @@ void main() {
     }
   });
 
+  testWidgets('A18.1 c10: the iPad lists the ⌘ keys through the system, which runs them; a key does not run twice', (
+    tester,
+  ) async {
+    final calls = <MethodCall>[];
+    const channel = MethodChannel('pure_live/key_commands');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return call.method == 'set' ? true : null;
+    });
+    addTearDown(() {
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
+      IosKeyCommands.debugReset();
+      RoomCommands.current.value = null;
+    });
+    IosKeyCommands.debugReset();
+    final room = _FakeRoom();
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AppCommandShortcuts(child: Focus(autofocus: true, child: Text('app'))),
+        ),
+      );
+      await tester.pump();
+      final set = calls.firstWhere((call) => call.method == 'set').arguments as Map;
+      expect(set['title'], '纯粹直播');
+      expect(
+        [
+          for (final command in (set['commands'] as List).cast<Map<Object?, Object?>>())
+            '${command['group']} ${command['input']} ${command['title']}',
+        ],
+        [
+          'go f 搜索直播…',
+          'go l 链接解析…',
+          'go , 设置…',
+          'pages 1 关注',
+          'pages 2 热门',
+          'pages 3 分区',
+          'pages 4 录制中心',
+          'pages y 观看记录',
+          'back [ 返回',
+          'room r 刷新',
+        ],
+      );
+      expect(IosKeyCommands.active.value, isTrue);
+      expect(calls.last, isMethodCall('room', arguments: false));
+      RoomCommands.current.value = room;
+      await tester.pump();
+      expect(calls.last, isMethodCall('room', arguments: true), reason: '⌘R is offered in a room');
+
+      // The system runs ⌘R once; the key no longer reaches the Dart shortcuts.
+      await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+        'pure_live/key_commands',
+        const StandardMethodCodec().encodeMethodCall(const MethodCall('run', 'refresh')),
+        (_) {},
+      );
+      expect(room.calls, ['refresh']);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      expect(room.calls, ['refresh'], reason: 'the system already has the key');
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets('A18.2 c5: ⌘, opens the settings; ⌘2 goes back home to popular; ⌘[ goes back', (tester) async {
     tester.view
       ..physicalSize = const Size(1280, 800)

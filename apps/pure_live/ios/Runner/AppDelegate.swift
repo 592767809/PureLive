@@ -5,6 +5,13 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  /// The key commands Dart gave (A18.1 c10): `id`, `title`, `input`, `group`.
+  private var keyCommands: [[String: Any]] = []
+  private var keyCommandsTitle = ""
+  private var keyCommandsChannel: FlutterMethodChannel?
+  /// A room is on top: its ⌘R is offered.
+  private var roomOpen = false
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -31,6 +38,149 @@ import UIKit
           result(board.hasStrings ? board.changeCount : -1)
         }
     }
+    // Shares from other apps (A18.1 c8): the share extension opens
+    // `purelive-share://share?text=…`, and the text goes to Dart as
+    // Android's shares do (`pure_live/share_intake`, `ShareChannel`).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PureLiveShareIntake") {
+      ShareInbox.shared.attach(
+        FlutterMethodChannel(name: "pure_live/share_intake", binaryMessenger: registrar.messenger()))
+      registrar.addSceneDelegate(ShareInbox.shared)
+    }
+    // The ⌘ commands as the system's key commands (A18.1 c10): holding ⌘
+    // lists them; `lib/app/commands.dart` (`IosKeyCommands`).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PureLiveKeyCommands") {
+      let channel = FlutterMethodChannel(name: "pure_live/key_commands", binaryMessenger: registrar.messenger())
+      channel.setMethodCallHandler { [weak self] call, result in
+        guard let self else { return }
+        switch call.method {
+        case "set":
+          let arguments = call.arguments as? [String: Any]
+          self.keyCommands = arguments?["commands"] as? [[String: Any]] ?? []
+          self.keyCommandsTitle = arguments?["title"] as? String ?? ""
+          UIMenuSystem.main.setNeedsRebuild()
+          result(true)
+        case "room":
+          self.roomOpen = call.arguments as? Bool ?? false
+          UIMenuSystem.main.setNeedsRevalidate()
+          result(nil)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+      keyCommandsChannel = channel
+    }
+  }
+
+  /// The app's own menu of key commands, one inline section per group.
+  override func buildMenu(with builder: UIMenuBuilder) {
+    super.buildMenu(with: builder)
+    guard builder.system == .main, !keyCommands.isEmpty else { return }
+    var order: [String] = []
+    var groups: [String: [UIKeyCommand]] = [:]
+    for entry in keyCommands {
+      guard let id = entry["id"] as? String, let title = entry["title"] as? String,
+        let input = entry["input"] as? String, let group = entry["group"] as? String
+      else { continue }
+      let command = UIKeyCommand(
+        title: title, action: #selector(runPureLiveCommand(_:)), input: input, modifierFlags: .command,
+        propertyList: id)
+      if #available(iOS 15.0, *) { command.wantsPriorityOverSystemBehavior = true }
+      if groups[group] == nil { order.append(group) }
+      groups[group, default: []].append(command)
+    }
+    let sections = order.map {
+      UIMenu(title: "", identifier: UIMenu.Identifier("pure_live.keys.\($0)"), options: .displayInline,
+        children: groups[$0] ?? [])
+    }
+    let menu = UIMenu(title: keyCommandsTitle, identifier: UIMenu.Identifier("pure_live.keys"), children: sections)
+    // Before the system's "窗口" menu where there is one (iPadOS's menu bar),
+    // else at the end of the main menu.
+    if builder.menu(for: .window) != nil {
+      builder.insertSibling(menu, beforeMenu: .window)
+    } else {
+      builder.insertChild(menu, atEndOfMenu: .root)
+    }
+  }
+
+  @objc func runPureLiveCommand(_ sender: UIKeyCommand) {
+    guard let id = sender.propertyList as? String else { return }
+    keyCommandsChannel?.invokeMethod("run", arguments: id)
+  }
+
+  override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+    if action == #selector(runPureLiveCommand(_:)) {
+      if (sender as? UIKeyCommand)?.propertyList as? String == "refresh" { return roomOpen }
+      return true
+    }
+    return super.canPerformAction(action, withSender: sender)
+  }
+}
+
+/// What other apps share with 纯粹直播 (A18.1 c8). The share extension
+/// (`ShareExtension/ShareViewController.swift`) cannot hand files or data
+/// to the app without an app group, so it opens
+/// `purelive-share://share?text=<the link or text>`; the text reaches Dart
+/// through `pure_live/share_intake` like Android's shares: `listen` returns
+/// what came before Dart listened, then each one comes as `shared`.
+final class ShareInbox: NSObject, FlutterSceneLifeCycleDelegate {
+  static let shared = ShareInbox()
+  static let scheme = "purelive-share"
+
+  private var channel: FlutterMethodChannel?
+  private var pending: [[String: Any]] = []
+  private var listening = false
+
+  func attach(_ channel: FlutterMethodChannel) {
+    self.channel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self else { return }
+      switch call.method {
+      case "listen":
+        self.listening = true
+        result(self.pending)
+        self.pending.removeAll()
+      default:
+        // The clipboard stamp and the launcher's recent rooms are Android's.
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  @objc(scene:willConnectToSession:options:)
+  func scene(
+    _ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions?
+  ) -> Bool {
+    guard let contexts = connectionOptions?.urlContexts else { return false }
+    return receive(contexts)
+  }
+
+  @objc(scene:openURLContexts:)
+  func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) -> Bool {
+    receive(URLContexts)
+  }
+
+  private func receive(_ contexts: Set<UIOpenURLContext>) -> Bool {
+    var handled = false
+    for context in contexts {
+      guard let payload = Self.payload(context.url) else { continue }
+      handled = true
+      if listening, let channel {
+        channel.invokeMethod("shared", arguments: payload)
+      } else {
+        pending.append(payload)
+      }
+    }
+    return handled
+  }
+
+  /// `{text}` from a `purelive-share` link, or nil.
+  static func payload(_ url: URL) -> [String: Any]? {
+    guard url.scheme == scheme,
+      let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
+      let text = items.first(where: { $0.name == "text" })?.value,
+      !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    else { return nil }
+    return ["text": text]
   }
 }
 

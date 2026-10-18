@@ -70,25 +70,28 @@ typedef RecentRoomShortcut = ({String platform, String roomId, String title, Str
 
 /// The native side of [SharedPayload]s, the clipboard's change time and the
 /// launcher's recent-room shortcuts (`pure_live/share_intake`,
-/// `ShareIntakePlugin.kt`; 3.x used the share_handler plugin). Android
-/// only; elsewhere nothing arrives.
+/// `ShareIntakePlugin.kt`; 3.x used the share_handler plugin). Android; on
+/// iOS only the shares (A18.1 c8: the share extension's link or text, via
+/// `ShareInbox` in `AppDelegate.swift`); elsewhere nothing arrives.
 final class ShareChannel {
   /// Creates the channel.
-  new({this.channel = const MethodChannel('pure_live/share_intake'), bool? android})
-    : _android = android ?? (!kIsWeb && Platform.isAndroid);
+  new({this.channel = const MethodChannel('pure_live/share_intake'), bool? android, bool? ios})
+    : _android = android ?? (!kIsWeb && Platform.isAndroid),
+      _ios = ios ?? (!kIsWeb && Platform.isIOS);
 
   /// The native channel.
   final MethodChannel channel;
 
   final bool _android;
+  final bool _ios;
 
   /// Whether anything arrives here.
-  bool get available => _android;
+  bool get available => _android || _ios;
 
   /// Hands every payload to [onShared]: first the ones that arrived before
   /// (the share or shortcut that started the app), then each new one.
   Future<void> listen(void Function(SharedPayload payload) onShared) async {
-    if (!_android) return;
+    if (!available) return;
     channel.setMethodCallHandler((call) async {
       if (call.method == 'shared') onShared(SharedPayload.fromChannel(call.arguments));
     });
