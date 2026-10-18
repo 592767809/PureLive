@@ -610,7 +610,11 @@ void main() {
     expect(find.byKey(const ValueKey('release-history-desktop-layout')), findsOneWidget);
     // The newest release is open first.
     expect(find.byKey(ValueKey('release-history-detail-${feed.history!.first.version}')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('release-history-desktop-3.2.11')));
+    // The list grows with every release: the oldest entry is below the fold.
+    final oldest = find.byKey(const ValueKey('release-history-desktop-3.2.11'));
+    await tester.ensureVisible(oldest);
+    await tester.pumpAndSettle();
+    await tester.tap(oldest);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('release-history-detail-3.2.11')), findsOneWidget);
   });

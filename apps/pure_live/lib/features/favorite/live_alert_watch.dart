@@ -162,23 +162,45 @@ final class LiveAlertWatchFile {
   }
 
   /// Writes [watch] whole (a temporary file renamed over the old one, so a
-  /// reader never sees half of it).
-  Future<void> write(LiveAlertWatch watch) async {
+  /// reader never sees half of it). Each write has a temporary file of its
+  /// own: two writes sharing one (the app's start wrote twice at once, and
+  /// the background check runs beside the app) cut each other's file short
+  /// and the second rename failed, leaving the older state in place. Writes
+  /// through one store land in the order they were asked for.
+  Future<void> write(LiveAlertWatch watch) => _inTurn(() async {
     final file = await this.file;
-    final temporary = File('${file.path}.tmp');
-    await temporary.parent.create(recursive: true);
-    await temporary.writeAsString(jsonEncode(watch.toJson()), flush: true);
-    await temporary.rename(file.path);
-  }
+    final temporary = File('${file.path}.$pid.${_serial++}.${DateTime.now().microsecondsSinceEpoch}.tmp');
+    try {
+      await temporary.parent.create(recursive: true);
+      await temporary.writeAsString(jsonEncode(watch.toJson()), flush: true);
+      await temporary.rename(file.path);
+    } on Object {
+      try {
+        if (temporary.existsSync()) await temporary.delete();
+      } on FileSystemException {
+        // Gone already.
+      }
+      rethrow;
+    }
+  });
 
   /// Removes the state ("开播提醒" or the background check turned off).
-  Future<void> clear() async {
+  Future<void> clear() => _inTurn(() async {
     try {
       final file = await this.file;
       if (file.existsSync()) await file.delete();
     } on FileSystemException {
       // Gone already.
     }
+  });
+
+  static int _serial = 0;
+  Future<void> _last = Future.value();
+
+  Future<void> _inTurn(Future<void> Function() work) {
+    final done = _last.then((_) => work());
+    _last = done.then((_) {}, onError: (Object _) {});
+    return done;
   }
 }
 

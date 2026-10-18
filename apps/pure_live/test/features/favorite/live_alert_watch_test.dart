@@ -82,6 +82,27 @@ void main() {
     expect(raw.existsSync(), isFalse);
   });
 
+  test(
+    'writes at the same time all land, the last asked for last; another store beside it does not break them',
+    () async {
+      LiveAlertWatch watch(String nick) => LiveAlertWatch(
+        rooms: [_room('1', nick: nick)],
+        names: {'douyu:1': nick},
+        states: const {},
+        texts: _texts,
+      );
+      // The app's start writes twice at once: with one shared temporary file
+      // the second write's rename failed and the first state stayed.
+      await Future.wait([file.write(watch('甲')), file.write(watch('乙'))]);
+      expect((await file.read())!.names['douyu:1'], '乙');
+      // The background check writes through a store of its own.
+      final other = LiveAlertWatchFile(file.file);
+      await Future.wait([file.write(watch('丙')), other.write(watch('丁')), file.write(watch('戊'))]);
+      expect(['丙', '丁', '戊'], contains((await file.read())!.names['douyu:1']));
+      expect(folder.listSync().map((entry) => entry.path.split('/').last), [LiveAlertWatchFile.name]);
+    },
+  );
+
   group('check', () {
     late DateTime now;
     late _Site site;
