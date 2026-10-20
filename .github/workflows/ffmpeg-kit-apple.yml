@@ -78,7 +78,9 @@ jobs:
             while IFS= read -r binary; do
               echo "== $binary"
               lipo -info "$binary"
-              strings "$binary" | grep -m1 -F "$FFMPEG_TAG" || { echo "::error::$binary does not carry $FFMPEG_TAG"; exit 1; }
+              # Not `strings | grep -m1`: under pipefail, grep's early exit fails the pipe.
+              strings "$binary" > strings.txt
+              grep -m1 -F "$FFMPEG_TAG" strings.txt || { echo "::error::$binary does not carry $FFMPEG_TAG"; exit 1; }
             done < <(find "check-$name" -path '*/ffmpegkit.framework/ffmpegkit' -not -path '*dSYM*')
           done
           (cd dist && shasum -a 256 *.zip | tee SHA256SUMS)
