@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Bật màu động Monet",
     "enable_fullscreen_default": "Tự toàn màn hình",
     "enable_fullscreen_default_subtitle": "Khi vào phòng phát, tự chuyển sang toàn màn hình",
+    "enable_home_bottom_bar_wide": "Thanh dưới trên máy tính bảng",
+    "enable_home_bottom_bar_wide_subtitle": "Trên máy tính bảng và máy gập khi mở, trang chủ dùng thanh dưới thay cho thanh bên",
     "enable_liquid_glass": "Kính lỏng",
     "enable_liquid_glass_subtitle": "Thanh dưới nổi như kính lỏng, khúc xạ trang ở các cạnh; nhấn giữ và kéo để chuyển. Điện thoại 4 GB trở xuống dùng màu phủ đơn giản",
     "enable_local_log": "Bật nhật ký cục bộ",

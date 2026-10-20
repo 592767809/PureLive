@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Monet dinamik rengini etkinleştir",
     "enable_fullscreen_default": "Otomatik Tam Ekran",
     "enable_fullscreen_default_subtitle": "Canlı yayına girince otomatik olarak tam ekrana geç",
+    "enable_home_bottom_bar_wide": "Tablette alt çubuk",
+    "enable_home_bottom_bar_wide_subtitle": "Tablette ve açılmış katlanabilirde ana sayfa yan ray yerine alt çubuğu kullanır",
     "enable_liquid_glass": "Sıvı cam",
     "enable_liquid_glass_subtitle": "Alt çubuk, sayfayı kenarlarında büken sıvı cam gibi süzülür; geçiş yapmak için basılı tutup sürükleyin. 4 GB veya daha az belleğe sahip telefonlar düz bir renk alır",
     "enable_local_log": "Yerel Günlüğü Etkinleştir",

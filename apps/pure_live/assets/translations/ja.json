@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Monet ダイナミックカラーを有効にする",
     "enable_fullscreen_default": "自動で全画面",
     "enable_fullscreen_default_subtitle": "配信に入ると自動で全画面にします",
+    "enable_home_bottom_bar_wide": "タブレットでも下部バー",
+    "enable_home_bottom_bar_wide_subtitle": "タブレットや展開した折りたたみ端末でも、ホームはサイドレールではなく下部バーを使います",
     "enable_liquid_glass": "リキッドグラス",
     "enable_liquid_glass_subtitle": "下部バーがリキッドグラスとして浮かび、縁でページを屈折させます。長押しでドラッグして切り替えます。メモリ 4 GB 以下の端末では単色になります",
     "enable_local_log": "ローカルログを有効にする",

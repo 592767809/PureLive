@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Activar el color dinámico Monet",
     "enable_fullscreen_default": "Pantalla completa automática",
     "enable_fullscreen_default_subtitle": "Al entrar en un directo, pasa automáticamente a pantalla completa",
+    "enable_home_bottom_bar_wide": "Barra inferior en tabletas",
+    "enable_home_bottom_bar_wide_subtitle": "En tabletas y plegables abiertos, el inicio usa la barra inferior en lugar del riel lateral",
     "enable_liquid_glass": "Cristal líquido",
     "enable_liquid_glass_subtitle": "La barra inferior flota como cristal líquido que curva la página en sus bordes; mantén pulsado y arrastra para cambiar. Los teléfonos con 4 GB o menos usan un tinte simple",
     "enable_local_log": "Activar el registro local",

@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Enable Monet dynamic color",
     "enable_fullscreen_default": "Auto Full Screen",
     "enable_fullscreen_default_subtitle": "When enter live play, auto into full screen",
+    "enable_home_bottom_bar_wide": "Bottom bar on tablets",
+    "enable_home_bottom_bar_wide_subtitle": "On a tablet or unfolded foldable, the home page keeps the phone's bottom bar instead of the side rail",
     "enable_liquid_glass": "Liquid glass",
     "enable_liquid_glass_subtitle": "The bottom bar floats as liquid glass that bends the page at its edges; hold and drag to switch. Phones with 4 GB or less get a plain tint",
     "enable_local_log": "Enable Local Log",

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -142,12 +143,16 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final saved = watchSetting(ref, Settings.savedMenuIds);
     final glass = watchSetting(ref, Settings.liquidGlass);
+    // V02.6: a tablet may keep the bottom bar (phones and tablets only).
+    final bottomOnWide =
+        watchSetting(ref, Settings.homeBottomBarOnWide) &&
+        (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS);
     return PopScope<Object?>(
       canPop: false,
       onPopInvokedWithResult: _onBack,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final rail = isHomeRailWidth(constraints.maxWidth);
+          final rail = isHomeRailWidth(constraints.maxWidth) && !bottomOnWide;
           final menus = visibleHomeMenus(saved);
           // A removed or hidden destination falls back to the first one (3.x).
           final selected = menus.contains(_selected) ? _selected! : menus.first;

@@ -34,6 +34,7 @@ Future<AppServices> _pump(
   required double width,
   double height = 900,
   List<String>? menus,
+  bool bottomBarOnWide = false,
 }) async {
   tester.view
     ..physicalSize = Size(width, height)
@@ -43,6 +44,7 @@ Future<AppServices> _pump(
     final services = await testServices();
     await services.store.settings.set(Settings.showSplashPage, false);
     if (menus != null) await services.store.settings.set(Settings.savedMenuIds, menus);
+    if (bottomBarOnWide) await services.store.settings.set(Settings.homeBottomBarOnWide, true);
     return services;
   }))!;
   final strings = (await tester.runAsync(loadStrings))!;
@@ -393,6 +395,51 @@ void main() {
     expect(find.byKey(const ValueKey('home-rail')), findsNothing);
     expect(find.byType(LiquidGlassBar), findsOneWidget);
     await tester.runAsync(services.close);
+  });
+
+  testWidgets('V02.6 (issue #4): a tablet may keep the bottom bar; the glass capsule stays narrow in the middle', (
+    tester,
+  ) async {
+    var services = await _pump(tester, width: 1280, height: 800, bottomBarOnWide: true);
+    expect(find.byKey(const ValueKey('home-rail')), findsNothing);
+    final glass = find.byType(LiquidGlassBar);
+    expect(glass, findsOneWidget);
+    final capsule = tester.getRect(glass);
+    expect(capsule.width, GlassMetrics.barMaxWidth);
+    expect(capsule.center.dx, closeTo(640, 0.5));
+    // The rail's tools are reached as on a phone: menu, search and more in
+    // the page's bar.
+    final bar = find.widgetWithText(AppBar, '已开播');
+    for (final tooltip in ['菜单', '搜索直播', '更多']) {
+      expect(
+        find.descendant(of: bar, matching: find.byTooltip(tooltip)),
+        findsOneWidget,
+        reason: tooltip,
+      );
+    }
+    await tester.tap(find.byKey(const ValueKey('home-nav-popular')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-rail')), findsNothing);
+    await tester.runAsync(services.close);
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    // A phone's capsule is as before: the width less the margins.
+    services = await _pump(tester, width: 393, bottomBarOnWide: true);
+    expect(tester.getRect(find.byType(LiquidGlassBar)).width, 393 - 2 * GlassMetrics.barMargin);
+    await tester.runAsync(services.close);
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    // Phones and tablets only: a desktop window keeps its rail.
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      services = await _pump(tester, width: 1280, height: 800, bottomBarOnWide: true);
+      expect(find.byKey(const ValueKey('home-rail')), findsOneWidget);
+      expect(find.byType(LiquidGlassBar), findsNothing);
+      await tester.runAsync(services.close);
+      await tester.pumpWidget(const SizedBox.shrink());
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('landscape phone: the destinations stay on screen, the tools above them scroll (U.4b)', (tester) async {

@@ -79,24 +79,28 @@ class HomeMobileView extends StatelessWidget {
           GlassMetrics.barMargin,
           safeBottom + GlassMetrics.barMargin,
         ),
-        child: SizedBox(
-          height: GlassMetrics.barHeight,
-          // A01.6: refraction and the drop where the shader runs, frosted
-          // glass elsewhere, a plain tint on a phone with little memory.
-          child: LiquidGlassBar(
-            blur: glassBlur,
-            refraction: glassBlur,
-            selectedIndex: index < 0 ? 0 : index,
-            onSelected: (index) => onSelected(menus[index]),
-            items: [
-              for (final menu in menus)
-                LiquidGlassBarItem(
-                  key: ValueKey('home-nav-${menu.id}'),
-                  icon: menu.icon,
-                  selectedIcon: menu.selectedIcon,
-                  label: i18n(menu.titleKey),
-                ),
-            ],
+        child: Align(
+          heightFactor: 1,
+          child: SizedBox(
+            height: GlassMetrics.barHeight,
+            width: GlassMetrics.barMaxWidth,
+            // A01.6: refraction and the drop where the shader runs, frosted
+            // glass elsewhere, a plain tint on a phone with little memory.
+            child: LiquidGlassBar(
+              blur: glassBlur,
+              refraction: glassBlur,
+              selectedIndex: index < 0 ? 0 : index,
+              onSelected: (index) => onSelected(menus[index]),
+              items: [
+                for (final menu in menus)
+                  LiquidGlassBarItem(
+                    key: ValueKey('home-nav-${menu.id}'),
+                    icon: menu.icon,
+                    selectedIcon: menu.selectedIcon,
+                    label: i18n(menu.titleKey),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

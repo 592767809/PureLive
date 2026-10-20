@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Ativar a cor dinâmica Monet",
     "enable_fullscreen_default": "Tela cheia automática",
     "enable_fullscreen_default_subtitle": "Ao entrar numa transmissão, vai automaticamente para tela cheia",
+    "enable_home_bottom_bar_wide": "Barra inferior em tablets",
+    "enable_home_bottom_bar_wide_subtitle": "Em tablets e dobráveis abertos, o início usa a barra inferior em vez do trilho lateral",
     "enable_liquid_glass": "Vidro líquido",
     "enable_liquid_glass_subtitle": "A barra inferior flutua como vidro líquido que curva a página nas bordas; segure e arraste para trocar. Celulares com 4 GB ou menos recebem uma tonalidade simples",
     "enable_local_log": "Ativar log local",

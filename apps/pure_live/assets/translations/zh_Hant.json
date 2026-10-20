@@ -597,6 +597,8 @@
     "enable_dynamic_color_subtitle": "啟用Monet桌布動態取色",
     "enable_fullscreen_default": "自動全屏",
     "enable_fullscreen_default_subtitle": "當進入直播播放頁，自動進入全屏",
+    "enable_home_bottom_bar_wide": "平板也用底欄",
+    "enable_home_bottom_bar_wide_subtitle": "寬螢幕（平板、展開的折疊螢幕）首頁也用手機的底欄，不用側欄",
     "enable_liquid_glass": "液體玻璃",
     "enable_liquid_glass_subtitle": "底欄懸浮成液態玻璃，邊緣折射，選中項可按住拖動；記憶體 4 GB 及以下只半透明",
     "enable_local_log": "啟用本地日誌",

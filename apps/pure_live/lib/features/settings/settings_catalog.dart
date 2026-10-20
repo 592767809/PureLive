@@ -398,6 +398,15 @@ List<SettingsEntry> _build() {
       desc: 'enable_liquid_glass_subtitle',
       keywords: ['Liquid Glass', 'glass', 'blur', '玻璃', '毛玻璃', '透明'],
     )
+    ..toggle(
+      'home_bottom_bar_wide',
+      'enable_home_bottom_bar_wide',
+      Settings.homeBottomBarOnWide,
+      AppIcons.homeBottomBar,
+      desc: 'enable_home_bottom_bar_wide_subtitle',
+      keywords: ['平板', '折叠屏', '底栏', '侧栏', '导航栏', 'tablet', 'bottom bar', 'rail'],
+      when: _mobile,
+    )
     ..add(
       'loading_style',
       'change_loading_style',

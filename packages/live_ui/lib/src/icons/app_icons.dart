@@ -860,6 +860,9 @@ abstract final class AppIcons {
   /// Liquid glass (A01.5).
   static const IconData liquidGlass = Remix.drop_line;
 
+  /// The bottom bar on a tablet too (V02.6).
+  static const IconData homeBottomBar = Remix.layout_bottom_2_line;
+
   /// Room card settings (3.x shared the multi-view grid; A01.4 c4 gives
   /// the cards their own).
   static const IconData roomCardSettings = Remix.gallery_view_2;

@@ -179,6 +179,11 @@ abstract final class Settings {
   /// Liquid Glass"); off: the plain bar as before.
   static const liquidGlass = BoolSetting('liquidGlass', section: 'theme', defaultValue: true);
 
+  /// A tablet's home page keeps the phone's bottom bar instead of the side
+  /// rail (V02.6, issue #4: "平板可以有玻璃底栏吗"); Android and iOS only.
+  /// Off: the rail from 600 wide, as before.
+  static const homeBottomBarOnWide = BoolSetting('homeBottomBarOnWide', section: 'theme', defaultValue: false);
+
   /// Seed colour, `AARRGGBB` hex. The default is the brand blue (U.6b C-3);
   /// 3.x's default [legacyThemeColor] is moved to it once
   /// ([themeColorMigration], `LegacyRules.themeColor`).
@@ -1925,6 +1930,7 @@ abstract final class Settings {
     themeMode,
     enableDynamicTheme,
     liquidGlass,
+    homeBottomBarOnWide,
     themeColorSwitch,
     pureBlackTheme,
     themeColorMigration,

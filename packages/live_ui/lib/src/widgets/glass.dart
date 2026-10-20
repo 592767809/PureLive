@@ -90,6 +90,11 @@ abstract final class GlassMetrics {
   /// gesture area.
   static const double barMargin = 12;
 
+  /// The floating bar's widest: on a tablet (V02.6) the capsule stays this
+  /// wide in the middle instead of spreading its few items across the
+  /// screen; a phone is narrower anyway.
+  static const double barMaxWidth = 560;
+
   /// How much of the screen's bottom the floating bar covers above the
   /// system's gesture area: content scrolled to its end stays above it.
   static const double barOverlap = barHeight + barMargin;

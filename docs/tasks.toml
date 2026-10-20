@@ -4219,6 +4219,28 @@ from = "用户 2026-10-18：给我的项目增加严格和详细的issue反馈�
 note = "`.github/ISSUE_TEMPLATE/`（1-bug、2-platform、3-feature、4-translation、config：不接受空白 issue），CONTRIBUTING.md（入口、提交前、状态标签和时限、需求怎么决定、不受理、提交代码），SECURITY.md（私下报告），PR 模板；GitHub 上建了状态标签，开了私下报告漏洞"
 
 [[task]]
+id = "V02.6"
+title = "issue #4：平板也想用玻璃底栏（宽屏现在只有侧栏）"
+type = "界面"
+status = "完成"
+date = "2026-10-20"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/4"
+note = "新设置“平板也用底栏”（homeBottomBarOnWide，外观 → 主题，默认关，只在 Android、iOS 显示和生效）：开着时宽屏首页用手机的底栏（打开液体玻璃时是悬浮玻璃胶囊），各页顶栏出现菜单、搜索、更多（侧栏里的工具从菜单进）；玻璃胶囊最宽 560、居中（GlassMetrics.barMaxWidth），手机不变。测试 home_test V02.6；平板模拟器（2560×1600、320 dpi，横屏）上看过：默认侧栏不变，打开后底栏居中、热门六列网格从胶囊下滚过。还没发布"
+
+[[task]]
+id = "V02.7"
+title = "issue #3：收藏旧仓库的人不知道项目搬到了 wzgrx/PureLive"
+type = "发布"
+status = "完成"
+date = "2026-10-20"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/3"
+note = "根因：旧仓库 wzgrx/pure_live 的发布页最新一直是 4.2.0、README 停在 5.0.0 没有醒目的搬家说明、简介为空、Issues 已关。处理：旧仓库 README 换成搬家说明（b8a69510c，只改 README，更新文件不动）；简介和主页改成新仓库；发布 moved-to-PureLive（无安装包，设为最新）让发布页和订阅发布的人看到搬家。3.x 的 releases 地址只定义没用到，4.x 不读发布列表，所以这个发布不影响检查更新。以后同步旧仓库更新文件（PROCESS 第 11 节第 8 条）只改两个文件，README 保持搬家说明"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"
