@@ -25,7 +25,7 @@ dependencies:
   loading_indicator: ^4.0.2
   # dynamic_color 2.x and cached_network_image 4.x use the decoupled Material
   # library; MaterialUiThemeBridge mirrors the app theme into it.
-  material_ui: ^1.5.0
+  material_ui: ^1.7.0
   # QR codes (Bilibili login); the painting stays here.
   qr: ^4.0.0
   # The icon set of 3.x's pages (re-exported).

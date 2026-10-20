@@ -347,7 +347,7 @@ Download the package for your platform from [Releases](https://github.com/wzgrx/
 
 ## Building from source
 
-You need Flutter on Linux or Windows. Toolchain versions are pinned in [`toolchain.env`](toolchain.env) (Flutter 3.47.7, Dart 3.13.5, Gradle 9.8.1, AGP 9.4.1, Kotlin 2.4.21, JDK 27, Android SDK 37.2, build-tools 37.0.0, platform-tools 37.0.1, cmdline-tools 23.0, NDK 30.0.16248370, CMake 4.1.2); upgrade them there only (the Android build reads compileSdk, build-tools, NDK and CMake from it).
+You need Flutter on Linux or Windows. Toolchain versions are pinned in [`toolchain.env`](toolchain.env) (Flutter 3.47.7, Dart 3.13.5, Gradle 9.8.2, AGP 9.4.1, Kotlin 2.4.21, JDK 27, Android SDK 37.2, build-tools 37.0.0, platform-tools 37.0.1, cmdline-tools 23.0, NDK 30.0.16248370, CMake 4.1.2); upgrade them there only (the Android build reads compileSdk, build-tools, NDK and CMake from it).
 
 ```bash
 git clone https://github.com/wzgrx/PureLive.git

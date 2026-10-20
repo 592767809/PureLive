@@ -24,7 +24,7 @@
   - AGP：`apps/pure_live/android/settings.gradle.kts:23`（`com.android.application` `9.4.1`）。
   - compileSdk、targetSdk、minSdk：`apps/pure_live/android/app/build.gradle.kts`（`compileSdk = 37`、`targetSdk = 37`、`minSdk = 26`）；NDK 用 `flutter.ndkVersion`。
   - Dart SDK 约束：根 `pubspec.yaml` 的 `sdk: ^3.13.0` 和各成员的 `environment`。
-  - FFmpeg 原生包：`tools/ffmpeg_kit/bundles.txt`（3 个包和 SHA-256，`native-ffmpeg-9.0.2-b1`）。
+  - FFmpeg 原生包：`tools/ffmpeg_kit/bundles.txt`（5 个包和 SHA-256，`native-ffmpeg-9.0.2-b2`）；包要按 ffmpeg_kit_extended_flutter 锁的原生接口版本编（`tools/ffmpeg_kit/rebuild/`），升这个插件时连包一起看。
   - 本机：`~/tools/purelive-env.sh`（`FLUTTER_ROOT=~/tools/flutter-sdk/3.47.5`、`JAVA_HOME=~/tools/temurin27`）；Windows 主机的 Flutter 在 `C:\Users\123\claude-work\flutter`。
 - 被覆盖压住的依赖（根 `pubspec.yaml:26-64`，每项有原因）：`wakelock_plus 1.8.1`、`xml 7.1.0`、`test_api 0.7.14`、`code_assets 2.1.0`、`nm 0.6.0`、`dbus 0.8.0`；`media_kit`、`media_kit_video` 指向 `third_party/`。
 

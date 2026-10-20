@@ -57,7 +57,7 @@
 
 - 3.x 是单个包（`git show v3.2.11:pubspec.yaml`，`version: 3.2.11+4134`），Flutter 版本写在 `.fvmrc` 和各工作流的 `FLUTTER_VERSION`（例如 `.github/workflows/build-ios-unsigned.yml` 的 `env.FLUTTER_VERSION: 3.47.5`），依赖更新靠 `.github/dependabot.yml`；本地依赖补丁放在 `plugins/` 和 `third_party/`。
 - 3.x 的依赖覆盖（`code_assets`、`nm`、`dbus`）4.x 照样需要，根 `pubspec.yaml` 的注释写了“3.x shipped the same override”。
-- 要保留的：用最新稳定版；FFmpeg 9.0.2 的原生包沿用 3.x 验证过的构建（`native-ffmpeg-9.0.2-b1`）。
+- 要保留的：用最新稳定版；FFmpeg 9.0.2 的原生包 4.x 起自己编（`native-ffmpeg-9.0.2-b2`，按 ffmpeg_kit_extended_flutter 1.0.0 的原生接口 0.11.2；3.x 是 b1，0.11.1）。
 
 ## 已知问题和限制
 
@@ -102,6 +102,6 @@
 ## 还没完成的
 
 - **Z01.2 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁）**（开发中，第三档，规模 小）
-  - 接着做：5.1.0 发布后升级 go_router 18.1.0、hive_ce 2.22.0、material_ui 1.7.0、tray_manager 0.8.0、screen_retriever 0.3.0 并跑门禁；然后 2026-11 上旬
+  - 接着做：2026-10-20 升级了 Gradle 9.8.2、go_router、hive_ce、material_ui、tray_manager 0.8、open_filex 5、ffmpeg_kit 1.0、media_kit 上游；screen_retriever 0.3 等 window_manager 跟上；下次 2026-11 上旬
 
 <!-- docs:生成结束 -->

@@ -53,7 +53,7 @@
 | [A18.2](A-界面设计/A18-苹果平台界面/A18.2-macOS差异设计/README.md) macOS 差异设计 | 开发中 | 4/4 | 2026-10-18 用户定标题栏保持方案 B（单独 28 高一行），不改方案 A；其余要真机看；见 record.md |
 | [E01.6](E-直播平台/E01-国内五大平台/E01.6-国内五大平台巡检和修复/README.md) 国内五大平台巡检和修复（持续） | 开发中 | 0/3：下一阶段“写巡检清单” | 第 3 轮 2026-11 上旬：patrol bilibili douyu huya douyin kuaishou --danmaku 60 |
 | [Y01.16](Y-发布和运营/Y01-版本签名和发布/Y01.16-5.4.5全平台发布/README.md) 5.4.5 全平台发布（Android、电视、Windows、Linux、macOS、iOS，构建号 5109）：玻璃底栏手感重做、平板也用底栏 | 开发中 | 1/5：下一阶段“各平台构建和检查” | — |
-| [Z01.2](Z-工程文档和维护/Z01-工具链和依赖/Z01.2-例行依赖升级检查/README.md) 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁） | 开发中 | — | 5.1.0 发布后升级 go_router 18.1.0、hive_ce 2.22.0、material_ui 1.7.0、tray_manager 0.8.0、screen_retriever 0.3.0 并跑门禁；然后 2026-11 上旬 |
+| [Z01.2](Z-工程文档和维护/Z01-工具链和依赖/Z01.2-例行依赖升级检查/README.md) 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁） | 开发中 | — | 2026-10-20 升级了 Gradle 9.8.2、go_router、hive_ce、material_ui、tray_manager 0.8、open_filex 5、ffmpeg_kit 1.0、media_kit 上游；screen_retriever 0.3 等 window_manager 跟上；下次 2026-11 上旬 |
 | [Z07.1](Z-工程文档和维护/Z07-定期维护/Z07.1-每月维护/README.md) 每月：清理已合并的分支和工作区（含暂停任务确认后的旧工作区）、本机中间文件 | 开发中 | — | 10-08 删了已合并的空闲工作区、清了 2 GB 构建产物（record.md）；其余 19 个旧工作区有没合并的提交或改动，等维护者决定；下次 11 月初 |
 
 ## 暂停（0）

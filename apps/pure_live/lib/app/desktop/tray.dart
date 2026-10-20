@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:ui' show Size;
 
+import 'package:nativeapi/nativeapi.dart' show Size;
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
@@ -107,7 +107,7 @@ final class DesktopTray {
     if (mac) {
       icon
         ..isIconTemplate = true
-        ..iconSize = const Size.square(18);
+        ..iconSize = const Size(width: 18, height: 18);
     }
     tray._listeners.add(() {
       final id = icon.addListener((event) {

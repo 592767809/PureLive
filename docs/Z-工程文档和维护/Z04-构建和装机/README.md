@@ -6,7 +6,7 @@
 
 - 包括：
   - `apps/pure_live/android/app/build.gradle.kts` 的三种构建类型（debug、profile、release）、包名后缀、资源压缩和保留表 `res/raw/keep.xml`、release 签名的读取逻辑（签名方案本身在 Y01）。
-  - `tools/ffmpeg_kit/`（`fetch.sh`、`fetch.ps1`、`bundles.txt`）：录制用的 FFmpeg 9.0.2 原生包下载、校验、缓存和链接。
+  - `tools/ffmpeg_kit/`（`fetch.sh`、`fetch.ps1`、`bundles.txt`）：录制用的 FFmpeg 9.0.2 原生包下载、校验、缓存和链接；`tools/ffmpeg_kit/rebuild/` 和 `.github/workflows/ffmpeg-kit-apple.yml`：从源码重编这些包。
   - 本机环境脚本 `~/tools/purelive-env.sh`、装机和截图助手 `~/tools/pl-adb.sh`（都在仓库外，Z04.1 要把助手放进仓库）。
 - 不包括（归哪里）：
   - 版本号、正式包的签名、发布页、`SHA256SUMS` → Y01。
@@ -28,7 +28,12 @@
   测试包和正式包并存，不碰用户的 3.x（D-019）。`minSdk = 26`、`targetSdk = 37`、`compileSdk = 37`；versionCode 由 Flutter 按 ABI 算：`--split-per-abi` 时 armeabi-v7a、arm64-v8a、x86_64 分别是 `1000、2000、4000 + 构建号`（构建号 5001 → 6001、7001、9001，PROCESS 第 11 节）。
 - 调试密钥：环境脚本设 `ANDROID_USER_HOME=~/.android-purelive`，Gradle 用其中的 `debug.keystore`；这把密钥和 Windows 主机共用，也是 3.2.11 正式包的签名密钥，所以本机构建的正式包能覆盖安装 3.x（D-006，细节在 Y01）。
 - 资源压缩的坑：只在 Dart 里按名字引用的资源会被压缩器删掉，`res/raw/keep.xml` 保留 `ic_stat_playback` 和 audio_service 的三个媒体按钮图标（Y01.1 第 1 条：删掉后 Android 13 起媒体通知和前台服务起不来），`test/platform/system_surfaces_test.dart` 守着。
-- FFmpeg 包：`bundles.txt` 写 3 个包（Android `.aar`、Linux、Windows 的 zip）和 SHA-256；`fetch.sh [android|linux|windows]` 下载到 `~/.cache/pure_live/ffmpeg_kit/`（可用 `PURE_LIVE_FFMPEG_KIT_CACHE` 改），校验后链接进 `<仓库>/.ffmpeg_kit/`（`.gitignore` 排除）；根 `pubspec.yaml` 的 `ffmpeg_kit_extended_config` 指向这些本地路径，因为插件的构建钩子遇到远程地址每次都重新下载。克隆或新建工作区后先跑一次；门禁在改了应用时自动跑 `fetch.sh linux`（`flutter test` 要构建 Linux 那一份）。
+- FFmpeg 包：`bundles.txt` 写 5 个包（Android `.aar`，Linux、Windows、iOS、macOS 的 zip）和 SHA-256，在内部预发布 `native-ffmpeg-9.0.2-b2`；`fetch.sh [android|linux|windows]` 下载到 `~/.cache/pure_live/ffmpeg_kit/`（可用 `PURE_LIVE_FFMPEG_KIT_CACHE` 改），校验后链接进 `<仓库>/.ffmpeg_kit/`（`.gitignore` 排除）；根 `pubspec.yaml` 的 `ffmpeg_kit_extended_config` 指向这些本地路径，因为插件的构建钩子遇到远程地址每次都重新下载。克隆或新建工作区后先跑一次；门禁在改了应用时自动跑 `fetch.sh linux`（`flutter test` 要构建 Linux 那一份）。
+- 重编 FFmpeg 包（换 ffmpeg_kit_extended_flutter 的原生接口版本、换 FFmpeg 版本时；第一次是 2026-10-21，Z01.2 记录）：
+  - 包要按插件构建钩子锁的原生接口编（1.0.0 → FFmpegKit 0.11.2，也就是 ffmpeg-kit-builders 的标签 v0.11.2-android）；接口对不上，函数名一样也会崩（0.11.2 改了全局回调的参数）。
+  - Android、Linux、Windows：`source ~/tools/purelive-env.sh` 后 `tools/ffmpeg_kit/rebuild/build.sh <工作目录> [android] [linux] [windows]`（要 Docker）。它克隆 builders 到固定提交、打 `builders.patch`（FFmpeg 固定 n9.0.2、git 重试修正、镜像源）、建上游的 manylinux_2_28 镜像、把 NDK 29.0.14206865 复制进 Docker 卷，然后以 root 在容器里跑 `in_container.sh`（上游的 `runner.sh`、`build_all.sh`、`build_aar.sh`，依赖全部从源码编），最后 `check.sh` 检查并写 `out/SHA256SUMS`。在本机全部约 40 分钟，第一次另加容器里装 Java、SDK、Gradle 的时间。
+  - iOS、macOS：GitHub 上手动运行 “FFmpegKit Apple” 工作流（D-041），产物和 SHA-256 在运行的 artifact 里；下载后同样跑 `check.sh`。
+  - 五个包都过了 `check.sh`，Linux、Windows 实际加载报出版本，K90 录一段跨分段的录像，再发新的 `native-ffmpeg-<版本>-b<n>` 预发布，改 `bundles.txt` 和根 `pubspec.yaml`。
 - 常用命令：测试包 `flutter build apk --profile --split-per-abi`（在 `apps/pure_live`），装机 `adb -s 192.168.1.2:5555 install -r build/app/outputs/flutter-apk/app-arm64-v8a-profile.apk`；正式包 `flutter build apk --release --split-per-abi`（门禁不在跑时）。构建产物在 `apps/pure_live/build/`（`.gitignore` 排除）；4.0.0 两次发布的正式包和 `SHA256SUMS.txt` 留在本机 `~/ref/release/v4.0.0/`、`v4.0.0-5001/`。
 - 装机和截图助手（仓库外，`~/tools/pl-adb.sh`，16 行，`source` 后用）：`fg` 读前台应用；`need_pl` 前台不是 `$PL_APP` 就中止；`tap`、`key`、`text`、`swipe` 每次先 `need_pl`；`shot` 截屏到会话的 scratchpad；`ui`、`tapl` 用 `uiautomator dump` 按文字找控件。**默认 `PL_APP` 还是旧的 `com.mystyle.purelive.next`**，用之前要 `export PL_APP=com.mystyle.purelive.v4dev`；截图路径写死成某一次会话的 scratchpad。
 - 完成度：构建和 FFmpeg 包都在用；Z04.1（助手进仓库）未开始。
@@ -41,9 +46,12 @@
 | `apps/pure_live/android/app/proguard-rules.pro` | release 的代码压缩规则 |
 | `apps/pure_live/android/app/src/main/res/raw/keep.xml` | 资源压缩时保留只在 Dart 里引用的 4 个图标 |
 | `apps/pure_live/android/gradle.properties` | Gradle 内存、并行、配置缓存、AGP 内置 Kotlin |
-| `tools/ffmpeg_kit/bundles.txt` | 3 个 FFmpeg 包的文件名、SHA-256、下载地址（`native-ffmpeg-9.0.2-b1`） |
+| `tools/ffmpeg_kit/bundles.txt` | 5 个 FFmpeg 包的文件名、SHA-256、下载地址（`native-ffmpeg-9.0.2-b2`） |
+| `tools/ffmpeg_kit/rebuild/build.sh`、`in_container.sh`、`builders.patch` | 在本机容器里重编 Android、Linux、Windows 的包（见上） |
+| `tools/ffmpeg_kit/rebuild/check.sh` | 发布前检查包：FFmpeg 标签、ABI、strip、16 KiB 对齐、glibc 上限、依赖的库和 DLL |
+| `.github/workflows/ffmpeg-kit-apple.yml` | 在 GitHub 的 macOS 机器上重编 iOS、macOS 的包 |
 | `tools/ffmpeg_kit/fetch.sh`（WSL/Linux）、`fetch.ps1`（37 行，Windows） | 下载、校验、缓存、链接；可按平台筛选 |
-| 根 `pubspec.yaml:66-72` | `ffmpeg_kit_extended_config`：三个平台的本地包路径 |
+| 根 `pubspec.yaml` 的 `ffmpeg_kit_extended_config` | 五个平台的本地包路径 |
 | `~/tools/purelive-env.sh`（仓库外） | Flutter、JDK、Android SDK、`ANDROID_USER_HOME`、`GRADLE_USER_HOME`、代理、Flutter 镜像 |
 | `~/tools/pl-adb.sh`（仓库外，16 行） | 装机后点按和截图的助手（见上） |
 
@@ -52,7 +60,7 @@
 | 测试文件 | 覆盖什么 |
 |---|---|
 | `apps/pure_live/test/platform/system_surfaces_test.dart` | 只在 Dart 里引用的图标都在 `keep.xml` 里；各插件的权限请求码不重复 |
-| （没有） | `build.gradle.kts` 的签名分支、`fetch.sh` 都没有自动测试；靠构建和 `aapt2 dump`、`apksigner verify` 核对 |
+| （没有） | `build.gradle.kts` 的签名分支、`fetch.sh`、`tools/ffmpeg_kit/rebuild/` 都没有自动测试；靠构建和 `aapt2 dump`、`apksigner verify` 核对，FFmpeg 包靠 `check.sh`（拿上游 0.11.2 的包试过，能查出它 armeabi-v7a 的 FFmpeg 版本不对） |
 
 ## 3.x 基线
 
@@ -67,7 +75,7 @@
 | 装机助手不在仓库里，其他执行者（其他 AI、换机器）用不了；默认 `PL_APP` 是旧包名 `.next`，截图路径写死成某次会话的 scratchpad | `~/tools/pl-adb.sh:4`、`:7` | 忘了改 `PL_APP` 时前台检查拦住所有输入；截图落到别的会话目录 | Z04.1 |
 | `build.gradle.kts` 的注释写“Release signing (docs/specs/ENGINEERING.md §9)”，ENGINEERING 只有 7 节 | `apps/pure_live/android/app/build.gradle.kts:9` | 按注释找不到说明 | Z06 已知问题统一记；改时指向 Y01 |
 | `docs/specs/ENGINEERING.md` 第 6 节和 AGENTS.md 说 `apps/pure_live` 有 Linux，但仓库里没有 `linux/` 运行器 | `AGENTS.md`“目录”一节 | 文档和代码不符 | X02.1 |
-| 构建时 FFmpeg 构建钩子遇到远程地址会每次重新下载；现在靠本地路径绕开，换包时 `bundles.txt` 和根 `pubspec.yaml` 两处要一起改 | `tools/ffmpeg_kit/bundles.txt` 注释、根 `pubspec.yaml:56-65` 注释 | 只改一处会构建失败或用旧包 | 两处注释都写了；没有任务 |
+| 构建时 FFmpeg 构建钩子遇到远程地址会每次重新下载；现在靠本地路径绕开，换包时 `bundles.txt` 和根 `pubspec.yaml` 两处要一起改 | `tools/ffmpeg_kit/bundles.txt` 注释、根 `pubspec.yaml` 的 `ffmpeg_kit_extended_config` 上面的注释 | 只改一处会构建失败或用旧包 | 两处注释都写了；没有任务 |
 | 门禁和正式包构建不能同时在一份代码里跑 | PROCESS 第 8 节第 5 条 | 互相改生成的文件 | 规则；没有技术上的锁 |
 
 ## 相关决定和规范

@@ -59,12 +59,14 @@ dependency_overrides:
   dbus: 0.8.0
 
 # Native FFmpeg of the recorder (apps/pure_live depends on
-# ffmpeg_kit_extended_flutter 0.6.2). The plugin's build hook reads this block
-# from the pubspec next to .dart_tool/package_config.json, which in a pub
-# workspace is this one. The bundles are 3.x's verified FFmpeg 9.0.2 builds
-# (release native-ffmpeg-9.0.2-b1, listed with their SHA-256 in
-# tools/ffmpeg_kit/bundles.txt). The hook downloads a remote URL on every
-# build, so the paths are local (relative to this file): run
+# ffmpeg_kit_extended_flutter 1.0.0, native API FFmpegKit 0.11.2). The
+# plugin's build hook reads this block from the pubspec next to
+# .dart_tool/package_config.json, which in a pub workspace is this one. The
+# bundles are our FFmpeg 9.0.2 builds for that API (release
+# native-ffmpeg-9.0.2-b2, listed with their SHA-256 in
+# tools/ffmpeg_kit/bundles.txt; rebuilt with tools/ffmpeg_kit/rebuild/ and the
+# FFmpegKit Apple workflow). The hook downloads a remote URL on every build,
+# so the paths are local (relative to this file): run
 # tools/ffmpeg_kit/fetch.sh (WSL/Linux) or fetch.ps1 (Windows) once after
 # cloning; it downloads into a cache outside the repository only what is
 # missing and links it into the git-ignored .ffmpeg_kit/. Never committed.

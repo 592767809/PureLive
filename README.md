@@ -345,7 +345,7 @@
 
 ## 从源码构建
 
-需要 Linux 或 Windows 上的 Flutter 环境。工具链的版本统一写在 [`toolchain.env`](toolchain.env)（Flutter 3.47.7、Dart 3.13.5、Gradle 9.8.1、AGP 9.4.1、Kotlin 2.4.21、JDK 27、Android SDK 37.2、build-tools 37.0.0、platform-tools 37.0.1、cmdline-tools 23.0、NDK 30.0.16248370、CMake 4.1.2），升级时只改这一处（Android 构建直接读取其中的 compileSdk、build-tools、NDK、CMake；Gradle、AGP 另见 Z01）。
+需要 Linux 或 Windows 上的 Flutter 环境。工具链的版本统一写在 [`toolchain.env`](toolchain.env)（Flutter 3.47.7、Dart 3.13.5、Gradle 9.8.2、AGP 9.4.1、Kotlin 2.4.21、JDK 27、Android SDK 37.2、build-tools 37.0.0、platform-tools 37.0.1、cmdline-tools 23.0、NDK 30.0.16248370、CMake 4.1.2），升级时只改这一处（Android 构建直接读取其中的 compileSdk、build-tools、NDK、CMake；Gradle、AGP 另见 Z01）。
 
 ```bash
 git clone https://github.com/wzgrx/PureLive.git

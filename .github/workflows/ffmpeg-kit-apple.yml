@@ -1,7 +1,8 @@
 # The recorder's native FFmpeg for iOS and macOS (tools/ffmpeg_kit/bundles.txt),
 # built from source on GitHub's macOS runner (D-041: we have no Mac). The
-# Android, Linux and Windows bundles are built on our own machine in the
-# builders' container (docs/Z-工程文档和维护/Z04-构建和装机).
+# Android, Linux and Windows bundles are built on our own machine with
+# tools/ffmpeg_kit/rebuild/build.sh; check them all with check.sh there
+# (docs/Z-工程文档和维护/Z04-构建和装机).
 #
 # Same scripts and options as ffmpeg-kit-builders' own release of the version
 # ffmpeg_kit_extended_flutter pins (base bundle, LGPL, not small), with FFmpeg
