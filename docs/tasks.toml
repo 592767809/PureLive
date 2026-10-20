@@ -4669,14 +4669,14 @@ note = "标签 v5.4.4（b601f63c4）；发布页 https://github.com/wzgrx/PureLi
 id = "Y01.16"
 title = "5.4.5 全平台发布（Android、电视、Windows、Linux、macOS、iOS，构建号 5109）：玻璃底栏手感重做、平板也用底栏"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-20"
 size = "小"
 tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
-done = 1
+done = 5
 from = "用户 2026-10-20：在红米测试就行，测试没问题就更新发布版本"
-note = "内容：A01.7 液体玻璃手感、V02.6 平板也用底栏（issue #4）、V02.8 平板退出全屏方向（issue #5）、G02.4 部分哔哩哔哩直播间误报解码错误"
+note = "标签 v5.4.5（854ea224b）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.4.5 （正式版，十个包和 SHA256SUMS.txt，哈希一致；苹果四个包由 apple-publish.yml 从运行 39473749203 挂上）；两个仓库的更新文件都是 5.4.5、5109。内容：A01.7 液体玻璃手感、V02.6 平板也用底栏（issue #4）、V02.8 平板退出全屏方向（issue #5）、G02.4 部分哔哩哔哩直播间误报解码错误、Z01.2 工具链升级和 FFmpeg 包重编（native-ffmpeg-9.0.2-b2）"
 
 [[task]]
 id = "Y02.1"
