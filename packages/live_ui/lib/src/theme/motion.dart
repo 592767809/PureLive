@@ -88,6 +88,46 @@ abstract final class AppMotion {
   /// settles like a drop of water, in about 0.35 s.
   static final SpringDescription dropSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 520, ratio: 0.72);
 
+  // The liquid glass bar's feel (A01.7, after CoolApk's bar and Kyant's
+  // AndroidLiquidGlass, measured 2026-10-20): every part is a spring, so a
+  // touch can catch any of them mid-way.
+
+  /// The drop's place: critically damped and quick (about 0.13 s), it
+  /// follows the finger a hair behind and never passes its destination.
+  static final SpringDescription glassPlaceSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 1000);
+
+  /// How much the drop is held (0 a pill at rest, 1 a lens): as quick.
+  static final SpringDescription glassPressSpring = glassPlaceSpring;
+
+  /// The drop's width growing when held: loose, it swells past and back.
+  static final SpringDescription glassGrowXSpring = SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: 250,
+    ratio: 0.6,
+  );
+
+  /// The drop's height growing when held: a little firmer than the width,
+  /// so the two wobble out of step like a drop of water.
+  static final SpringDescription glassGrowYSpring = SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: 250,
+    ratio: 0.7,
+  );
+
+  /// The drop's speed as its shape feels it: under-damped, so a drop that
+  /// stops squeezes once the other way before it rests.
+  static final SpringDescription glassSquashSpring = SpringDescription.withDampingRatio(
+    mass: 1,
+    stiffness: 300,
+    ratio: 0.5,
+  );
+
+  /// The whole bar back from leaning with a drag.
+  static final SpringDescription glassLeanSpring = SpringDescription.withDampingRatio(mass: 1, stiffness: 300);
+
+  /// How big a held drop grows: from the bar's 56 to 78 high.
+  static const double glassHeldScale = 78 / 56;
+
   /// Small controls (a switch's knob, a chip): Material 3's fast spatial
   /// spring, damping ratio 0.9, stiffness 1400.
   static final SpringDescription controlSpring = SpringDescription.withDampingRatio(

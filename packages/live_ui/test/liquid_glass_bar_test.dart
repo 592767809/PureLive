@@ -7,11 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
 
 void main() {
-  Future<List<int>> pump(WidgetTester tester, {int selected = 0}) async {
+  Future<List<int>> pump(WidgetTester tester, {int selected = 0, bool still = false}) async {
     final chosen = <int>[];
     var index = selected;
     await tester.pumpWidget(
       MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(disableAnimations: still),
+          child: child!,
+        ),
         theme: const LiveTheme().light,
         home: Scaffold(
           body: Align(
@@ -74,5 +78,59 @@ void main() {
     expect(hot.rect.height, greaterThanOrEqualTo(48));
     expect(tester.getSemantics(find.bySemanticsLabel('关注')).flagsCollection.isSelected, Tristate.isFalse);
     handle.dispose();
+  });
+
+  double held(WidgetTester tester) => tester
+      .renderObject<RenderLiquidGlass>(
+        find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_LiquidGlass'),
+      )
+      .held();
+
+  testWidgets('A01.7: held, the pill turns into a lens and back when let go; the bar swells a little', (tester) async {
+    await pump(tester);
+    expect(held(tester), 0);
+    final touch = await tester.startGesture(tester.getCenter(item('关注')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(held(tester), greaterThan(0.9));
+    final scale = tester.widget<Transform>(
+      find.descendant(of: find.byType(LiquidGlassBar), matching: find.byType(Transform)).at(1),
+    );
+    expect(scale.transform.getMaxScaleOnAxis(), greaterThan(1));
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(held(tester), closeTo(0, 0.01));
+  });
+
+  testWidgets('A01.7: chosen elsewhere, the drop goes there as a lens and rests as a pill', (tester) async {
+    await pump(tester);
+    await tester.tap(item('录制中心'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(held(tester), greaterThan(0.5));
+    await tester.pumpAndSettle();
+    expect(held(tester), closeTo(0, 0.01));
+  });
+
+  testWidgets('A01.7: with animations off the drop is always a pill', (tester) async {
+    final chosen = await pump(tester, still: true);
+    final touch = await tester.startGesture(tester.getCenter(item('热门')));
+    await tester.pump(const Duration(milliseconds: 150));
+    expect(held(tester), 0);
+    await touch.up();
+    await tester.pump();
+    expect(chosen, [1]);
+    expect(held(tester), 0);
+  });
+
+  testWidgets('A01.7: one name and one pair of icons per destination (the chosen colour only under the drop)', (
+    tester,
+  ) async {
+    await pump(tester, selected: 2);
+    for (final name in ['关注', '热门', '分区', '录制中心']) {
+      expect(item(name), findsOneWidget);
+    }
+    expect(find.byIcon(Icons.circle), findsNWidgets(4));
+    expect(find.byIcon(Icons.circle_outlined), findsNWidgets(4));
   });
 }

@@ -51,8 +51,7 @@ vec3 backdrop(vec2 px) {
 }
 
 // The page through the glass at [p], bent by [shift] with a colour split.
-vec3 refracted(vec2 p, vec2 shift) {
-  float split = uOptics.w;
+vec3 refracted(vec2 p, vec2 shift, float split) {
   return vec3(
     backdrop(p + shift * (1.0 + split)).r,
     backdrop(p + shift).g,
@@ -68,7 +67,16 @@ void main() {
   float paneRadius = min(uShape.x, min(paneHalf.x, paneHalf.y));
   float d = roundRect(p, paneCentre, paneHalf, paneRadius);
   float inside = 1.0 - smoothstep(-0.75, 0.75, d);
-  if (inside <= 0.0) {
+
+  // The drop: clearer glass that magnifies, only while held (A01.7). Held,
+  // it grows past the pane's top and bottom, so it is drawn there too.
+  vec2 dropHalf = uDrop.zw * 0.5;
+  vec2 dropCentre = uDrop.xy + dropHalf;
+  float dropRadius = min(uShape.y, min(dropHalf.x, dropHalf.y));
+  float dd = roundRect(p, dropCentre, dropHalf, dropRadius);
+  float drop = (1.0 - smoothstep(-0.75, 0.75, dd)) * uShape.z;
+  float cover = max(inside, drop);
+  if (cover <= 0.0) {
     fragColor = vec4(0.0);
     return;
   }
@@ -78,20 +86,16 @@ void main() {
   vec2 normal = roundRectNormal(p, paneCentre, paneHalf, paneRadius);
   // Steep at the rim, flat inside: a lens's edge.
   float bend = (1.0 - depth) * (1.0 - depth);
-  vec3 colour = refracted(p, -normal * bend * uOptics.y);
+  vec3 colour = refracted(p, -normal * bend * uOptics.y, uOptics.w);
 
-  // The drop: clearer glass that magnifies.
-  vec2 dropHalf = uDrop.zw * 0.5;
-  vec2 dropCentre = uDrop.xy + dropHalf;
-  float dropRadius = min(uShape.y, min(dropHalf.x, dropHalf.y));
-  float dd = roundRect(p, dropCentre, dropHalf, dropRadius);
-  float drop = (1.0 - smoothstep(-0.75, 0.75, dd)) * uShape.z;
   vec2 dropNormal = roundRectNormal(p, dropCentre, dropHalf, dropRadius);
   float dropDepth = clamp(-dd / (band * 0.8), 0.0, 1.0);
   if (drop > 0.0) {
     float dropBend = (1.0 - dropDepth) * (1.0 - dropDepth);
     vec2 magnified = dropCentre + (p - dropCentre) / uShape.w;
-    vec3 seen = refracted(magnified, -dropNormal * dropBend * uOptics.y * 1.4);
+    // A stronger colour split at the drop's rim: the rainbow edge of a
+    // held lens.
+    vec3 seen = refracted(magnified, -dropNormal * dropBend * uOptics.y * 1.4, uOptics.w * 2.5);
     colour = mix(colour, seen, drop);
   }
 
@@ -103,12 +107,12 @@ void main() {
   // Rims: thin and bright where the edge faces the light, faint opposite.
   vec2 light = normalize(uLight.xy);
   float rimWidth = uOptics.z;
-  float rim = 1.0 - smoothstep(0.0, rimWidth, -d);
+  float rim = (1.0 - smoothstep(0.0, rimWidth, -d)) * inside;
   float facing = max(dot(normal, light), 0.0);
   float away = max(dot(normal, -light), 0.0);
   colour += rim * (0.6 * facing + 0.22 * away) * uLight.z;
   // A soft sheen along the lit edge, inside.
-  colour += (1.0 - depth) * 0.07 * facing * uLight.z;
+  colour += (1.0 - depth) * 0.07 * facing * uLight.z * inside;
   if (drop > 0.0) {
     float dropRim = 1.0 - smoothstep(0.0, rimWidth, -dd);
     float dropFacing = max(dot(dropNormal, light), 0.0);
@@ -117,5 +121,5 @@ void main() {
   }
 
   colour = clamp(colour, 0.0, 1.0);
-  fragColor = vec4(colour * inside, inside);
+  fragColor = vec4(colour * cover, cover);
 }
