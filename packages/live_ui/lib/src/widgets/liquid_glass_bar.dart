@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
@@ -209,18 +210,50 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     _drop.addListener(check);
   }
 
+  /// The destination a finger came down on, until it is chosen (a tap) or
+  /// dragged from.
+  int? _pressedIndex;
+
   void _onPointerDown(PointerDownEvent event) {
     _touching = true;
     _hold(true);
+    // The drop goes under the finger at once (CoolApk); chosen on the tap.
+    if (_width == 0) return;
+    final index = _indexAt(event.localPosition.dx);
+    _pressedIndex = index;
+    if ((_drop.value - _centreOf(index)).abs() > 0.5) _goTo(index);
   }
 
   void _onPointerUp(PointerEvent event) {
     _touching = false;
+    // A press that became neither a tap nor a drag (the finger slid off, or
+    // the touch was taken): the drop goes back to the chosen destination.
+    // The tap is told after this, so look once it has had its turn.
+    scheduleMicrotask(() {
+      if (!mounted || _pressedIndex == null) return;
+      _pressedIndex = null;
+      if (_dragIndex == null) _settle(widget.selectedIndex);
+    });
     // Let go while the drop is still on its way: it lets go as it arrives.
     if (_arriving == null && _dragIndex == null) _hold(false);
   }
 
+  /// To [index] while held: no letting go on arrival.
+  void _goTo(int index) {
+    if (_still) {
+      _drop.value = _centreOf(index);
+      return;
+    }
+    _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, _centreOf(index), _drop.velocity));
+    _letGoNear(_centreOf(index));
+  }
+
+  /// How far a drag has gone along the bar, either way.
+  double _dragDistance = 0;
+
   void _onDragStart(DragStartDetails details) {
+    _pressedIndex = null;
+    _dragDistance = 0;
     _dragTarget = _drop.value;
     _dragIndex = _indexAt(_dragTarget);
     _hold(true);
@@ -230,6 +263,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     final min = _centreOf(0);
     final max = _centreOf(widget.items.length - 1);
     _dragTarget += details.delta.dx;
+    _dragDistance += details.delta.dx.abs();
     // Past the first or last destination the drop follows ever more
     // heavily (the lists' rubber band).
     final raw = _dragTarget;
@@ -253,6 +287,15 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
 
   void _onDragEnd(DragEndDetails details) {
     final velocity = details.velocity.pixelsPerSecond.dx;
+    // A press whose finger slid off up or down: the drag only won because
+    // the tap gave up. Nothing is chosen; the drop goes back.
+    if (_dragDistance < kTouchSlop && velocity.abs() < kMinFlingVelocity) {
+      _dragIndex = null;
+      _touching = false;
+      if (!_still) _spring(_lean, AppMotion.glassLeanSpring, 0);
+      _settle(widget.selectedIndex);
+      return;
+    }
     // Where a throw would carry it, a fifth of a second on.
     final index = _indexAt(_dragTarget.clamp(_centreOf(0), _centreOf(widget.items.length - 1)) + velocity * 0.2);
     _dragIndex = null;
@@ -263,6 +306,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
   }
 
   void _onTap(int index) {
+    _pressedIndex = null;
     // The chosen one tapped again is told too: the follows refresh (3.x).
     if (index != widget.selectedIndex) _settle(index);
     widget.onSelected(index);

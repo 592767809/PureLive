@@ -133,4 +133,26 @@ void main() {
     expect(find.byIcon(Icons.circle), findsNWidgets(4));
     expect(find.byIcon(Icons.circle_outlined), findsNWidgets(4));
   });
+
+  testWidgets('A01.7: pressed, the drop goes under the finger at once; slid off, it goes back', (tester) async {
+    final chosen = await pump(tester);
+    Rect drop() => tester
+        .renderObject<RenderLiquidGlass>(
+          find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_LiquidGlass'),
+        )
+        .drop();
+    final start = drop().center.dx;
+    final touch = await tester.startGesture(tester.getCenter(item('分区')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    final left = tester.getTopLeft(find.byType(LiquidGlassBar)).dx;
+    expect((drop().center.dx + left - tester.getCenter(item('分区')).dx).abs(), lessThan(4));
+    expect(chosen, isEmpty);
+    // Up and away: no tap, no drag along the bar.
+    await touch.moveBy(const Offset(0, -200));
+    await touch.up();
+    await tester.pumpAndSettle();
+    expect(chosen, isEmpty);
+    expect((drop().center.dx - start).abs(), lessThan(1));
+  });
 }
