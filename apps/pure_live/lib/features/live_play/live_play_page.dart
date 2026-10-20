@@ -149,6 +149,10 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   /// A landscape fullscreen forced from a portrait room turns the phone back
   /// upright when it ends, auto-rotate on or off (appendix A 11).
   bool _restorePortrait = false;
+
+  /// The screen was sideways when the fullscreen began (a tablet held so):
+  /// leaving turns it back sideways, not upright (issue #5).
+  bool _sidewaysBefore = false;
   bool _entryHint = false;
   bool _pip = false;
   bool _details = false;
@@ -610,6 +614,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       return;
     }
     _restorePortrait = landscape;
+    _sidewaysBefore = mounted && MediaQuery.orientationOf(context) == Orientation.landscape;
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     if (portrait) {
       await ScreenOrientation.portrait();
@@ -630,6 +635,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       _entryHint = true;
     });
     _restorePortrait = false;
+    _sidewaysBefore = mounted && MediaQuery.orientationOf(context) == Orientation.landscape;
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     await ScreenOrientation.portrait();
   }
@@ -744,7 +750,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   /// [upright] whatever (O05.3; 3.x `exitFullscreenWithOrientationRestore`).
   Future<void> _restoreSystemUi({bool upright = false}) async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    await ScreenOrientation.restore(upright: upright);
+    await ScreenOrientation.restore(upright: upright, sideways: _sidewaysBefore);
   }
 
   /// The fullscreen button, double tap and F; in the in-window fullscreen

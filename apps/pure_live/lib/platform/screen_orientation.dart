@@ -18,6 +18,12 @@ import 'package:flutter/services.dart';
 /// SENSOR_LANDSCAPE turned the screen (the K90: `user_rotation` 0 to 3), so
 /// letting go at once left the whole app, and other apps, sideways. The phone
 /// is turned upright first and let go once that has settled.
+///
+/// Sideways before (issue #5): a tablet held sideways with auto-rotate off
+/// was turned upright on leaving, a portrait screen lying on its side, and
+/// stayed so once let go (the locked rotation had moved with it). What the
+/// screen was before the fullscreen is turned back to instead: sideways,
+/// turning over with the device, then let go.
 abstract final class ScreenOrientation {
   static const MethodChannel _channel = MethodChannel('pure_live/system_access');
 
@@ -36,6 +42,10 @@ abstract final class ScreenOrientation {
   /// Sideways, either way round, turning over with the phone.
   static Future<void> landscape() async {
     _claim();
+    await _sideways();
+  }
+
+  static Future<void> _sideways() async {
     await SystemChrome.setPreferredOrientations(const [
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
@@ -63,11 +73,12 @@ abstract final class ScreenOrientation {
   }
 
   /// Back from a fullscreen. On Android with auto-rotate off (or unknown) the
-  /// phone is turned upright and let go [settle] later; with auto-rotate on
-  /// it is let go at once and follows the phone, as before. [upright] turns
-  /// it upright whatever ("横屏全屏", 3.x
+  /// phone is turned back the way it was before the fullscreen ([sideways]:
+  /// it was sideways, a tablet held so; else upright) and let go [settle]
+  /// later; with auto-rotate on it is let go at once and follows the phone,
+  /// as before. [upright] turns it back whatever ("横屏全屏", 3.x
   /// `exitFullscreenWithOrientationRestore`, UI.md appendix A 11).
-  static Future<void> restore({bool upright = false}) async {
+  static Future<void> restore({bool upright = false, bool sideways = false}) async {
     final turn = _claim();
     if (!upright) {
       if (!_android || await _autoRotate()) {
@@ -76,7 +87,11 @@ abstract final class ScreenOrientation {
       }
       if (turn != _turn) return;
     }
-    await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    if (sideways) {
+      await _sideways();
+    } else {
+      await SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    }
     if (turn != _turn) return;
     _release = Timer(settle, () {
       _release = null;

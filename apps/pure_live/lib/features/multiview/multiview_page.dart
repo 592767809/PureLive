@@ -385,9 +385,16 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     return _stepBack();
   }
 
+  /// The screen was sideways when the fullscreen began (a tablet held so):
+  /// leaving turns it back sideways, not upright (issue #5).
+  bool _sidewaysBefore = false;
+
   Future<void> _setMode(_DisplayMode mode) async {
     if (!mounted || mode == _mode) return;
     final previous = _mode;
+    if (mode == _DisplayMode.fullscreen) {
+      _sidewaysBefore = MediaQuery.orientationOf(context) == Orientation.landscape;
+    }
     setState(() {
       _mode = mode;
       _overlay = _Overlay.none;
@@ -416,7 +423,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   /// (O05.3).
   Future<void> _restoreSystemUi() async {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    await ScreenOrientation.restore();
+    await ScreenOrientation.restore(sideways: _sidewaysBefore);
   }
 
   void _onBack(bool didPop) {

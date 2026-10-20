@@ -418,6 +418,19 @@ void main() {
       await _close(tester, room);
     });
 
+    testWidgets('issue #5: a tablet held sideways goes back sideways, never upright', (tester) async {
+      final room = await _pump(tester, width: 1280, height: 800);
+      await _tap(tester, 'live-play-fullscreen');
+      await tester.pump(const Duration(seconds: 1));
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(room.orientations, [sideways, 'sensorLandscape', sideways, 'sensorLandscape']);
+      await tester.pump(const Duration(seconds: 4));
+      expect(room.orientations.last, isEmpty, reason: 'then free');
+      expect(room.orientations, isNot(contains(upright)));
+      await _close(tester, room);
+    });
+
     testWidgets('the room closed while in the fullscreen: upright, then free', (tester) async {
       final room = await _pump(tester);
       await _tap(tester, 'live-play-fullscreen');

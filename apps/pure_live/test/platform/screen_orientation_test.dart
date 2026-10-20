@@ -91,4 +91,24 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
     expect(calls, [<Object?>[]]);
   });
+
+  testWidgets('issue #5: sideways before (a tablet held so), auto-rotate off: back sideways, then let go', (
+    tester,
+  ) async {
+    final calls = _fake(tester, autoRotate: false);
+    await ScreenOrientation.landscape();
+    await ScreenOrientation.restore(sideways: true);
+    expect(calls, [_sideways, 'sensorLandscape', 'autoRotate', _sideways, 'sensorLandscape']);
+    await tester.pump(const Duration(seconds: 4));
+    expect(calls.last, isEmpty, reason: 'then free');
+    expect(calls, isNot(contains(_upright)), reason: 'never turned upright');
+  });
+
+  testWidgets('issue #5: the one-off 横屏全屏 started sideways goes back sideways too', (tester) async {
+    final calls = _fake(tester, autoRotate: true);
+    await ScreenOrientation.restore(upright: true, sideways: true);
+    expect(calls, [_sideways, 'sensorLandscape']);
+    await tester.pump(const Duration(seconds: 4));
+    expect(calls.last, isEmpty);
+  });
 }

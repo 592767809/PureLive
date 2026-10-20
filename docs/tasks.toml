@@ -4254,6 +4254,17 @@ from = "https://github.com/wzgrx/PureLive/issues/3"
 note = "根因：旧仓库 wzgrx/pure_live 的发布页最新一直是 4.2.0、README 停在 5.0.0 没有醒目的搬家说明、简介为空、Issues 已关。处理：旧仓库 README 换成搬家说明（b8a69510c，只改 README，更新文件不动）；简介和主页改成新仓库；发布 moved-to-PureLive（无安装包，设为最新）让发布页和订阅发布的人看到搬家。3.x 的 releases 地址只定义没用到，4.x 不读发布列表，所以这个发布不影响检查更新。以后同步旧仓库更新文件（PROCESS 第 11 节第 8 条）只改两个文件，README 保持搬家说明"
 
 [[task]]
+id = "V02.8"
+title = "issue #5：平板退出直播间全屏后变成横着的竖屏"
+type = "界面"
+status = "完成"
+date = "2026-10-20"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/5"
+note = "根因：ScreenOrientation.restore 在自动旋转关着（或读不到）时一律先转竖屏再放开（O05.3 为手机做的），横着拿的平板被转成竖屏、锁定方向随之变竖。改成进全屏时记下窗口是横是竖（直播间、多画面），退出时转回原来的方向（横的用跟随传感器的横屏，稳定 3 秒后放开）；手机竖着进的照旧。测试：screen_orientation_test 两条、live_play_layouts_test 平板横拿一条（撤掉修复时失败）。K90 用 cmd window user-rotation lock 1 模拟横拿、自动旋转关：退出全屏 5 秒后仍是横屏 ROTATION_90，界面正常；测完恢复自动旋转和方向"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"
@@ -4654,7 +4665,7 @@ tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
 done = 1
 from = "用户 2026-10-20：在红米测试就行，测试没问题就更新发布版本"
-note = "内容：A01.7 液体玻璃手感、V02.6 平板也用底栏（issue #4）"
+note = "内容：A01.7 液体玻璃手感、V02.6 平板也用底栏（issue #4）、V02.8 平板退出全屏方向（issue #5）"
 
 [[task]]
 id = "Y02.1"
