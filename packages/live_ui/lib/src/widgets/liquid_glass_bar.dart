@@ -138,6 +138,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
 
   @override
   void dispose() {
+    if (_arriving case final arriving?) _drop.removeListener(arriving);
     _drop.dispose();
     _press.dispose();
     _growX.dispose();
@@ -176,8 +177,8 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     _spring(_growY, AppMotion.glassGrowYSpring, grow);
   }
 
-  /// To [index]: the drop goes as a lens and turns back into a pill there,
-  /// unless a finger still holds it.
+  /// To [index]: the drop goes as a lens and turns back into a pill as it
+  /// arrives, unless a finger still holds it.
   void _settle(int index) {
     final target = _centreOf(index);
     if (_still || _width == 0) {
@@ -185,12 +186,27 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
       return;
     }
     _hold(true);
-    final going = _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, target, _drop.velocity));
-    unawaited(
-      going.orCancel.then((_) {
-        if (mounted && !_touching && _dragIndex == null) _hold(false);
-      }, onError: (Object _) {}),
-    );
+    _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, target, _drop.velocity));
+    _letGoNear(target);
+  }
+
+  VoidCallback? _arriving;
+
+  /// The lens turns back into a pill once the drop is within 2.5 % of the
+  /// bar's run from [target] (Kyant's release), not when the spring's last
+  /// fraction of a pixel is done.
+  void _letGoNear(double target) {
+    if (_arriving case final previous?) _drop.removeListener(previous);
+    final near = (_centreOf(widget.items.length - 1) - _centreOf(0)) * 0.025;
+    void check() {
+      if ((_drop.value - target).abs() > near && _drop.isAnimating) return;
+      _drop.removeListener(check);
+      if (identical(_arriving, check)) _arriving = null;
+      if (mounted && !_touching && _dragIndex == null) _hold(false);
+    }
+
+    _arriving = check;
+    _drop.addListener(check);
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -200,7 +216,8 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
 
   void _onPointerUp(PointerEvent event) {
     _touching = false;
-    if (!_drop.isAnimating && _dragIndex == null) _hold(false);
+    // Let go while the drop is still on its way: it lets go as it arrives.
+    if (_arriving == null && _dragIndex == null) _hold(false);
   }
 
   void _onDragStart(DragStartDetails details) {
@@ -788,6 +805,46 @@ class RenderLiquidGlass extends RenderProxyBox {
   void _paintTouch(Canvas canvas, Rect bounds, Rect drop) {
     _paintPill(canvas, drop, lens: true);
     _paintGlow(canvas, bounds, drop);
+    _paintLensDepth(canvas, drop);
+  }
+
+  /// A held lens stands off the glass: a soft shadow around it (24 across,
+  /// 4 down, 10 %) and a shade along its top edge inside (8 across, 15 %),
+  /// both growing as it is held (Kyant's shadow and inner shadow). Without
+  /// them a clear lens over a white page could not be seen.
+  void _paintLensDepth(Canvas canvas, Rect drop) {
+    final held = _held().clamp(0.0, 1.0);
+    if (held <= 0 || drop.isEmpty) return;
+    final lens = RRect.fromRectAndRadius(drop, Radius.circular(drop.shortestSide / 2));
+    final around = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(drop.inflate(48))
+      ..addRRect(lens);
+    canvas
+      ..save()
+      ..clipPath(around)
+      ..drawRRect(
+        lens.shift(const Offset(0, 4)),
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.10 * held)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, Shadow.convertRadiusToSigma(24)),
+      )
+      ..restore();
+    final radius = 8 * held;
+    final inner = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(drop.inflate(radius * 3 + 8))
+      ..addRRect(lens.shift(Offset(0, radius)));
+    canvas
+      ..save()
+      ..clipRRect(lens)
+      ..drawPath(
+        inner,
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.15 * held)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, Shadow.convertRadiusToSigma(radius)),
+      )
+      ..restore();
   }
 
   /// The drop at rest: a pill of shade, black on light glass and white on
