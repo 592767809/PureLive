@@ -12,7 +12,8 @@
   - iOS、macOS：`.github/workflows/ffmpeg-kit-apple.yml`（macos-14，同一份脚本和选项）。第一次跑编译成功，自己的检查失败：`strings | grep -m1` 在 pipefail 下 grep 先退出、strings 被截断，整条管道算失败（日志里已经找到 n9.0.2）；改成先写文件再找。
 - 检查（`tools/ffmpeg_kit/rebuild/check.sh`，拿官方包试过，能查出 armeabi-v7a 的问题）：每个二进制带 n9.0.2；Android 三个 ABI、已 strip、64 位的 LOAD 16 KiB 对齐；Linux 只依赖系统库、glibc 最高 2.28；Windows 只导入系统 DLL 和 UCRT。和官方包比：FFmpeg 的 `--enable`/`--disable` 选项完全相同，Android、Linux、Windows 的依赖表相同，大小相差不到 0.1%；Windows 多导出一个测试函数 `ffmpeg_kit_test_emit_unattributed_log`（fac2076 比官方 Windows 包晚），授权文件多了 jsoncpp、pthread-win32。
 - iOS、macOS（工作流运行 39458124411）：iOS 是 arm64 真机加 arm64 模拟器，macOS 是 arm64 加 x86_64，最低系统都是 13.0，和官方一样。iOS 的二进制比官方大 3 MB、dSYM 只有 2.3 MB（官方 64 MB）：代码段和数据段和官方相差不到 32 KiB，差别是我们的 iOS 二进制留着调试映射（stabs，16 万条符号，官方 4 万），dSYM 里几乎没有 DWARF；macOS 两边一样（dSYM 都是 52 MB）。不影响使用，Xcode 打包应用时会剥掉嵌入框架的调试符号；苹果平台的录制本来就还没开。
-- 实际加载：Linux（Python ctypes）和 Windows（PowerShell P/Invoke，在 PC 上）都报 FFmpeg n9.0.2、FFmpegKit 0.11.2、base。
+- 实际加载：Linux（Python ctypes）和 Windows（PowerShell P/Invoke，在 PC 上）都报 FFmpeg n9.0.2、FFmpegKit 0.11.2、base；再用 `ffmpeg_kit_execute` 把 K90 的录像截 10 秒、原样封装，两边都输出 10.1 秒的 H.264 + AAC，完整解码无错。
+- `tools/ffmpeg_kit/rebuild/build.sh` 从空目录跑了一遍三个平台（38 分钟，含建工具链镜像），`check.sh` 通过——脚本本身验证过。前两次没跑完：Gradle 下载插件、容器里下载 Android SDK 时 TLS 被断开，加了重试。
 - K90（自编 AAR 的 profile 包，APK 里的 `libffmpegkit.so` 和 AAR 里的哈希一致）：斗鱼 24422 录 36 秒，停止后保存，完整解码无错；再录 6 分 6 秒跨过 5 分钟分段，两段合成一个 366 秒的 mp4，完整解码无错，时间戳没有超过 1 秒的断档；没有崩溃。
 - 发布为内部预发布 `native-ffmpeg-9.0.2-b2`（五个文件的 GitHub 摘要和本地 SHA-256 一致），`tools/ffmpeg_kit/bundles.txt` 和根 `pubspec.yaml` 改指向它；`fetch.sh` 从发布页下载五个包，校验通过。
 
