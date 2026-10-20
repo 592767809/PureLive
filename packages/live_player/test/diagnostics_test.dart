@@ -70,4 +70,47 @@ void main() {
       expect(errors.single.code, 'source_runtime');
     });
   });
+
+  test('G02.4: mediacodec-copy\'s "no surface" notice is not a failure', () {
+    const notice = 'h264_mediacodec: Both surface and native_window are NULL';
+    expect(NativeDiagnosticGate.isActionable('ffmpeg/video', notice), isFalse);
+    fakeAsync((async) {
+      setUpGate();
+      gate
+        ..log('ffmpeg/video', 'error', notice)
+        // The stream rebuffers a moment after the picture's output arrives.
+        ..playback(playing: false, buffering: true);
+      async.elapse(const Duration(seconds: 3));
+      expect(errors, isEmpty);
+    });
+  });
+
+  test('G02.4: a decoder line held from the open waits until the new source is under way', () {
+    fakeAsync((async) {
+      setUpGate();
+      // A recovery tears the old connection down while the new one opens:
+      // its half-read packets are logged, then the new source opens slowly.
+      gate
+        ..beginOpen()
+        ..log('ffmpeg/video', 'error', 'h264: missing picture in access unit with size 611')
+        ..finishOpen();
+      async.elapse(const Duration(milliseconds: 1600));
+      expect(errors, isEmpty, reason: 'nothing of the new source decoded yet');
+      gate
+        ..playback(playing: true, buffering: false)
+        ..videoFrame();
+      async.elapse(const Duration(seconds: 3));
+      expect(errors, isEmpty, reason: 'its video decoder works');
+
+      // Under way without its video ever coming: the line counts.
+      gate
+        ..beginOpen()
+        ..log('vd', 'error', 'Error while decoding frame')
+        ..finishOpen()
+        ..audioFrame()
+        ..playback(playing: false, buffering: true);
+      async.elapse(const Duration(seconds: 2));
+      expect(errors.single.code, 'video_decoder_runtime');
+    });
+  });
 }

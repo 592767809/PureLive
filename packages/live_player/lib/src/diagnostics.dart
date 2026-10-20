@@ -14,7 +14,11 @@ import 'package:live_media/live_media.dart';
 /// - other failures wait [window]: progress of the same decoder (a frame, or
 ///   playing without buffering) cancels them;
 /// - a line logged while a source opens is held until the open finishes and
-///   dropped when the decoder it names already produced output;
+///   dropped when the decoder it names already produced output; a decoder's
+///   line waits further, until the new source is under way (G02.4: the old
+///   source's half-read packets, logged while a recovery reopened, were
+///   taken for the new source's and a slow open recovered again);
+/// - notices that are not failures are ignored ([isActionable]);
 /// - the same text is reported once per source within two seconds.
 final class NativeDiagnosticGate {
   /// Creates a gate that reports to [onError].
@@ -36,6 +40,10 @@ final class NativeDiagnosticGate {
   bool _buffering = false;
   int _progress = 0;
   ({String text, String? prefix})? _held;
+
+  /// A decoder's line held from the open, waiting for the source to get
+  /// under way.
+  ({String text, String? prefix})? _deferred;
   Timer? _timer;
   PlayerException? _pending;
   NativeDiagnosticComponent _pendingComponent = NativeDiagnosticComponent.either;
@@ -43,11 +51,23 @@ final class NativeDiagnosticGate {
   String? _lastText;
   DateTime? _lastAt;
 
+  /// Lines logged as errors that are not failures (G02.4).
+  ///
+  /// FFmpeg's MediaCodec decoder logs "Both surface and native_window are
+  /// NULL" whenever it is opened without a surface, which is how
+  /// `mediacodec-copy` (Android's hardware decoding here) always opens it;
+  /// it starts and decodes right after. Taken for a decoder failure, it
+  /// restarted streams that were playing (a Bilibili room rebuffering a
+  /// moment after its first frame, 2026-10-20).
+  static const _notices = ['both surface and native_window are null'];
+
   /// Whether mpv's [prefix] and [text] are worth classifying (3.x's
   /// `_isActionableNativeLog`).
   static bool isActionable(String prefix, String text) {
     final normalized = prefix.trim().toLowerCase();
-    if (normalized == 'ffmpeg') return text.trimLeft().toLowerCase().startsWith('tcp:');
+    final line = text.trimLeft().toLowerCase();
+    if (_notices.any(line.contains)) return false;
+    if (normalized == 'ffmpeg') return line.startsWith('tcp:');
     return _prefixes.contains(normalized);
   }
 
@@ -61,6 +81,7 @@ final class NativeDiagnosticGate {
     _buffering = true;
     _progress = 0;
     _held = null;
+    _deferred = null;
     _lastText = null;
     _lastAt = null;
   }
@@ -71,7 +92,27 @@ final class NativeDiagnosticGate {
     _opening = false;
     final held = _held;
     _held = null;
-    if (held != null && !_ready(_componentOf(held.prefix))) _process(held.text, held.prefix);
+    if (held == null) return;
+    final component = _componentOf(held.prefix);
+    if (_ready(component)) return;
+    // Nothing of the new source decoded yet: a decoder's line cannot be
+    // about it. It counts once the source is under way.
+    if (component != NativeDiagnosticComponent.either && !_underWay) {
+      _deferred = held;
+      return;
+    }
+    _process(held.text, held.prefix);
+  }
+
+  bool get _underWay => _playing || _videoReady || _audioReady;
+
+  /// The source got under way: a deferred decoder line counts from now,
+  /// unless its decoder already produced output.
+  void _start() {
+    final deferred = _deferred;
+    if (deferred == null) return;
+    _deferred = null;
+    if (!_ready(_componentOf(deferred.prefix))) _process(deferred.text, deferred.prefix);
   }
 
   /// One mpv log line.
@@ -89,6 +130,7 @@ final class NativeDiagnosticGate {
     _videoReady = true;
     _progress++;
     _cancelRecovered(NativeDiagnosticComponent.video);
+    _start();
   }
 
   /// Decoded audio (audio parameters).
@@ -96,6 +138,7 @@ final class NativeDiagnosticGate {
     _audioReady = true;
     _progress++;
     _cancelRecovered(NativeDiagnosticComponent.audio);
+    _start();
   }
 
   /// mpv's playing and buffering flags; playing without buffering is
@@ -107,11 +150,13 @@ final class NativeDiagnosticGate {
       _progress++;
       _cancelRecovered(audioOnly ? NativeDiagnosticComponent.audio : NativeDiagnosticComponent.video);
     }
+    if (playing) _start();
   }
 
   /// Stops reporting.
   void close() {
     _closed = true;
+    _deferred = null;
     _cancelPending();
   }
 
