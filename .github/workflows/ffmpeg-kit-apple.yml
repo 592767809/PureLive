@@ -5,9 +5,11 @@
 #
 # Same scripts and options as ffmpeg-kit-builders' own release of the version
 # ffmpeg_kit_extended_flutter pins (base bundle, LGPL, not small), with FFmpeg
-# fixed to a tag instead of the moving release branch. The run keeps the two
-# xcframework zips and their SHA-256 as an artifact; they are published by
-# hand in a native-ffmpeg-* prerelease after their checks.
+# fixed to a tag instead of the moving release branch, and every dependency
+# (jsoncpp and the rest) built from source here instead of downloaded from
+# the builders' releases. The run keeps the two xcframework zips and their
+# SHA-256 as an artifact; they are published by hand in a native-ffmpeg-*
+# prerelease after their checks.
 name: FFmpegKit Apple
 
 on:
@@ -60,7 +62,7 @@ jobs:
           set -euo pipefail
           sudo -E "$HOMEBREW_BASH" scripts/build_all.sh \
             --platform=ios-aarch64,iphonesimulator-aarch64,macos-aarch64,macos-x86_64 \
-            --build=ffmpeg,kit,bundle --bundle=base --license=lgpl --not-small --local --reset
+            --build=ffmpeg,kit,bundle --bundle=base --license=lgpl --not-small --local --reset --deps
 
       - name: Check and hash
         env:
