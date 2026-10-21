@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 221 条；设置 272 个（分节默认 24 条、单独指定 103 个）；来源 35 个；通道 21 个。
+路径规则 221 条；设置 274 个（分节默认 24 条、单独指定 103 个）；来源 35 个；通道 21 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -68,7 +68,7 @@
 | J06 3.x 数据迁移 | 1 |  |  |  |  |
 | K01 账号和登录方式 | 4 |  |  |  |  |
 | K02 登录状态 | 1 | 3 |  |  |  |
-| L01 网络电视 | 4 | 6 | 1 |  | 1 |
+| L01 网络电视 | 4 | 8 | 1 |  | 1 |
 | L02 节目单和回看 | 3 |  |  |  |  |
 | L03 点播和音乐 | 1 |  |  |  |  |
 | N01 多画面 | 1 | 1 |  |  |  |
@@ -374,7 +374,7 @@
 ## L01 网络电视
 
 - 代码：`apps/pure_live/lib/app/iptv_*.dart`、`apps/pure_live/lib/platform/platform_services.dart`（GBK 解码和组播锁）、`apps/pure_live/lib/features/iptv/iptv_data.dart`、`packages/live_iptv/`
-- 设置：`selectedSourceName`、`selectedSourceId`、`isAutoSyncEnabled`、`autoSyncHoursInterval`、`customIptvUserAgent`、`m3uDirectory`
+- 设置：`selectedSourceName`、`selectedSourceId`、`isAutoSyncEnabled`、`autoSyncHoursInterval`、`customIptvUserAgent`、`m3uDirectory`、`iptvPopularPlaylist`、`iptvHotRemoved`
 - 播放：`iptv`
 - 通道：`pure_live/text_codec`
 

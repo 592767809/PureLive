@@ -584,6 +584,62 @@ void main() {
     expect(find.text('还没有播放列表'), findsOneWidget);
   });
 
+  testWidgets('V02.9 (issue #6): "热门里显示" picks the playlist of 热门 → 网络; a deleted hot list stays deleted', (
+    tester,
+  ) async {
+    const hotBody = '#EXTM3U\n#EXTINF:-1,Hot\nhttp://f/hot\n';
+    late IptvPlaylist mine;
+    final h = await _pump(
+      tester,
+      bodies: {IptvImporter.hotPlaylistUrl: hotBody},
+      prepare: (h) async {
+        await h.importer.loadHotPlaylist();
+        await h.importer.importPlaylistText('#EXTM3U\n#EXTINF:-1,Mine\nhttp://f/mine\n', 'cn_all');
+        mine = (await h.library.playlists()).firstWhere((playlist) => !playlist.isHot);
+      },
+    );
+    const hotId = IptvPlaylist.hotId;
+    final row = find.byKey(const ValueKey('iptv-popular-playlist'));
+    expect(row, findsOneWidget);
+    expect(find.descendant(of: row, matching: find.textContaining('热门频道')), findsOneWidget);
+    expect(find.byKey(const ValueKey('iptv-in-use-$hotId')), findsOneWidget);
+    expect(find.text('热门显示中'), findsOneWidget);
+
+    await _tap(tester, row);
+    expect(find.textContaining('在热门 → 网络顶上也能直接切换'), findsOneWidget);
+    await _tap(tester, find.byKey(ValueKey('iptv-popular-${mine.id}')));
+    expect(h.settings.get(Settings.iptvPopularPlaylist), mine.id);
+    expect(h.toasts.last, '热门 → 网络改为显示“cn_all”');
+    expect(find.byKey(ValueKey('iptv-in-use-${mine.id}')), findsOneWidget);
+    expect(find.byKey(const ValueKey('iptv-in-use-$hotId')), findsNothing);
+
+    // Deleting the built-in list is remembered; one list left: no choice.
+    expect(find.byKey(const ValueKey('iptv-restore-hot')), findsNothing);
+    await _tap(tester, find.byKey(const ValueKey('iptv-remove-$hotId')));
+    await _tap(tester, find.byKey(const ValueKey('iptv-delete-confirm')));
+    expect(h.settings.get(Settings.iptvHotRemoved), isTrue);
+    expect(h.settings.get(Settings.iptvPopularPlaylist), mine.id);
+    expect(row, findsNothing);
+    expect(find.text('热门显示中'), findsNothing);
+    expect(find.byKey(const ValueKey('iptv-restore-hot')), findsOneWidget);
+
+    // Restored: downloaded again and offered again.
+    h.http.requests.clear();
+    await _tap(tester, find.byKey(const ValueKey('iptv-restore-hot')));
+    expect(h.settings.get(Settings.iptvHotRemoved), isFalse);
+    expect(h.toasts.last, '已恢复内置热门频道，正在下载');
+    expect(h.http.requests, [IptvImporter.hotPlaylistUrl]);
+    expect(find.byKey(const ValueKey('iptv-restore-hot')), findsNothing);
+    expect(find.byKey(const ValueKey('iptv-remove-$hotId')), findsOneWidget);
+    expect(row, findsOneWidget);
+
+    // Deleting the list 热门 shows goes back to the built-in one.
+    await _tap(tester, find.byKey(ValueKey('iptv-remove-${mine.id}')));
+    await _tap(tester, find.byKey(const ValueKey('iptv-delete-confirm')));
+    expect(h.settings.get(Settings.iptvPopularPlaylist), '');
+    expect(h.settings.get(Settings.iptvHotRemoved), isFalse);
+  });
+
   testWidgets('the guide is switched only from "当前使用的节目单"; deleting it moves to the next', (tester) async {
     late List<EpgSource> guides;
     final h = await _pump(

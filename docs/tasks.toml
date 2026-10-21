@@ -4276,6 +4276,17 @@ from = "https://github.com/wzgrx/PureLive/issues/5"
 note = "根因：ScreenOrientation.restore 在自动旋转关着（或读不到）时一律先转竖屏再放开（O05.3 为手机做的），横着拿的平板被转成竖屏、锁定方向随之变竖。改成进全屏时记下窗口是横是竖（直播间、多画面），退出时转回原来的方向（横的用跟随传感器的横屏，稳定 3 秒后放开）；手机竖着进的照旧。测试：screen_orientation_test 两条、live_play_layouts_test 平板横拿一条（撤掉修复时失败）。K90 用 cmd window user-rotation lock 1 模拟横拿、自动旋转关：退出全屏 5 秒后仍是横屏 ROTATION_90，界面正常；测完恢复自动旋转和方向"
 
 [[task]]
+id = "V02.9"
+title = "issue #6：导入网络电视播放列表后热门里切换不过去，删掉的内置列表又回来"
+type = "界面"
+status = "完成"
+date = "2026-10-21"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/6"
+note = "根因（3.x 起就这样）：热门 → 网络只显示内置热门列表，导入的列表只在分区 → 网络里，热门页没有地方切换；内置列表删掉后，热门 → 网络一刷新发现没频道就重新下载（IptvSite.getRecommendRooms），所以删不掉。改法：新设置 iptvPopularPlaylist（热门 → 网络显示哪个列表，空是内置的）、iptvHotRemoved（内置列表删过就不再自动导入）；规则在 live_iptv 的 shownIptvPlaylist（选的列表不在了回到内置的，内置删了用网络优先、按名字排第一个导入的）。热门 → 网络顶上一排标签切换（两个以上列表才出现）；网络电视设置加“热门里显示”和“恢复内置热门频道”，热门在显示的列表卡片标“热门显示中”；电视的网络电视页改读 hotRooms（删掉就不显示）。测试：live_iptv 两条、iptv_page_test 一条、popular_test 一条；应用全部测试 1724 条通过。K90：导入 hk 后热门 → 网络出现切换条，切到 hk 立刻换频道；删内置列表后下拉刷新、强制关闭重开，内置列表都没回来；恢复后重新下载 149 个频道；测完删掉 hk"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"

@@ -180,6 +180,73 @@ void main() {
     expect(await site().getRecommendRooms(page: 2), isEmpty);
   });
 
+  test(
+    'V02.9 (issue #6): recommendations show the chosen playlist; a deleted hot list is not imported again',
+    () async {
+      http.bodies[IptvImporter.hotPlaylistUrl] = utf8.encode('#EXTM3U\n#EXTINF:-1,Hot\nhttp://f/hot\n');
+      http.bodies['https://f/net.m3u'] = utf8.encode('#EXTM3U\n#EXTINF:-1,Net\nhttp://f/net\n');
+      await importer.importPlaylistText('#EXTM3U\n#EXTINF:-1,Mine\nhttp://f/mine\n', 'cn_all');
+      await importer.importPlaylistFromUrl('https://f/net.m3u');
+      final mine = (await library.playlists()).firstWhere((playlist) => playlist.name == 'cn_all');
+      var wanted = '';
+      var removed = false;
+      IptvSite chosen() => IptvSite(
+        library: library,
+        importer: importer,
+        selectedGuideSourceId: () => selected,
+        popularPlaylistId: () => wanted,
+        hotRemoved: () => removed,
+        now: () => clock,
+      );
+      Future<List<String>> titles() async => [for (final room in await chosen().getRecommendRooms()) room.title];
+
+      expect(await titles(), ['Hot'], reason: 'the built-in list by default, imported on first use');
+      wanted = mine.id;
+      expect(await titles(), ['Mine']);
+      expect((await chosen().getRecommendRooms()).single.introduction, 'Mine');
+
+      // The user deletes the built-in list (the page then sets hotRemoved).
+      final hot = (await library.playlists()).firstWhere((playlist) => playlist.isHot);
+      expect(await importer.deletePlaylist(hot), isTrue);
+      removed = true;
+      wanted = '';
+      final requests = http.requests.length;
+      expect(await titles(), ['Net'], reason: 'the first imported list: network ones first');
+      expect(await chosen().hotRooms(), isEmpty);
+      expect(http.requests, hasLength(requests), reason: 'the deleted hot list is not downloaded again');
+      expect((await library.playlists()).where((playlist) => playlist.isHot), isEmpty);
+
+      wanted = IptvPlaylist.hotId;
+      expect(await titles(), ['Net'], reason: 'a deleted hot list cannot be chosen');
+      wanted = 'gone';
+      expect(await titles(), ['Net']);
+
+      // Restored (the page clears hotRemoved): imported again.
+      removed = false;
+      wanted = '';
+      expect(await titles(), ['Hot']);
+    },
+  );
+
+  test('V02.9: the shown playlist', () {
+    IptvPlaylist playlist(String id, String name, {bool remote = false}) => IptvPlaylist(
+      id: id,
+      name: name,
+      source: remote ? 'https://f/$name.m3u' : '/f/$name.m3u',
+      format: IptvPlaylistFormat.m3u,
+    );
+    final hot = playlist(IptvPlaylist.hotId, 'hot', remote: true);
+    final local = playlist('a', 'Zed');
+    final net = playlist('b', 'beta', remote: true);
+    expect(shownIptvPlaylist([], wanted: '', hotRemoved: false), IptvPlaylist.hotId);
+    expect(shownIptvPlaylist([], wanted: '', hotRemoved: true), isNull);
+    expect(shownIptvPlaylist([hot, local, net], wanted: 'a', hotRemoved: false), 'a');
+    expect(shownIptvPlaylist([hot, local, net], wanted: 'x', hotRemoved: false), IptvPlaylist.hotId);
+    expect(shownIptvPlaylist([local, net], wanted: 'x', hotRemoved: true), 'b');
+    expect(shownIptvPlaylist([hot, local], wanted: IptvPlaylist.hotId, hotRemoved: true), 'a');
+    expect(shownIptvPlaylist([local, playlist('c', 'alpha')], wanted: '', hotRemoved: true), 'c');
+  });
+
   test('automatic sync refreshes only due network sources with auto sync on', () async {
     http.bodies['https://f/a.m3u'] = utf8.encode('#EXTM3U\n#EXTINF:-1,A\nhttp://f/a\n');
     http.bodies['https://f/g.xml'] = utf8.encode(_guide);

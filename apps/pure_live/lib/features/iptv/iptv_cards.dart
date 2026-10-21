@@ -74,7 +74,9 @@ class IptvSourceCard extends StatefulWidget {
   /// Whether the buttons are disabled (this card or the whole list busy).
   final bool blocked;
 
-  /// Whether this guide is the one in use ("使用中", a primary outline).
+  /// Whether this guide is the one in use ("使用中"), or this playlist the
+  /// one 热门 → 网络 shows ("热门显示中", V02.9): a tag and a primary
+  /// outline.
   final bool inUse;
 
   /// Syncs it.
@@ -134,7 +136,12 @@ class IptvSourceCard extends StatefulWidget {
                     icon: isRemote ? AppIcons.networkSource : AppIcons.localSource,
                     text: i18n(isRemote ? 'network_tag' : 'local_tag'),
                   ),
-                  if (inUse) IptvTag(key: ValueKey('iptv-in-use-$id'), text: i18n('iptv_guide_in_use'), strong: true),
+                  if (inUse)
+                    IptvTag(
+                      key: ValueKey('iptv-in-use-$id'),
+                      text: i18n(isGuide ? 'iptv_guide_in_use' : 'iptv_playlist_in_popular'),
+                      strong: true,
+                    ),
                   Text(details, style: muted.tabular),
                 ],
               ),

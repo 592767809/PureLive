@@ -2,7 +2,7 @@
 
 # 任务清单
 
-共 20 组、109 个子分类、396 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
+共 20 组、109 个子分类、397 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
 
 ## A 界面设计
 
@@ -875,6 +875,7 @@ HTTP 和 WebSocket、请求头、压缩、代理和镜像、原生 HTTP 通道�
 | V02.6 | issue #4：平板也想用玻璃底栏（宽屏现在只有侧栏） | 界面 | 第二档 | 完成 | — | — |
 | V02.7 | issue #3：收藏旧仓库的人不知道项目搬到了 wzgrx/PureLive | 发布 | 第二档 | 完成 | — | — |
 | V02.8 | issue #5：平板退出直播间全屏后变成横着的竖屏 | 界面 | 第一档 | 完成 | — | — |
+| V02.9 | issue #6：导入网络电视播放列表后热门里切换不过去，删掉的内置列表又回来 | 界面 | 第一档 | 完成 | — | — |
 
 ### [V03 审查和调研](V-需求和反馈/V03-审查和调研/README.md)
 

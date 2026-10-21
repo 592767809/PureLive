@@ -122,6 +122,16 @@ NOTES: dict[str, dict] = {
         'verdict': 'v4 新加（A01.5）；5.2 起默认开（A01.6，用户要液态玻璃）：手机首页底栏悬浮成液态玻璃胶囊，边缘折射、选中项是可拖动的玻璃水滴，不支持着色器的设备是毛玻璃，内存 4 GB 及以下（或读不到）的安卓机只半透明不模糊；关掉是普通底栏；宽屏侧栏、直播间不变',
         'when': '马上',
     },
+    'iptvPopularPlaylist': {
+        **_new('V02.9'),
+        'verdict': 'v4 新加（V02.9，issue #6）：热门 → 网络显示哪个播放列表；空是内置热门列表（3.x 只能显示它），列表不在了就回到内置的，内置的删了就用第一个导入的',
+        'when': '马上',
+    },
+    'iptvHotRemoved': {
+        **_new('V02.9'),
+        'verdict': 'v4 新加（V02.9，issue #6）：内置热门列表删掉以后不再自动导入（3.x 每次打开热门都会重新导入，删不掉）；网络电视页可以恢复',
+        'when': '马上',
+    },
     'themeColorMigration': _new('A11.2，本机记录'),
     'crossAxisSpacing': {'v3range': '0～64（`theme_settings_controller.dart:10-12`、:109-113）', 'ui': '加减 0～64'},
     'mainAxisSpacing': {'v3range': '0～64（同上）', 'ui': '加减 0～64'},

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
+import 'package:live_iptv/live_iptv.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
@@ -333,6 +334,76 @@ void main() {
     expect(utf8.decode(bytes, allowMalformed: true), allOf(contains('pure_live'), contains('9999'), contains('标题')));
     expect(code, isNot(contains('=')));
     expect(encodeRoomShareCode(LiveRoom(platform: 'douyu', roomId: ' ')), isEmpty);
+  });
+
+  testWidgets('V02.9 (issue #6): the IPTV tab switches between the built-in list and imported ones', (tester) async {
+    tester.view
+      ..physicalSize = const Size(400, 900)
+      ..devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final services = (await tester.runAsync(() async {
+      final services = await testServices();
+      final settings = services.store.settings;
+      await settings.set(Settings.savedMenuIds, ['popular']);
+      await settings.set(Settings.showSplashPage, false);
+      await settings.set(Settings.hotAreasList, [SiteIds.iptv]);
+      final importer = services.iptvImporter!;
+      await importer.importPlaylist(
+        bytes: utf8.encode('#EXTM3U\n#EXTINF:-1,Hot\nhttp://f/hot\n'),
+        format: IptvPlaylistFormat.m3u,
+        name: IptvImporter.hotName,
+        url: IptvImporter.hotPlaylistUrl,
+        isHot: true,
+        force: true,
+      );
+      await importer.importPlaylistText('#EXTM3U\n#EXTINF:-1,Mine\nhttp://f/mine\n', 'cn_all');
+      return services;
+    }))!;
+    final strings = (await tester.runAsync(loadStrings))!;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appServicesProvider.overrideWithValue(services)],
+        child: PureLiveApp(strings: strings, bundle: FileAssetBundle()),
+      ),
+    );
+    Future<void> settle() async {
+      for (var i = 0; i < 8; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    List<String> titles() => [
+      for (final card in tester.widgetList<LiveRoomCard>(find.byType(LiveRoomCard))) card.data.title,
+    ];
+
+    await settle();
+    final mine = (await tester.runAsync(services.iptvImporter!.library.playlists))!.firstWhere((p) => !p.isHot);
+    expect(find.byKey(const ValueKey('popular-iptv-playlists')), findsOneWidget);
+    expect(find.byKey(const ValueKey('popular-iptv-playlist-${IptvPlaylist.hotId}')), findsOneWidget);
+    expect(find.byKey(ValueKey('popular-iptv-playlist-${mine.id}')), findsOneWidget);
+    expect(titles(), ['Hot'], reason: 'the built-in list by default, as 3.x');
+
+    await tester.tap(find.byKey(ValueKey('popular-iptv-playlist-${mine.id}')));
+    await settle();
+    expect(services.store.settings.get(Settings.iptvPopularPlaylist), mine.id);
+    expect(titles(), ['Mine']);
+    // (Test strings: the built-in chip's English label pushes the other one
+    // past the 400-point screen, so only its state is read.)
+    final hotChip = find.byKey(const ValueKey('popular-iptv-playlist-${IptvPlaylist.hotId}'));
+    expect(tester.widget<AppChip>(hotChip).selected, isFalse);
+
+    // The built-in list deleted on the IPTV page: one list, no chips, and
+    // nothing is downloaded again.
+    await tester.runAsync(() async {
+      final hot = (await services.iptvImporter!.library.playlists()).firstWhere((p) => p.isHot);
+      await services.iptvImporter!.deletePlaylist(hot);
+      await services.store.settings.setAll({Settings.iptvHotRemoved: true, Settings.iptvPopularPlaylist: ''});
+    });
+    await settle();
+    expect(find.byKey(const ValueKey('popular-iptv-playlists')), findsNothing);
+    expect(titles(), ['Mine']);
+    await tester.runAsync(services.close);
   });
 
   testWidgets('phone: preferred platform first, ranked cards, hidden rooms on request, a card opens its room', (

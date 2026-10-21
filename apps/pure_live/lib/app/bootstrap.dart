@@ -344,6 +344,8 @@ abstract final class AppBootstrap {
         library: library,
         importer: importer,
         selectedGuideSourceId: () => settings.get(Settings.selectedSourceId),
+        popularPlaylistId: () => settings.get(Settings.iptvPopularPlaylist),
+        hotRemoved: () => settings.get(Settings.iptvHotRemoved),
       ),
     );
     final sites = buildSiteRegistry(deps);

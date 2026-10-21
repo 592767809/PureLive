@@ -11,7 +11,10 @@ import 'package:live_iptv/src/playlist/txt_parser.dart';
 ///
 /// - Categories are the playlists (the built-in hot one excepted); their
 ///   areas are the channels, and a channel's area opens its room directly.
-/// - Recommendations are the hot playlist, imported on first use.
+/// - Recommendations are the playlist chosen for them ([popularPlaylistId],
+///   [shownIptvPlaylist]); by default the hot playlist, imported on first
+///   use unless it was deleted ([hotRemoved]; 3.x imported it again on every
+///   visit, so it could not be deleted).
 /// - Search matches channel names.
 /// - A room is one channel: always live, one quality `默认` (`default`)
 ///   with the channel URL; the room carries the catch-up attributes, the
@@ -21,7 +24,17 @@ import 'package:live_iptv/src/playlist/txt_parser.dart';
 ///   (3.x returned the whole list for every page).
 final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
   /// Creates the platform.
-  new({required this.library, required this.importer, required this.selectedGuideSourceId, this.now = DateTime.now});
+  new({
+    required this.library,
+    required this.importer,
+    required this.selectedGuideSourceId,
+    this.popularPlaylistId = _none,
+    this.hotRemoved = _kept,
+    this.now = DateTime.now,
+  });
+
+  static String _none() => '';
+  static bool _kept() => false;
 
   /// Storage.
   final IptvLibrary library;
@@ -31,6 +44,12 @@ final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
 
   /// The selected guide source id (3.x setting `selectedSourceId`).
   final String Function() selectedGuideSourceId;
+
+  /// The playlist the recommendations show; empty for the hot playlist.
+  final String Function() popularPlaylistId;
+
+  /// Whether the hot playlist was deleted (it is not imported again).
+  final bool Function() hotRemoved;
 
   /// Clock for the programme on air.
   final DateTime Function() now;
@@ -80,6 +99,15 @@ final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
   @override
   Future<List<LiveRoom>> getRecommendRooms({int page = 1, int pageSize = 30}) async {
     if (page > 1) return const [];
+    final id = shownIptvPlaylist(await library.playlists(), wanted: popularPlaylistId(), hotRemoved: hotRemoved());
+    if (id == null) return const [];
+    return id == IptvPlaylist.hotId ? await hotRooms() : await _playlistRooms(id);
+  }
+
+  /// The hot playlist's channels as rooms, imported on first use; none when
+  /// it was deleted.
+  Future<List<LiveRoom>> hotRooms() async {
+    if (hotRemoved()) return const [];
     var channels = await library.channels(IptvPlaylist.hotId);
     if (channels.isEmpty) {
       await importer.loadHotPlaylist();
@@ -87,6 +115,10 @@ final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
     }
     return [for (final channel in channels) _room(channel, nick: '', introduction: channel.name)];
   }
+
+  Future<List<LiveRoom>> _playlistRooms(String id) async => [
+    for (final channel in await library.channels(id)) _room(channel, nick: '', introduction: channel.name),
+  ];
 
   @override
   Future<List<LiveRoom>> searchRooms(String keyword, {int page = 1, int pageSize = 30}) async {
@@ -186,3 +218,25 @@ final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
     );
   }
 }
+
+/// The playlist the recommendations show (V02.9): [wanted] while it is one
+/// of [playlists] (the hot one only while not [hotRemoved]); otherwise the
+/// hot playlist unless it was deleted (it need not be imported yet); then
+/// the first imported playlist in [compareIptvPlaylists] order; null when
+/// there is none.
+String? shownIptvPlaylist(Iterable<IptvPlaylist> playlists, {required String wanted, required bool hotRemoved}) {
+  if (wanted.isNotEmpty && playlists.any((playlist) => playlist.id == wanted && !(playlist.isHot && hotRemoved))) {
+    return wanted;
+  }
+  if (!hotRemoved) return IptvPlaylist.hotId;
+  final imported = [
+    for (final playlist in playlists)
+      if (!playlist.isHot) playlist,
+  ]..sort(compareIptvPlaylists);
+  return imported.firstOrNull?.id;
+}
+
+/// The order of imported playlists on screen (3.x `iptv_manage.dart:117-124`):
+/// network ones first, then by name, ignoring case.
+int compareIptvPlaylists(IptvPlaylist a, IptvPlaylist b) =>
+    a.isRemote != b.isRemote ? (a.isRemote ? -1 : 1) : a.name.toLowerCase().compareTo(b.name.toLowerCase());

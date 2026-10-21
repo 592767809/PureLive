@@ -375,8 +375,70 @@ class _IptvPageState extends ConsumerState<IptvPage> {
         // the live room looked it up in vain).
         await _select((await importer.library.guideSources()).firstOrNull, announce: false);
       }
+      if (item is IptvPlaylist) await _playlistDeleted(item);
       if (mounted) _toast(i18n('iptv_deleted', args: {'name': name}));
     });
+  }
+
+  // The popular page's playlist (V02.9) ---------------------------------------
+
+  /// A deleted hot list stays deleted (3.x imported it again on the next
+  /// visit to 热门); a deleted playlist no longer shows in 热门.
+  Future<void> _playlistDeleted(IptvPlaylist playlist) async {
+    final settings = _store.settings;
+    try {
+      await settings.setAll({
+        if (playlist.isHot) Settings.iptvHotRemoved: true,
+        if (settings.get(Settings.iptvPopularPlaylist) == playlist.id) Settings.iptvPopularPlaylist: '',
+      });
+    } on Object catch (error, stack) {
+      log('Saving the deleted playlist failed', name: 'IptvPage', error: error, stackTrace: stack);
+    }
+  }
+
+  /// The playlists 热门 → 网络 can show: the hot list unless deleted, then
+  /// the imported ones in the page's order.
+  List<(String, String)> _popularOptions(IptvOverview overview) => [
+    if (!_store.settings.get(Settings.iptvHotRemoved)) (IptvPlaylist.hotId, i18n('iptv_hot_playlist')),
+    for (final info in overview.playlists)
+      if (!info.playlist.isHot) (info.playlist.id, playlistName(info.playlist)),
+  ];
+
+  /// The id of the playlist 热门 → 网络 shows.
+  String? _popularShown(IptvOverview overview) => shownIptvPlaylist(
+    [for (final info in overview.playlists) info.playlist],
+    wanted: watchSetting(ref, Settings.iptvPopularPlaylist),
+    hotRemoved: watchSetting(ref, Settings.iptvHotRemoved),
+  );
+
+  /// "热门里显示": one radio row per playlist, like "选择节目单".
+  Future<void> _choosePopular(IptvOverview overview) async {
+    final current = _popularShown(overview);
+    final options = _popularOptions(overview);
+    final chosen = await showAppOptionDialog<String>(
+      context: context,
+      title: i18n('iptv_popular_playlist'),
+      message: i18n('iptv_popular_playlist_desc'),
+      selected: current,
+      options: [
+        for (final (id, name) in options) AppDialogOption(key: ValueKey('iptv-popular-$id'), value: id, label: name),
+      ],
+    );
+    if (chosen == null || !mounted || chosen == current) return;
+    final name = options.firstWhere((option) => option.$1 == chosen).$2;
+    await _set(
+      Settings.iptvPopularPlaylist,
+      chosen,
+      message: i18n('iptv_popular_playlist_switched', args: {'name': name}),
+    );
+  }
+
+  /// Brings the deleted hot list back and downloads it.
+  Future<void> _restoreHot() async {
+    final importer = _importer;
+    if (importer == null) return;
+    await _set(Settings.iptvHotRemoved, false, message: i18n('iptv_hot_restored'));
+    await importer.loadHotPlaylist();
   }
 
   Future<void> _cardAction(IptvCardAction action, String address) async {
@@ -530,6 +592,9 @@ class _IptvPageState extends ConsumerState<IptvPage> {
 
   List<Widget> _playlistSection(IptvOverview overview) {
     final now = ref.watch(iptvClockProvider)();
+    final hotRemoved = watchSetting(ref, Settings.iptvHotRemoved);
+    final shown = _popularShown(overview);
+    final popularOptions = _popularOptions(overview);
     return [
       SettingsGroup(
         title: i18n('iptv_group_playlists'),
@@ -543,6 +608,23 @@ class _IptvPageState extends ConsumerState<IptvPage> {
             valueWidget: _importSpinner,
             onTap: () => unawaited(_import(IptvImportKind.playlist)),
           ),
+          if (popularOptions.length > 1)
+            SettingsLinkRow(
+              key: const ValueKey('iptv-popular-playlist'),
+              icon: AppIcons.homePopular,
+              title: i18n('iptv_popular_playlist'),
+              subtitle: popularOptions.where((option) => option.$1 == shown).firstOrNull?.$2,
+              choice: true,
+              onTap: () => unawaited(_choosePopular(overview)),
+            ),
+          if (hotRemoved)
+            SettingsLinkRow(
+              key: const ValueKey('iptv-restore-hot'),
+              icon: AppIcons.restoreDefault,
+              title: i18n('iptv_restore_hot'),
+              subtitle: i18n('iptv_restore_hot_desc'),
+              onTap: () => unawaited(_restoreHot()),
+            ),
         ],
       ),
       const SizedBox(height: 12),
@@ -560,11 +642,17 @@ class _IptvPageState extends ConsumerState<IptvPage> {
             ),
           ],
         ),
-      for (final info in overview.playlists) _playlistCard(info.playlist, info.channels, now),
+      for (final info in overview.playlists)
+        _playlistCard(
+          info.playlist,
+          info.channels,
+          now,
+          inPopular: popularOptions.length > 1 && info.playlist.id == shown,
+        ),
     ];
   }
 
-  Widget _playlistCard(IptvPlaylist playlist, int channels, DateTime now) {
+  Widget _playlistCard(IptvPlaylist playlist, int channels, DateTime now, {required bool inPopular}) {
     final key = 'p:${playlist.id}';
     final name = playlistName(playlist);
     return IptvSourceCard(
@@ -578,6 +666,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
       autoUpdate: playlist.autoUpdate,
       busy: _busy.contains(key),
       blocked: _blocked(key),
+      inUse: inPopular,
       onSync: () => unawaited(_sync(playlist, key, name)),
       onDelete: () => unawaited(_delete(playlist, key, name, channels)),
       onAutoUpdate: (value) => unawaited(_setAutoUpdate(playlist, key, value)),

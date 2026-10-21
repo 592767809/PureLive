@@ -1104,6 +1104,14 @@ abstract final class Settings {
   /// Playlist folder (3.x's default is the literal key).
   static const m3uDirectory = StringSetting('m3uDirectory', section: 'iptv', defaultValue: 'm3uDirectory');
 
+  /// The playlist the popular page's IPTV tab shows (V02.9, issue #6): a
+  /// playlist id; empty for the built-in hot list (3.x showed only that).
+  static const iptvPopularPlaylist = StringSetting('iptvPopularPlaylist', section: 'iptv', defaultValue: '');
+
+  /// The built-in hot list was deleted (V02.9): it is not imported again
+  /// until restored on the IPTV page (3.x imported it again on every visit).
+  static const iptvHotRemoved = BoolSetting('iptvHotRemoved', section: 'iptv', defaultValue: false);
+
   // ---- proxy (proxy_settings_controller.dart:11-18) ----
 
   /// Player proxy.
@@ -2068,6 +2076,8 @@ abstract final class Settings {
     autoSyncHoursInterval,
     customIptvUserAgent,
     m3uDirectory,
+    iptvPopularPlaylist,
+    iptvHotRemoved,
     enableProxy,
     proxyHost,
     proxyPort,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_core/live_core.dart';
+import 'package:live_iptv/live_iptv.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -29,14 +30,15 @@ LiveRoom tvChannelRoom(LiveArea channel) => LiveRoom(
   liveStatus: LiveStatus.live,
 );
 
-/// Loads the playlists of [site]: the built-in hot list first, then the
-/// imported ones with their channels (the IPTV site's recommendations and
-/// categories, M6). The hot list needs the network on first use; without it the imported
-/// lists still show.
+/// Loads the playlists of [site]: the built-in hot list first (none once it
+/// was deleted, V02.9), then the imported ones with their channels (the
+/// IPTV site's hot list and categories, M6; a site that is not the IPTV
+/// site's class gives its recommendations). The hot list needs the network
+/// on first use; without it the imported lists still show.
 Future<List<TvPlaylist>> loadTvPlaylists(LiveSite site) async {
   var hot = const <LiveRoom>[];
   try {
-    hot = await site.getRecommendRooms(pageSize: 0);
+    hot = site is IptvSite ? await site.hotRooms() : await site.getRecommendRooms(pageSize: 0);
   } on Object {
     // Offline or the built-in list moved: imported lists only.
   }

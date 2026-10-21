@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_iptv/live_iptv.dart';
 import 'package:pure_live/app/iptv_library.dart';
+import 'package:pure_live/app/iptv_playlists.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
 
@@ -46,12 +47,7 @@ final class IptvOverview {
             (playlist: playlist, channels: (await library.channels(playlist.id)).length),
         ]..sort((a, b) {
           final hot = (a.playlist.isHot ? 1 : 0).compareTo(b.playlist.isHot ? 1 : 0);
-          return hot != 0
-              ? hot
-              : order(
-                  (remote: a.playlist.isRemote, name: a.playlist.name),
-                  (remote: b.playlist.isRemote, name: b.playlist.name),
-                );
+          return hot != 0 ? hot : compareIptvPlaylists(a.playlist, b.playlist);
         });
     final guides =
         <IptvGuideInfo>[
@@ -97,9 +93,8 @@ String guideBadge(EpgSource source) {
   return 'XML';
 }
 
-/// The display name of [playlist]: the built-in list's name `hot` reads as
-/// "热门频道".
-String playlistName(IptvPlaylist playlist) => playlist.isHot ? i18n('iptv_hot_playlist') : playlist.name;
+/// The display name of [playlist] ([iptvPlaylistName]).
+String playlistName(IptvPlaylist playlist) => iptvPlaylistName(playlist);
 
 /// The display name of [source]: the default guide (imported as `hot`)
 /// reads as "默认节目单".

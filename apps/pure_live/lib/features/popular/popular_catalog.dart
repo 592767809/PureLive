@@ -63,6 +63,11 @@ final class PopularCatalog {
       for (final feed in _feeds.values) {
         feed.visibilityChanged();
       }
+    } else if (key == Settings.iptvPopularPlaylist.key || key == Settings.iptvHotRemoved.key) {
+      // Another playlist for the IPTV tab (V02.9): shown at once when it is
+      // the tab on screen, else when it is shown again.
+      final feed = _feeds[SiteIds.iptv]?..markStale();
+      if (feed != null && currentPlatform == SiteIds.iptv) onRankingChanged?.call();
     } else if (key == Settings.preferRealOnlineCounts.key || key == Settings.realOnlinePlatforms.key) {
       // 3.x refreshed the current platform 160 ms after the change; the
       // others refresh when they are shown again.
