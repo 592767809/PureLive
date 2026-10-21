@@ -4693,14 +4693,14 @@ note = "标签 v5.4.5（854ea224b）；发布页 https://github.com/wzgrx/PureLi
 id = "Y01.17"
 title = "5.4.6 全平台发布（Android、电视、Windows、Linux、macOS、iOS，构建号 5110）：网络电视热门里切换列表"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-21"
 size = "小"
 tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
-done = 1
+done = 5
 from = "用户 2026-10-21：发 5.4.6（回答“可以”）"
-note = "内容：V02.9 网络电视热门 → 网络切换列表、删掉的内置列表不再回来（issue #6）"
+note = "标签 v5.4.6（d5eb04e8b）；发布页 https://github.com/wzgrx/PureLive/releases/tag/v5.4.6 （正式版，十个包和 SHA256SUMS.txt，哈希一致；苹果四个包由 apple-publish.yml 从运行 39568086995 挂上）；两个仓库的更新文件都是 5.4.6、5110。内容：V02.9 网络电视热门 → 网络切换列表、删掉的内置列表不再回来（issue #6）"
 
 [[task]]
 id = "Y02.1"
