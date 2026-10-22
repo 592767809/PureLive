@@ -647,13 +647,16 @@ void main() {
       expect(recording.settings.current.enablePolling, isTrue);
       expect(find.byKey(const ValueKey('record-panel-polling-off')), findsNothing);
 
-      // Off: 3.x's "取消监控" for a waiting task.
+      // Issue #19: off keeps the waiting room and choices, without polling.
       await tester.tap(find.byKey(const ValueKey('record-panel-auto')));
       for (var i = 0; i < 5; i++) {
         await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
         await tester.pump();
       }
-      expect(recording.recorder!.tasks, isEmpty);
+      expect(recording.recorder!.tasks.single, same(task));
+      expect(task.status, RecordStatus.stopped);
+      expect(task.autoRecord, isFalse);
+      expect(task.qualityOverride, '超清');
       expectCard('idle', ['record-panel-start']);
 
       // The recorder's 2 s write-behind timer is a fake one when the last

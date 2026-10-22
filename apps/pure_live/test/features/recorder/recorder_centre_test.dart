@@ -657,14 +657,17 @@ void main() {
     expect(_inCard('s', _key('record-card-waiting')), findsOneWidget);
     expect(_inCard('s', _key('recorder-card-auto')), findsOneWidget);
 
-    // Off again for a task that only waits: 3.x's "取消监控" (as in the panel).
+    // Issue #19: disabling automatic recording keeps the saved room and choices.
     await tester.tap(_inCard('s', find.byIcon(AppIcons.more)));
     await _frames(tester);
     expect(tester.widget<Switch>(_key('recorder-menu-auto-switch')).value, isTrue);
     await tester.tap(_key('recorder-menu-auto'));
     await _settle(tester);
-    expect(recording.recorder!.tasks.where((task) => task.roomId == 's'), isEmpty);
-    expect(_card('s'), findsNothing);
+    final retained = recording.recorder!.tasks.singleWhere((task) => task.roomId == 's');
+    expect(retained.autoRecord, isFalse);
+    expect(retained.status, RecordStatus.stopped);
+    expect(_card('s'), findsOneWidget);
+    expect(_inCard('s', _key('recorder-card-auto')), findsNothing);
     await _drain(tester);
   });
 

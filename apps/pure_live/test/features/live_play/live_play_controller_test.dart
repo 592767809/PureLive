@@ -95,6 +95,7 @@ void main() {
     LiveRoom? room,
     bool danmakuSupported = true,
     NetworkKind? network,
+    DateTime Function()? clock,
   }) => LiveRoomController(
     room: room ?? LiveRoom(platform: SiteIds.bilibili, roomId: '6', nick: '卡片上的名字'),
     site: site,
@@ -104,7 +105,7 @@ void main() {
     store: store,
     toast: toasts.add,
     network: network == null ? null : () async => network,
-    now: () => now,
+    now: clock ?? () => now,
     refreshInterval: Duration.zero,
   );
 
@@ -167,6 +168,72 @@ void main() {
     await settle();
     expect(wifi.qualities[wifi.qualityIndex].quality, '原画');
     wifi.dispose();
+  });
+
+  test('issue #16: expired cards remain in bounded session history across a retry', () async {
+    var clock = now;
+    LiveSuperChatMessage card(String id, DateTime end) => LiveSuperChatMessage(
+      messageId: id,
+      userName: id,
+      face: '',
+      message: 'message $id',
+      price: 30,
+      startTime: now.subtract(const Duration(seconds: 10)),
+      endTime: end,
+      backgroundColor: '#EDF5FF',
+      backgroundBottomColor: '#2A60B2',
+    );
+    final ended = card('ended', now.subtract(const Duration(seconds: 1)));
+    final active = card('active', now.add(const Duration(seconds: 1)));
+    final site = FakeSite(liveRoom())..superChats = [ended, active];
+    final controller = controllerFor(site, clock: () => clock);
+    await controller.start();
+    await settle();
+    expect(controller.superChats, [active]);
+    expect(controller.superChatHistory.toSet(), {ended, active});
+    clock = now.add(const Duration(seconds: 2));
+    danmaku.emit(
+      DanmakuReceived(
+        LiveMessage(
+          type: LiveMessageType.superChat,
+          userName: ended.userName,
+          message: ended.message,
+          color: LiveMessageColor.white,
+          data: ended,
+        ),
+      ),
+    );
+    expect(controller.superChats, isEmpty);
+    expect(controller.superChatHistory, hasLength(2), reason: 'duplicate replay is not stored again');
+    await controller.retry();
+    await settle();
+    expect(controller.superChatHistory, hasLength(2), reason: 'retrying keeps this room session');
+    controller.dispose();
+    expect(controller.superChatHistory, isEmpty);
+  });
+
+  test('issue #16: history is capped without saving it to the store', () async {
+    final site = FakeSite(liveRoom())
+      ..superChats = [
+        for (var i = 0; i < LiveRoomController.superChatHistoryLimit + 20; i++)
+          LiveSuperChatMessage(
+            messageId: '$i',
+            userName: '$i',
+            face: '',
+            message: '$i',
+            price: 30,
+            startTime: now.add(Duration(seconds: i)),
+            endTime: now.add(const Duration(hours: 1)),
+            backgroundColor: '#EDF5FF',
+            backgroundBottomColor: '#2A60B2',
+          ),
+      ];
+    final controller = controllerFor(site);
+    await controller.start();
+    await settle();
+    expect(controller.superChatHistory, hasLength(LiveRoomController.superChatHistoryLimit));
+    expect(controller.superChatHistory.first.messageId, '20');
+    controller.dispose();
   });
 
   test('chat passes the block list; audience, super chats, retractions and notices', () async {

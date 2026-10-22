@@ -42,6 +42,7 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
   FollowGroup _group = FollowGroup.live;
   String _platform = allPlatforms;
   String _tag = allTags;
+  GlobalKey<TvTabBarState>? _lastHeader;
 
   GlobalKey<TvRoomGridState> _grid(String key) => _grids[key] ??= GlobalKey();
 
@@ -84,9 +85,18 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
         final rowsKey = _rowsKey(key);
         final offline = _group == FollowGroup.offline;
         bool enter() => offline ? rowsKey.currentState?.enter() ?? false : gridKey.currentState?.enter() ?? false;
+        bool focusHeader() =>
+            (_lastHeader?.currentState?.focusRemembered() ?? false) ||
+            (_groupTabs.currentState?.focusRemembered() ?? false);
+        bool enterFrom(GlobalKey<TvTabBarState> header) {
+          _lastHeader = header;
+          if (_tagTabs.currentState?.focusRemembered() ?? false) return true;
+          return enter();
+        }
+
         void leaveUp() {
-          if (_tagTabs.currentState?.focusSelected() ?? false) return;
-          _groupTabs.currentState?.focusSelected();
+          if (_tagTabs.currentState?.focusRemembered() ?? false) return;
+          focusHeader();
         }
 
         void refresh() => unawaited(controller.refreshVisible());
@@ -142,10 +152,7 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
                     busy: controller.refreshing || controller.verifying,
                     onSelect: (index) => setState(() => _group = _groups[index].$1),
                     onRefresh: refresh,
-                    onDown: () {
-                      if (_tagTabs.currentState?.focusSelected() ?? false) return true;
-                      return enter();
-                    },
+                    onDown: () => enterFrom(_groupTabs),
                   ),
                 ),
                 if (platforms.length > 2) ...[
@@ -169,10 +176,7 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
                       selected: platforms.indexOf(_platform),
                       onSelect: (index) => setState(() => _platform = platforms[index]),
                       onRefresh: refresh,
-                      onDown: () {
-                        if (_tagTabs.currentState?.focusSelected() ?? false) return true;
-                        return enter();
-                      },
+                      onDown: () => enterFrom(_platformTabs),
                     ),
                   ),
                 ],
@@ -190,6 +194,7 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
                 onSelect: (index) => setState(() => _tag = index == 0 ? allTags : tags[index - 1].id),
                 onRefresh: refresh,
                 onDown: enter,
+                onUp: focusHeader,
               ),
             Expanded(child: body),
           ],

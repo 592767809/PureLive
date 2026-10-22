@@ -408,7 +408,19 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
               : Stack(
                   fit: StackFit.expand,
                   children: [
-                    _Picture(key: ObjectKey(controller), controller: controller),
+                    GestureDetector(
+                      key: const ValueKey('tv-room-touch-surface'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (_blocked || _panel || _settings) return;
+                        if (_controls) {
+                          _hide();
+                        } else {
+                          _showControls();
+                        }
+                      },
+                      child: _Picture(key: ObjectKey(controller), controller: controller),
+                    ),
                     ListenableBuilder(
                       listenable: controller,
                       builder: (context, _) => StreamBuilder<PlaybackState>(

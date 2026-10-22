@@ -141,7 +141,9 @@ class _ChatPanelState extends State<ChatPanel> with SingleTickerProviderStateMix
               listenable: widget.controller,
               selector: () => widget.controller.superChats,
               builder: (context, messages, _) => SuperChatList(
+                key: ObjectKey(widget.controller),
                 messages: messages,
+                history: widget.controller.superChatHistory,
                 now: widget.controller.now,
                 platformName: platformName(widget.controller.site.id, fallback: widget.controller.site.name),
                 platformHasSuperChats: widget.controller.site.hasSuperChats,

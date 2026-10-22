@@ -220,6 +220,45 @@ void main() {
       expect((look.ring, look.scale), (true, 1.0));
     });
 
+    testWidgets('issue #17: removed focused tabs fall back safely and Up can return to a parent row', (tester) async {
+      final key = GlobalKey<TvTabBarState>();
+      late StateSetter update;
+      var remove = false;
+      var returned = 0;
+      await _pump(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) {
+            update = setState;
+            return TvTabBar(
+              key: key,
+              tabs: [
+                const TvTab(id: 'all', label: '全部'),
+                if (!remove) const TvTab(id: 'bilibili', label: '哔哩哔哩'),
+              ],
+              selected: 0,
+              onSelect: (_) {},
+              onUp: () {
+                returned++;
+                return true;
+              },
+            );
+          },
+        ),
+      );
+      key.currentState!.focusSelected();
+      await tester.pump(const Duration(seconds: 1));
+      await _press(tester, LogicalKeyboardKey.arrowRight);
+      expect(_look(tester, find.byKey(const ValueKey('tv-tab-bilibili'))).ring, isTrue);
+      update(() => remove = true);
+      await tester.pump(const Duration(seconds: 1));
+      expect(key.currentState!.focusRemembered(), isTrue);
+      await tester.pump(const Duration(seconds: 1));
+      expect(_look(tester, find.byKey(const ValueKey('tv-tab-all'))).ring, isTrue);
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      expect(returned, 1);
+    });
+
     testWidgets('tabs: selected is the primary container, focus is the ring; both on one tab', (tester) async {
       var selected = 0;
       await _pump(

@@ -163,6 +163,45 @@ void main() {
     });
   });
 
+  group('issue #18 scheme-less links', () {
+    test('the actual Douyin adapter accepts the reported manual room URL', () async {
+      final http = _FakeHttp((_) => throw StateError('a direct Douyin link needs no network'));
+      final parser = LinkParser(SiteRegistry({'douyin': () => DouyinSite(http)}), http);
+      expect(await parser.parse('live.douyin.com/123456'), const RoomLink('douyin', '123456'));
+      expect(parser.containsSupportedLink('live.douyin.com/123456'), isTrue);
+      expect(http.requests, isEmpty);
+    });
+
+    test('a scheme-less short link keeps the shared redirect budget', () async {
+      final http = _FakeHttp((request) async => _redirect(302, 'https://live.bilibili.com/123', request));
+      final parser = LinkParser(_registry(), http);
+      expect(await parser.parse('b23.tv/abc'), const RoomLink('bilibili', '123'));
+      expect(http.requests.single.url.toString(), 'https://b23.tv/abc');
+    });
+
+    test('normalizes room hosts and keeps signed spelling and share punctuation', () {
+      expect(LinkParser.sharedHttpUrls('live.douyin.com/123456').toList(), ['https://live.douyin.com/123456']);
+      expect(
+        LinkParser.sharedHttpUrls('看看 live.bilibili.com/123?sign=a%2Fb。来吧').single,
+        'https://live.bilibili.com/123?sign=a%2Fb',
+      );
+      expect(LinkParser.sharedHttpUrls('huya.com/name').single, 'https://huya.com/name');
+      expect(LinkParser.sharedHttpUrls('user@live.bilibili.com/123'), isEmpty);
+      expect(LinkParser.sharedHttpUrls('ftp://live.bilibili.com/123'), isEmpty);
+      expect(LinkParser.sharedHttpUrls('javascript:live.bilibili.com/123'), isEmpty);
+    });
+
+    test('manual parsing and supported-link detection agree without network', () async {
+      final http = _FakeHttp((_) => throw StateError('direct room links must not make requests'));
+      final parser = LinkParser(_registry(), http);
+      expect(parser.containsSupportedLink('live.bilibili.com/123'), isTrue);
+      expect(await parser.parse('live.bilibili.com/123'), const RoomLink('bilibili', '123'));
+      expect(await parser.parse('huya.com/name'), const RoomLink('huya', 'name'));
+      expect(parser.containsSupportedLink('unsupported.example/123'), isFalse);
+      expect(http.requests, isEmpty);
+    });
+  });
+
   group('shared links', () {
     test('trailing punctuation is dropped; signed spelling is kept', () {
       expect(LinkParser.sharedHttpUrls('打开 https://live.bilibili.com/123。快来！').toList(), [

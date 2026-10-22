@@ -222,6 +222,62 @@ void main() {
   });
 
   group('super chats (c5-c7)', () {
+    testWidgets('issue #16: show and hide expired history, with an ended label', (tester) async {
+      await tester.runAsync(loadStrings);
+      final now = DateTime(2026, 10, 23, 12);
+      final ended = _superChat(
+        '历史观众',
+        30,
+        '#EDF5FF',
+        '#2A60B2',
+        now.subtract(const Duration(minutes: 2)),
+        const Duration(minutes: 1),
+      );
+      final active = _superChat(
+        '当前观众',
+        30,
+        '#EDF5FF',
+        '#2A60B2',
+        now.subtract(const Duration(seconds: 10)),
+        const Duration(minutes: 1),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: const LiveTheme().light,
+          home: Scaffold(
+            body: SuperChatList(messages: [active], history: [ended, active], now: () => now),
+          ),
+        ),
+      );
+      expect(find.text('当前观众'), findsOneWidget);
+      expect(find.text('历史观众'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('super-chat-history-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('历史观众'), findsOneWidget);
+      expect(find.text('已结束'), findsOneWidget);
+      expect(find.text('隐藏历史'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('super-chat-history-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('历史观众'), findsNothing);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: const LiveTheme().light,
+          home: Scaffold(
+            body: SuperChatList(
+              messages: const [],
+              history: [ended, active],
+              now: () => now.add(const Duration(minutes: 2)),
+            ),
+          ),
+        ),
+      );
+      expect(find.byKey(const ValueKey('super-chat-history-toggle')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('super-chat-history-toggle')));
+      await tester.pumpAndSettle();
+      expect(find.text('已结束'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
     testWidgets('newest first, ink by contrast, no shadow, one shared clock', (tester) async {
       final now = DateTime.now();
       final site = FakeSite(liveRoom())
