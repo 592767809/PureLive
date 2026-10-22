@@ -5,6 +5,7 @@
 // toasts in fullscreen sit above the bottom bar.
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/room_orientation.dart';
+import 'package:pure_live/features/live_play/player/player_gestures.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -463,6 +465,146 @@ void main() {
       await _settle(tester);
       expect(sets, hasLength(1));
       await _close(tester, room);
+    });
+  });
+
+  group('issue #12 (computers): the wheel and the arrow keys change the volume', () {
+    testWidgets('nothing over the picture; the controls come up and the bar says the level a moment', (tester) async {
+      final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.windows);
+      double opacity(String key, Duration duration) => tester
+          .widgetList<AnimatedOpacity>(find.ancestor(of: _key(key), matching: find.byType(AnimatedOpacity)))
+          .firstWhere((fade) => fade.duration == duration)
+          .opacity;
+      double controls() => opacity('live-play-volume', const Duration(milliseconds: 200));
+      double words() => opacity('live-play-volume-percent', AppDurations.fast);
+      // The controls hide after 4 s.
+      await tester.pump(const Duration(seconds: 5));
+      await _settle(tester);
+      expect(controls(), 0);
+      expect(words(), 0);
+
+      // Three notches down at once add up: 100 % to 85 %.
+      final picture = tester.getCenter(find.byType(PlayerGestureLayer));
+      for (var i = 0; i < 3; i++) {
+        tester.binding.handlePointerEvent(PointerScrollEvent(position: picture, scrollDelta: const Offset(0, 20)));
+      }
+      await _settle(tester);
+      expect(_key('gesture-level-volume'), findsNothing, reason: 'the picture stays clear');
+      expect(controls(), 1);
+      expect(words(), 1);
+      expect(_text(tester, 'live-play-volume-percent'), '85%');
+      expect(tester.widget<Slider>(_key('live-play-volume-slider')).value, closeTo(0.85, 0.001));
+      // A moment later the words go; the controls keep their 4 s.
+      await tester.pump(const Duration(seconds: 2));
+      await _settle(tester);
+      expect(words(), 0);
+      expect(controls(), 1);
+
+      // The arrow keys: the same.
+      await tester.pump(const Duration(seconds: 5));
+      await _settle(tester);
+      expect(controls(), 0);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await _settle(tester);
+      expect(controls(), 1);
+      expect(words(), 1);
+      expect(_text(tester, 'live-play-volume-percent'), '90%');
+      await tester.pump(const Duration(seconds: 2));
+      await _settle(tester);
+      expect(words(), 0);
+
+      // Dragging the slider: the words while it is held.
+      final slider = tester.widget<Slider>(_key('live-play-volume-slider'));
+      slider.onChangeStart!(0.9);
+      await _settle(tester);
+      expect(words(), 1);
+      slider.onChanged!(0.5);
+      await tester.pump(const Duration(seconds: 2));
+      await _settle(tester);
+      expect(words(), 1, reason: 'still held');
+      expect(_text(tester, 'live-play-volume-percent'), '50%');
+      slider.onChangeEnd!(0.5);
+      await tester.pump(const Duration(seconds: 2));
+      await _settle(tester);
+      expect(words(), 0);
+      await _close(tester, room);
+    });
+    testWidgets('the next wheel notch starts from a slider change made during the same burst', (tester) async {
+      final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.windows);
+      final picture = tester.getCenter(find.byType(PlayerGestureLayer));
+      void scroll() =>
+          tester.binding.handlePointerEvent(PointerScrollEvent(position: picture, scrollDelta: const Offset(0, 20)));
+      scroll();
+      await _settle(tester);
+      expect(tester.widget<Slider>(_key('live-play-volume-slider')).value, closeTo(0.95, 0.001));
+      final slider = tester.widget<Slider>(_key('live-play-volume-slider'));
+      slider.onChangeStart!(0.95);
+      slider.onChanged!(0.4);
+      slider.onChangeEnd!(0.4);
+      await _settle(tester);
+      scroll();
+      await _settle(tester);
+      expect(tester.widget<Slider>(_key('live-play-volume-slider')).value, closeTo(0.35, 0.001));
+      expect(_text(tester, 'live-play-volume-percent'), '35%');
+      expect(_key('gesture-level-volume'), findsNothing);
+      await tester.tap(_in('live-play-volume', find.byType(IconButton)));
+      await _settle(tester);
+      tester.binding.handlePointerEvent(PointerScrollEvent(position: picture, scrollDelta: const Offset(0, -20)));
+      await _settle(tester);
+      expect(_text(tester, 'live-play-volume-percent'), '5%', reason: 'starts from the muted level');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await _settle(tester);
+      scroll();
+      await _settle(tester);
+      expect(_text(tester, 'live-play-volume-percent'), '5%', reason: 'starts from the keyboard level');
+      await _close(tester, room);
+    });
+
+    testWidgets('holding the slider past the controls timeout keeps both the bar and its percentage visible', (
+      tester,
+    ) async {
+      final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.windows);
+      double opacity(String key, Duration duration) => tester
+          .widgetList<AnimatedOpacity>(find.ancestor(of: _key(key), matching: find.byType(AnimatedOpacity)))
+          .firstWhere((fade) => fade.duration == duration)
+          .opacity;
+      final slider = tester.widget<Slider>(_key('live-play-volume-slider'));
+      slider.onChangeStart!(1);
+      slider.onChanged!(0.5);
+      await _settle(tester);
+      await tester.pump(const Duration(seconds: 6));
+      await _settle(tester);
+      expect(opacity('live-play-volume', const Duration(milliseconds: 200)), 1, reason: 'still held');
+      expect(opacity('live-play-volume-percent', AppDurations.fast), 1);
+      slider.onChangeEnd!(0.5);
+      await tester.pump(const Duration(seconds: 2));
+      await _settle(tester);
+      expect(opacity('live-play-volume', const Duration(milliseconds: 200)), 1, reason: 'four seconds after release');
+      expect(opacity('live-play-volume-percent', AppDurations.fast), 0);
+      await tester.pump(const Duration(seconds: 3));
+      await _settle(tester);
+      expect(opacity('live-play-volume', const Duration(milliseconds: 200)), 0);
+      await _close(tester, room);
+    });
+
+    testWidgets('changing layout or leaving the room while holding the slider releases its hold', (tester) async {
+      final room = await _pump(tester, width: 1280, height: 800, platform: TargetPlatform.windows);
+      tester.widget<Slider>(_key('live-play-volume-slider')).onChangeStart!(1);
+      await tester.tap(_key('live-play-fullscreen'));
+      await _settle(tester);
+      await tester.pump(const Duration(seconds: 5));
+      await _settle(tester);
+      final fade = tester
+          .widgetList<AnimatedOpacity>(
+            find.ancestor(of: _key('live-play-volume'), matching: find.byType(AnimatedOpacity)),
+          )
+          .firstWhere((fade) => fade.duration == const Duration(milliseconds: 200));
+      expect(fade.opacity, 0, reason: 'the removed inline slider no longer holds the controls');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await _settle(tester);
+      tester.widget<Slider>(_key('live-play-volume-slider')).onChangeStart!(0.95);
+      await _close(tester, room);
+      expect(tester.takeException(), isNull);
     });
   });
 

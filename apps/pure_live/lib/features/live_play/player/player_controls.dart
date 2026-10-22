@@ -181,7 +181,8 @@ final class PlayerBarActions {
   final VoidCallback onInteract;
 
   /// Told when a menu opens (true) and closes, or the composer takes the
-  /// focus and lets it go: the controls stay up meanwhile.
+  /// focus and lets it go, or the volume slider is held: the controls stay up
+  /// meanwhile.
   final ValueChanged<bool> onMenu;
 
   /// Called before the user asks for another quality or line.
@@ -714,7 +715,7 @@ class PlayerBottomBar extends ConsumerWidget {
         ? _OrientationButton(choice: actions.orientation, onMenu: actions.onMenu)
         : null;
     final volume = actions.platform.desktop
-        ? VolumeSlider(controller: controller, onInteract: actions.onInteract)
+        ? VolumeSlider(controller: controller, onInteract: actions.onInteract, onHolding: actions.onMenu)
         : null;
     final fullscreen = _fullscreenButton();
     return switch (arrangement) {

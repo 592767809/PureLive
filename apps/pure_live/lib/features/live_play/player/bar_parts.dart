@@ -144,12 +144,13 @@ class _PlayerBatteryState extends State<PlayerBattery> {
 }
 
 /// The desktop volume (3.x `OverlayVolumeControl`, U.2c 21 and U.2d 13): the
-/// level's icon (a tap mutes or restores) and a slider; the room's volume is
-/// kept when the slider is let go. The arrow keys and the wheel change it
-/// too.
+/// level's icon (a tap mutes or restores), a slider and the level in words;
+/// the room's volume is kept when the slider is let go. The arrow keys and
+/// the wheel change it too, and the words show while the slider is dragged
+/// and for a moment after any change (issue #12).
 class VolumeSlider extends StatefulWidget {
   /// Creates the slider for [controller].
-  const new({required this.controller, this.onInteract, super.key});
+  const new({required this.controller, this.onInteract, this.onHolding, super.key});
 
   /// The room.
   final LiveRoomController controller;
@@ -157,69 +158,139 @@ class VolumeSlider extends StatefulWidget {
   /// Keeps the controls up while it is used.
   final VoidCallback? onInteract;
 
+  /// Keeps the controls visible until the slider is released.
+  final ValueChanged<bool>? onHolding;
+
   @override
   State<VolumeSlider> createState() => _VolumeSliderState();
 }
 
 class _VolumeSliderState extends State<VolumeSlider> {
   double? _beforeMute;
+  StreamSubscription<PlaybackState>? _states;
+  late double _volume = widget.controller.session.state.volume.clamp(0.0, 1.0);
+
+  /// The level's words show: dragged, or changed a moment ago.
+  bool _dragging = false;
+  bool _changed = false;
+  Timer? _fade;
 
   @override
-  Widget build(BuildContext context) => StreamBuilder<PlaybackState>(
-    stream: widget.controller.session.states,
-    initialData: widget.controller.session.state,
-    builder: (context, snapshot) {
-      final volume = (snapshot.data?.volume ?? widget.controller.volume).clamp(0.0, 1.0);
-      return Row(
-        key: const ValueKey('live-play-volume'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            tooltip: i18n(volume <= 0 ? 'live_play_unmute' : 'live_play_mute'),
-            color: OnVideoColors.foreground,
-            constraints: const BoxConstraints(minWidth: kMinInteractiveDimension, minHeight: kMinInteractiveDimension),
-            onPressed: () {
-              widget.onInteract?.call();
-              final restore = _beforeMute;
-              if (volume <= 0) {
-                _beforeMute = null;
-                unawaited(widget.controller.setVolume(restore ?? 0.5, save: true));
-              } else {
-                _beforeMute = volume;
-                unawaited(widget.controller.setVolume(0, save: true));
-              }
-            },
-            icon: Icon(gestureLevelIcon(GestureLevel.volume, volume), size: 22),
+  void initState() {
+    super.initState();
+    _listen();
+  }
+
+  @override
+  void didUpdateWidget(VolumeSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) _listen();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_states?.cancel());
+    _fade?.cancel();
+    // A layout change may remove a held slider. Balance the hold after the
+    // tree finishes disposing; the player ignores it if it has gone too.
+    final onHolding = widget.onHolding;
+    if (_dragging && onHolding != null) scheduleMicrotask(() => onHolding(false));
+    super.dispose();
+  }
+
+  void _listen() {
+    unawaited(_states?.cancel());
+    _states = widget.controller.session.states.listen((state) {
+      final volume = state.volume.clamp(0.0, 1.0);
+      if (volume == _volume || !mounted) return;
+      setState(() {
+        _volume = volume;
+        _changed = true;
+      });
+      _fade?.cancel();
+      _fade = Timer(const Duration(milliseconds: 1500), () {
+        if (mounted) setState(() => _changed = false);
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final volume = _volume;
+    final percent = '${(volume * 100).round()}%';
+    return Row(
+      key: const ValueKey('live-play-volume'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: i18n(volume <= 0 ? 'live_play_unmute' : 'live_play_mute'),
+          color: OnVideoColors.foreground,
+          constraints: const BoxConstraints(minWidth: kMinInteractiveDimension, minHeight: kMinInteractiveDimension),
+          onPressed: () {
+            widget.onInteract?.call();
+            final restore = _beforeMute;
+            if (volume <= 0) {
+              _beforeMute = null;
+              unawaited(widget.controller.setVolume(restore ?? 0.5, save: true));
+            } else {
+              _beforeMute = volume;
+              unawaited(widget.controller.setVolume(0, save: true));
+            }
+          },
+          icon: Icon(gestureLevelIcon(GestureLevel.volume, volume), size: 22),
+        ),
+        SizedBox(
+          width: 96,
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 4,
+              activeTrackColor: OnVideoColors.foreground,
+              inactiveTrackColor: OnVideoColors.track,
+              thumbColor: OnVideoColors.foreground,
+              overlayColor: OnVideoColors.chip,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+            ),
+            child: Slider(
+              key: const ValueKey('live-play-volume-slider'),
+              value: volume,
+              semanticFormatterCallback: (value) => '${(value * 100).round()}%',
+              onChangeStart: (_) {
+                setState(() => _dragging = true);
+                widget.onHolding?.call(true);
+                widget.onInteract?.call();
+              },
+              onChanged: (value) {
+                widget.onInteract?.call();
+                unawaited(widget.controller.setVolume(value));
+              },
+              onChangeEnd: (value) {
+                setState(() => _dragging = false);
+                widget.onHolding?.call(false);
+                unawaited(widget.controller.setVolume(value, save: true));
+              },
+            ),
           ),
-          SizedBox(
-            width: 96,
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                activeTrackColor: OnVideoColors.foreground,
-                inactiveTrackColor: OnVideoColors.track,
-                thumbColor: OnVideoColors.foreground,
-                overlayColor: OnVideoColors.chip,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-              ),
-              child: Slider(
-                key: const ValueKey('live-play-volume-slider'),
-                value: volume,
-                label: '${(volume * 100).round()}%',
-                semanticFormatterCallback: (value) => '${(value * 100).round()}%',
-                onChanged: (value) {
-                  widget.onInteract?.call();
-                  unawaited(widget.controller.setVolume(value));
-                },
-                onChangeEnd: (value) => unawaited(widget.controller.setVolume(value, save: true)),
+        ),
+        // Its own width, so nothing moves as the words come and go.
+        SizedBox(
+          width: 40,
+          child: AnimatedOpacity(
+            opacity: _dragging || _changed ? 1 : 0,
+            duration: AppDurations.fast,
+            child: ExcludeSemantics(
+              child: Text(
+                percent,
+                key: const ValueKey('live-play-volume-percent'),
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelMedium?.tabular.copyWith(color: OnVideoColors.foreground),
               ),
             ),
           ),
-        ],
-      );
-    },
-  );
+        ),
+      ],
+    );
+  }
 }
 
 /// The fullscreen bar's fit (U.2c change 6, 18): the "画面比例" icon, the same
