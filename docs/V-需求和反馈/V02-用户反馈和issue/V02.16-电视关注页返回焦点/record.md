@@ -15,3 +15,8 @@ TvFavoritesPane.leaveUp 在没有标签行时固定调用 groupTabs.focusSelecte
 ## 停在哪
 
 代码和定向回归已提交评审准备；合并和发布是后续步骤。推送前必须运行完整门禁，最终结果与提交对应关系见 PR 验证记录和本地 outputs/purelive-issues-20261023。V02.20 仍需要受影响账号的脱敏日志，其他待验收项见 verify.md；敏感凭据不落盘。
+
+
+## 5.4.8 发布（2026-10-23）
+
+PR #20 已合并 `479f2c62d70acefc590b538ab601152e7ff4b5ce`，实际构建提交 `f16c1bda686b6935885e8f6801dacb6c69b19edc`，随 [5.4.8](https://github.com/wzgrx/PureLive/releases/tag/v5.4.8) 发布。完整门禁、十包哈希和各平台启动结果见 Y01.19；未覆盖的逐端交互仍待真机，因此不标完整验收完成。原 #14 侧栏与 #15 不据此关闭。

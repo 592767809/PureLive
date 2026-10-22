@@ -4373,56 +4373,61 @@ note = "电脑滚轮改播放器音量，不再弹画面中间的提示；控制
 id = "V02.15"
 title = "issue #16：醒目留言到期后保留本次直播间会话历史，可显示和隐藏"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/16"
 note = "2026-10-23 接手：room_controller.dart 到期时从唯一列表删除，SuperChatList 只能收到活动留言，历史内容已经丢失。 当前会话内存保留最近 500 条（含活动留言），去重、按时间排序；活动计数仍只计算未到期留言。新增显示/隐藏历史，过期显示“已结束”；同房间重试保留历史，退出会话清空，不写数据库。关闭会员卡设置也从历史中移除对应卡片。 控制器覆盖去重、到期、重试、数量上限、销毁；组件覆盖默认隐藏、切换、全部过期仍可查看。用户明确选择“当前直播间会话内保留”。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "V02.16"
 title = "issue #17：电视关注页从房间卡片向上时回到之前获得焦点的筛选项"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/17"
 note = "2026-10-23 接手：TvFavoritesPane.leaveUp 在没有标签行时固定调用 groupTabs.focusSelected，完全忽略平台行和未选中的焦点项。 记录离开顶部筛选区时所在的行，TvTabBar 记忆最后焦点；向上恢复该项，条目或整行消失时退到有效选中项。标签行仍按层级经过，向上返回之前的组/平台行。 真实方向键事件覆盖全部平台、未选中的哔哩哔哩和已开播；旧代码在平台返回断言失败。另有动态移除焦点项回退和向上回调的组件边界回归；真实标签行往返仍待设备验收。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "V02.17"
 title = "issue #18：链接解析支持省略 https 的直播网址，分享文案和安全边界保持一致"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/18"
 note = "2026-10-23 接手：LinkParser.sharedHttpUrls 的提取表达式只认 scheme:// 和 www.，live.douyin.com/房间号没有进入任何平台解析器。 对裸域名补 HTTPS，沿用各平台已存在的解析与短链请求预算；签名参数原样保留。不从邮箱、非 HTTP 协议或 javascript: 中截取假链接。手工解析、剪贴板支持识别和电视入口复用同一个提取器。 新增两项回归旧代码失败；完整 sites_links_test 39 项通过，包含旧短链、取消、中文标点、签名转义和请求预算。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "V02.18"
 title = "issue #19：关闭开播自动录不删除主播和任务，核验重启自动恢复设置"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/19"
 note = "2026-10-23 接手：setAutoRecord(false) 对 waitingLive 直接调用 removeTask，导致卡片、画质和弹幕配置一起删除；记录中的任务则只改 autoRecord，开关行为前后不一致。 关闭时持久保存 autoRecord=false；等待中的任务停止轮询但保留任务和全部选择，正在录制的任务继续本场。只有删除操作移除条目。已有启动恢复设置和每任务选择本来会持久保存，不增加重复开关，不改变全局默认值；说明中明确如何开启重启自动恢复。 应用菜单回归要求同一任务仍在且开关为关，旧代码失败。另有两条内核用例验证重启后的任务身份、画质、弹幕与自动开关，以及停用任务不轮询、全局启动恢复关闭时不擅自开录。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "V02.19"
 title = "issue #14：补充 issue 14：TV 直播画面可用触屏呼出和收起控制栏"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/14"
 note = "2026-10-23 接手：TvLivePlayPage 只有遥控器确认键调用 showControls；画面没有触屏点击入口，平板和掌机进入 TV 模式后无法呼出控制栏。 只在画面层增加点击显示/隐藏；按钮和弹出面板保持自己的点击行为，失败状态不误触控制栏。原遥控器方向键、返回和控制栏超时逻辑沿用。 旧代码中点击画面后找不到控制栏；修复后触屏显示/收起、方向键换台、返回和右侧设置面板回归通过。原始小屏侧栏问题尚未在反馈设备复现，不能把这项触屏补充当成侧栏已修复。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "V02.20"
@@ -4431,7 +4436,6 @@ type = "验证"
 status = "开发中"
 size = "中"
 tier = 1
-branch = "ai/V02.15"
 from = "https://github.com/wzgrx/PureLive/issues/15"
 note = "2026-10-23 接手：尚未确认。两位反馈者分别在 Android 和 Windows 登录后失败；退出登录可以播放。不能仅凭“无法复现”认定反馈无效，也不能直接套用上游旧版 UA 问题。 按用户单独授权，仅操作红米 v4dev 测试包完成官方短信登录。游客状态实际视频为蓝光4M；登录成功后冷启动同一房间为原画1080P60，另一个房间同样原画正常，账号页显示登录有效。此账号未复现失败，不改未经证实的鉴权逻辑；继续收集受影响用户的脱敏日志和错误阶段。 测试包版本 5.4.7+5111；普通 profile，正式包和数据未操作。验证码仅在内存中读取和使用；手机号、验证码、Cookie、设备地址均不进源码、样本或报告。测试后关闭本次直播并退出测试登录，恢复未设置状态，旋转仍为 0；临时登录截图已删除。"
 
@@ -4869,14 +4873,15 @@ note = "5.4.7+5111 已公开发布：https://github.com/wzgrx/PureLive/releases/
 id = "Y01.19"
 title = "5.4.8 全平台发布（构建号 5112）：醒目留言历史、TV 操作、链接和录制反馈"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/V02.15"
 stages = ["版本与完整门禁", "十包构建与启动验收", "K90 冒烟", "合并、标签和公开发布", "更新通道与 issue 收尾"]
-done = 0
+done = 5
 from = "用户 2026-10-23：发布更新，合并pr，关闭issues"
-note = "目标 5.4.8+5112；PR #20 五项修改发布后关闭 #16–#19，#14 原侧栏与 #15 继续跟踪。旧库 5.4.7 单次门禁例外不自动沿用。"
+note = "5.4.8+5112 已公开发布，PR #20 已合并，十个包与 SHA256SUMS 远端哈希全部一致；本提交同步新库最终更新 JSON。旧库仅在维护者明确授权本次例外后同步同样两文件，最终状态见 PR #20；设备验收边界、归档门禁检查及同步条件见 record/verify，远端回执保存在本地 outputs/purelive-5.4.8。"
+date = "2026-10-23"
+commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 
 [[task]]
 id = "Y02.1"
