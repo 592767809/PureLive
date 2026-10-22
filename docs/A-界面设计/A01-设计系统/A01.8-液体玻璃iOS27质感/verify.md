@@ -12,4 +12,4 @@
 | 横屏、窄横屏、三键导航、所有页滚动 | 未覆盖，本轮不能标为完整通过 |
 | 恢复设置与普通 profile 包 | install -r 保留数据；跟随系统、50%、紧凑关、玻璃开、旋转 0 |
 
-本地交付 `k90/` 保存浅深色、0/50/100、紧凑、按住、禁用及最终恢复截图，原始 `raw-frame-timings.jsonl`、设备时钟采样区间和 `raw-frame-analysis.json`；不把真实测试数据上传到公共仓库。测量入口 `qa-frame-probe.dart` 与 `qa-frame-probe.json` 单列，不能冒充正式构建。任务仍开发中，横屏等未测项留给后续验收。
+本地交付 `k90/` 保存浅深色、0/50/100、紧凑、按住、禁用及最终恢复截图，原始 `raw-frame-timings.jsonl`、设备时钟采样区间和 `raw-frame-analysis.json`；不把真实测试数据上传到公共仓库。测量入口 `qa-frame-probe.dart` 与 `qa-frame-probe.json` 单列，不能冒充正式构建。本次已随 5.4.7 发布；任务保留待真机，横屏等未测项留给后续验收。

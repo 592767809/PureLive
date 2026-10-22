@@ -846,14 +846,15 @@ note = "酷安 16.6.2（一加 13）只读分析：Compose 外壳 + Kyant Backdr
 id = "A01.8"
 title = "液体玻璃按 iOS 27 重做质感（漫射、清晰的边和高光、圆边折射、去掉投影、深色更亮、透镜里图标放大），加“玻璃质感”滑块"
 type = "界面"
-status = "开发中"
+status = "待真机"
 date = "2026-10-22"
+commit = "aefa7d7f7ce610b0bb938400984f3d1dc9ec2a84"
 size = "中"
 tier = 1
 stages = ["调研 iOS 27", "K90 原型和确认", "实现和测试", "真机效果和性能"]
 done = 3
 from = "用户 2026-10-22：干脆参考苹果 iOS 26 是怎么实现的，进一步重构优化玻璃底栏的质感、动画？（补充：是 iOS 27 最新）；看过原型后选“照原型做 iOS 27 风格”“加滑块”"
-note = "做法和参数见 README；新设置 liquidGlassFrost（0～1，默认 0.5，外观 → 玻璃质感）；测试 liquid_glass_bar_test A01.8、home_test。K90 竖屏浅深色、0/50/100、紧凑和禁用通过；120 Hz 深色 100%/50% 的 raster P90 3.114/3.064 ms，阶段超预算 0.5731%/0.4796%。横屏等未覆盖，仍开发中；详见 record/verify"
+note = "做法和参数见 README；新设置 liquidGlassFrost（0～1，默认 0.5，外观 → 玻璃质感）；测试 liquid_glass_bar_test A01.8、home_test。K90 竖屏浅深色、0/50/100、紧凑和禁用通过；120 Hz 深色 100%/50% 的 raster P90 3.114/3.064 ms，阶段超预算 0.5731%/0.4796%。横屏等未覆盖，发布后保留待真机；详见 record/verify"
 
 [[task]]
 id = "A01.9"
@@ -4360,13 +4361,13 @@ note = "根因：拖动时每个移动事件都用 animateWith 给水滴重新�
 id = "V02.14"
 title = "issue #12：电脑上用鼠标滚轮调音量时画面中间弹出音量条，挡画面；控制栏音量条拖动时看不到百分比"
 type = "界面"
-status = "开发中"
+status = "待真机"
 date = "2026-10-22"
+commit = "aefa7d7f7ce610b0bb938400984f3d1dc9ec2a84"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/12"
-note = "电脑滚轮改播放器音量，不再弹画面中间的提示；控制栏跟随滚轮、方向键、静音键显示，右侧固定宽度百分比在拖动时常显、变化后显示 1.5 秒。接手审查复现并修复两处边界：滚轮缓存覆盖滑块或静音后的新音量；按住滑块超过 4 秒控制栏提前隐藏。PlaybackSession 同步更新状态，滚轮直接读取当前音量即可连续累加；滑块持有与释放接入控制栏等待机制。候选 dbd1f71f 定向 4/4、全量门禁通过；Windows 真实直播滚轮、方向键、滑块、静音及恢复通过。Linux/macOS 音量与真实长按未测；未合并未发布，见 record/verify。"
-branch = "ai/V02.14"
+note = "电脑滚轮改播放器音量，不再弹画面中间的提示；控制栏跟随滚轮、方向键、静音键显示，右侧固定宽度百分比在拖动时常显、变化后显示 1.5 秒。接手审查复现并修复两处边界：滚轮缓存覆盖滑块或静音后的新音量；按住滑块超过 4 秒控制栏提前隐藏。PlaybackSession 同步更新状态，滚轮直接读取当前音量即可连续累加；滑块持有与释放接入控制栏等待机制。候选 dbd1f71f 定向 4/4、全量门禁通过；Windows 真实直播滚轮、方向键、滑块、静音及恢复通过。Linux/macOS 音量与真实长按未测；已合并并随 5.4.7 发布，仍有明确未测项，见 record/verify。"
 
 [[task]]
 id = "V03.1"
@@ -4788,14 +4789,15 @@ note = "标签 v5.4.6（d5eb04e8b）；发布页 https://github.com/wzgrx/PureLi
 id = "Y01.18"
 title = "5.4.7 全平台发布（构建号 5111）：issue #8–#12、玻璃底栏质感和滑块"
 type = "发布"
-status = "开发中"
+status = "完成"
 date = "2026-10-22"
+commit = "aefa7d7f7ce610b0bb938400984f3d1dc9ec2a84"
 size = "小"
 tier = 1
 stages = ["版本号、发布说明和 README", "各平台构建和检查", "K90 快速测试", "标签、发布页", "更新文件（新仓库和旧仓库）"]
-done = 1
+done = 5
 from = "用户 2026-10-22：issue #7–#10 按“修 #8、写明 #7 → 回复 → #9、#10 出设计图确认后实现 → 一起发 5.4.7”的顺序做（回答“可以，按这个顺序开始”）"
-note = "按用户最后确认的范围发布：V02.10–V02.14（issue #8–#12）、A01.8 玻璃底栏质感和玻璃质感滑块；A01.9 底栏随滚动收起先做原型确认，留到下一版，不阻塞 5.4.7。c2de63bd9、9201f6bd3 的旧包作废。接手工作区 /home/wzgrx/projects/purelive-codex，分支 ai/V02.14；候选 dbd1f71f 全量门禁和十包构建完成，Apple 运行 39758808679；四平台首页、Windows 音量及 K90 竖屏性能通过，未测项见 record/verify。PR #13 待审核，尚未合并、发布或更新两个仓库通道。"
+note = "5.4.7+5111 已公开发布：https://github.com/wzgrx/PureLive/releases/tag/v5.4.7；标签固定 dbd1f71f，PR #13 合并 aefa7d7f7。十个包和 SHA256SUMS 共十一份远端资产哈希全部匹配；Apple 构建 39758808679、挂包 39767052473。最终两个更新文件按新仓库→旧仓库同步，记录与验收边界见 record/verify。A01.9 留后续版本；未发 issue 回复。"
 
 [[task]]
 id = "Y02.1"

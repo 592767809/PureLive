@@ -14,10 +14,10 @@
 
 ## 当前证据边界
 
-候选提交 `dbd1f71fcdd4bfe00095f955241fd4b9cfa5c5d2` 的全量门禁通过（all，14 members）。Android 三 ABI、Windows 两个、Linux 一个以及 Apple 四个正式候选包均来自该提交。PR [#13](https://github.com/wzgrx/PureLive/pull/13) 尚未合并。
+候选提交 `dbd1f71fcdd4bfe00095f955241fd4b9cfa5c5d2` 的全量门禁通过（all，14 members）。Android 三 ABI、Windows 两个、Linux 一个以及 Apple 四个正式候选包均来自该提交。PR [#13](https://github.com/wzgrx/PureLive/pull/13) 已合并（`aefa7d7f7ce610b0bb938400984f3d1dc9ec2a84`），随 [5.4.7](https://github.com/wzgrx/PureLive/releases/tag/v5.4.7) 发布。
 
 Windows 便携候选在独立目录、`--instance=codex-smoke` 下启动，实际进入首页并打开哔哩哔哩直播；画面与弹幕正常。实际验证滚轮 100% → 95%、方向下键 → 90%、滑块 → 43%、静音 → 0%、暂停后取消静音恢复 43%。滚轮与方向键使底栏出现，没有画面中间的音量提示。测试窗口已关闭，原安装和数据未操作。
 
-Windows 的真实持续按住 6 秒、Linux/macOS 的真实音量交互未完成；这两项不能用 widget 结果冒充通过。Linux、macOS 只确认实际启动到首页。该任务保持开发中，不提前关闭 issue #12。
+Windows 的真实持续按住 6 秒、Linux/macOS 的真实音量交互未完成；这两项不能用 widget 结果冒充通过。Linux、macOS 只确认实际启动到首页。合并后本任务保留待真机；真实长按与 Linux/macOS 音量操作仍待验收，未回复或关闭 issue #12。
 
 本地交付目录 `outputs/purelive-5.4.7` 保存构建日志、门禁日志、Windows 五种音量状态截图和包的校验信息。随后仅补齐文档，不改变已构建的生产代码；推送前仍运行全量门禁。
