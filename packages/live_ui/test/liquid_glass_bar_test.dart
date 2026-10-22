@@ -162,6 +162,31 @@ void main() {
     expect((drop().center.dx - start).abs(), lessThan(1));
   });
 
+  testWidgets('issue #11: a finger that moves every frame moves the drop every frame', (tester) async {
+    await pump(tester);
+    double drop() => tester.allRenderObjects.whereType<RenderLiquidGlass>().single.drop().center.dx;
+    final gesture = await tester.startGesture(tester.getCenter(item('关注')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveBy(const Offset(20, 0)); // past the touch slop
+    await tester.pump(const Duration(milliseconds: 8));
+    // The first move starts the spring (its first frame is at time 0).
+    await gesture.moveBy(const Offset(10, 0));
+    await tester.pump(const Duration(milliseconds: 8));
+    final seen = <double>[drop()];
+    // One move per frame, as a phone delivers them: each frame the drop is
+    // further on (a new spring per move held it still).
+    for (var i = 0; i < 12; i++) {
+      await gesture.moveBy(const Offset(10, 0));
+      await tester.pump(const Duration(milliseconds: 8));
+      seen.add(drop());
+    }
+    for (var i = 1; i < seen.length; i++) {
+      expect(seen[i], greaterThan(seen[i - 1]), reason: 'frame $i: $seen');
+    }
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
   test('V02.11 (issue #9): the room under the capsule', () {
     // Nothing at the bottom (gestures without a handle, a window): 12.
     expect(GlassMetrics.barGap(safeBottom: 0, ios: false), GlassMetrics.barMargin);

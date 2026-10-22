@@ -4320,6 +4320,17 @@ from = "https://github.com/wzgrx/PureLive/issues/10"
 note = "用户选了方案 A（K90 原型截图对比了 A 左上角红心、B 右上角“♥ 已关注”）。手机卡片加 followed：封面左上角平台标签后面一个 22 的圆形红心（颜色同电视 TvColors.followed，图标 AppIcons.followedHeart），提示是“已关注”（LiveUiStrings.followed ← followed），读屏也念“已关注”：红心另带 Semantics 标签，因为卡片节点合并时只留自己的提示（标题），子元素的提示读不到（发 5.4.7 前在 K90 上查读屏时发现，改后 live_room_card_test 查卡片节点的标签）；简洁卡片在右侧数字前，窄到不显示数字时只留红心。热门、分区、搜索（RoomGridCard，关注页 follow: true 不显示）和历史都显示；关注的键改成共用的 followKeysProvider（shared/rooms/room_cards.dart），电视的 tvFollowKeysProvider 并进来。测试：live_room_card_test V02.12（位置、颜色、简洁卡片宽窄）、room_lists_test V02.12（浏览卡片有、关注页没有、取消关注后消失）"
 
 [[task]]
+id = "V02.13"
+title = "issue #11：Android 上按住玻璃底栏左右拖动时动画很卡（荣耀 Magic 8 Pro、MagicOS 11）"
+type = "界面"
+status = "完成"
+date = "2026-10-22"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/11"
+note = "根因：拖动时每个移动事件都用 animateWith 给水滴重新开一个弹簧；控制器重新开始后第一帧的时间是 0，位置不动。手机一般每帧送一个移动事件，于是手指一直动、水滴几乎每帧都停着，手指停下才追上去，看着一卡一卡；触控上报越密越明显。改成拖动中只移动正在跑的弹簧的终点（_MovingSpring：从上一帧的位置和速度接着走，时钟不重开），点按、松手归位照旧。测试 liquid_glass_bar_test issue #11：每帧移动一次手指，水滴每帧都往前（换回旧代码时水滴一直停在 50）"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"

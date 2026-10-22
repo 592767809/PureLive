@@ -192,6 +192,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
       return;
     }
     _hold(true);
+    _following = null;
     _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, target, _drop.velocity));
     _letGoNear(target);
   }
@@ -249,12 +250,29 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
       _drop.value = _centreOf(index);
       return;
     }
+    _following = null;
     _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, _centreOf(index), _drop.velocity));
     _letGoNear(_centreOf(index));
   }
 
   /// How far a drag has gone along the bar, either way.
   double _dragDistance = 0;
+
+  /// The spring the drop runs on under a dragging finger.
+  _MovingSpring? _following;
+
+  /// The drop after the finger: the running spring's end moves with it
+  /// (issue #11). A new spring for every move cost each move a frame (a
+  /// controller's first tick after a start is at time 0), so a finger that
+  /// moved every frame held the drop still until it stopped.
+  void _follow(double target) {
+    if (_following case final spring? when _drop.isAnimating) {
+      spring.target = target;
+      return;
+    }
+    final spring = _following = _MovingSpring(AppMotion.glassPlaceSpring, _drop.value, target, _drop.velocity);
+    _drop.animateWith(spring);
+  }
 
   void _onDragStart(DragStartDetails details) {
     _pressedIndex = null;
@@ -280,7 +298,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     if (_still) {
       _drop.value = next;
     } else {
-      _drop.animateWith(SpringSimulation(AppMotion.glassPlaceSpring, _drop.value, next, _drop.velocity));
+      _follow(next);
       _lean.value += details.delta.dx;
     }
     final index = _indexAt(next);
@@ -489,6 +507,45 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
       ),
     );
   }
+}
+
+/// A spring whose end can move while it runs: moving the end starts it
+/// again from where and how fast it was at the last tick, on the same
+/// clock (issue #11).
+class _MovingSpring extends Simulation {
+  new(this._spring, double from, double to, double velocity)
+    : _target = to,
+      _run = SpringSimulation(_spring, from, to, velocity);
+
+  final SpringDescription _spring;
+  SpringSimulation _run;
+  double _target;
+
+  /// When [_run] began, and the last time asked, on the controller's clock.
+  double _start = 0;
+  double _now = 0;
+
+  /// Where it ends.
+  double get target => _target;
+  set target(double value) {
+    if (value == _target) return;
+    final time = _now - _start;
+    _run = SpringSimulation(_spring, _run.x(time), value, _run.dx(time));
+    _start = _now;
+    _target = value;
+  }
+
+  @override
+  double x(double time) {
+    _now = time;
+    return _run.x(time - _start);
+  }
+
+  @override
+  double dx(double time) => _run.dx(time - _start);
+
+  @override
+  bool isDone(double time) => _run.isDone(time - _start);
 }
 
 /// Shows its child only inside the drop ([inside]) or only outside it,

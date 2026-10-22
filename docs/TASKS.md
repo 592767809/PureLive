@@ -2,7 +2,7 @@
 
 # 任务清单
 
-共 20 组、109 个子分类、402 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
+共 20 组、109 个子分类、403 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
 
 ## A 界面设计
 
@@ -879,6 +879,7 @@ HTTP 和 WebSocket、请求头、压缩、代理和镜像、原生 HTTP 通道�
 | V02.10 | issue #8：电视上通用对话框遥控器选不到按钮（设备同步“发送配置”等）；issue #7：iPadOS 14 打不开 | 界面 | 第一档 | 完成 | — | — |
 | V02.11 | issue #9：底栏太高（iPhone 8 小屏、红米 Turbo 5 Max），玻璃底栏下面空得多 | 界面 | 第二档 | 完成 | — | — |
 | V02.12 | issue #10：浏览直播间时看不出哪些已经关注 | 界面 | 第二档 | 完成 | — | — |
+| V02.13 | issue #11：Android 上按住玻璃底栏左右拖动时动画很卡（荣耀 Magic 8 Pro、MagicOS 11） | 界面 | 第一档 | 完成 | — | — |
 
 ### [V03 审查和调研](V-需求和反馈/V03-审查和调研/README.md)
 
