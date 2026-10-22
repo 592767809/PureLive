@@ -35,6 +35,7 @@ Future<AppServices> _pump(
   double height = 900,
   List<String>? menus,
   bool bottomBarOnWide = false,
+  bool compactBar = false,
 }) async {
   tester.view
     ..physicalSize = Size(width, height)
@@ -45,6 +46,7 @@ Future<AppServices> _pump(
     await services.store.settings.set(Settings.showSplashPage, false);
     if (menus != null) await services.store.settings.set(Settings.savedMenuIds, menus);
     if (bottomBarOnWide) await services.store.settings.set(Settings.homeBottomBarOnWide, true);
+    if (compactBar) await services.store.settings.set(Settings.homeBottomBarCompact, true);
     return services;
   }))!;
   final strings = (await tester.runAsync(loadStrings))!;
@@ -469,14 +471,15 @@ void main() {
     tester.view.padding = const FakeViewPadding(top: 40, bottom: 20);
     tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 20);
     final services = await _pump(tester, width: 400);
-    // On by default (A01.6). A capsule 12 in from the sides and above the
-    // gesture area, 68 high.
+    // On by default (A01.6). A capsule 12 in from the sides, 68 high, 6
+    // above the gesture handle in the middle of the area (V02.11: 18 from
+    // the bottom, not 20 + 12).
     expect(find.byType(NavigationBar), findsNothing);
-    expect(tester.getRect(find.byType(LiquidGlassBar)), const Rect.fromLTRB(12, 800, 388, 868));
+    expect(tester.getRect(find.byType(LiquidGlassBar)), const Rect.fromLTRB(12, 814, 388, 882));
     // The page goes on under it, and its lists know how much it covers.
     expect(tester.getRect(find.byType(FavoritePage)).bottom, 900);
     final page = tester.element(find.byType(FavoritePage));
-    expect(GlassBarInset.of(page), 100);
+    expect(GlassBarInset.of(page), 86);
     await tester.tap(_navItem('热门'));
     await tester.pumpAndSettle();
     expect(find.byType(PopularPage), findsOneWidget);
@@ -512,6 +515,61 @@ void main() {
     expect(find.byType(LiquidGlassBar), findsNothing);
     expect(tester.getRect(find.byType(NavigationBar)), const Rect.fromLTRB(0, 800, 400, 900));
     await tester.runAsync(services.close);
+  });
+
+  testWidgets('V02.11 (issue #9): the capsule sits just above the home indicator; the compact bars are lower', (
+    tester,
+  ) async {
+    Rect capsule() => tester.getRect(find.byType(LiquidGlassBar));
+    double inset() => GlassBarInset.of(tester.element(find.byType(FavoritePage)));
+    // An iPhone: its home indicator at the bottom of the 34; the capsule 20
+    // up instead of 34 + 12.
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      tester.view.padding = const FakeViewPadding(top: 59, bottom: 34);
+      tester.view.viewPadding = const FakeViewPadding(top: 59, bottom: 34);
+      var services = await _pump(tester, width: 393, height: 852);
+      expect(capsule(), const Rect.fromLTRB(12, 764, 381, 832));
+      expect(inset(), 88);
+      await tester.runAsync(() => services.store.settings.set(Settings.homeBottomBarCompact, true));
+      await tester.pumpAndSettle();
+      expect(capsule(), const Rect.fromLTRB(12, 776, 381, 832));
+      expect(inset(), 76);
+      // The plain bar: 64 instead of Material's 80, over the indicator's room.
+      await tester.runAsync(() => services.store.settings.set(Settings.liquidGlass, false));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.byType(NavigationBar)), const Rect.fromLTRB(0, 754, 393, 852));
+      // A larger system font: neither compact bar overflows.
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.runAsync(() => services.store.settings.set(Settings.liquidGlass, true));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      await tester.runAsync(services.close);
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      // Android's buttons: the capsule stays 12 above them.
+      debugDefaultTargetPlatformOverride = TargetPlatform.android;
+      tester.view.padding = const FakeViewPadding(top: 40, bottom: 48);
+      tester.view.viewPadding = const FakeViewPadding(top: 40, bottom: 48);
+      services = await _pump(tester, width: 393, height: 852);
+      expect(capsule(), const Rect.fromLTRB(12, 724, 381, 792));
+      await tester.runAsync(services.close);
+      await tester.pumpWidget(const SizedBox.shrink());
+
+      // No room at the bottom (gestures without a handle): 12, as before.
+      tester.view.resetPadding();
+      tester.view.resetViewPadding();
+      services = await _pump(tester, width: 393, height: 852, compactBar: true);
+      expect(capsule(), const Rect.fromLTRB(12, 784, 381, 840));
+      await tester.runAsync(services.close);
+      await tester.pumpWidget(const SizedBox.shrink());
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('a larger system font: bar, menus and rail do not overflow', (tester) async {

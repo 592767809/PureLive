@@ -223,6 +223,7 @@ final class AppStrings {
     details: tr('details'),
     copy: tr('copy'),
     copied: tr('copied_to_clipboard'),
+    followed: tr('followed'),
   );
 }
 

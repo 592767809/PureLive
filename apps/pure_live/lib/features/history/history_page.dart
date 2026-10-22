@@ -369,6 +369,8 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
     final appearance = watchCardAppearance(ref);
     final fontSizes = watchFontSizes(ref);
     final policy = watchAudiencePolicy(ref);
+    // Issue #10: followed rooms have their heart here too.
+    final followed = ref.watch(followKeysProvider).value ?? const <String>{};
     final spacing = watchSetting(ref, Settings.crossAxisSpacing);
     final mainSpacing = watchSetting(ref, Settings.mainAxisSpacing);
     final sections = historySections(rooms, ref.read(historyClockProvider)());
@@ -414,6 +416,7 @@ class _HistoryPageState extends ConsumerState<HistoryPage> {
                         appearance: appearance,
                         // The history mixes platforms: an automatic badge shows (U.4a c2).
                         mixedPlatforms: mixed,
+                        followed: followed.contains(room.identityKey),
                         showDelete: true,
                         deleteTooltip: i18n('remove_history_entry_named', args: {'title': roomLabel(room)}),
                         onDelete: _mutating ? null : () => unawaited(_remove(room)),

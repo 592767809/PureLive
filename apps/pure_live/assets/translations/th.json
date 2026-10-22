@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "เปิดสีไดนามิก Monet",
     "enable_fullscreen_default": "เต็มหน้าจออัตโนมัติ",
     "enable_fullscreen_default_subtitle": "เข้าห้องไลฟ์แล้วเปลี่ยนเป็นเต็มหน้าจออัตโนมัติ",
+    "enable_home_bottom_bar_compact": "แถบด้านล่างแบบกะทัดรัด",
+    "enable_home_bottom_bar_compact_subtitle": "แถบด้านล่างของหน้าแรกเตี้ยลง เพื่อให้เห็นเนื้อหามากขึ้น",
     "enable_home_bottom_bar_wide": "ใช้แถบด้านล่างบนแท็บเล็ต",
     "enable_home_bottom_bar_wide_subtitle": "บนแท็บเล็ตและมือถือพับได้ตอนกาง หน้าแรกใช้แถบด้านล่างแทนแถบด้านข้าง",
     "enable_liquid_glass": "กระจกเหลว",

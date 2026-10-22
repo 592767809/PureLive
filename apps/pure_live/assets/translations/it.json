@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Attiva il colore dinamico Monet",
     "enable_fullscreen_default": "Schermo intero automatico",
     "enable_fullscreen_default_subtitle": "Entrando in una diretta passa automaticamente a schermo intero",
+    "enable_home_bottom_bar_compact": "Barra in basso compatta",
+    "enable_home_bottom_bar_compact_subtitle": "Una barra in basso più bassa nella home, per vedere più contenuti",
     "enable_home_bottom_bar_wide": "Barra in basso sui tablet",
     "enable_home_bottom_bar_wide_subtitle": "Su tablet e pieghevoli aperti la home usa la barra in basso invece della barra laterale",
     "enable_liquid_glass": "Vetro liquido",

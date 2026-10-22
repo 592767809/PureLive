@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -86,8 +87,16 @@ abstract final class GlassMetrics {
   /// The floating bottom bar's height.
   static const double barHeight = 68;
 
-  /// The gap around the floating bar: at the sides, and above the system's
-  /// gesture area.
+  /// The floating bar's height when the bottom bar is compact (V02.11,
+  /// issue #9: "底栏高度太高").
+  static const double barHeightCompact = 56;
+
+  /// The plain bar's height when the bottom bar is compact; Material's
+  /// own is 80.
+  static const double plainBarHeightCompact = 64;
+
+  /// The gap at the floating bar's sides, and under it where the system
+  /// leaves no room at the bottom.
   static const double barMargin = 12;
 
   /// The floating bar's widest: on a tablet (V02.6) the capsule stays this
@@ -95,9 +104,19 @@ abstract final class GlassMetrics {
   /// screen; a phone is narrower anyway.
   static const double barMaxWidth = 560;
 
-  /// How much of the screen's bottom the floating bar covers above the
-  /// system's gesture area: content scrolled to its end stays above it.
-  static const double barOverlap = barHeight + barMargin;
+  /// The room under the floating bar, from the screen's bottom edge
+  /// (V02.11, issue #9: "玻璃底栏下面空了好多"). Over a home indicator or a
+  /// gesture handle the capsule sits just clear of it, as iOS 26's own bar
+  /// does, rather than [barMargin] above the whole of [safeBottom]: iOS
+  /// draws its indicator at the bottom of the 34 (the capsule 20 up),
+  /// Android its handle in the middle of the inset (the capsule 6 above
+  /// it). Android's buttons, a taller inset, keep [barMargin] above them.
+  static double barGap({required double safeBottom, required bool ios}) {
+    if (safeBottom <= 0) return barMargin;
+    if (ios) return math.max(barMargin, safeBottom - 14);
+    if (safeBottom > 40) return safeBottom + barMargin;
+    return math.max(barMargin, safeBottom / 2 + 8);
+  }
 }
 
 /// The light rim of [GlassSurface]: brighter along the top-left edge,

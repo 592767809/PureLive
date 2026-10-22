@@ -43,6 +43,7 @@ final class LiveUiStrings {
     this.details = '详情',
     this.copy = '复制',
     this.copied = '已复制到剪贴板',
+    this.followed = '已关注',
   });
 
   /// Simplified Chinese (3.x `zh.json`).
@@ -99,6 +100,7 @@ final class LiveUiStrings {
     details: 'Details',
     copy: 'Copy',
     copied: 'Copied to clipboard',
+    followed: 'Followed',
   );
 
   /// Empty state title (`status_empty_title`).
@@ -206,6 +208,9 @@ final class LiveUiStrings {
 
   /// Said after a copy (`copied_to_clipboard`).
   final String copied;
+
+  /// The heart of a followed room's card (`followed`, V02.12).
+  final String followed;
 }
 
 /// Request headers for an image address (3.x `networkImageHeaders`: some

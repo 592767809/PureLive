@@ -863,6 +863,9 @@ abstract final class AppIcons {
   /// The bottom bar on a tablet too (V02.6).
   static const IconData homeBottomBar = Remix.layout_bottom_2_line;
 
+  /// A lower bottom bar (V02.11).
+  static const IconData homeBottomBarCompact = Remix.layout_bottom_line;
+
   /// Room card settings (3.x shared the multi-view grid; A01.4 c4 gives
   /// the cards their own).
   static const IconData roomCardSettings = Remix.gallery_view_2;

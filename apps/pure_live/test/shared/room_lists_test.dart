@@ -66,6 +66,57 @@ void main() {
     expect(find.text('anchor 3'), findsOneWidget);
   });
 
+  testWidgets('V02.12 (issue #10): a followed room has its heart on other pages, not on the follows page', (
+    tester,
+  ) async {
+    final services = (await tester.runAsync(testServices))!;
+    addTearDown(() => tester.runAsync(services.close));
+    final strings = (await tester.runAsync(loadStrings))!;
+    final followed = _room('1');
+    await tester.runAsync(() => services.store.follows.add(followed));
+    Widget card(LiveRoom room, {bool follow = false}) => Align(
+      alignment: Alignment.topLeft,
+      child: SizedBox(
+        width: 200,
+        height: 190,
+        child: RoomGridCard(room: room, follow: follow),
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appServicesProvider.overrideWithValue(services), roomClockProvider.overrideWithValue(() => _now)],
+        child: LiveUiScope(
+          config: LiveUiConfig(strings: strings.ui),
+          child: MaterialApp(
+            home: Scaffold(
+              body: ListView(
+                children: [
+                  KeyedSubtree(key: const ValueKey('browse-1'), child: card(followed)),
+                  KeyedSubtree(key: const ValueKey('browse-2'), child: card(_room('2'))),
+                  KeyedSubtree(key: const ValueKey('follows-1'), child: card(followed, follow: true)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    Finder heartIn(String key) =>
+        find.descendant(of: find.byKey(ValueKey(key)), matching: find.byKey(const ValueKey('room-card-followed')));
+    expect(heartIn('browse-1'), findsOneWidget);
+    expect(find.byTooltip('已关注'), findsOneWidget);
+    expect(heartIn('browse-2'), findsNothing);
+    expect(heartIn('follows-1'), findsNothing);
+
+    // Unfollowed elsewhere: the heart goes.
+    await tester.runAsync(() => services.store.follows.remove(followed));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump();
+    expect(heartIn('browse-1'), findsNothing);
+  });
+
   test('c4: the search pages share the platform snapshot; a new search takes a new one (19-1)', () async {
     var now = DateTime.utc(2026, 9, 28);
     final http = ReplayHttp([ReplaySample.load('../../fixtures/showroom/S01-onlives')]);

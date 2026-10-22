@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Ativar a cor dinâmica Monet",
     "enable_fullscreen_default": "Tela cheia automática",
     "enable_fullscreen_default_subtitle": "Ao entrar numa transmissão, vai automaticamente para tela cheia",
+    "enable_home_bottom_bar_compact": "Barra inferior compacta",
+    "enable_home_bottom_bar_compact_subtitle": "Uma barra inferior mais baixa na página inicial, para mostrar mais conteúdo",
     "enable_home_bottom_bar_wide": "Barra inferior em tablets",
     "enable_home_bottom_bar_wide_subtitle": "Em tablets e dobráveis abertos, o início usa a barra inferior em vez do trilho lateral",
     "enable_liquid_glass": "Vidro líquido",

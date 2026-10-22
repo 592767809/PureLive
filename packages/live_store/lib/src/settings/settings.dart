@@ -184,6 +184,11 @@ abstract final class Settings {
   /// Off: the rail from 600 wide, as before.
   static const homeBottomBarOnWide = BoolSetting('homeBottomBarOnWide', section: 'theme', defaultValue: false);
 
+  /// The home page's bottom bar is lower (V02.11, issue #9: "底栏高度太高"):
+  /// the plain bar 64 instead of Material's 80, the glass capsule 56
+  /// instead of 68. Off: as before.
+  static const homeBottomBarCompact = BoolSetting('homeBottomBarCompact', section: 'theme', defaultValue: false);
+
   /// Seed colour, `AARRGGBB` hex. The default is the brand blue (U.6b C-3);
   /// 3.x's default [legacyThemeColor] is moved to it once
   /// ([themeColorMigration], `LegacyRules.themeColor`).
@@ -1939,6 +1944,7 @@ abstract final class Settings {
     enableDynamicTheme,
     liquidGlass,
     homeBottomBarOnWide,
+    homeBottomBarCompact,
     themeColorSwitch,
     pureBlackTheme,
     themeColorMigration,

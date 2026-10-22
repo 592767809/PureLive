@@ -13,6 +13,12 @@ import 'package:pure_live/shared/rooms/room_texts.dart';
 // discovery pages hide: one copy for every card page (follows, popular,
 // areas, search, history; M12.2).
 
+/// The identity keys of the follows: the heart on a followed room's card,
+/// on the phone (issue #10) and the TV.
+final StreamProvider<Set<String>> followKeysProvider = StreamProvider.autoDispose(
+  (ref) => ref.watch(storeProvider).follows.watchAll().map((rooms) => {for (final room in rooms) room.identityKey}),
+);
+
 /// Whether [room] cannot be played here (UPGRADES 统一原则: discovery pages
 /// hide such rooms unless the user shows them): a carousel, or a restriction
 /// this client cannot pass. A login or age check counts only while the

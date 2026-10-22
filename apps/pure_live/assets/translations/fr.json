@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Activer la couleur dynamique Monet",
     "enable_fullscreen_default": "Plein écran auto",
     "enable_fullscreen_default_subtitle": "Passer automatiquement en plein écran en entrant dans un live",
+    "enable_home_bottom_bar_compact": "Barre du bas compacte",
+    "enable_home_bottom_bar_compact_subtitle": "Une barre du bas plus basse sur l’accueil, pour voir davantage de contenu",
     "enable_home_bottom_bar_wide": "Barre du bas sur tablette",
     "enable_home_bottom_bar_wide_subtitle": "Sur tablette ou pliable ouvert, l’accueil garde la barre du bas au lieu du rail latéral",
     "enable_liquid_glass": "Verre liquide",

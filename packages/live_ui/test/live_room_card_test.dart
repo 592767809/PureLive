@@ -191,6 +191,34 @@ void main() {
       expect(opened, 1);
     });
 
+    testWidgets('V02.12 (issue #10): a followed room has a heart after the platform badge, its words "已关注"', (
+      tester,
+    ) async {
+      final heart = find.byKey(const ValueKey('room-card-followed'));
+      await tester.pumpWidget(_host(const LiveRoomCard(data: _live, followed: true)));
+      final cover = tester.getRect(find.byType(AspectRatio).first);
+      // A single-platform list has no badge: the heart is in its place.
+      expect(tester.getRect(heart), Rect.fromLTWH(cover.left + 8, cover.top + 8, 22, 22));
+      expect(find.byTooltip('已关注'), findsOneWidget);
+      final icon = tester.widget<Icon>(find.descendant(of: heart, matching: find.byType(Icon)));
+      expect(icon.icon, AppIcons.followedHeart);
+      expect(icon.color, LiveRoomCardColors.followed);
+      // A mixed list: after the badge.
+      await tester.pumpWidget(_host(const LiveRoomCard(data: _live, followed: true, mixedPlatforms: true)));
+      final badge = tester.getRect(find.byKey(const ValueKey('room-card-platform-badge')));
+      expect(tester.getTopLeft(heart), Offset(badge.right + 4, badge.top));
+      // The compact row: with the figures when wide, alone when narrow.
+      const compact = LiveRoomCard(data: _live, followed: true, appearance: RoomCardAppearance.compact);
+      await tester.pumpWidget(_host(compact, width: 393));
+      expect(heart, findsOneWidget);
+      expect(find.text('84.7万'), findsOneWidget);
+      await tester.pumpWidget(_host(compact));
+      expect(heart, findsOneWidget);
+      expect(find.text('84.7万'), findsNothing);
+      await tester.pumpWidget(_host(const LiveRoomCard(data: _live)));
+      expect(heart, findsNothing);
+    });
+
     testWidgets('the compact row of the "简洁" preset (3.x), with the platform badge in mixed lists', (tester) async {
       await tester.pumpWidget(
         _host(const LiveRoomCard(data: _live, appearance: RoomCardAppearance.compact), width: 393),

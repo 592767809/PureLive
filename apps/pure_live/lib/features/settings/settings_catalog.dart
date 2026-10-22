@@ -407,6 +407,14 @@ List<SettingsEntry> _build() {
       keywords: ['平板', '折叠屏', '底栏', '侧栏', '导航栏', 'tablet', 'bottom bar', 'rail'],
       when: _mobile,
     )
+    ..toggle(
+      'home_bottom_bar_compact',
+      'enable_home_bottom_bar_compact',
+      Settings.homeBottomBarCompact,
+      AppIcons.homeBottomBarCompact,
+      desc: 'enable_home_bottom_bar_compact_subtitle',
+      keywords: ['底栏', '导航栏', '高度', '紧凑', '矮', 'bottom bar', 'height', 'compact'],
+    )
     ..add(
       'loading_style',
       'change_loading_style',

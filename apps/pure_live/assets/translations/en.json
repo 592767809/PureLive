@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Enable Monet dynamic color",
     "enable_fullscreen_default": "Auto Full Screen",
     "enable_fullscreen_default_subtitle": "When enter live play, auto into full screen",
+    "enable_home_bottom_bar_compact": "Compact bottom bar",
+    "enable_home_bottom_bar_compact_subtitle": "A lower bottom bar on the home page, so more of the page shows",
     "enable_home_bottom_bar_wide": "Bottom bar on tablets",
     "enable_home_bottom_bar_wide_subtitle": "On a tablet or unfolded foldable, the home page keeps the phone's bottom bar instead of the side rail",
     "enable_liquid_glass": "Liquid glass",

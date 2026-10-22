@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Monet-Dynamikfarben aktivieren",
     "enable_fullscreen_default": "Automatisch Vollbild",
     "enable_fullscreen_default_subtitle": "Beim Öffnen eines Livestreams automatisch ins Vollbild",
+    "enable_home_bottom_bar_compact": "Kompakte untere Leiste",
+    "enable_home_bottom_bar_compact_subtitle": "Eine niedrigere untere Leiste auf der Startseite, damit mehr vom Inhalt zu sehen ist",
     "enable_home_bottom_bar_wide": "Untere Leiste auf Tablets",
     "enable_home_bottom_bar_wide_subtitle": "Auf Tablets und aufgeklappten Foldables nutzt die Startseite die untere Leiste statt der Seitenleiste",
     "enable_liquid_glass": "Flüssiges Glas",

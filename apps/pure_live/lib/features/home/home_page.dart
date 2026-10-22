@@ -143,6 +143,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     final saved = watchSetting(ref, Settings.savedMenuIds);
     final glass = watchSetting(ref, Settings.liquidGlass);
+    final compact = watchSetting(ref, Settings.homeBottomBarCompact);
     // V02.6: a tablet may keep the bottom bar (phones and tablets only).
     final bottomOnWide =
         watchSetting(ref, Settings.homeBottomBarOnWide) &&
@@ -166,6 +167,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                   onSelected: _select,
                   body: body,
                   glass: glass,
+                  compact: compact,
                   glassBlur: liquidGlassBlurs(android: Platform.isAndroid, totalMemoryBytes: deviceMemoryBytes),
                 );
         },

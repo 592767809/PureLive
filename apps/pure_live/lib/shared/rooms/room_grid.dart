@@ -141,6 +141,8 @@ class RoomGridCard extends ConsumerWidget {
     final store = ref.read(storeProvider);
     final card = LiveRoomCard(
       data: policy.cardOf(room, now: now ?? ref.read(roomClockProvider)()),
+      // Issue #10: on every other page a followed room has its heart.
+      followed: !follow && (ref.watch(followKeysProvider).value?.contains(room.identityKey) ?? false),
       appearance: appearance,
       dense: dense,
       mixedPlatforms: mixedPlatforms,

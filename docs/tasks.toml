@@ -4298,6 +4298,28 @@ from = "https://github.com/wzgrx/PureLive/issues/8"
 note = "#8 根因：DialogKeys 打开对话框时让一个普通 Focus 拿焦点，所有按钮都在它自己的区域里，方向键从它往外找、什么也找不到；遥控器没有 Tab，确认键对它也没用。电视上能打开的手机对话框（66 处 AppDialog、更新提示、关闭确认）都这样。改成 FocusScope：外壳拿着焦点时方向键走 Flutter 的“作用域里按方向找第一个”，确认键先把焦点移到第一个控件、不直接按主按钮；键盘 Enter 照旧。测试：dialog_support_test（撤掉修复时“下”进不去）、remote_sync_test 用真实的发送对话框从上往下逐行走到“发送”、确认键勾选和发送（撤掉修复时失败）。K90 切到电视界面、锁横屏、只用 DPAD 键：逐行下到按钮，左右在取消和发送之间移动，确认键关掉对话框；测完恢复界面模式“自动”和自动旋转。#7：Flutter 3.47 最低 iOS 15（构建工具把最低版本改成 15.0），不能支持 iPadOS 14；README 写明 TrollStore 在 14 上能装但打不开，V04 记一条，发布说明的“下载哪个”从 5.4.7 起写 iOS 和 macOS 的最低版本"
 
 [[task]]
+id = "V02.11"
+title = "issue #9：底栏太高（iPhone 8 小屏、红米 Turbo 5 Max），玻璃底栏下面空得多"
+type = "界面"
+status = "完成"
+date = "2026-10-22"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/9"
+note = "用户选了方案 A（K90 原型截图 + issue 里 iPhone 截图做的示意）。① 玻璃胶囊下方不再是“整个底部安全区 + 12”：GlassMetrics.barGap 按系统底部区域算，iOS 的横条在 34 的底部，胶囊离底边 20（iPad 至少 12）；Android 的手势横条在区域中间，胶囊在它上面 6（24 → 20、16 → 16）；Android 三键导航（区域超过 40）照旧在按钮上面 12；没有底部区域（K90 隐藏横条、桌面窄窗口）照旧 12。② 新设置“紧凑底栏”（homeBottomBarCompact，外观 → 主题，默认关）：普通底栏 64（Material 默认 80），玻璃胶囊 56（原来 68），LiquidGlassBar 加 height，圆角和水滴跟着高度走。15 种语言。测试：liquid_glass_bar_test（barGap 各种底部区域、56 高胶囊大字号不溢出），home_test V02.11（iPhone 34：胶囊离底 20、紧凑 56、普通底栏 64、大字号不溢出；Android 三键 48：离底 60；没有区域：12），A01.5 用例的数字随 ① 更新。iOS 普通底栏图标文字“偏上”是 Material 底栏本身的排法（80 高 + 下面 34 的横条区域），紧凑后矮 16；玻璃“不够圆润”这次不改"
+
+[[task]]
+id = "V02.12"
+title = "issue #10：浏览直播间时看不出哪些已经关注"
+type = "界面"
+status = "完成"
+date = "2026-10-22"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/10"
+note = "用户选了方案 A（K90 原型截图对比了 A 左上角红心、B 右上角“♥ 已关注”）。手机卡片加 followed：封面左上角平台标签后面一个 22 的圆形红心（颜色同电视 TvColors.followed，图标 AppIcons.followedHeart），提示和读屏是“已关注”（LiveUiStrings.followed ← followed）；简洁卡片在右侧数字前，窄到不显示数字时只留红心。热门、分区、搜索（RoomGridCard，关注页 follow: true 不显示）和历史都显示；关注的键改成共用的 followKeysProvider（shared/rooms/room_cards.dart），电视的 tvFollowKeysProvider 并进来。测试：live_room_card_test V02.12（位置、颜色、简洁卡片宽窄）、room_lists_test V02.12（浏览卡片有、关注页没有、取消关注后消失）"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"

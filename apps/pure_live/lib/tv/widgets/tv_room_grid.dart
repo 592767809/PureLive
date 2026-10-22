@@ -104,7 +104,7 @@ class TvRoomGridState extends ConsumerState<TvRoomGrid> {
   Widget build(BuildContext context) {
     final scale = TvScale.of(context);
     final policy = watchAudiencePolicy(ref);
-    final followed = ref.watch(tvFollowKeysProvider).value ?? const <String>{};
+    final followed = ref.watch(followKeysProvider).value ?? const <String>{};
     final columns = tvRoomColumns(watchSetting(ref, Settings.textScaleFactor));
     final crossSpacing = scale(watchSetting(ref, Settings.crossAxisSpacing) + 26);
     final mainSpacing = scale(watchSetting(ref, Settings.mainAxisSpacing) + 26);
@@ -141,8 +141,3 @@ class TvRoomGridState extends ConsumerState<TvRoomGrid> {
     );
   }
 }
-
-/// The identity keys of the follows (the followed chip on cards).
-final StreamProvider<Set<String>> tvFollowKeysProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(storeProvider).follows.watchAll().map((rooms) => {for (final room in rooms) room.identityKey}),
-);

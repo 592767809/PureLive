@@ -7,6 +7,7 @@ import 'package:live_ui/src/scope.dart';
 import 'package:live_ui/src/theme/live_colors.dart';
 import 'package:live_ui/src/theme/live_theme.dart';
 import 'package:live_ui/src/theme/text_styles.dart';
+import 'package:live_ui/src/theme/tv_colors.dart';
 import 'package:live_ui/src/widgets/avatar.dart';
 import 'package:live_ui/src/widgets/network_image.dart';
 import 'package:live_ui/src/widgets/room_card.dart';
@@ -30,7 +31,9 @@ import 'package:live_ui/src/widgets/room_card_appearance.dart';
 /// * every badge is 12 points, the audience in tabular figures (c6);
 /// * a restricted room is marked on the cover's bottom left (c7);
 /// * a mouse over the card tints it and shows the whole title; keyboard
-///   focus draws a primary outline (c9).
+///   focus draws a primary outline (c9);
+/// * a followed room, in a list that is not the follows, has a heart by
+///   the platform badge, as on the TV ([followed], V02.12).
 ///
 /// [RoomCardSkeleton] is the static placeholder of the same size (c8).
 class LiveRoomCard extends StatefulWidget {
@@ -42,6 +45,7 @@ class LiveRoomCard extends StatefulWidget {
     this.mixedPlatforms = false,
     this.statusPending = false,
     this.statusPendingLabel,
+    this.followed = false,
     this.showDelete = false,
     this.onDelete,
     this.deleteTooltip,
@@ -72,6 +76,10 @@ class LiveRoomCard extends StatefulWidget {
 
   /// Words of the [statusPending] badge; null shows "verifying".
   final String? statusPendingLabel;
+
+  /// The room is followed (issue #10): a heart on the cover's top left,
+  /// after the platform badge. The follows page leaves it off.
+  final bool followed;
 
   /// Shows the delete button (history).
   final bool showDelete;
@@ -169,6 +177,9 @@ abstract final class LiveRoomCardColors {
 
   /// A badge on a cover: dark enough on bright and dark pictures.
   static const Color chip = Color(0x8C000000);
+
+  /// The heart of a followed room: the TV's pink (V02.12).
+  static const Color followed = TvColors.followed;
 }
 
 /// Heights of [LiveRoomCard] so fixed-extent grids reserve what a card takes
@@ -284,6 +295,19 @@ final class _Parts {
     text: platformText,
   );
 
+  /// The heart of a followed room: a round badge, its words for the
+  /// tooltip and screen readers.
+  Widget followedMark() => Tooltip(
+    key: const ValueKey('room-card-followed'),
+    message: words.followed,
+    child: Container(
+      width: 22,
+      height: 22,
+      decoration: const BoxDecoration(color: LiveRoomCardColors.chip, shape: BoxShape.circle),
+      child: const Icon(AppIcons.followedHeart, size: 14, color: LiveRoomCardColors.followed),
+    ),
+  );
+
   Widget deleteButton({required bool onCover}) => IconButton(
     key: const ValueKey('room-card-delete'),
     tooltip: card.deleteTooltip ?? words.delete,
@@ -366,7 +390,16 @@ final class _Parts {
                   key: const ValueKey('room-card-offline-dim'),
                   decoration: BoxDecoration(color: LiveRoomCardColors.offlineDim, borderRadius: radius),
                 ),
-              if (showPlatform) Positioned(left: 8, top: 8, child: platformChip()),
+              if (showPlatform || card.followed)
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    spacing: 4,
+                    children: [if (showPlatform) platformChip(), if (card.followed) followedMark()],
+                  ),
+                ),
               if (showReplay)
                 Positioned(
                   right: card.showDelete ? 48 : 8,
@@ -426,6 +459,7 @@ final class _Parts {
     final children = <Widget>[
       if (canShowMetrics) ...[
         if (showPlatform) platformChip(),
+        if (card.followed) followedMark(),
         if (restricted != null)
           CoverChip(key: const ValueKey('room-card-restriction'), icon: AppIcons.restrictedBadge, text: restricted),
         if (card.statusPending)
@@ -442,8 +476,15 @@ final class _Parts {
             background: scheme.primary,
             foreground: scheme.onPrimary,
           ),
-      ] else if (card.statusPending)
-        Tooltip(message: pendingText, child: const Icon(AppIcons.statusPending, size: 18)),
+      ] else ...[
+        if (card.followed)
+          Tooltip(
+            key: const ValueKey('room-card-followed'),
+            message: words.followed,
+            child: const Icon(AppIcons.followedHeart, size: 18, color: LiveRoomCardColors.followed),
+          ),
+        if (card.statusPending) Tooltip(message: pendingText, child: const Icon(AppIcons.statusPending, size: 18)),
+      ],
       if (card.showDelete) deleteButton(onCover: false),
     ];
     if (children.isEmpty) return null;

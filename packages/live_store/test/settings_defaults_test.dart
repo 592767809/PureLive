@@ -276,6 +276,7 @@ const Map<String, Object> newInV4 = {
   'pureBlackTheme': false, // A11.2 C-4
   'liquidGlass': true, // A01.6: liquid glass by default (A01.5 had the plain bar)
   'homeBottomBarOnWide': false, // V02.6 (issue #4): tablets keep the rail unless asked
+  'homeBottomBarCompact': false, // V02.11 (issue #9): the bars' own heights unless asked
   'iptvPopularPlaylist': '', // V02.9 (issue #6): the built-in hot list, as 3.x
   'iptvHotRemoved': false, // V02.9: the built-in hot list is there until deleted
   'themeColorMigration': 0, // A11.2

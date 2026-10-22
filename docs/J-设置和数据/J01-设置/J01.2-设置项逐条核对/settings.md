@@ -2,7 +2,7 @@
 
 <!-- 由 tools/docs/settings_audit.py 生成（手写的部分在 tools/docs/settings_audit_notes.py），不要手改 -->
 
-v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
+v4 的 275 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
 
 ## 结论
 
@@ -12,7 +12,7 @@ v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | 确认改动 | 3 |
 | 不一样，已改 | 18 |
 | 不一样，待处理 | 0 |
-| 未核对 | 5（showMenuBarIcon, homeBottomBarOnWide, floatWindowPosition, useSystemPip, floatOverlayTipShown） |
+| 未核对 | 6（showMenuBarIcon, homeBottomBarOnWide, homeBottomBarCompact, floatWindowPosition, useSystemPip, floatOverlayTipShown） |
 
 “一样”：默认值和 3.x 一样（3.x 的常量和表达式已经展开），数值的范围也一样（3.x 的范围是它启动时和导入备份时的修正）；v4 新加的设置，“一样”指默认值和来源任务写的一致。“确认改动”写了依据（任务或决定）。“不一样，已改”是本任务改了注册表（`settings.dart`），“不一样，待处理”开了后续任务。
 
@@ -42,7 +42,7 @@ v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `preferRealOnlineCounts` | Bool | `false` | `false`（`app_settings_controller.dart:54`） |  |  |  | `features/favorite/favorite_controller.dart:176`、`features/favorite/favorite_controller.dart:368`、`features/multiview/widgets/room_picker.dart:173` 等 10 处 | 立即 | `audience_heat` | 一样 |
 | `realOnlinePlatforms` | StringList | `[douyin, kuaishou, cc, twitch, soop, acfun, picarto, twitcasting]` | `[douyin, kuaishou, cc, twitch, soop, acfun, picarto, twitcasting]`（`app_settings_controller.dart:11-20、:55`） |  |  |  | `features/favorite/favorite_controller.dart:177`、`features/favorite/favorite_controller.dart:369`、`features/multiview/widgets/room_picker.dart:174` 等 13 处 | 立即 | `audience_platforms` | 一样：`defaultRealOnlinePlatforms` 展开后一样；3.x 的 `audienceMetricMigration` 补的平台都已在列表里 |
 | `savedMenuIds` | StringList | `[favorites, popular, areas, record]` | `[favorites, popular, areas, record]`（`app_settings_controller.dart:69`，`HomeMenu` 在 `common/consts/app_consts.dart:6-10`） |  |  |  | `app/app.dart:146`、`features/home/home_page.dart:144`、`live_store/src/legacy/legacy_snapshot.dart:213` 等 4 处 | 立即 | `home_menus` | 一样 |
-| `enableMultiView` | Bool | `true` | `true`（`app_settings_controller.dart:60`） |  |  |  | `features/home/home_views.dart:156`、`features/home/menu_button.dart:137` | 立即 | `multiview` | 一样 |
+| `enableMultiView` | Bool | `true` | `true`（`app_settings_controller.dart:60`） |  |  |  | `features/home/home_views.dart:167`、`features/home/menu_button.dart:137` | 立即 | `multiview` | 一样 |
 | `enableNewWindowPlay` | Bool | `true` | `true`（`app_settings_controller.dart:61`） |  |  |  | `app/desktop/desktop_window.dart:93`、`app/desktop/desktop_window.dart:98`、`features/home/menu_button.dart:56` | 立即 | `new_window` | 一样 |
 | `showMenuBarIcon` | Bool | `true` |  |  |  |  | `app/desktop/desktop_window.dart:368`、`app/desktop/desktop_window.dart:371`、`app/desktop/desktop_window.dart:372` | 立即 | `menu_bar_icon` | **未核对** |
 | `showUnplayableInDiscover` | Bool | `false` | —（新加） |  |  |  | `features/area_rooms/area_rooms_page.dart:77`、`features/area_rooms/area_rooms_page.dart:80`、`features/area_rooms/area_rooms_page.dart:81` 等 7 处 | 立即 | `show_unplayable` | 一样：v4 新加（UPGRADES 统一原则“受限”，J02.1），默认值照来源任务 |
@@ -82,8 +82,9 @@ v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 |---|---|---|---|---|---|---|---|---|---|---|
 | `themeMode` | String | `'System'` | `'System'`（`theme_settings_controller.dart:17`） | `System` / `Dark` / `Light` |  |  | `app/app.dart:231`、`app/intake/system_intake.dart:61` | 立即 | `theme_mode` | 一样 |
 | `enableDynamicTheme` | Bool | `false` | `false`（`theme_settings_controller.dart:18`） |  |  |  | `app/app.dart:236` | 立即 | `dynamic_color` | 一样 |
-| `liquidGlass` | Bool | `true` | —（新加） |  |  |  | `features/home/home_page.dart:145`、`live_ui/src/widgets/glass.dart:7` | 马上 | `liquid_glass` | 一样：v4 新加（A01.5）；5.2 起默认开（A01.6，用户要液态玻璃）：手机首页底栏悬浮成液态玻璃胶囊，边缘折射、选中项是可拖动的玻璃水滴，不支持着色器的设备是毛玻璃，内存 4 GB 及以下（或读不到）的安卓机只半透明不模糊；关掉是普通底栏；宽屏侧栏、直播间不变 |
-| `homeBottomBarOnWide` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:148` | 立即 | `home_bottom_bar_wide` | **未核对** |
+| `liquidGlass` | Bool | `true` | —（新加） |  |  |  | `features/home/home_page.dart:145`、`live_ui/src/widgets/glass.dart:8` | 马上 | `liquid_glass` | 一样：v4 新加（A01.5）；5.2 起默认开（A01.6，用户要液态玻璃）：手机首页底栏悬浮成液态玻璃胶囊，边缘折射、选中项是可拖动的玻璃水滴，不支持着色器的设备是毛玻璃，内存 4 GB 及以下（或读不到）的安卓机只半透明不模糊；关掉是普通底栏；宽屏侧栏、直播间不变 |
+| `homeBottomBarOnWide` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:149` | 立即 | `home_bottom_bar_wide` | **未核对** |
+| `homeBottomBarCompact` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:146`、`features/home/home_views.dart:51` | 立即 | `home_bottom_bar_compact` | **未核对** |
 | `themeColorSwitch` | String | `'FF2E6FE0'` | `'FF2196F3'`（`theme_settings_controller.dart:13、:19`（`Colors.blue`）） |  |  |  | `app/app.dart:237`、`live_store/src/legacy/legacy_snapshot.dart:399`、`live_store/src/legacy/legacy_snapshot.dart:400` 等 6 处 | 立即 | `theme_color` | 确认改动：品牌蓝 `FF2E6FE0`（A11.2 C-3）；3.x 默认的蓝色存过的老用户迁移一次（`themeColorMigration`） |
 | `pureBlackTheme` | Bool | `false` | —（新加） |  |  |  | `app/app.dart:238` | 立即 | `pure_black` | 一样：v4 新加（A11.2 C-4），默认值照来源任务 |
 | `language` | String | `'简体中文'` | `'简体中文'`（`theme_settings_controller.dart:20`） |  |  |  | `app/app.dart:224`、`app/app.dart:226`、`main.dart:114` 等 4 处 | 立即 | `language` | 一样 |
@@ -104,11 +105,11 @@ v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | `textScaleFactor` | Double | `1` | `1`（`font_settings_controller.dart:39`） | 0.5～2 | 0.5～2（`font_settings_controller.dart:16-18`） | 滑块 0.5～2，步长 0.05 | `app/app.dart:255`、`tv/pages/tv_areas_pane.dart:194`、`tv/widgets/tv_room_grid.dart:108` | 立即 | `text_scale` | 一样 |
-| `fontSizeBodySmall` | Double | `12` | `12`（`font_settings_controller.dart:40`） | 9～15 | 9～15（`font_settings_controller.dart:19-21`） | 滑块 9～15，步长 1 | `app/app.dart:240`、`shared/rooms/room_cards.dart:172` | 立即 | `font_sizes` | 一样 |
-| `fontSizeBodyMedium` | Double | `13` | `13`（`font_settings_controller.dart:41`） | 11～17 | 11～17（`font_settings_controller.dart:22-24`） | 滑块 11～17，步长 1 | `app/app.dart:241`、`shared/rooms/room_cards.dart:173` | 立即 | `font_sizes` | 一样 |
-| `fontSizeBodyLarge` | Double | `14` | `14`（`font_settings_controller.dart:42`） | 12～18 | 12～18（`font_settings_controller.dart:25-27`） | 滑块 12～18，步长 1 | `app/app.dart:242`、`shared/rooms/room_cards.dart:174` | 立即 | `font_sizes` | 一样 |
-| `fontSizeTitleMedium` | Double | `15` | `15`（`font_settings_controller.dart:43`） | 13～20 | 13～20（`font_settings_controller.dart:28-30`） | 滑块 13～20，步长 1 | `app/app.dart:243`、`shared/rooms/room_cards.dart:175` | 立即 | `font_sizes` | 一样 |
-| `fontSizeTitleLarge` | Double | `20` | `20`（`font_settings_controller.dart:44`） | 16～26 | 16～26（`font_settings_controller.dart:31-33`） | 滑块 16～26，步长 1 | `app/app.dart:244`、`shared/rooms/room_cards.dart:176` | 立即 | `font_sizes` | 一样 |
+| `fontSizeBodySmall` | Double | `12` | `12`（`font_settings_controller.dart:40`） | 9～15 | 9～15（`font_settings_controller.dart:19-21`） | 滑块 9～15，步长 1 | `app/app.dart:240`、`shared/rooms/room_cards.dart:178` | 立即 | `font_sizes` | 一样 |
+| `fontSizeBodyMedium` | Double | `13` | `13`（`font_settings_controller.dart:41`） | 11～17 | 11～17（`font_settings_controller.dart:22-24`） | 滑块 11～17，步长 1 | `app/app.dart:241`、`shared/rooms/room_cards.dart:179` | 立即 | `font_sizes` | 一样 |
+| `fontSizeBodyLarge` | Double | `14` | `14`（`font_settings_controller.dart:42`） | 12～18 | 12～18（`font_settings_controller.dart:25-27`） | 滑块 12～18，步长 1 | `app/app.dart:242`、`shared/rooms/room_cards.dart:180` | 立即 | `font_sizes` | 一样 |
+| `fontSizeTitleMedium` | Double | `15` | `15`（`font_settings_controller.dart:43`） | 13～20 | 13～20（`font_settings_controller.dart:28-30`） | 滑块 13～20，步长 1 | `app/app.dart:243`、`shared/rooms/room_cards.dart:181` | 立即 | `font_sizes` | 一样 |
+| `fontSizeTitleLarge` | Double | `20` | `20`（`font_settings_controller.dart:44`） | 16～26 | 16～26（`font_settings_controller.dart:31-33`） | 滑块 16～26，步长 1 | `app/app.dart:244`、`shared/rooms/room_cards.dart:182` | 立即 | `font_sizes` | 一样 |
 | `fontFamilyName` | String | `'Default'` | `'Default'`（`font_settings_controller.dart:45`） |  |  |  | `app/app.dart:247`、`app/fonts.dart:303`、`app/fonts.dart:395` 等 4 处 | 立即 | `app_font` | 一样 |
 | `fontFamilyFileName` | String | `''` | `''`（`font_settings_controller.dart:46`） |  |  |  | `app/fonts.dart:150`、`app/fonts.dart:303`、`app/fonts.dart:397` | 读取时 | `app_font` | 一样 |
 | `danmakuFontFamilyFileName` | String | `''` | `''`（`font_settings_controller.dart:47`） |  |  |  | `app/fonts.dart:304`、`app/fonts.dart:401` | 读取时 | `video_danmaku_font` | 一样 |
@@ -227,20 +228,20 @@ v4 的 274 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `room_card_mobile_preset` | String | `'normal'` | `'normal'`（`room_card_settings_controller.dart:15、:251`） | `compact` / `normal` / `rich` / `custom` |  |  | `shared/rooms/room_cards.dart:144`、`shared/rooms/room_cards.dart:153` | 立即 | `room_card` | 一样 |
-| `room_card_desktop_preset` | String | `'normal'` | `'normal'`（`room_card_settings_controller.dart:252`） | `compact` / `normal` / `rich` / `custom` |  |  | `shared/rooms/room_cards.dart:144`、`shared/rooms/room_cards.dart:153` | 立即 | `room_card` | 一样 |
-| `room_card_mobile_config` | Json | `{}` | `{}`（`room_card_settings_controller.dart:253-259`） |  |  |  | `shared/rooms/room_cards.dart:145`、`shared/rooms/room_cards.dart:154` | 立即 | `room_card` | 一样：3.x 没存时用预设的外观（`_storedPresetFallback`），v4 的空映射同样表示“用预设” |
-| `room_card_desktop_config` | Json | `{}` | `{}`（`room_card_settings_controller.dart:260-266`） |  |  |  | `shared/rooms/room_cards.dart:145`、`shared/rooms/room_cards.dart:154` | 立即 | `room_card` | 一样：同上 |
+| `room_card_mobile_preset` | String | `'normal'` | `'normal'`（`room_card_settings_controller.dart:15、:251`） | `compact` / `normal` / `rich` / `custom` |  |  | `shared/rooms/room_cards.dart:150`、`shared/rooms/room_cards.dart:159` | 立即 | `room_card` | 一样 |
+| `room_card_desktop_preset` | String | `'normal'` | `'normal'`（`room_card_settings_controller.dart:252`） | `compact` / `normal` / `rich` / `custom` |  |  | `shared/rooms/room_cards.dart:150`、`shared/rooms/room_cards.dart:159` | 立即 | `room_card` | 一样 |
+| `room_card_mobile_config` | Json | `{}` | `{}`（`room_card_settings_controller.dart:253-259`） |  |  |  | `shared/rooms/room_cards.dart:151`、`shared/rooms/room_cards.dart:160` | 立即 | `room_card` | 一样：3.x 没存时用预设的外观（`_storedPresetFallback`），v4 的空映射同样表示“用预设” |
+| `room_card_desktop_config` | Json | `{}` | `{}`（`room_card_settings_controller.dart:260-266`） |  |  |  | `shared/rooms/room_cards.dart:151`、`shared/rooms/room_cards.dart:160` | 立即 | `room_card` | 一样：同上 |
 
 ## 翻页（page）
 
 | 键 | 类型 | v4 默认 | 3.x 默认 | v4 范围 | 3.x 范围 | 设置页 | 读取 | 生效 | 目录 | 结论 |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `page_show_size_selector` | Bool | `true` | `true`（`page_settings_controller.dart:14`） |  |  |  | `features/areas/platform_areas_view.dart:245`、`features/favorite/favorite_page.dart:401`、`shared/rooms/room_grid.dart:537` | 立即 | `page_size_selector` | 一样 |
-| `page_show_goto_button` | Bool | `true` | `true`（`page_settings_controller.dart:15`） |  |  |  | `features/areas/platform_areas_view.dart:246`、`features/favorite/favorite_page.dart:402`、`shared/rooms/room_grid.dart:538` | 立即 | `page_goto` | 一样 |
-| `page_show_scroll_top` | Bool | `true` | `true`（`page_settings_controller.dart:16`） |  |  |  | `features/favorite/favorite_page.dart:400`、`shared/rooms/room_grid.dart:536` | 立即 | `page_scroll_top` | 一样 |
-| `page_default_size` | Int | `0` | `12`（`page_settings_controller.dart:17、:23-34（宽于 960 逻辑像素是 20）`） | 0～100 | 1～100 且必须是可选的条数之一，否则取第一个（`page_settings_controller.dart:9-10`、:51-62） | 数字框，预设 `[0, 12, 20, 30, 40, 60]` | `features/areas/platform_areas_view.dart:247`、`shared/rooms/paging.dart:30`、`shared/rooms/room_grid.dart:539` | 立即 | `page_default_size` | 确认改动：v4 默认 0 = 由界面按宽度定（`shared/rooms/paging.dart` 的 `pageSizesOf`，结果和 3.x 一样是 12 或 20），J02.1 有意差异（纯 Dart 包拿不到屏幕宽度）；3.x 读到 v4 备份里的 0 时取可选条数的第一个，同样是 12 或 20 |
-| `page_size_options_raw` | String | `''` | `''`（`page_settings_controller.dart:19`） |  |  |  | `features/areas/platform_areas_view.dart:248`、`shared/rooms/paging.dart:24`、`shared/rooms/room_grid.dart:540` 等 5 处 | 立即 | `page_size_options` | 一样：空 = 按宽度用 3.x 的默认可选条数（12/24/36/48 或 20/40/60/80），和 3.x 一样 |
+| `page_show_size_selector` | Bool | `true` | `true`（`page_settings_controller.dart:14`） |  |  |  | `features/areas/platform_areas_view.dart:245`、`features/favorite/favorite_page.dart:401`、`shared/rooms/room_grid.dart:539` | 立即 | `page_size_selector` | 一样 |
+| `page_show_goto_button` | Bool | `true` | `true`（`page_settings_controller.dart:15`） |  |  |  | `features/areas/platform_areas_view.dart:246`、`features/favorite/favorite_page.dart:402`、`shared/rooms/room_grid.dart:540` | 立即 | `page_goto` | 一样 |
+| `page_show_scroll_top` | Bool | `true` | `true`（`page_settings_controller.dart:16`） |  |  |  | `features/favorite/favorite_page.dart:400`、`shared/rooms/room_grid.dart:538` | 立即 | `page_scroll_top` | 一样 |
+| `page_default_size` | Int | `0` | `12`（`page_settings_controller.dart:17、:23-34（宽于 960 逻辑像素是 20）`） | 0～100 | 1～100 且必须是可选的条数之一，否则取第一个（`page_settings_controller.dart:9-10`、:51-62） | 数字框，预设 `[0, 12, 20, 30, 40, 60]` | `features/areas/platform_areas_view.dart:247`、`shared/rooms/paging.dart:30`、`shared/rooms/room_grid.dart:541` | 立即 | `page_default_size` | 确认改动：v4 默认 0 = 由界面按宽度定（`shared/rooms/paging.dart` 的 `pageSizesOf`，结果和 3.x 一样是 12 或 20），J02.1 有意差异（纯 Dart 包拿不到屏幕宽度）；3.x 读到 v4 备份里的 0 时取可选条数的第一个，同样是 12 或 20 |
+| `page_size_options_raw` | String | `''` | `''`（`page_settings_controller.dart:19`） |  |  |  | `features/areas/platform_areas_view.dart:248`、`shared/rooms/paging.dart:24`、`shared/rooms/room_grid.dart:542` 等 5 处 | 立即 | `page_size_options` | 一样：空 = 按宽度用 3.x 的默认可选条数（12/24/36/48 或 20/40/60/80），和 3.x 一样 |
 
 ## 刷新（refresh）
 

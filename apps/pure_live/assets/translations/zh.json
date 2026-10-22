@@ -597,6 +597,8 @@
     "enable_dynamic_color_subtitle": "启用Monet壁纸动态取色",
     "enable_fullscreen_default": "自动全屏",
     "enable_fullscreen_default_subtitle": "当进入直播播放页，自动进入全屏",
+    "enable_home_bottom_bar_compact": "紧凑底栏",
+    "enable_home_bottom_bar_compact_subtitle": "首页底栏矮一些，多露出一点内容",
     "enable_home_bottom_bar_wide": "平板也用底栏",
     "enable_home_bottom_bar_wide_subtitle": "宽屏（平板、展开的折叠屏）首页也用手机的底栏，不用侧栏",
     "enable_liquid_glass": "液体玻璃",

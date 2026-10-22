@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Включить динамические цвета Monet",
     "enable_fullscreen_default": "Автоматический полноэкранный режим",
     "enable_fullscreen_default_subtitle": "При входе в эфир автоматически переходить в полноэкранный режим",
+    "enable_home_bottom_bar_compact": "Компактная нижняя панель",
+    "enable_home_bottom_bar_compact_subtitle": "Нижняя панель на главной ниже, чтобы было видно больше содержимого",
     "enable_home_bottom_bar_wide": "Нижняя панель на планшетах",
     "enable_home_bottom_bar_wide_subtitle": "На планшетах и раскрытых складных телефонах главная использует нижнюю панель вместо боковой",
     "enable_liquid_glass": "Жидкое стекло",

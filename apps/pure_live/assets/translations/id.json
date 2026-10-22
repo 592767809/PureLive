@@ -598,6 +598,8 @@
     "enable_dynamic_color_subtitle": "Aktifkan warna dinamis Monet",
     "enable_fullscreen_default": "Layar Penuh Otomatis",
     "enable_fullscreen_default_subtitle": "Saat masuk siaran, otomatis ke layar penuh",
+    "enable_home_bottom_bar_compact": "Bilah bawah ringkas",
+    "enable_home_bottom_bar_compact_subtitle": "Bilah bawah di beranda lebih rendah agar lebih banyak konten terlihat",
     "enable_home_bottom_bar_wide": "Bilah bawah di tablet",
     "enable_home_bottom_bar_wide_subtitle": "Di tablet dan ponsel lipat yang dibuka, beranda memakai bilah bawah, bukan rel samping",
     "enable_liquid_glass": "Kaca cair",

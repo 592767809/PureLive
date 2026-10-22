@@ -7,7 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
 
 void main() {
-  Future<List<int>> pump(WidgetTester tester, {int selected = 0, bool still = false}) async {
+  Future<List<int>> pump(
+    WidgetTester tester, {
+    int selected = 0,
+    bool still = false,
+    double height = GlassMetrics.barHeight,
+  }) async {
     final chosen = <int>[];
     var index = selected;
     await tester.pumpWidget(
@@ -22,9 +27,10 @@ void main() {
             alignment: Alignment.bottomCenter,
             child: SizedBox(
               width: 400,
-              height: GlassMetrics.barHeight,
+              height: height,
               child: StatefulBuilder(
                 builder: (context, setState) => LiquidGlassBar(
+                  height: height,
                   selectedIndex: index,
                   onSelected: (next) => setState(() {
                     chosen.add(next);
@@ -154,5 +160,34 @@ void main() {
     await tester.pumpAndSettle();
     expect(chosen, isEmpty);
     expect((drop().center.dx - start).abs(), lessThan(1));
+  });
+
+  test('V02.11 (issue #9): the room under the capsule', () {
+    // Nothing at the bottom (gestures without a handle, a window): 12.
+    expect(GlassMetrics.barGap(safeBottom: 0, ios: false), GlassMetrics.barMargin);
+    expect(GlassMetrics.barGap(safeBottom: 0, ios: true), GlassMetrics.barMargin);
+    // An iPhone's home indicator: 20, not 34 + 12; an iPad's: at least 12.
+    expect(GlassMetrics.barGap(safeBottom: 34, ios: true), 20);
+    expect(GlassMetrics.barGap(safeBottom: 20, ios: true), GlassMetrics.barMargin);
+    // Android's handle, in the middle of its inset: 6 above it.
+    expect(GlassMetrics.barGap(safeBottom: 24, ios: false), 20);
+    expect(GlassMetrics.barGap(safeBottom: 16, ios: false), 16);
+    // Android's buttons: 12 above them, as before.
+    expect(GlassMetrics.barGap(safeBottom: 48, ios: false), 60);
+  });
+
+  testWidgets('V02.11: the compact capsule is 56 high and round; a large font fits', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final chosen = await pump(tester, height: GlassMetrics.barHeightCompact);
+    expect(tester.takeException(), isNull);
+    expect(tester.getSize(find.byType(LiquidGlassBar)).height, GlassMetrics.barHeightCompact);
+    final shadow = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(LiquidGlassBar), matching: find.byType(DecoratedBox)).first,
+    );
+    expect((shadow.decoration as BoxDecoration).borderRadius, BorderRadius.circular(28));
+    await tester.tap(item('热门'));
+    await tester.pumpAndSettle();
+    expect(chosen, [1]);
   });
 }

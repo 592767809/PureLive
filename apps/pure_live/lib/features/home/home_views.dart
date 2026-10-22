@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
@@ -14,7 +15,8 @@ import 'package:pure_live/i18n/i18n.dart';
 ///
 /// With [glass] (A01.5, A01.6) the bar floats over the page as a capsule
 /// of liquid glass ([LiquidGlassBar]), the page scrolling on under it;
-/// [glassBlur] off, the glass is a plain tint.
+/// [glassBlur] off, the glass is a plain tint. [compact] (V02.11) lowers
+/// either bar.
 class HomeMobileView extends StatelessWidget {
   /// Creates the layout.
   const new({
@@ -24,6 +26,7 @@ class HomeMobileView extends StatelessWidget {
     required this.body,
     this.glass = false,
     this.glassBlur = true,
+    this.compact = false,
     super.key,
   });
 
@@ -44,6 +47,9 @@ class HomeMobileView extends StatelessWidget {
 
   /// The glass blurs the page behind it.
   final bool glassBlur;
+
+  /// The bar is lower (`Settings.homeBottomBarCompact`).
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -67,26 +73,31 @@ class HomeMobileView extends StatelessWidget {
       ],
     );
     if (menus.length <= 1) return Scaffold(body: body);
-    if (!glass) return Scaffold(bottomNavigationBar: bar(), body: body);
-    final safeBottom = MediaQuery.viewPaddingOf(context).bottom;
+    if (!glass) {
+      return Scaffold(
+        bottomNavigationBar: bar(height: compact ? GlassMetrics.plainBarHeightCompact : null),
+        body: body,
+      );
+    }
+    final barHeight = compact ? GlassMetrics.barHeightCompact : GlassMetrics.barHeight;
+    final gap = GlassMetrics.barGap(
+      safeBottom: MediaQuery.viewPaddingOf(context).bottom,
+      ios: defaultTargetPlatform == TargetPlatform.iOS,
+    );
     return Scaffold(
       extendBody: true,
       bottomNavigationBar: Padding(
         key: const ValueKey('home-glass-bar'),
-        padding: EdgeInsets.fromLTRB(
-          GlassMetrics.barMargin,
-          0,
-          GlassMetrics.barMargin,
-          safeBottom + GlassMetrics.barMargin,
-        ),
+        padding: EdgeInsets.fromLTRB(GlassMetrics.barMargin, 0, GlassMetrics.barMargin, gap),
         child: Align(
           heightFactor: 1,
           child: SizedBox(
-            height: GlassMetrics.barHeight,
+            height: barHeight,
             width: GlassMetrics.barMaxWidth,
             // A01.6: refraction and the drop where the shader runs, frosted
             // glass elsewhere, a plain tint on a phone with little memory.
             child: LiquidGlassBar(
+              height: barHeight,
               blur: glassBlur,
               refraction: glassBlur,
               selectedIndex: index < 0 ? 0 : index,
@@ -104,7 +115,7 @@ class HomeMobileView extends StatelessWidget {
           ),
         ),
       ),
-      body: GlassBarInset(inset: safeBottom + GlassMetrics.barOverlap, child: body),
+      body: GlassBarInset(inset: gap + barHeight, child: body),
     );
   }
 }

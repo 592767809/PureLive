@@ -69,6 +69,7 @@ class LiquidGlassBar extends StatefulWidget {
     required this.onSelected,
     this.blur = true,
     this.refraction = true,
+    this.height = GlassMetrics.barHeight,
     super.key,
   });
 
@@ -86,6 +87,10 @@ class LiquidGlassBar extends StatefulWidget {
 
   /// Whether the shader's refraction may be used.
   final bool refraction;
+
+  /// The bar's height (compact, V02.11); the capsule's corners are half of
+  /// it, and the drop keeps 6 to its top and bottom.
+  final double height;
 
   @override
   State<LiquidGlassBar> createState() => _LiquidGlassBarState();
@@ -349,7 +354,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
         // The shadow only floating layers have (UI.md §9.3), soft and close.
         final bar = DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(GlassMetrics.barRadius),
+            borderRadius: BorderRadius.circular(widget.height / 2),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: dark ? 0.32 : 0.12),
@@ -411,8 +416,8 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     final across = _growX.value / (1 - (speed * 0.75).clamp(-0.2, 0.2));
     final up = _growY.value * (1 - (speed * 0.25).clamp(-0.2, 0.2));
     final width = (_slot - 10) * across;
-    final height = (GlassMetrics.barHeight - 12) * up;
-    return Rect.fromCenter(center: Offset(_drop.value, GlassMetrics.barHeight / 2), width: width, height: height);
+    final height = (widget.height - 12) * up;
+    return Rect.fromCenter(center: Offset(_drop.value, widget.height / 2), width: width, height: height);
   }
 
   Widget _destination(BuildContext context, int index, LiquidGlassBarItem item, Listenable moves) {
@@ -443,7 +448,7 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
       excludeFromSemantics: true,
       onTap: () => _onTap(index),
       child: SizedBox(
-        height: GlassMetrics.barHeight,
+        height: widget.height,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
           child: Semantics(
@@ -758,7 +763,7 @@ class RenderLiquidGlass extends RenderProxyBox {
   @override
   bool get alwaysNeedsCompositing => true;
 
-  double get _radius => GlassMetrics.barRadius;
+  double get _radius => size.height / 2;
 
   /// How far around the glass the backdrop is read.
   static const double _margin = 16;
