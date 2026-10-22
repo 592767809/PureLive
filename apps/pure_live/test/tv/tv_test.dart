@@ -340,9 +340,7 @@ void main() {
     await _close(tester, services);
   });
 
-  testWidgets('room: OK opens it full screen; Up/Down switch; OK shows controls; Back returns to the card', (
-    tester,
-  ) async {
+  testWidgets('issue #14 room: touch and remote show controls; switching and Back keep working', (tester) async {
     final services = await _pumpApp(tester);
     await _press(tester, LogicalKeyboardKey.arrowDown);
     await _press(tester, LogicalKeyboardKey.select);
@@ -388,6 +386,14 @@ void main() {
     await _press(tester, LogicalKeyboardKey.arrowRight);
     expect(FocusManager.instance.primaryFocus?.context?.widget, isNot(isA<TvLivePlayPage>()));
     await tester.binding.handlePopRoute();
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('tv-room-controls')), findsNothing);
+
+    // Issue #14: touching the picture can open and close the controls.
+    await tester.tapAt(const Offset(960, 400));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('tv-room-controls')), findsOneWidget);
+    await tester.tapAt(const Offset(960, 400));
     await _settle(tester);
     expect(find.byKey(const ValueKey('tv-room-controls')), findsNothing);
 

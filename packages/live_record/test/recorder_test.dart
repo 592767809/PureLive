@@ -212,6 +212,60 @@ void main() {
 
     LiveRoom room() => LiveRoom(roomId: '1', platform: 'fake', nick: '主播', liveStatus: LiveStatus.live);
 
+    test('issue #19: saved room choices resume on boot and disabled rooms stay retained', () async {
+      site.status = LiveStatus.offline;
+      settings = RecordSettings(enablePolling: true, autoStartOnBoot: true, liveCheckInterval: 10);
+      final waiting = (await recorder.addTask(
+        room(),
+        startImmediately: false,
+        autoRecord: true,
+        quality: '超清',
+        recordDanmaku: true,
+      ))!;
+      await recorder.flush();
+      final saved = persisted.last;
+      await recorder.dispose();
+      Recorder fresh() => Recorder(
+        sites: (id) => id == 'fake' ? site : null,
+        ffmpeg: ffmpeg,
+        storage: RecordStorage(defaultDirectory: () async => root.path, configuredPath: () => ''),
+        settings: () => settings,
+        persist: (json) async => persisted.add(json),
+      );
+      recorder = fresh();
+      await recorder.restore(saved);
+      final restored = recorder.tasks.single;
+      expect(restored.taskId, waiting.taskId);
+      expect(restored.autoRecord, isTrue);
+      expect(restored.qualityOverride, '超清');
+      expect(restored.recordDanmakuOverride, isTrue);
+      expect(restored.status, RecordStatus.waitingLive);
+      expect(site.requests, contains('detail'));
+      expect(ffmpeg.runs, isEmpty);
+
+      recorder.setTaskOptions(restored, autoRecord: false);
+      await recorder.stopTask(restored);
+      await recorder.flush();
+      final disabled = persisted.last;
+      await recorder.dispose();
+      site.requests.clear();
+      recorder = fresh();
+      await recorder.restore(disabled);
+      expect(recorder.tasks.single.taskId, waiting.taskId);
+      expect(recorder.tasks.single.autoRecord, isFalse);
+      expect(recorder.tasks.single.status, RecordStatus.stopped);
+      expect(recorder.tasks.single.qualityOverride, '超清');
+      expect(site.requests, isEmpty, reason: 'a retained disabled room must not restart polling');
+    });
+
+    test('issue #19: restart keeps automatic choices while the global startup setting stays off', () async {
+      site.status = LiveStatus.offline;
+      final saved = RecordTask.fromRoom(room())..autoRecord = true;
+      await recorder.restore(jsonEncode([saved.toJson()]));
+      expect(recorder.tasks.single.autoRecord, isTrue);
+      expect(site.requests, isEmpty, reason: 'saving a room never overrides the global startup setting');
+    });
+
     test('records, stops at the user request and joins the attempt into MP4', () async {
       final task = (await recorder.addTask(room()))!;
       await until(() => task.status == RecordStatus.running);

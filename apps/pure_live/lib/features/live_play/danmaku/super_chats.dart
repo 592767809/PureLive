@@ -27,6 +27,7 @@ class SuperChatList extends StatefulWidget {
   const new({
     required this.messages,
     required this.now,
+    this.history,
     this.platformName = '',
     this.platformHasSuperChats = true,
     super.key,
@@ -34,6 +35,9 @@ class SuperChatList extends StatefulWidget {
 
   /// Messages, oldest first (as they arrived).
   final List<LiveSuperChatMessage> messages;
+
+  /// Session history, including expired cards; null hides the history control.
+  final List<LiveSuperChatMessage>? history;
 
   /// The clock.
   final DateTime Function() now;
@@ -51,6 +55,7 @@ class SuperChatList extends StatefulWidget {
 class _SuperChatListState extends State<SuperChatList> {
   late final ValueNotifier<DateTime> _clock = ValueNotifier(widget.now());
   Timer? _timer;
+  bool _showHistory = false;
 
   @override
   void initState() {
@@ -66,12 +71,12 @@ class _SuperChatListState extends State<SuperChatList> {
 
   /// One clock while there is something to count down (c6).
   void _sync() {
+    _clock.value = widget.now();
     if (widget.messages.isEmpty) {
       _timer?.cancel();
       _timer = null;
       return;
     }
-    _clock.value = widget.now();
     _timer ??= Timer.periodic(const Duration(seconds: 1), (_) => _clock.value = widget.now());
   }
 
@@ -84,26 +89,46 @@ class _SuperChatListState extends State<SuperChatList> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = widget.messages;
+    final history = widget.history;
+    final messages = _showHistory && history != null ? history : widget.messages;
+    final Widget body;
     if (messages.isEmpty) {
-      return _SuperChatEmpty(
-        subtitle: widget.platformHasSuperChats
+      body = _SuperChatEmpty(
+        subtitle: history != null && history.isNotEmpty && !_showHistory
+            ? i18n('super_chat_history_available')
+            : widget.platformHasSuperChats
             ? i18n('super_chat_empty_subtitle')
             : i18n('super_chat_unsupported', args: {'platform': widget.platformName}),
       );
+    } else {
+      body = ListView.builder(
+        key: const ValueKey('live-play-super-chats'),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: messages.length,
+        // c5 (E2): the newest on top.
+        itemBuilder: (context, index) {
+          final superChat = messages[messages.length - 1 - index];
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+            child: SuperChatCard(key: ValueKey('super-chat-$index'), superChat: superChat, clock: _clock),
+          );
+        },
+      );
     }
-    return ListView.builder(
-      key: const ValueKey('live-play-super-chats'),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: messages.length,
-      // c5 (E2): the newest on top.
-      itemBuilder: (context, index) {
-        final superChat = messages[messages.length - 1 - index];
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-          child: SuperChatCard(key: ValueKey('super-chat-$index'), superChat: superChat, clock: _clock),
-        );
-      },
+    if (history == null || history.isEmpty) return body;
+    return Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            key: const ValueKey('super-chat-history-toggle'),
+            onPressed: () => setState(() => _showHistory = !_showHistory),
+            icon: const Icon(AppIcons.watchHistory, size: 18),
+            label: Text(i18n(_showHistory ? 'super_chat_hide_history' : 'super_chat_show_history')),
+          ),
+        ),
+        Expanded(child: body),
+      ],
     );
   }
 }
@@ -212,7 +237,7 @@ class SuperChatCard extends StatelessWidget {
         ValueListenableBuilder<DateTime>(
           valueListenable: clock,
           builder: (context, now, _) => Text(
-            superChatRemaining(superChat, now),
+            superChat.endTime.isAfter(now) ? superChatRemaining(superChat, now) : i18n('super_chat_ended'),
             key: const ValueKey('super-chat-time'),
             style: theme.textTheme.labelMedium?.regular.tabular.copyWith(fontSize: 12, color: ink),
           ),

@@ -42,6 +42,7 @@ class TvTabBar extends StatefulWidget {
     required this.onSelect,
     this.onRefresh,
     this.onDown,
+    this.onUp,
     this.busy = false,
     this.small = false,
     this.secondary = false,
@@ -64,6 +65,9 @@ class TvTabBar extends StatefulWidget {
   /// moves by geometry).
   final bool Function()? onDown;
 
+  /// Up returns to a parent filter row when supplied.
+  final bool Function()? onUp;
+
   /// The content is loading.
   final bool busy;
 
@@ -82,6 +86,7 @@ class TvTabBar extends StatefulWidget {
 class TvTabBarState extends State<TvTabBar> {
   final Map<String, FocusNode> _nodes = {};
   final ScrollController _scroll = ScrollController();
+  String? _remembered;
 
   /// Puts the tab of [id] in the middle of the line (only this line
   /// scrolls), so the first and last are never cut at the screen's edge.
@@ -113,6 +118,17 @@ class TvTabBarState extends State<TvTabBar> {
     return true;
   }
 
+  /// Restores the last focused tab, falling back to the selected one if
+  /// that tab was removed (focus and selection are independent on TV).
+  bool focusRemembered() {
+    final previous = widget.tabs.where((tab) => tab.id == _remembered).firstOrNull;
+    if (previous == null) return focusSelected();
+    final node = _node(previous.id);
+    if (node.context == null) return focusSelected();
+    node.requestFocus();
+    return true;
+  }
+
   @override
   void didUpdateWidget(TvTabBar oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -133,9 +149,13 @@ class TvTabBarState extends State<TvTabBar> {
   }
 
   KeyEventResult _key(FocusNode node, KeyEvent event) {
-    if (event is KeyUpEvent || event.logicalKey != LogicalKeyboardKey.arrowDown) return KeyEventResult.ignored;
-    final down = widget.onDown;
-    return down != null && down() ? KeyEventResult.handled : KeyEventResult.ignored;
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final move = switch (event.logicalKey) {
+      LogicalKeyboardKey.arrowDown => widget.onDown,
+      LogicalKeyboardKey.arrowUp => widget.onUp,
+      _ => null,
+    };
+    return move != null && move() ? KeyEventResult.handled : KeyEventResult.ignored;
   }
 
   @override
@@ -164,7 +184,10 @@ class TvTabBarState extends State<TvTabBar> {
                     radius: TvRadius.pill,
                     onKey: _key,
                     onFocusChange: (focused) {
-                      if (focused) _center(tab.id);
+                      if (focused) {
+                        _remembered = tab.id;
+                        _center(tab.id);
+                      }
                     },
                     onTap: () => index == widget.selected ? widget.onRefresh?.call() : widget.onSelect(index),
                     builder: (context, focused) {

@@ -34,8 +34,8 @@ Future<void> enableRecordPolling(AppRecording recording) async {
 
 /// "开播自动录" (3.x's 添加/取消监控) of [task], or of [room] when it has no
 /// task yet (a new task waits for the room with [quality] and [danmaku]).
-/// Turning it off leaves a running recording alone and removes a task that
-/// only waits (3.x's 取消监控).
+/// Turning it off keeps the room and its choices. A recording continues
+/// to the end of this broadcast; a waiting task stops checking for live.
 Future<void> setAutoRecord(
   AppRecording recording,
   Recorder recorder, {
@@ -57,11 +57,8 @@ Future<void> setAutoRecord(
       await recorder.monitorTask(task);
     }
   } else if (task != null) {
-    if (recordBusy(task)) {
-      recorder.setTaskOptions(task, autoRecord: false);
-    } else if (task.status == RecordStatus.waitingLive) {
-      await recorder.removeTask(task);
-    }
+    recorder.setTaskOptions(task, autoRecord: false);
+    if (task.status == RecordStatus.waitingLive) await recorder.stopTask(task);
   }
 }
 

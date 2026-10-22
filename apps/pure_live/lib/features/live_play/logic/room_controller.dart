@@ -251,6 +251,7 @@ class LiveRoomController extends ChangeNotifier {
   bool _switching = false;
   bool _switchingLine = false;
   List<LiveSuperChatMessage> _superChats = const [];
+  List<LiveSuperChatMessage> _superChatHistory = const [];
   bool _audioOnly = false;
   Timer? _sleepTimer;
   DateTime? _sleepDeadline;
@@ -283,6 +284,13 @@ class LiveRoomController extends ChangeNotifier {
 
   /// Super chats still on display, oldest first.
   List<LiveSuperChatMessage> get superChats => _superChats;
+
+  /// Maximum paid messages retained in this room session, including active ones.
+  static const int superChatHistoryLimit = 500;
+
+  /// This room session's paid messages, oldest first, including expired ones.
+  /// Kept only in memory; a new controller starts with an empty history.
+  List<LiveSuperChatMessage> get superChatHistory => _superChatHistory;
 
   /// Chat messages for the flying layer, as they pass the filters.
   Stream<LiveMessage> get flying => _flying.stream;
@@ -882,7 +890,8 @@ class LiveRoomController extends ChangeNotifier {
   /// D07.2: off, the membership cards leave the super chats at once (the
   /// lines in the chat list stay); on, the next memberships get one.
   void _onMembershipCards(bool on) {
-    if (_disposed || on || !_superChats.any(isMembershipCard)) return;
+    if (_disposed || on || !_superChatHistory.any(isMembershipCard)) return;
+    _superChatHistory = List.unmodifiable(_superChatHistory.where((superChat) => !isMembershipCard(superChat)));
     _superChats = List.unmodifiable(_superChats.where((superChat) => !isMembershipCard(superChat)));
     _scheduleSuperChatExpiry();
     _notify();
@@ -1384,9 +1393,12 @@ class LiveRoomController extends ChangeNotifier {
 
   void _addSuperChats(Iterable<LiveSuperChatMessage> incoming) {
     final now = _now();
-    final next = <LiveSuperChatMessage>{..._superChats, ...incoming}.where((sc) => sc.endTime.isAfter(now)).toList()
+    final next = <LiveSuperChatMessage>{..._superChatHistory, ...incoming}.toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
-    _superChats = List.unmodifiable(next);
+    _superChatHistory = List.unmodifiable(
+      next.skip(next.length > superChatHistoryLimit ? next.length - superChatHistoryLimit : 0),
+    );
+    _superChats = List.unmodifiable(_superChatHistory.where((sc) => sc.endTime.isAfter(now)));
     _scheduleSuperChatExpiry();
   }
 
@@ -1440,6 +1452,8 @@ class LiveRoomController extends ChangeNotifier {
     _epoch++;
     _refreshTimer?.cancel();
     _superChatTimer?.cancel();
+    _superChatHistory = const [];
+    _superChats = const [];
     _sleepTimer?.cancel();
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());

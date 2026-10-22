@@ -205,7 +205,10 @@ final class LinkParser {
   /// Transport for short links.
   final LiveHttp http;
 
-  static final RegExp _urls = RegExp(r'(?:[a-z][a-z0-9+.-]*://|www\.)[^\s<>]+', caseSensitive: false);
+  static final RegExp _urls = RegExp(
+    r'(?<![a-z0-9_@./:-])(?:[a-z][a-z0-9+.-]*://|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,}(?=[:/?#\s<>]|$))[^\s<>]*',
+    caseSensitive: false,
+  );
   static final RegExp _chineseProse = RegExp('[，。！？、；：）》」』”’]');
   static const Set<String> _proseHosts = {
     'xhslink.com',
@@ -215,8 +218,8 @@ final class LinkParser {
     'www.weibo.com',
   };
 
-  /// The http(s) links in [text], spelled as written (signed URLs must not
-  /// be re-encoded).
+  /// The http(s) links in [text], adding HTTPS to bare hosts while keeping
+  /// the remaining spelling (signed URLs must not be re-encoded).
   ///
   /// Share texts glue prose to links: everything from the first Chinese
   /// punctuation mark is dropped (3.x did this for Xiaohongshu and Weibo
@@ -227,7 +230,7 @@ final class LinkParser {
   static Iterable<String> sharedHttpUrls(String text) sync* {
     for (final match in _urls.allMatches(text)) {
       var candidate = match.group(0)!;
-      if (candidate.toLowerCase().startsWith('www.')) candidate = 'https://$candidate';
+      if (!candidate.contains('://')) candidate = 'https://$candidate';
       candidate = candidate.split(_chineseProse).first;
       if (_proseHosts.contains(Uri.tryParse(candidate)?.host)) {
         candidate = candidate.replaceFirst(RegExp(r'''[,!?;:)\]}"']+$'''), '');

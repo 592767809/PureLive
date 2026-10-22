@@ -17,6 +17,7 @@ import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
 import 'package:pure_live/tv/widgets/tv_area_dialog.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
+import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
@@ -42,9 +43,7 @@ LiveRoom _room(String platform, String id, LiveStatus status) =>
     LiveRoom(platform: platform, roomId: id, nick: '主播$id', title: '标题$id', liveStatus: status);
 
 void main() {
-  testWidgets('A17.3 c2, c3: states and platforms on one line with counts; off air as two columns of rows', (
-    tester,
-  ) async {
+  testWidgets('issue #17: returning from cards remembers the focused filter; states and offline rows', (tester) async {
     tester.view
       ..physicalSize = const Size(1920, 1080)
       ..devicePixelRatio = 2;
@@ -102,6 +101,17 @@ void main() {
     expect(liveCount, '2');
     expect(tester.widget<Text>(find.byKey(const ValueKey('tv-tab-douyu-count'))).data, '1', reason: 'live in douyu');
     expect(find.byType(TvRoomCard), findsNWidgets(2));
+
+    for (final id in ['all', 'bilibili', 'live']) {
+      final filter = tester.widget<TvFocusable>(find.byKey(ValueKey('tv-tab-$id'))).focusNode!..requestFocus();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      expect(filter.hasFocus, isFalse, reason: '$id enters the room grid');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+      await tester.pump(const Duration(seconds: 1));
+      expect(filter.hasFocus, isTrue, reason: '$id is restored, including an unselected platform');
+    }
 
     await tester.tap(find.text('未开播'));
     for (var i = 0; i < 4; i++) {
