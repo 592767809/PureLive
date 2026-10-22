@@ -194,8 +194,12 @@ void main() {
     testWidgets('V02.12 (issue #10): a followed room has a heart after the platform badge, its words "已关注"', (
       tester,
     ) async {
+      final semantics = tester.ensureSemantics();
       final heart = find.byKey(const ValueKey('room-card-followed'));
-      await tester.pumpWidget(_host(const LiveRoomCard(data: _live, followed: true)));
+      await tester.pumpWidget(_host(LiveRoomCard(data: _live, followed: true, onTap: () {})));
+      // A screen reader says it with the card: the card's node keeps only its
+      // own tooltip (the title), so the heart's words are a label.
+      expect(tester.getSemantics(find.byType(InkWell).first).label, contains('已关注'));
       final cover = tester.getRect(find.byType(AspectRatio).first);
       // A single-platform list has no badge: the heart is in its place.
       expect(tester.getRect(heart), Rect.fromLTWH(cover.left + 8, cover.top + 8, 22, 22));
@@ -217,6 +221,7 @@ void main() {
       expect(find.text('84.7万'), findsNothing);
       await tester.pumpWidget(_host(const LiveRoomCard(data: _live)));
       expect(heart, findsNothing);
+      semantics.dispose();
     });
 
     testWidgets('the compact row of the "简洁" preset (3.x), with the platform badge in mixed lists', (tester) async {

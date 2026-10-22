@@ -296,16 +296,21 @@ final class _Parts {
   );
 
   /// The heart of a followed room: a round badge, its words for the
-  /// tooltip and screen readers.
-  Widget followedMark() => Tooltip(
-    key: const ValueKey('room-card-followed'),
-    message: words.followed,
-    child: Container(
+  /// tooltip and, as a label, for screen readers (the card's node keeps
+  /// only its own tooltip, the title).
+  Widget followedMark() => _followed(
+    Container(
       width: 22,
       height: 22,
       decoration: const BoxDecoration(color: LiveRoomCardColors.chip, shape: BoxShape.circle),
       child: const Icon(AppIcons.followedHeart, size: 14, color: LiveRoomCardColors.followed),
     ),
+  );
+
+  Widget _followed(Widget heart) => Semantics(
+    key: const ValueKey('room-card-followed'),
+    label: words.followed,
+    child: Tooltip(message: words.followed, excludeFromSemantics: true, child: heart),
   );
 
   Widget deleteButton({required bool onCover}) => IconButton(
@@ -477,12 +482,7 @@ final class _Parts {
             foreground: scheme.onPrimary,
           ),
       ] else ...[
-        if (card.followed)
-          Tooltip(
-            key: const ValueKey('room-card-followed'),
-            message: words.followed,
-            child: const Icon(AppIcons.followedHeart, size: 18, color: LiveRoomCardColors.followed),
-          ),
+        if (card.followed) _followed(const Icon(AppIcons.followedHeart, size: 18, color: LiveRoomCardColors.followed)),
         if (card.statusPending) Tooltip(message: pendingText, child: const Icon(AppIcons.statusPending, size: 18)),
       ],
       if (card.showDelete) deleteButton(onCover: false),

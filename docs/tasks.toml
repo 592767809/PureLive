@@ -4317,7 +4317,7 @@ date = "2026-10-22"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/10"
-note = "用户选了方案 A（K90 原型截图对比了 A 左上角红心、B 右上角“♥ 已关注”）。手机卡片加 followed：封面左上角平台标签后面一个 22 的圆形红心（颜色同电视 TvColors.followed，图标 AppIcons.followedHeart），提示和读屏是“已关注”（LiveUiStrings.followed ← followed）；简洁卡片在右侧数字前，窄到不显示数字时只留红心。热门、分区、搜索（RoomGridCard，关注页 follow: true 不显示）和历史都显示；关注的键改成共用的 followKeysProvider（shared/rooms/room_cards.dart），电视的 tvFollowKeysProvider 并进来。测试：live_room_card_test V02.12（位置、颜色、简洁卡片宽窄）、room_lists_test V02.12（浏览卡片有、关注页没有、取消关注后消失）"
+note = "用户选了方案 A（K90 原型截图对比了 A 左上角红心、B 右上角“♥ 已关注”）。手机卡片加 followed：封面左上角平台标签后面一个 22 的圆形红心（颜色同电视 TvColors.followed，图标 AppIcons.followedHeart），提示是“已关注”（LiveUiStrings.followed ← followed），读屏也念“已关注”：红心另带 Semantics 标签，因为卡片节点合并时只留自己的提示（标题），子元素的提示读不到（发 5.4.7 前在 K90 上查读屏时发现，改后 live_room_card_test 查卡片节点的标签）；简洁卡片在右侧数字前，窄到不显示数字时只留红心。热门、分区、搜索（RoomGridCard，关注页 follow: true 不显示）和历史都显示；关注的键改成共用的 followKeysProvider（shared/rooms/room_cards.dart），电视的 tvFollowKeysProvider 并进来。测试：live_room_card_test V02.12（位置、颜色、简洁卡片宽窄）、room_lists_test V02.12（浏览卡片有、关注页没有、取消关注后消失）"
 
 [[task]]
 id = "V03.1"
