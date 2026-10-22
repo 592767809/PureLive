@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
@@ -627,6 +628,85 @@ void _pageTests() {
     await _frames(tester);
     expect(service.sent, [('192.168.1.101', 39888, '482916')]);
     expect(service.sentParts, {SyncPart.follows});
+  });
+
+  testWidgets('issue #8: a TV remote goes row by row to 发送, OK ticks a row and sends', (tester) async {
+    final service = await _pumpPage(tester, devices: [_windows])
+      ..partial = true;
+    await tester.runAsync(() async {
+      await service.store.follows.replaceAll([_room('1'), _room('2')]);
+    });
+    await tester.tap(find.byKey(const ValueKey('remote-sync-send')).first);
+    await _until(tester, () => find.byKey(const ValueKey('remote-sync-part-all')).evaluate().isNotEmpty);
+    await _frames(tester);
+    String? focused() {
+      final element = FocusManager.instance.primaryFocus?.context;
+      if (element == null) return null;
+      for (final key in [
+        'remote-sync-part-all',
+        for (final part in ['settings', 'follows', 'areas', 'history', 'tags', 'keywords', 'users'])
+          'remote-sync-part-$part',
+        'remote-sync-confirm',
+      ]) {
+        final target = find.byKey(ValueKey(key));
+        if (target.evaluate().isEmpty) continue;
+        if (tester.element(target) == element ||
+            find.descendant(of: target, matching: find.byElementPredicate((e) => e == element)).evaluate().isNotEmpty) {
+          // The box inside a row would be a stop of its own.
+          return element.findAncestorWidgetOfExactType<Checkbox>() == null ? key : '$key:box';
+        }
+      }
+      return element.widget.runtimeType.toString();
+    }
+
+    Future<void> press(LogicalKeyboardKey key) async {
+      await tester.sendKeyEvent(key);
+      await _frames(tester);
+    }
+
+    // Down goes one row at a time, then to the buttons.
+    final stops = <String?>[];
+    for (var i = 0; i < 9; i++) {
+      await press(LogicalKeyboardKey.arrowDown);
+      stops.add(focused());
+    }
+    expect(stops.take(8), [
+      'remote-sync-part-all',
+      for (final part in ['settings', 'follows', 'areas', 'history', 'tags', 'keywords']) 'remote-sync-part-$part',
+      'remote-sync-part-users',
+    ]);
+    expect(stops.last, isNot(startsWith('remote-sync-part-')), reason: 'down from the last row reaches the buttons');
+    // Back up to 关注的直播间 and untick it with OK.
+    while (focused() != 'remote-sync-part-follows') {
+      await press(LogicalKeyboardKey.arrowUp);
+    }
+    // Left stays on the row: the box inside it is no stop of its own.
+    await press(LogicalKeyboardKey.arrowLeft);
+    expect(focused(), 'remote-sync-part-follows');
+    await press(LogicalKeyboardKey.select);
+    expect(
+      tester
+          .widget<Checkbox>(
+            find.descendant(
+              of: find.byKey(const ValueKey('remote-sync-part-follows')),
+              matching: find.byType(Checkbox),
+            ),
+          )
+          .value,
+      isFalse,
+    );
+    while (focused() != 'remote-sync-confirm') {
+      await press(LogicalKeyboardKey.arrowDown);
+      if (focused() != 'remote-sync-confirm' && !(focused() ?? '').startsWith('remote-sync-part-')) {
+        await press(LogicalKeyboardKey.arrowRight);
+      }
+    }
+    await press(LogicalKeyboardKey.select);
+    expect(
+      find.byKey(const ValueKey('remote-sync-code-field')),
+      findsOneWidget,
+      reason: 'OK on 发送 goes on to the code',
+    );
   });
 
   testWidgets('D08.1 c4: the local history is offered unticked; left so, the rest goes whole', (tester) async {

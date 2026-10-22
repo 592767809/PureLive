@@ -48,4 +48,93 @@ void main() {
     await tester.pump();
     expect(calls.last, 'cancel');
   });
+
+  testWidgets('issue #8: a TV remote reaches the controls of a dialog that took the focus itself', (tester) async {
+    final calls = <String>[];
+    var ticked = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: const LiveTheme().light,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => StatefulBuilder(
+                builder: (context, setState) => AppDialog(
+                  title: '发送配置',
+                  content: CheckboxListTile(
+                    key: const ValueKey('box'),
+                    value: ticked,
+                    onChanged: (value) => setState(() => ticked = value!),
+                    title: const Text('设置'),
+                  ),
+                  onEnter: () => calls.add('enter'),
+                  actions: [
+                    TextButton(
+                      key: const ValueKey('cancel'),
+                      onPressed: () => calls.add('cancel'),
+                      child: const Text('取消'),
+                    ),
+                    FilledButton(
+                      key: const ValueKey('send'),
+                      onPressed: () => calls.add('send'),
+                      child: const Text('发送'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+    Future<void> open() async {
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    bool focusedIn(String key) {
+      final focused = FocusManager.instance.primaryFocus?.context;
+      if (focused == null) return false;
+      final target = find.byKey(ValueKey(key));
+      return find
+              .descendant(of: target, matching: find.byElementPredicate((e) => e == focused))
+              .evaluate()
+              .isNotEmpty ||
+          tester.element(target) == focused;
+    }
+
+    Future<void> press(LogicalKeyboardKey key) async {
+      await tester.sendKeyEvent(key);
+      await tester.pumpAndSettle();
+    }
+
+    await open();
+    // The remote's arrows: into the dialog, through the box to the buttons.
+    await press(LogicalKeyboardKey.arrowDown);
+    expect(focusedIn('box'), isTrue, reason: 'down enters the dialog at its first control');
+    await press(LogicalKeyboardKey.select);
+    expect(ticked, isFalse, reason: 'OK on the focused box ticks it');
+    await press(LogicalKeyboardKey.arrowDown);
+    expect(focusedIn('cancel') || focusedIn('send'), isTrue);
+    if (focusedIn('cancel')) await press(LogicalKeyboardKey.arrowRight);
+    expect(focusedIn('send'), isTrue);
+    await press(LogicalKeyboardKey.select);
+    expect(calls, ['send'], reason: 'OK on 发送 sends; the dialog shell never did');
+
+    // OK while the dialog itself holds the focus moves in and presses nothing.
+    Navigator.of(tester.element(find.text('发送'))).pop();
+    await tester.pumpAndSettle();
+    await open();
+    await press(LogicalKeyboardKey.select);
+    expect(calls, ['send']);
+    expect(focusedIn('box'), isTrue);
+    // A keyboard's Enter on the dialog itself still presses the main action.
+    Navigator.of(tester.element(find.text('发送'))).pop();
+    await tester.pumpAndSettle();
+    await open();
+    await press(LogicalKeyboardKey.enter);
+    expect(calls, ['send', 'enter']);
+  });
 }

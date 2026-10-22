@@ -334,7 +334,7 @@ Download the package for your platform from [Releases](https://github.com/wzgrx/
 | **Windows** | Windows 10, 11 (64-bit) | `…-windows-x64-setup.exe` (installer) or `…-windows-x64-portable.zip` (portable, data in `UserData` next to the program) |
 | **Linux** | x86_64, GTK 3 desktop | `…-linux-x64.tar.gz`: extract and run `pure_live`; the README.txt inside explains adding it to the app menu |
 | **macOS** | macOS 12+, Intel and Apple silicon | `…-macos-universal.dmg`: open it and drag PureLive into Applications. It is not signed by Apple: if macOS cannot verify the developer the first time, click “Open Anyway” in System Settings → Privacy & Security |
-| **iPhone, iPad** | iOS, iPadOS 15+ | `…-ios-unsigned.ipa` with AltStore or SideStore (signed with your own Apple ID; a free account renews every 7 days); `…-ios-trollstore.ipa` on devices with TrollStore |
+| **iPhone, iPad** | iOS, iPadOS 15+ | `…-ios-unsigned.ipa` with AltStore or SideStore (signed with your own Apple ID; a free account renews every 7 days); `…-ios-trollstore.ipa` on devices with TrollStore (TrollStore also installs it on iOS 14 and earlier, but it will not open there: Flutter, the framework, needs iOS 15) |
 
 - If Android says “install unknown apps”, allow your browser or file manager in the settings it opens.
 - The Linux build has no in-app web sign-in (official sign-in, Bilibili web sign-in): enter a cookie, or sign in on a phone or Windows and bring the account over with device sync.

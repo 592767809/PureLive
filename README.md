@@ -332,7 +332,7 @@
 | **Windows** | Windows 10、11（64 位） | `…-windows-x64-setup.exe`（安装版）或 `…-windows-x64-portable.zip`（便携版，解压即用，数据保存在程序旁边的 UserData） |
 | **Linux** | x86_64，GTK 3 桌面 | `…-linux-x64.tar.gz`：解压后运行 `pure_live`，压缩包里的 README.txt 写了怎么加到应用菜单 |
 | **macOS** | macOS 12 及以上，Intel 和 Apple 芯片 | `…-macos-universal.dmg`：打开后把“纯粹直播”拖进“应用程序”。没有苹果签名，第一次打开如果提示无法验证开发者，到 系统设置 → 隐私与安全性 点“仍要打开” |
-| **iPhone、iPad** | iOS、iPadOS 15 及以上 | `…-ios-unsigned.ipa` 用 AltStore 或 SideStore 安装（自己的 Apple ID 签名，免费账号每 7 天续签）；装了 TrollStore 的设备用 `…-ios-trollstore.ipa` |
+| **iPhone、iPad** | iOS、iPadOS 15 及以上 | `…-ios-unsigned.ipa` 用 AltStore 或 SideStore 安装（自己的 Apple ID 签名，免费账号每 7 天续签）；装了 TrollStore 的设备用 `…-ios-trollstore.ipa`（iOS 14 及更早的设备 TrollStore 也能装上，但打不开：开发框架 Flutter 最低要 iOS 15） |
 
 - Android 安装时如果提示“安装未知应用”，在弹出的设置里允许当前的浏览器或文件管理器即可。
 - Linux 版没有应用内网页登录（官方登录、哔哩哔哩网页登录），可以填写 Cookie，或在手机、Windows 上登录后用“设备同步”带过来。

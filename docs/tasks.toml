@@ -4287,6 +4287,17 @@ from = "https://github.com/wzgrx/PureLive/issues/6"
 note = "根因（3.x 起就这样）：热门 → 网络只显示内置热门列表，导入的列表只在分区 → 网络里，热门页没有地方切换；内置列表删掉后，热门 → 网络一刷新发现没频道就重新下载（IptvSite.getRecommendRooms），所以删不掉。改法：新设置 iptvPopularPlaylist（热门 → 网络显示哪个列表，空是内置的）、iptvHotRemoved（内置列表删过就不再自动导入）；规则在 live_iptv 的 shownIptvPlaylist（选的列表不在了回到内置的，内置删了用网络优先、按名字排第一个导入的）。热门 → 网络顶上一排标签切换（两个以上列表才出现）；网络电视设置加“热门里显示”和“恢复内置热门频道”，热门在显示的列表卡片标“热门显示中”；电视的网络电视页改读 hotRooms（删掉就不显示）。测试：live_iptv 两条、iptv_page_test 一条、popular_test 一条；应用全部测试 1724 条通过。K90：导入 hk 后热门 → 网络出现切换条，切到 hk 立刻换频道；删内置列表后下拉刷新、强制关闭重开，内置列表都没回来；恢复后重新下载 149 个频道；测完删掉 hk"
 
 [[task]]
+id = "V02.10"
+title = "issue #8：电视上通用对话框遥控器选不到按钮（设备同步“发送配置”等）；issue #7：iPadOS 14 打不开"
+type = "界面"
+status = "完成"
+date = "2026-10-22"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/8"
+note = "#8 根因：DialogKeys 打开对话框时让一个普通 Focus 拿焦点，所有按钮都在它自己的区域里，方向键从它往外找、什么也找不到；遥控器没有 Tab，确认键对它也没用。电视上能打开的手机对话框（66 处 AppDialog、更新提示、关闭确认）都这样。改成 FocusScope：外壳拿着焦点时方向键走 Flutter 的“作用域里按方向找第一个”，确认键先把焦点移到第一个控件、不直接按主按钮；键盘 Enter 照旧。测试：dialog_support_test（撤掉修复时“下”进不去）、remote_sync_test 用真实的发送对话框从上往下逐行走到“发送”、确认键勾选和发送（撤掉修复时失败）。K90 切到电视界面、锁横屏、只用 DPAD 键：逐行下到按钮，左右在取消和发送之间移动，确认键关掉对话框；测完恢复界面模式“自动”和自动旋转。#7：Flutter 3.47 最低 iOS 15（构建工具把最低版本改成 15.0），不能支持 iPadOS 14；README 写明 TrollStore 在 14 上能装但打不开，V04 记一条，发布说明的“下载哪个”从 5.4.7 起写 iOS 和 macOS 的最低版本"
+
+[[task]]
 id = "V03.1"
 title = "全面审查（2026-10-02）：直播间、弹幕、录制等界面和功能问题"
 type = "验证"
