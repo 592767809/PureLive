@@ -75,12 +75,13 @@ class PlayerGestureLayer extends StatefulWidget {
   State<PlayerGestureLayer> createState() => PlayerGestureLayerState();
 }
 
-/// The state of [PlayerGestureLayer]; [nudgeVolume] serves the keyboard.
+/// The state of [PlayerGestureLayer]; [nudgeVolume] serves the mouse wheel.
 class PlayerGestureLayerState extends State<PlayerGestureLayer> {
   GestureLevel? _showing;
   double _level = 0;
   Timer? _hide;
   Timer? _save;
+
   GestureLevel? _dragging;
   double? _restoring;
 
@@ -168,7 +169,17 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
   }
 
   /// Changes the volume by [delta] (arrow keys, the mouse wheel).
+  /// A phone's system volume shows its level in the middle; a computer's
+  /// player volume is shown by the bar's own slider, not over the picture
+  /// (issue #12: "影响了视觉感官").
   Future<void> nudgeVolume(double delta) async {
+    if (!_systemVolume) {
+      // PlaybackSession updates its state before awaiting the engine. Quick
+      // notches add up there, including any intervening slider or mute change.
+      final level = (widget.controller.volume + delta).clamp(0.0, 1.0);
+      await _send(GestureLevel.volume, level);
+      return;
+    }
     final now = _showing == GestureLevel.volume ? _level : await _current(GestureLevel.volume);
     await _apply(GestureLevel.volume, now + delta);
   }

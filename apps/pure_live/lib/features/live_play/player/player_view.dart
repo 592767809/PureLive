@@ -185,6 +185,9 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   bool _paused = false;
   StreamSubscription<PlaybackState>? _playback;
 
+  /// The player's volume, to see it change.
+  double _volume = 1;
+
   /// Menus of the bars that are open, a focused composer and the room's
   /// panels: the controls do not hide by themselves meanwhile (U.2f,
   /// 统一规则).
@@ -252,6 +255,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
     super.initState();
     if (widget.entryHint) _hintEpoch++;
     _paused = _room.session.state.status == PlaybackStatus.paused;
+    _volume = _room.session.state.volume;
     _playback = _room.session.states.listen(_onPlayback);
     _scheduleHide();
     // The bundled emoticons, read once per platform (as the chat list).
@@ -319,6 +323,13 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// was paused: the play key, the notification, a headset); playing again
   /// lets them hide as usual.
   void _onPlayback(PlaybackState state) {
+    // Issue #12: on a computer the wheel and the arrow keys change the
+    // volume without the controls; they come up, and the bar's slider shows
+    // the level (the picture stays clear).
+    if (state.volume != _volume) {
+      _volume = state.volume;
+      if (mounted && !widget.platform.mobile && !widget.pip) _touch();
+    }
     final paused = state.status == PlaybackStatus.paused;
     if (paused == _paused || !mounted) return;
     _paused = paused;
@@ -334,6 +345,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   bool get _holding => _menus > 0 || _panels?.value != null;
 
   void _onMenu(bool open) {
+    if (!mounted) return;
     _menus = (_menus + (open ? 1 : -1)).clamp(0, 8);
     _scheduleHide();
   }
