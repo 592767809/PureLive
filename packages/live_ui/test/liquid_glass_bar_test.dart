@@ -12,6 +12,7 @@ void main() {
     int selected = 0,
     bool still = false,
     double height = GlassMetrics.barHeight,
+    double frost = 0.5,
   }) async {
     final chosen = <int>[];
     var index = selected;
@@ -31,6 +32,7 @@ void main() {
               child: StatefulBuilder(
                 builder: (context, setState) => LiquidGlassBar(
                   height: height,
+                  frost: frost,
                   selectedIndex: index,
                   onSelected: (next) => setState(() {
                     chosen.add(next);
@@ -187,6 +189,32 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('A01.8 (iOS 27): no shadow, the frost reaches the glass, the held lens magnifies its icon', (
+    tester,
+  ) async {
+    await pump(tester, frost: 0.8);
+    final glass = tester.allRenderObjects.whereType<RenderLiquidGlass>().single;
+    expect(glass.frost, 0.8);
+    final shadows = tester
+        .widgetList<DecoratedBox>(find.descendant(of: find.byType(LiquidGlassBar), matching: find.byType(DecoratedBox)))
+        .map((box) => box.decoration)
+        .whereType<BoxDecoration>()
+        .where((decoration) => decoration.boxShadow?.isNotEmpty ?? false);
+    expect(shadows, isEmpty);
+
+    double lensIcon() => tester
+        .widget<Transform>(find.ancestor(of: find.byIcon(Icons.circle).first, matching: find.byType(Transform)).first)
+        .transform
+        .getMaxScaleOnAxis();
+    expect(lensIcon(), 1);
+    final gesture = await tester.startGesture(tester.getCenter(item('关注')));
+    await tester.pumpAndSettle();
+    expect(lensIcon(), closeTo(1.14, 0.01));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(lensIcon(), closeTo(1, 0.001));
+  });
+
   test('V02.11 (issue #9): the room under the capsule', () {
     // Nothing at the bottom (gestures without a handle, a window): 12.
     expect(GlassMetrics.barGap(safeBottom: 0, ios: false), GlassMetrics.barMargin);
@@ -207,10 +235,8 @@ void main() {
     final chosen = await pump(tester, height: GlassMetrics.barHeightCompact);
     expect(tester.takeException(), isNull);
     expect(tester.getSize(find.byType(LiquidGlassBar)).height, GlassMetrics.barHeightCompact);
-    final shadow = tester.widget<DecoratedBox>(
-      find.descendant(of: find.byType(LiquidGlassBar), matching: find.byType(DecoratedBox)).first,
-    );
-    expect((shadow.decoration as BoxDecoration).borderRadius, BorderRadius.circular(28));
+    // The glass is a capsule of that height: its corners are half of it.
+    expect(tester.allRenderObjects.whereType<RenderLiquidGlass>().single.size.height, GlassMetrics.barHeightCompact);
     await tester.tap(item('热门'));
     await tester.pumpAndSettle();
     expect(chosen, [1]);

@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Một số nền tảng cần đăng nhập lại: thông tin đăng nhập và mật khẩu WebDAV từ bản 3.x không mã hóa được trên thiết bị này.",
     "license": "Giấy phép",
     "linux_package": "Gói tar cho Linux",
+    "liquid_glass_frost": "Độ mờ của kính",
+    "liquid_glass_frost_subtitle": "Kéo trái kính trong hơn, kéo phải mờ hơn và dễ đọc hơn",
     "live": "Trực tiếp",
     "live_alert": "Thông báo phát trực tiếp",
     "live_alert_apply_failed": "Không đổi được thông báo phát trực tiếp, vui lòng thử lại",

@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Beberapa platform memerlukan Anda masuk lagi: info masuk dan kata sandi WebDAV dari 3.x tidak dapat dienkripsi di perangkat ini.",
     "license": "Lisensi",
     "linux_package": "Tarball Linux",
+    "liquid_glass_frost": "Buram kaca",
+    "liquid_glass_frost_subtitle": "Ke kiri kaca lebih bening; ke kanan lebih buram dan lebih mudah dibaca",
     "live": "Siaran",
     "live_alert": "Notifikasi siaran",
     "live_alert_apply_failed": "Tidak dapat mengubah notifikasi siaran, silakan coba lagi",

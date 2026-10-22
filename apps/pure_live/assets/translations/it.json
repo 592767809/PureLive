@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Alcune piattaforme richiedono un nuovo accesso: gli accessi e le password WebDAV della 3.x non hanno potuto essere cifrati su questo dispositivo.",
     "license": "Licenza",
     "linux_package": "Archivio tar per Linux",
+    "liquid_glass_frost": "Satinatura del vetro",
+    "liquid_glass_frost_subtitle": "A sinistra vetro più trasparente; a destra più satinato e leggibile",
     "live": "Live",
     "live_alert": "Avvisi di diretta",
     "live_alert_apply_failed": "Impossibile modificare gli avvisi di diretta, riprova",

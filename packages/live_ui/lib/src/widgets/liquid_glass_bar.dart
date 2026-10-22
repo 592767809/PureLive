@@ -70,6 +70,7 @@ class LiquidGlassBar extends StatefulWidget {
     this.blur = true,
     this.refraction = true,
     this.height = GlassMetrics.barHeight,
+    this.frost = 0.5,
     super.key,
   });
 
@@ -91,6 +92,10 @@ class LiquidGlassBar extends StatefulWidget {
   /// The bar's height (compact, V02.11); the capsule's corners are half of
   /// it, and the drop keeps 6 to its top and bottom.
   final double height;
+
+  /// How frosted the glass is, 0 clear to 1 heavy frost (A01.8, iOS 27's
+  /// slider): more tint and more diffusion of the page behind.
+  final double frost;
 
   @override
   State<LiquidGlassBar> createState() => _LiquidGlassBarState();
@@ -369,39 +374,29 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
           _placed = true;
           _drop.value = _centreOf(widget.selectedIndex);
         }
-        // The shadow only floating layers have (UI.md §9.3), soft and close.
-        final bar = DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.height / 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: dark ? 0.32 : 0.12),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onHorizontalDragStart: _onDragStart,
-            onHorizontalDragUpdate: _onDragUpdate,
-            onHorizontalDragEnd: _onDragEnd,
-            child: _LiquidGlass(
-              program: widget.refraction ? _program : null,
-              blur: widget.blur,
-              dark: dark,
-              tint: dark ? scheme.surfaceContainer : scheme.surfaceContainerHighest,
-              moves: moves,
-              drop: _dropRect,
-              held: () => _held,
-              child: KeyedSubtree(
-                key: _barKey,
-                child: Row(
-                  children: [
-                    for (final (index, item) in widget.items.indexed)
-                      Expanded(child: _destination(context, index, item, moves)),
-                  ],
-                ),
+        // No shadow (A01.8, as iOS 27): the glass's own edge sets it off.
+        final bar = GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: _onDragStart,
+          onHorizontalDragUpdate: _onDragUpdate,
+          onHorizontalDragEnd: _onDragEnd,
+          child: _LiquidGlass(
+            program: widget.refraction ? _program : null,
+            blur: widget.blur,
+            dark: dark,
+            frost: widget.frost,
+            // Dark glass is light enough to read as glass (iOS 27).
+            tint: scheme.surfaceContainerHighest,
+            moves: moves,
+            drop: _dropRect,
+            held: () => _held,
+            child: KeyedSubtree(
+              key: _barKey,
+              child: Row(
+                children: [
+                  for (final (index, item) in widget.items.indexed)
+                    Expanded(child: _destination(context, index, item, moves)),
+                ],
               ),
             ),
           ),
@@ -451,9 +446,16 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
     final icon = Stack(
       children: [
         part(inside: false, child: Icon(item.icon, size: 24, color: scheme.onSurfaceVariant)),
+        // Under the held lens the icon is magnified with the page (A01.8).
         part(
           inside: true,
-          child: ExcludeSemantics(child: Icon(item.selectedIcon, size: 24, color: scheme.primary)),
+          child: ExcludeSemantics(
+            child: AnimatedBuilder(
+              animation: _press,
+              builder: (context, child) => Transform.scale(scale: 1 + 0.14 * _held, child: child),
+              child: Icon(item.selectedIcon, size: 24, color: scheme.primary),
+            ),
+          ),
         ),
       ],
     );
@@ -657,6 +659,7 @@ class _LiquidGlass extends SingleChildRenderObjectWidget {
     required this.program,
     required this.blur,
     required this.dark,
+    required this.frost,
     required this.tint,
     required this.moves,
     required this.drop,
@@ -667,6 +670,7 @@ class _LiquidGlass extends SingleChildRenderObjectWidget {
   final ui.FragmentProgram? program;
   final bool blur;
   final bool dark;
+  final double frost;
   final Color tint;
   final Listenable moves;
   final Rect Function() drop;
@@ -677,6 +681,7 @@ class _LiquidGlass extends SingleChildRenderObjectWidget {
     program: program,
     blur: blur,
     dark: dark,
+    frost: frost,
     tint: tint,
     moves: moves,
     drop: drop,
@@ -690,6 +695,7 @@ class _LiquidGlass extends SingleChildRenderObjectWidget {
       ..program = program
       ..blur = blur
       ..dark = dark
+      ..frost = frost
       ..tint = tint
       ..moves = moves
       ..drop = drop
@@ -706,6 +712,7 @@ class RenderLiquidGlass extends RenderProxyBox {
     required this._program,
     required this._blur,
     required this._dark,
+    required this._frost,
     required this._tint,
     required this._moves,
     required this._drop,
@@ -743,6 +750,16 @@ class RenderLiquidGlass extends RenderProxyBox {
   set dark(bool value) {
     if (value == _dark) return;
     _dark = value;
+    markNeedsPaint();
+  }
+
+  double _frost;
+
+  /// See the widget.
+  double get frost => _frost;
+  set frost(double value) {
+    if (value == _frost) return;
+    _frost = value;
     markNeedsPaint();
   }
 
@@ -885,21 +902,29 @@ class RenderLiquidGlass extends RenderProxyBox {
     final held = _held();
     set(drop.isEmpty ? 0 : held);
     set(1 + 0.12 * held);
-    set(20 * px); // edge band
-    set(12 * px); // refraction
+    final frost = _frost.clamp(0.0, 1.0);
+    set(26 * px); // edge band
+    set(16 * px); // refraction
     set(1.4 * px); // rim width
     set(0.08); // colour split
     set(tint.r);
     set(tint.g);
     set(tint.b);
-    set(_dark ? 0.32 : 0.28);
+    set((_dark ? 0.18 : 0.14) + 0.48 * frost);
     set(-0.6);
     set(-0.8);
-    set(_dark ? 0.55 : 0.95); // rim strength
+    set(_dark ? 0.8 : 1.2); // rim strength
     set(1.18); // saturation
+    // The defined edge (iOS 27): a line just inside the outline, darker on
+    // light glass, lighter on dark.
+    set(1.2 * px);
+    set(_dark ? 0 : 0.16);
+    set(_dark ? 0.07 : 0);
     final glass = ui.ImageFilter.shader(shader);
     if (!_blur) return glass;
-    const sigma = 4.0;
+    // The page behind diffused more as the glass is frosted (iOS 27: it
+    // "diffuses complex content behind it much more effectively").
+    final sigma = 6 + 10 * frost;
     return ui.ImageFilter.compose(
       outer: glass,
       inner: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma, tileMode: TileMode.mirror),
@@ -959,7 +984,8 @@ class RenderLiquidGlass extends RenderProxyBox {
     if (drop.isEmpty) return;
     final held = _held().clamp(0.0, 1.0);
     final pill = RRect.fromRectAndRadius(drop, Radius.circular(drop.shortestSide / 2));
-    final shade = (_dark ? Colors.white : Colors.black).withValues(alpha: lens ? 0.10 * (1 - held) : 0.10);
+    // Darker than the glass in both themes (iOS 27's selected tab).
+    final shade = Colors.black.withValues(alpha: (_dark ? 0.24 : 0.08) * (lens ? 1 - held : 1));
     canvas.drawRRect(pill, Paint()..color = shade);
     // Held, a touch of shade inside the lens (or on the pill without one).
     if (held > 0) canvas.drawRRect(pill, Paint()..color = Colors.black.withValues(alpha: (lens ? 0.03 : 0.04) * held));
@@ -1002,17 +1028,18 @@ class RenderLiquidGlass extends RenderProxyBox {
   /// The frosted glass and the drop as a tinted pill, without the shader.
   void _paintFallback(Canvas canvas, Rect bounds, Rect drop) {
     final shape = RRect.fromRectAndRadius(bounds, Radius.circular(_radius));
-    final alpha = _blur ? (_dark ? 0.66 : 0.74) : 0.94;
+    final alpha = _blur ? (_dark ? 0.58 : 0.64) + 0.24 * _frost.clamp(0.0, 1.0) : 0.94;
     canvas.drawRRect(shape, Paint()..color = _tint.withValues(alpha: alpha));
     // No lens here: the drop stays a pill, a little stronger when held.
     _paintPill(canvas, drop, lens: false);
     _paintGlow(canvas, bounds, drop);
+    // The defined edge, as the shader's.
     canvas.drawRRect(
       shape.deflate(0.5),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1
-        ..color = Colors.white.withValues(alpha: _dark ? 0.16 : 0.5),
+        ..color = (_dark ? Colors.white : Colors.black).withValues(alpha: _dark ? 0.16 : 0.10),
     );
   }
 }

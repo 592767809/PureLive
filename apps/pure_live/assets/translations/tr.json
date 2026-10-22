@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Bazı platformlarda yeniden giriş yapmanız gerekiyor: 3.x’teki girişler ve WebDAV şifreleri bu cihazda şifrelenemedi.",
     "license": "Lisans",
     "linux_package": "Linux tar arşivi",
+    "liquid_glass_frost": "Cam buzluluğu",
+    "liquid_glass_frost_subtitle": "Sola doğru daha şeffaf cam, sağa doğru daha buzlu ve okunaklı",
     "live": "Canlı",
     "live_alert": "Canlı yayın bildirimleri",
     "live_alert_apply_failed": "Canlı yayın bildirimleri değiştirilemedi, lütfen tekrar deneyin",

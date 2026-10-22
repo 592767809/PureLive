@@ -189,6 +189,16 @@ abstract final class Settings {
   /// instead of 68. Off: as before.
   static const homeBottomBarCompact = BoolSetting('homeBottomBarCompact', section: 'theme', defaultValue: false);
 
+  /// How frosted the liquid glass is, 0 clear to 1 heavy frost (A01.8,
+  /// iOS 27's "Liquid Glass" slider); 0.5, the middle, by default.
+  static const liquidGlassFrost = DoubleSetting(
+    'liquidGlassFrost',
+    section: 'theme',
+    defaultValue: 0.5,
+    min: 0,
+    max: 1,
+  );
+
   /// Seed colour, `AARRGGBB` hex. The default is the brand blue (U.6b C-3);
   /// 3.x's default [legacyThemeColor] is moved to it once
   /// ([themeColorMigration], `LegacyRules.themeColor`).
@@ -1945,6 +1955,7 @@ abstract final class Settings {
     liquidGlass,
     homeBottomBarOnWide,
     homeBottomBarCompact,
+    liquidGlassFrost,
     themeColorSwitch,
     pureBlackTheme,
     themeColorMigration,

@@ -935,6 +935,8 @@
     "legacy_import_relogin": "一部のプラットフォームは再ログインが必要です：3.x のログイン情報と WebDAV パスワードをこの端末で暗号化できませんでした。",
     "license": "ライセンス",
     "linux_package": "Linux tar アーカイブ",
+    "liquid_glass_frost": "ガラスのすりガラス感",
+    "liquid_glass_frost_subtitle": "左ほど透明、右ほどすりガラスになり文字が読みやすくなります",
     "live": "ライブ",
     "live_alert": "配信開始通知",
     "live_alert_apply_failed": "配信開始通知を変更できませんでした。もう一度お試しください",

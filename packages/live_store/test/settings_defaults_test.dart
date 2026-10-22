@@ -277,6 +277,7 @@ const Map<String, Object> newInV4 = {
   'liquidGlass': true, // A01.6: liquid glass by default (A01.5 had the plain bar)
   'homeBottomBarOnWide': false, // V02.6 (issue #4): tablets keep the rail unless asked
   'homeBottomBarCompact': false, // V02.11 (issue #9): the bars' own heights unless asked
+  'liquidGlassFrost': 0.5, // A01.8: iOS 27's middle
   'iptvPopularPlaylist': '', // V02.9 (issue #6): the built-in hot list, as 3.x
   'iptvHotRemoved': false, // V02.9: the built-in hot list is there until deleted
   'themeColorMigration': 0, // A11.2
@@ -353,6 +354,7 @@ const Map<String, (num?, num?)> ranges = {
   'themeColorMigration': (null, null),
   'crossAxisSpacing': (0, 64),
   'mainAxisSpacing': (0, 64),
+  'liquidGlassFrost': (0, 1), // A01.8: clear to heavy frost
   'textScaleFactor': (0.5, 2),
   'fontSizeBodySmall': (9, 15),
   'fontSizeBodyMedium': (11, 17),

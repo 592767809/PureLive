@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Algunas plataformas necesitan que vuelvas a iniciar sesión: las sesiones y contraseñas WebDAV de 3.x no se pudieron cifrar en este dispositivo.",
     "license": "Licencia",
     "linux_package": "Paquete tar de Linux",
+    "liquid_glass_frost": "Esmerilado del cristal",
+    "liquid_glass_frost_subtitle": "A la izquierda, cristal más transparente; a la derecha, más esmerilado y fácil de leer",
     "live": "En directo",
     "live_alert": "Avisos de directo",
     "live_alert_apply_failed": "No se pudieron cambiar los avisos de directo, inténtalo de nuevo",

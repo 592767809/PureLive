@@ -15,8 +15,8 @@ import 'package:pure_live/i18n/i18n.dart';
 ///
 /// With [glass] (A01.5, A01.6) the bar floats over the page as a capsule
 /// of liquid glass ([LiquidGlassBar]), the page scrolling on under it;
-/// [glassBlur] off, the glass is a plain tint. [compact] (V02.11) lowers
-/// either bar.
+/// [glassBlur] off, the glass is a plain tint; [frost] (A01.8) is how
+/// frosted it is. [compact] (V02.11) lowers either bar.
 class HomeMobileView extends StatelessWidget {
   /// Creates the layout.
   const new({
@@ -27,6 +27,7 @@ class HomeMobileView extends StatelessWidget {
     this.glass = false,
     this.glassBlur = true,
     this.compact = false,
+    this.frost = 0.5,
     super.key,
   });
 
@@ -50,6 +51,9 @@ class HomeMobileView extends StatelessWidget {
 
   /// The bar is lower (`Settings.homeBottomBarCompact`).
   final bool compact;
+
+  /// How frosted the glass is (`Settings.liquidGlassFrost`).
+  final double frost;
 
   @override
   Widget build(BuildContext context) {
@@ -98,6 +102,7 @@ class HomeMobileView extends StatelessWidget {
             // glass elsewhere, a plain tint on a phone with little memory.
             child: LiquidGlassBar(
               height: barHeight,
+              frost: frost,
               blur: glassBlur,
               refraction: glassBlur,
               selectedIndex: index < 0 ? 0 : index,

@@ -935,6 +935,8 @@
     "legacy_import_relogin": "일부 플랫폼은 다시 로그인해야 합니다: 3.x의 로그인 정보와 WebDAV 비밀번호를 이 기기에서 암호화할 수 없었습니다.",
     "license": "라이선스",
     "linux_package": "Linux tar 압축 파일",
+    "liquid_glass_frost": "유리 질감",
+    "liquid_glass_frost_subtitle": "왼쪽은 더 투명하게, 오른쪽은 더 불투명하고 읽기 쉽게",
     "live": "라이브",
     "live_alert": "방송 알림",
     "live_alert_apply_failed": "방송 알림을 변경하지 못했습니다. 다시 시도하세요",

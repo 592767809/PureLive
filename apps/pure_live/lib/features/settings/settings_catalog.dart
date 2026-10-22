@@ -398,6 +398,23 @@ List<SettingsEntry> _build() {
       desc: 'enable_liquid_glass_subtitle',
       keywords: ['Liquid Glass', 'glass', 'blur', '玻璃', '毛玻璃', '透明'],
     )
+    ..add(
+      'liquid_glass_frost',
+      'liquid_glass_frost',
+      (context, entry) => SettingSliderTile(
+        entry: entry,
+        setting: Settings.liquidGlassFrost,
+        icon: AppIcons.liquidGlassFrost,
+        min: 0,
+        max: 1,
+        marks: const [0.5],
+        enabledBy: Settings.liquidGlass,
+        format: (value) => '${(value * 100).round()}%',
+      ),
+      desc: 'liquid_glass_frost_subtitle',
+      settings: [Settings.liquidGlassFrost],
+      keywords: ['Liquid Glass', 'glass', 'frost', '玻璃', '毛玻璃', '磨砂', '透明', '通透'],
+    )
     ..toggle(
       'home_bottom_bar_wide',
       'enable_home_bottom_bar_wide',

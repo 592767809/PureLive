@@ -860,6 +860,9 @@ abstract final class AppIcons {
   /// Liquid glass (A01.5).
   static const IconData liquidGlass = Remix.drop_line;
 
+  /// How frosted the glass is (A01.8).
+  static const IconData liquidGlassFrost = Remix.contrast_drop_2_line;
+
   /// The bottom bar on a tablet too (V02.6).
   static const IconData homeBottomBar = Remix.layout_bottom_2_line;
 

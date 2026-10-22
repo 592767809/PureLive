@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Certaines plateformes demandent une nouvelle connexion : les connexions et mots de passe WebDAV de 3.x n’ont pas pu être chiffrés sur cet appareil.",
     "license": "Licence",
     "linux_package": "Archive tar Linux",
+    "liquid_glass_frost": "Givrage du verre",
+    "liquid_glass_frost_subtitle": "À gauche, un verre plus clair ; à droite, plus dépoli et plus lisible",
     "live": "En direct",
     "live_alert": "Alertes de live",
     "live_alert_apply_failed": "Impossible de modifier les alertes de live, réessayez",

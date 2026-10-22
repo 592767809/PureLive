@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Einige Plattformen erfordern eine erneute Anmeldung: Die Anmeldungen und WebDAV-Passwörter aus 3.x konnten auf diesem Gerät nicht verschlüsselt werden.",
     "license": "Lizenz",
     "linux_package": "Linux-Tarball",
+    "liquid_glass_frost": "Glas-Mattierung",
+    "liquid_glass_frost_subtitle": "Nach links klareres Glas, nach rechts matter und besser lesbar",
     "live": "Live",
     "live_alert": "Live-Benachrichtigungen",
     "live_alert_apply_failed": "Live-Benachrichtigungen konnten nicht geändert werden, bitte erneut versuchen",

@@ -2,7 +2,7 @@
 
 <!-- 由 tools/docs/settings_audit.py 生成（手写的部分在 tools/docs/settings_audit_notes.py），不要手改 -->
 
-v4 的 275 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
+v4 的 276 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）比默认值、取值范围、设置页的范围、读取位置和生效时机。返回 [README](README.md)。
 
 ## 结论
 
@@ -12,7 +12,7 @@ v4 的 275 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | 确认改动 | 3 |
 | 不一样，已改 | 18 |
 | 不一样，待处理 | 0 |
-| 未核对 | 6（showMenuBarIcon, homeBottomBarOnWide, homeBottomBarCompact, floatWindowPosition, useSystemPip, floatOverlayTipShown） |
+| 未核对 | 7（showMenuBarIcon, homeBottomBarOnWide, homeBottomBarCompact, liquidGlassFrost, floatWindowPosition, useSystemPip, floatOverlayTipShown） |
 
 “一样”：默认值和 3.x 一样（3.x 的常量和表达式已经展开），数值的范围也一样（3.x 的范围是它启动时和导入备份时的修正）；v4 新加的设置，“一样”指默认值和来源任务写的一致。“确认改动”写了依据（任务或决定）。“不一样，已改”是本任务改了注册表（`settings.dart`），“不一样，待处理”开了后续任务。
 
@@ -42,7 +42,7 @@ v4 的 275 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `preferRealOnlineCounts` | Bool | `false` | `false`（`app_settings_controller.dart:54`） |  |  |  | `features/favorite/favorite_controller.dart:176`、`features/favorite/favorite_controller.dart:368`、`features/multiview/widgets/room_picker.dart:173` 等 10 处 | 立即 | `audience_heat` | 一样 |
 | `realOnlinePlatforms` | StringList | `[douyin, kuaishou, cc, twitch, soop, acfun, picarto, twitcasting]` | `[douyin, kuaishou, cc, twitch, soop, acfun, picarto, twitcasting]`（`app_settings_controller.dart:11-20、:55`） |  |  |  | `features/favorite/favorite_controller.dart:177`、`features/favorite/favorite_controller.dart:369`、`features/multiview/widgets/room_picker.dart:174` 等 13 处 | 立即 | `audience_platforms` | 一样：`defaultRealOnlinePlatforms` 展开后一样；3.x 的 `audienceMetricMigration` 补的平台都已在列表里 |
 | `savedMenuIds` | StringList | `[favorites, popular, areas, record]` | `[favorites, popular, areas, record]`（`app_settings_controller.dart:69`，`HomeMenu` 在 `common/consts/app_consts.dart:6-10`） |  |  |  | `app/app.dart:146`、`features/home/home_page.dart:144`、`live_store/src/legacy/legacy_snapshot.dart:213` 等 4 处 | 立即 | `home_menus` | 一样 |
-| `enableMultiView` | Bool | `true` | `true`（`app_settings_controller.dart:60`） |  |  |  | `features/home/home_views.dart:167`、`features/home/menu_button.dart:137` | 立即 | `multiview` | 一样 |
+| `enableMultiView` | Bool | `true` | `true`（`app_settings_controller.dart:60`） |  |  |  | `features/home/home_views.dart:172`、`features/home/menu_button.dart:137` | 立即 | `multiview` | 一样 |
 | `enableNewWindowPlay` | Bool | `true` | `true`（`app_settings_controller.dart:61`） |  |  |  | `app/desktop/desktop_window.dart:93`、`app/desktop/desktop_window.dart:98`、`features/home/menu_button.dart:56` | 立即 | `new_window` | 一样 |
 | `showMenuBarIcon` | Bool | `true` |  |  |  |  | `app/desktop/desktop_window.dart:368`、`app/desktop/desktop_window.dart:371`、`app/desktop/desktop_window.dart:372` | 立即 | `menu_bar_icon` | **未核对** |
 | `showUnplayableInDiscover` | Bool | `false` | —（新加） |  |  |  | `features/area_rooms/area_rooms_page.dart:77`、`features/area_rooms/area_rooms_page.dart:80`、`features/area_rooms/area_rooms_page.dart:81` 等 7 处 | 立即 | `show_unplayable` | 一样：v4 新加（UPGRADES 统一原则“受限”，J02.1），默认值照来源任务 |
@@ -83,8 +83,9 @@ v4 的 275 个设置（`Settings.all`），每个一行，和 3.x（`v3.2.11`）
 | `themeMode` | String | `'System'` | `'System'`（`theme_settings_controller.dart:17`） | `System` / `Dark` / `Light` |  |  | `app/app.dart:231`、`app/intake/system_intake.dart:61` | 立即 | `theme_mode` | 一样 |
 | `enableDynamicTheme` | Bool | `false` | `false`（`theme_settings_controller.dart:18`） |  |  |  | `app/app.dart:236` | 立即 | `dynamic_color` | 一样 |
 | `liquidGlass` | Bool | `true` | —（新加） |  |  |  | `features/home/home_page.dart:145`、`live_ui/src/widgets/glass.dart:8` | 马上 | `liquid_glass` | 一样：v4 新加（A01.5）；5.2 起默认开（A01.6，用户要液态玻璃）：手机首页底栏悬浮成液态玻璃胶囊，边缘折射、选中项是可拖动的玻璃水滴，不支持着色器的设备是毛玻璃，内存 4 GB 及以下（或读不到）的安卓机只半透明不模糊；关掉是普通底栏；宽屏侧栏、直播间不变 |
-| `homeBottomBarOnWide` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:149` | 立即 | `home_bottom_bar_wide` | **未核对** |
-| `homeBottomBarCompact` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:146`、`features/home/home_views.dart:51` | 立即 | `home_bottom_bar_compact` | **未核对** |
+| `homeBottomBarOnWide` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:150` | 立即 | `home_bottom_bar_wide` | **未核对** |
+| `homeBottomBarCompact` | Bool | `false` |  |  |  |  | `features/home/home_page.dart:146`、`features/home/home_views.dart:52` | 立即 | `home_bottom_bar_compact` | **未核对** |
+| `liquidGlassFrost` | Double | `0.5` |  | 0～1 |  |  | `features/home/home_page.dart:147`、`features/home/home_views.dart:55` | 立即 | `liquid_glass_frost` | **未核对** |
 | `themeColorSwitch` | String | `'FF2E6FE0'` | `'FF2196F3'`（`theme_settings_controller.dart:13、:19`（`Colors.blue`）） |  |  |  | `app/app.dart:237`、`live_store/src/legacy/legacy_snapshot.dart:399`、`live_store/src/legacy/legacy_snapshot.dart:400` 等 6 处 | 立即 | `theme_color` | 确认改动：品牌蓝 `FF2E6FE0`（A11.2 C-3）；3.x 默认的蓝色存过的老用户迁移一次（`themeColorMigration`） |
 | `pureBlackTheme` | Bool | `false` | —（新加） |  |  |  | `app/app.dart:238` | 立即 | `pure_black` | 一样：v4 新加（A11.2 C-4），默认值照来源任务 |
 | `language` | String | `'简体中文'` | `'简体中文'`（`theme_settings_controller.dart:20`） |  |  |  | `app/app.dart:224`、`app/app.dart:226`、`main.dart:114` 等 4 处 | 立即 | `language` | 一样 |

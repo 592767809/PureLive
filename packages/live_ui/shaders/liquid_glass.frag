@@ -2,9 +2,10 @@
 // drawn as a backdrop filter. The pane and the selection drop are rounded
 // rectangles worked out here from their signed distance fields, in the
 // screen's physical pixels (a backdrop filter's coordinates, checked on the
-// K90). Near an edge the page behind is bent inwards like the rim of a lens,
-// with a little colour split; the drop magnifies what is under it; a thin
-// rim catches the light from the top left.
+// K90). Near an edge the page behind is bent inwards like the rim of a
+// thick lens (a circle's profile, A01.8), with a little colour split; the
+// drop magnifies what is under it; a defined edge line (iOS 27) and a thin
+// rim that catches the light from the top left.
 //
 // The refraction and the distance fields follow the approach of
 // liquid_glass_renderer (MIT, Tim Lehmann for whynotmake.it) and
@@ -23,6 +24,7 @@ uniform vec4 uShape;       // pane radius, drop radius, drop visibility, drop ma
 uniform vec4 uOptics;      // edge band, refraction, rim width, colour split
 uniform vec4 uTint;        // rgb, strength
 uniform vec4 uLight;       // light x, light y, rim strength, saturation
+uniform vec3 uEdge;        // edge line width, darken, lighten
 
 uniform sampler2D uTexture;
 
@@ -84,14 +86,16 @@ void main() {
   float band = uOptics.x;
   float depth = clamp(-d / band, 0.0, 1.0);
   vec2 normal = roundRectNormal(p, paneCentre, paneHalf, paneRadius);
-  // Steep at the rim, flat inside: a lens's edge.
-  float bend = (1.0 - depth) * (1.0 - depth);
+  // Steep at the rim, flat inside: a thick lens's round edge.
+  float rimward = 1.0 - depth;
+  float bend = 1.0 - sqrt(max(1.0 - rimward * rimward, 0.0));
   vec3 colour = refracted(p, -normal * bend * uOptics.y, uOptics.w);
 
   vec2 dropNormal = roundRectNormal(p, dropCentre, dropHalf, dropRadius);
   float dropDepth = clamp(-dd / (band * 0.8), 0.0, 1.0);
   if (drop > 0.0) {
-    float dropBend = (1.0 - dropDepth) * (1.0 - dropDepth);
+    float dropRimward = 1.0 - dropDepth;
+    float dropBend = 1.0 - sqrt(max(1.0 - dropRimward * dropRimward, 0.0));
     vec2 magnified = dropCentre + (p - dropCentre) / uShape.w;
     // A stronger colour split at the drop's rim: the rainbow edge of a
     // held lens.
@@ -103,6 +107,10 @@ void main() {
   colour = mix(colour, uTint.rgb, uTint.a * (1.0 - 0.6 * drop));
   float grey = dot(colour, vec3(0.299, 0.587, 0.114));
   colour = mix(vec3(grey), colour, uLight.w);
+
+  // The defined edge: a thin line just inside the outline.
+  float line = (1.0 - smoothstep(0.0, uEdge.x, -d)) * inside;
+  colour = mix(colour, colour * (1.0 - uEdge.y) + uEdge.z, line);
 
   // Rims: thin and bright where the edge faces the light, faint opposite.
   vec2 light = normalize(uLight.xy);

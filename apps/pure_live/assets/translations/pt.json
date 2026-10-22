@@ -935,6 +935,8 @@
     "legacy_import_relogin": "Algumas plataformas exigem novo login: os logins e senhas WebDAV da 3.x não puderam ser criptografados neste dispositivo.",
     "license": "Licença",
     "linux_package": "Pacote tar para Linux",
+    "liquid_glass_frost": "Fosco do vidro",
+    "liquid_glass_frost_subtitle": "À esquerda, vidro mais transparente; à direita, mais fosco e fácil de ler",
     "live": "Ao vivo",
     "live_alert": "Alertas de ao vivo",
     "live_alert_apply_failed": "Não foi possível alterar os alertas, tente novamente",

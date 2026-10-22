@@ -510,6 +510,12 @@ void main() {
     tester.view.physicalSize = const Size(400, 900);
     await tester.pumpAndSettle();
 
+    // A01.8: the "玻璃质感" slider reaches the glass.
+    expect(tester.allRenderObjects.whereType<RenderLiquidGlass>().single.frost, 0.5);
+    await tester.runAsync(() => services.store.settings.set(Settings.liquidGlassFrost, 0.9));
+    await tester.pumpAndSettle();
+    expect(tester.allRenderObjects.whereType<RenderLiquidGlass>().single.frost, 0.9);
+
     await tester.runAsync(() => services.store.settings.set(Settings.liquidGlass, false));
     await tester.pumpAndSettle();
     expect(find.byType(LiquidGlassBar), findsNothing);
