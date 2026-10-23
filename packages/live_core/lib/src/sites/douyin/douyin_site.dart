@@ -42,6 +42,7 @@ const _recommendDraws = 3;
 
 final RegExp _controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
 final RegExp _reflowPath = RegExp(r'(?:^|/)reflow/(\d+)(?:/|$)');
+final RegExp _webRoomKey = RegExp(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$');
 final Uri _homeUrl = Uri.https(_live, '/', {'from_nav': '1'});
 
 /// Headers of 3.x's short-link requests.
@@ -754,7 +755,8 @@ final class DouyinSite extends LiveSite
 
   // Links ---------------------------------------------------------------------
 
-  /// `live.douyin.com/{digits}[/…]` and `www.douyin.com/{1–20 digits}` (one
+  /// `live.douyin.com/{web_rid or custom alias}[/…]` and
+  /// `www.douyin.com/{1–20 digits}` (one
   /// segment only: videos, search pages and the bare site are not rooms,
   /// REG-DOUYIN-010/011).
   @override
@@ -763,13 +765,18 @@ final class DouyinSite extends LiveSite
     if (uri == null) return null;
     try {
       return switch (uri.host.toLowerCase()) {
-        _live => RoomPaths.firstSegment(uri, RegExp(r'^\d+$')),
+        _live => _liveRoomId(uri),
         'www.douyin.com' => _webRoomId(uri),
         _ => null,
       };
     } on FormatException {
       return null;
     }
+  }
+
+  static String? _liveRoomId(Uri uri) {
+    final roomId = RoomPaths.firstSegment(uri, _webRoomKey);
+    return roomId == null || roomId.toLowerCase() == 'webcast' ? null : roomId;
   }
 
   static String? _webRoomId(Uri uri) {

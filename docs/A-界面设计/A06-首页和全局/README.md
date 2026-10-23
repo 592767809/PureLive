@@ -137,7 +137,7 @@ app/intake/system_intake.dart → ClipboardRoomWatcher / ShareIntake → showRoo
 属于 [A 界面设计](../README.md)。
 
 - 代码：`features/home/`、`features/splash/`、`app/`
-- 进度：`████████████████████` 100%
+- 进度：`███████████████████░` 96%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
@@ -147,5 +147,13 @@ app/intake/system_intake.dart → ClipboardRoomWatcher / ShareIntake → showRoo
 | A06.3 | 全局弹窗 | 界面 | 完成 | 2026-10-01 | 6e00ef1dc | [设计或说明](A06.3-全局弹窗/README.md)、[记录](A06.3-全局弹窗/record.md)、[评审页](A06.3-全局弹窗/page/01-说明.jpg) |
 | A06.4 | 启动页 | 界面 | 完成 | 2026-10-01 | 6e00ef1dc | [设计或说明](A06.4-启动页/README.md)、[记录](A06.4-启动页/record.md)、[评审页](A06.4-启动页/page/01-说明.jpg) |
 | A06.5 | 状态栏和导航栏样式和 3.x 核对：3.x 启动时全局设透明，v4 启动页留下黑色导航栏和浅色导航栏图标 | 界面 | 完成 | 2026-10-08 | 937f3eb65 | [设计或说明](A06.5-首页状态栏和导航栏颜色/README.md)、[任务书](A06.5-首页状态栏和导航栏颜色/brief.md)、[记录](A06.5-首页状态栏和导航栏颜色/record.md) |
+| A06.6 | 接 A06.1：小横屏侧栏所有入口可从整条侧栏拖动访问 | 界面 | 开发中 | — | — | [设计或说明](A06.6-小横屏侧栏整体滚动/README.md)、[任务书](A06.6-小横屏侧栏整体滚动/brief.md)、[记录](A06.6-小横屏侧栏整体滚动/record.md) |
+
+## 还没完成的
+
+- **A06.6 接 A06.1：小横屏侧栏所有入口可从整条侧栏拖动访问**（开发中，第一档，规模 小）
+  - 分支：ai/V02.26
+  - 说明：2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。
+  - 来源：https://github.com/wzgrx/PureLive/issues/14
 
 <!-- docs:生成结束 -->

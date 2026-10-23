@@ -444,23 +444,54 @@ void main() {
     }
   });
 
-  testWidgets('landscape phone: the destinations stay on screen, the tools above them scroll (U.4b)', (tester) async {
+  testWidgets('issue 14: dragging the lower rail scrolls the whole short landscape rail', (tester) async {
     final services = await _pump(tester, width: 852, height: 393);
-    expect(find.byKey(const ValueKey('home-rail')), findsOneWidget);
-    for (final id in ['favorites', 'popular', 'areas', 'record']) {
-      final rect = tester.getRect(find.byKey(ValueKey('home-nav-$id')));
-      expect(rect.bottom, lessThanOrEqualTo(393), reason: id);
-      expect(rect.top, greaterThanOrEqualTo(0), reason: id);
-    }
-    expect(tester.getRect(find.byKey(const ValueKey('home-menu'))).top, greaterThanOrEqualTo(0));
-    // The tools scroll to the multi-view button.
-    final multiview = find.byKey(const ValueKey('home-rail-multiview'));
-    await tester.ensureVisible(multiview);
+    final menu = find.byKey(const ValueKey('home-menu'));
+    final initialTop = tester.getTopLeft(menu).dy;
+    await tester.dragFrom(const Offset(40, 330), const Offset(0, -280));
     await tester.pumpAndSettle();
-    expect(
-      tester.getRect(multiview).bottom,
-      lessThanOrEqualTo(tester.getRect(find.byKey(const ValueKey('home-rail-separator'))).top),
-    );
+    expect(tester.getTopLeft(menu).dy, lessThan(initialTop - 40));
+    final record = find.byKey(const ValueKey('home-nav-record'));
+    await tester.ensureVisible(record);
+    await tester.pumpAndSettle();
+    expect(record.hitTestable(), findsOneWidget);
+    await tester.tap(record);
+    await tester.pumpAndSettle();
+    expect(find.byType(RecorderPage), findsOneWidget);
+    await tester.dragFrom(const Offset(40, 150), const Offset(0, 600));
+    await tester.pumpAndSettle();
+    expect(menu.hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-rail-search')).hitTestable(), findsOneWidget);
+    await tester.runAsync(services.close);
+  });
+
+  testWidgets('short landscape rail: every destination remains reachable with large text and safe areas', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.view.padding = const FakeViewPadding(top: 24, bottom: 20);
+    tester.view.viewPadding = const FakeViewPadding(top: 24, bottom: 20);
+    final services = await _pump(tester, width: 740, height: 280);
+    expect(find.byKey(const ValueKey('home-rail')), findsOneWidget);
+    final rail = tester.getRect(find.byKey(const ValueKey('home-rail')));
+    for (final id in ['favorites', 'popular', 'areas', 'record']) {
+      final target = find.byKey(ValueKey('home-nav-$id'));
+      await tester.scrollUntilVisible(
+        target,
+        80,
+        scrollable: find.descendant(of: find.byKey(const ValueKey('home-rail')), matching: find.byType(Scrollable)),
+      );
+      await tester.pumpAndSettle();
+      expect(target.hitTestable(), findsOneWidget, reason: id);
+      final rect = tester.getRect(target);
+      expect(rect.bottom, lessThanOrEqualTo(rail.bottom), reason: id);
+      expect(rect.top, greaterThanOrEqualTo(rail.top), reason: id);
+    }
+    await tester.dragFrom(rail.center, const Offset(0, 1000));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-menu')).hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.runAsync(services.close);
   });
 

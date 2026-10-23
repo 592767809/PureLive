@@ -1,6 +1,9 @@
 // A17.9 stage 3: the TV's show-and-move editor, the side menu's order,
 // hidden entries and icons, and the colour grid.
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
@@ -10,6 +13,7 @@ import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/settings/tv_order_editor.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
 import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 
 import '../support.dart';
@@ -51,6 +55,41 @@ String? get _row =>
         ?.value;
 
 void main() {
+  testWidgets('issue 30: a full-width choice keeps both sides of its focus frame inside the viewport', (tester) async {
+    final boundary = GlobalKey();
+    await _pump(
+      tester,
+      Align(
+        alignment: Alignment.topCenter,
+        child: RepaintBoundary(
+          key: boundary,
+          child: TvOptionRow(label: '斗鱼', current: true, autofocus: true, onTap: () {}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    final colors = (await tester.runAsync(() async {
+      final image = await render.toImage(pixelRatio: 2);
+      final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
+      final y = image.height ~/ 2;
+      final result = [
+        for (final x in [1, image.width - 2])
+          Color.fromARGB(
+            bytes.getUint8((y * image.width + x) * 4 + 3),
+            bytes.getUint8((y * image.width + x) * 4),
+            bytes.getUint8((y * image.width + x) * 4 + 1),
+            bytes.getUint8((y * image.width + x) * 4 + 2),
+          ),
+      ];
+      image.dispose();
+      return result;
+    }))!;
+    for (final color in colors) {
+      expect(color, TvPalette.of(_scheme).focusRing, reason: 'a clipped outside stroke leaves only the row background');
+    }
+  });
+
   test('the side menu: the order stored first, the rest by default; hidden left out, one always stays', () {
     expect(TvPane.menuOf(), TvPane.entries);
     expect(TvPane.menuOf(order: ['history', 'nope', 'favorites']).take(3), [

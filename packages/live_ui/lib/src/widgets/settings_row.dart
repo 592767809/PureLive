@@ -34,7 +34,7 @@ double settingsValueFontSize(BuildContext context, {required bool tv}) {
 }
 
 /// How settings rows look in a subtree: the phone and desktop style, or the
-/// television style (focus enlarges the row and draws a near-white frame,
+/// television style (focus draws a near-white frame inside the row,
 /// text one step larger; UI_PLAN §5.5).
 class SettingsRowStyle extends InheritedWidget {
   /// Applies [tv] to [child].
@@ -198,8 +198,8 @@ class SettingsGroup extends StatelessWidget {
           ...children
         else
           // A Material, so list tiles on it (the platform accounts) keep
-          // their ink. In the TV look it does not clip: the focused row grows
-          // 2 % and its ring would lose its sides.
+          // their ink. TV rows keep their complete frame even where their
+          // corner radius differs from the enclosing group's radius.
           Material(
             color: colors.surfaceContainerLow,
             borderRadius: AppRadii.card,
@@ -495,9 +495,11 @@ class _SettingsRowState extends State<SettingsRow> {
     final overlay = colors.onSurface;
     Widget row = Material(
       color: widget.selected ? colors.secondaryContainer : Colors.transparent,
+      borderRadius: AppRadii.listRow,
       child: InkWell(
         onTap: usable ? widget.onTap : null,
         canRequestFocus: usable && widget.onTap != null,
+        borderRadius: AppRadii.listRow,
         hoverColor: overlay.withValues(alpha: 0.06),
         highlightColor: overlay.withValues(alpha: 0.10),
         focusColor: overlay.withValues(alpha: 0.04),
@@ -516,8 +518,6 @@ class _SettingsRowState extends State<SettingsRow> {
       ),
       child: row,
     );
-    // A whole row grows a little only (A17.9 c5: rows 1.02).
-    if (tv) row = AnimatedScale(scale: _focused ? 1.02 : 1, duration: AppDurations.fast, child: row);
     if (widget.tooltip case final tooltip?) row = Tooltip(message: tooltip, child: row);
     if (!widget.enabled) {
       row = Opacity(

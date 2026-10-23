@@ -99,6 +99,29 @@ final class _Failing implements LiveHttp {
   void close() {}
 }
 
+final class _ChangingIdentity implements LiveHttp {
+  new(this.inner, this.change);
+
+  final LiveHttp inner;
+  final void Function() change;
+  bool changed = false;
+
+  @override
+  Future<LiveResponse> send(LiveRequest request) async {
+    if (!changed && request.url.path == _encryption) {
+      changed = true;
+      change();
+    }
+    return await inner.send(request);
+  }
+
+  @override
+  Future<LiveStreamedResponse> open(LiveRequest request) => inner.open(request);
+
+  @override
+  void close() => inner.close();
+}
+
 /// The app side of a login: LTP0 and the device id kept apart, the save
 /// time, and renewed cookies written back to the vault.
 final class _Store implements DouyuLoginStore {
@@ -588,6 +611,43 @@ void main() {
       expect(_count(setup.http, _encryption), 3, reason: 'a descriptor belongs to one device id');
       expect(setup.http.requests.last.headers['cookie'], startsWith('dy_did=other; acf_did=other'));
     });
+
+    test('issue 15: changing the account token with the same DID invalidates its signing descriptor', () async {
+      final vault = MemoryCookieVault()..set('douyu', 'dy_did=same; acf_auth=first-fixture-session');
+      addTearDown(vault.dispose);
+      final setup = _setup(['S06-encryption', 'S08-meta-24422'], cookies: vault);
+      final room = _room('24422');
+      await setup.site.getPlayQualities(detail: room);
+      vault.set('douyu', 'dy_did=same; acf_auth=second-fixture-session');
+      await setup.site.getPlayQualities(detail: room);
+      expect(_count(setup.http, _encryption), 2, reason: 'the descriptor belongs to the complete request identity');
+      vault.set('douyu', 'dy_did=same');
+      await setup.site.getPlayQualities(detail: room);
+      expect(_count(setup.http, _encryption), 3, reason: 'logging out also drops the authenticated descriptor');
+    });
+
+    test(
+      'issue 15: an account change during descriptor fetch never sends the stale account in a play request',
+      () async {
+        final vault = MemoryCookieVault()..set('douyu', 'dy_did=same; acf_auth=first-fixture-session');
+        addTearDown(vault.dispose);
+        final setup = _setup(['S06-encryption', 'S08-meta-24422'], cookies: vault);
+        final site = DouyuSite(
+          _ChangingIdentity(setup.http, () => vault.set('douyu', 'dy_did=same; acf_auth=second-fixture-session')),
+          cookies: vault,
+          now: () => _captured,
+          random: Random(1),
+        );
+        await site.getPlayQualities(detail: _room('24422'));
+        expect(_count(setup.http, _encryption), 2);
+        final plays = setup.http.requests.where((request) => request.url.path == _play);
+        expect(plays, hasLength(1));
+        expect(plays.single.headers['cookie'], contains('second-fixture-session'));
+        expect(plays.single.headers['cookie'], isNot(contains('first-fixture-session')));
+        await site.getPlayQualities(detail: _room('24422'));
+        expect(_count(setup.http, _encryption), 2, reason: 'only the current identity descriptor is cached');
+      },
+    );
 
     test('lease times of resolved URLs; an unknown URL counts from now; no expire, no lease', () async {
       final setup = _setup(['S06-encryption', 'S09-24422-r0-hw-h5']);

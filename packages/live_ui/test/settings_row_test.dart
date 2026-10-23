@@ -87,6 +87,21 @@ void main() {
       expect(clipOf(), Clip.none);
     });
 
+    testWidgets('issue 30: a focused TV settings row keeps its full painted target inside its layout', (tester) async {
+      const key = ValueKey('bounded-tv-row');
+      await _pump(tester, SettingsLinkRow(key: key, title: '首选直播平台', onTap: () {}), tv: true, width: 1280);
+      final row = find.byKey(key);
+      final ink = find.descendant(of: row, matching: find.byType(InkWell));
+      Focus.of(tester.element(find.descendant(of: ink, matching: find.byType(LayoutBuilder)).first)).requestFocus();
+      await tester.pumpAndSettle();
+      final available = tester.getRect(row);
+      final target = tester.getRect(ink);
+      expect(target.left, greaterThanOrEqualTo(available.left));
+      expect(target.right, lessThanOrEqualTo(available.right));
+      expect(target.top, greaterThanOrEqualTo(available.top));
+      expect(target.bottom, lessThanOrEqualTo(available.bottom));
+    });
+
     testWidgets('explanations: three lines (A01.4 c2), secondary colour above 4.5:1 on the card', (tester) async {
       await _pump(
         tester,
@@ -300,7 +315,7 @@ void main() {
       expect(picked, 'compact');
     });
 
-    testWidgets('search words are marked; the focus frame shows only for the keyboard; TV enlarges', (tester) async {
+    testWidgets('search words are marked; keyboard and TV focus draw the frame', (tester) async {
       await _pump(
         tester,
         SettingsHighlight(
@@ -321,11 +336,6 @@ void main() {
       addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(
-        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
-        1.02,
-        reason: 'A17.9 c5: a row grows a little',
-      );
       final frame = tester
           .widgetList<DecoratedBox>(find.byType(DecoratedBox))
           .where(

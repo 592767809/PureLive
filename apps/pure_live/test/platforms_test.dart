@@ -52,10 +52,10 @@ void main() {
   test('every platform of 3.x and IPTV is registered, adapters are kept', () async {
     final services = await testServices();
     addTearDown(services.close);
-    // No Android system TLS here: Kick waits for it (UPGRADES X-1).
+    // Kick's API uses HTTP/2 on the two verified app platforms.
     expect(services.sites.ids, [
       for (final id in SiteIds.supported)
-        if (id != SiteIds.kick) id,
+        if (id != SiteIds.kick || Platform.isAndroid || Platform.isWindows) id,
     ]);
     expect(identical(services.sites.of('BiliBili '), services.sites.of(SiteIds.bilibili)), isTrue);
   });

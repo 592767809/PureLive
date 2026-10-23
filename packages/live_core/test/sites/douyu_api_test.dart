@@ -416,6 +416,33 @@ void main() {
   });
 
   group('S06/S07 signing', () {
+    test('issue 15: descriptor and play shape failures expose fixed reasons without exporting the response', () {
+      final fixture = _sample('S06-encryption');
+      final root = jsonDecode(fixture.body) as Map<String, dynamic>;
+      final invalidRounds = jsonDecode(fixture.body) as Map<String, dynamic>;
+      (invalidRounds['data'] as Map)['enc_time'] = 0;
+      final descriptor = DouyuApi.descriptor(fixture.body, now: fixture.capturedAt);
+      for (final (body, now, code) in [
+        ('private-response-fixture', fixture.capturedAt, ApiFailureCode.douyuDescriptorJson),
+        ('{"error":1}', fixture.capturedAt, ApiFailureCode.douyuDescriptorEnvelope),
+        ('{"error":0,"data":{}}', fixture.capturedAt, ApiFailureCode.douyuDescriptorFields),
+        (jsonEncode(invalidRounds), fixture.capturedAt, ApiFailureCode.douyuDescriptorRounds),
+        (jsonEncode(root), descriptor.expireAt, ApiFailureCode.douyuDescriptorExpiry),
+      ]) {
+        expect(
+          () => DouyuApi.descriptor(body, now: now),
+          throwsA(isA<ApiChanged>().having((e) => e.code, 'code', code)),
+        );
+      }
+      for (final (body, code) in [
+        ('private-response-fixture', ApiFailureCode.douyuPlayJson),
+        ('{}', ApiFailureCode.douyuPlayCode),
+        ('{"error":0,"data":""}', ApiFailureCode.douyuPlayData),
+      ]) {
+        expect(() => DouyuApi.playData(body), throwsA(isA<ApiChanged>().having((e) => e.code, 'code', code)));
+      }
+    });
+
     test('S06 descriptor: usable at capture and 31 s before expiry, not 30 s before; the form matches 3.x', () {
       final fixture = _sample('S06-encryption');
       final legacy = fixture.legacy as Map<String, dynamic>;

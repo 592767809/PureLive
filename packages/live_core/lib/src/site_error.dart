@@ -99,10 +99,44 @@ final class UnsupportedLink extends SiteError {
   String get kind => 'UnsupportedLink';
 }
 
+/// Fixed, non-sensitive reasons for an API shape failure. Unlike [SiteError.detail],
+/// these may be included in an exported application log.
+enum ApiFailureCode {
+  /// The signing descriptor response was not a JSON object.
+  douyuDescriptorJson,
+
+  /// The descriptor endpoint returned a failed envelope or HTTP status.
+  douyuDescriptorEnvelope,
+
+  /// The signing descriptor lacked a required field.
+  douyuDescriptorFields,
+
+  /// The descriptor's hashing round count was outside its supported range.
+  douyuDescriptorRounds,
+
+  /// The descriptor was already expired or inside its safety margin.
+  douyuDescriptorExpiry,
+
+  /// The play response was not a JSON object.
+  douyuPlayJson,
+
+  /// The play response had no recognised error code.
+  douyuPlayCode,
+
+  /// The play response had no data object or a failed HTTP status.
+  douyuPlayData,
+}
+
 /// The response does not match the platform spec.
 final class ApiChanged extends SiteError {
   /// Creates the error; [detail] should summarise the unexpected shape.
-  const new(super.site, [super.detail]);
+  const new(super.site, [super.detail]) : code = null;
+
+  /// Creates a failure with a fixed reason safe for export.
+  const ApiChanged.withCode(super.site, this.code, [super.detail]);
+
+  /// A fixed reason, never a response, URL, identifier or credential.
+  final ApiFailureCode? code;
 
   @override
   String get kind => 'ApiChanged';

@@ -21,10 +21,10 @@ import 'live_play_support.dart';
 const _bilibili = '../../fixtures/bilibili';
 
 final class _PhaseFailureSite extends FakeSite {
-  new(this.phase) : super(liveRoom());
+  new(this.phase, {this.failure = const ApiChanged(SiteIds.bilibili, 'test-only-private-context')}) : super(liveRoom());
 
   final String phase;
-  static const failure = ApiChanged(SiteIds.bilibili, 'test-only-private-context');
+  final ApiChanged failure;
 
   @override
   Future<LiveRoom> getRoomDetail({required String roomId}) async {
@@ -616,6 +616,25 @@ void main() {
       controller.dispose();
     });
   }
+
+  test('issue 15: exported diagnostics retain only a fixed descriptor reason, never the raw private detail', () async {
+    final controller = controllerFor(
+      _PhaseFailureSite(
+        'qualities',
+        failure: const ApiChanged.withCode(
+          SiteIds.douyu,
+          ApiFailureCode.douyuDescriptorExpiry,
+          'private-response-fixture Cookie: fixture-session',
+        ),
+      ),
+    );
+    await controller.start();
+    final failure = AppLog.instance.entries.where((entry) => entry.message.startsWith('playback-failure')).last;
+    expect(failure.message, contains('phase=qualities kind=ApiChanged code=douyuDescriptorExpiry'));
+    expect(failure.message, isNot(contains('private-response-fixture')));
+    expect(failure.message, isNot(contains('fixture-session')));
+    controller.dispose();
+  });
 
   test('a failed detail keeps the card and says why; retry loads again', () async {
     final site = FakeSite(liveRoom())..detailError = const NeedsLogin(SiteIds.bilibili);

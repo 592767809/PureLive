@@ -13,8 +13,8 @@ typedef DanmakuFactory = DanmakuConnection Function(LiveHttp http, ProxyPolicy p
 /// The anonymous adapters of the 34 platforms, with the app's constructor
 /// arguments (`apps/pure_live/lib/app/platforms.dart`, `buildSiteRegistry`)
 /// at their defaults: an empty cookie vault, `preferH264` on, no Twitch
-/// fallbacks (no Android TLS on a PC), and Kick's API on dart:io (refused by
-/// Cloudflare; the patrol skips Kick).
+/// fallbacks (no Android TLS on a PC), and Kick's API on the same HTTP/2
+/// transport as the app, with the requested proxy policy.
 Map<String, SiteFactory> siteFactories({CookieVault? cookies}) {
   final vault = cookies ?? MemoryCookieVault();
   return {
@@ -38,7 +38,7 @@ Map<String, SiteFactory> siteFactories({CookieVault? cookies}) {
     SiteIds.weibo: (http, _) => WeiboSite(http),
     SiteIds.showroom: (http, _) => ShowroomSite(http),
     SiteIds.chzzk: (http, _) => ChzzkSite(http),
-    SiteIds.kick: (http, _) => KickSite(http),
+    SiteIds.kick: (http, proxy) => KickSite(http, apiHttp: Http2LiveHttp(proxy: proxy)),
     SiteIds.liveMe: (http, _) => LiveMeSite(http),
     SiteIds.tiktok: (http, _) => TikTokSite(http),
     SiteIds.youtube: (http, _) => YouTubeSite(http),
