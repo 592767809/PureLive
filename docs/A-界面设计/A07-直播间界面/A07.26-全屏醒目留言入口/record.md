@@ -27,3 +27,8 @@
 
 
 4K 扩展回归：只缩放文字会使标题固有高度 102 超过固定 52 的标题栏（tv-4k-before.log 失败）。改为将同一 RoomSuperChatPanel 的完整画布连同标题、按钮和点击区域统一缩放，复用列表与历史状态；4K、720p 的标题尺寸及遥控历史/返回回归通过（tv-scale-visual-final.log）。补充检查期间未推送，最终完整门禁按合并后的修正另跑。
+
+
+## 5.4.9 发布
+
+PR #27 合并 37a5f703901022cd7fcb88c0907cd3c84cd4ea68，实际构建与标签提交 a0fad683c0562e5856f0eddeec7f2df2efd030b9，随 [5.4.9](https://github.com/wzgrx/PureLive/releases/tag/v5.4.9) 发布。完整门禁、十包哈希及各端启动核验通过，详见 Y01.20；反馈者 iPad、Sony 电视、真实付费 SC 和各端完整交互未全部覆盖，保留待真机，不据此宣称所有硬件验收。

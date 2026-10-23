@@ -15,3 +15,8 @@ PreferPlatformTile 发现 AppOptionPresenter 后改走已有电视选项框，�
 ## 停在哪
 
 实现与定向回归完成，未发布；真机步骤见 verify.md。推送前必须运行完整门禁，提交后 Apple 原生编译和模拟器启动结果附在 PR 与本机回执；此记录不预先声称通过。未操作正式安装、原始 Claude 目录或用户账号。
+
+
+## 5.4.9 发布
+
+PR #27 合并 37a5f703901022cd7fcb88c0907cd3c84cd4ea68，实际构建与标签提交 a0fad683c0562e5856f0eddeec7f2df2efd030b9，随 [5.4.9](https://github.com/wzgrx/PureLive/releases/tag/v5.4.9) 发布。完整门禁、十包哈希及各端启动核验通过，详见 Y01.20；反馈者 iPad、Sony 电视、真实付费 SC 和各端完整交互未全部覆盖，保留待真机，不据此宣称所有硬件验收。

@@ -4887,14 +4887,15 @@ commit = "479f2c62d70acefc590b538ab601152e7ff4b5ce"
 id = "Y01.20"
 title = "5.4.9 全平台发布（构建号 5113）：多画面静音、TV 首选平台、全屏 SC 与 iPad 控制"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/V02.21"
 stages = ["版本与完整门禁", "十包构建与启动", "K90 冒烟", "合并与公开发布", "更新通道与 issue 收尾"]
-done = 0
+done = 5
 from = "用户：解决问题，发布更新，合并pr，关闭issues"
-note = "5.4.9+5113，PR #27；发布后关闭 #21–#25，保留 #14、#15、#26。反馈者 iPad/Sony 真机验收仍待完成。旧库历史门禁例外不得沿用。"
+note = "5.4.9+5113 已公开，PR #27 合并，十包和 SHA256SUMS 远端哈希一致、匿名下载通过。新库更新文件本次同步；旧库只同步同样两个 JSON，历史门禁失败需本次明确授权，最终回执见 PR #27 和本地 outputs/purelive-5.4.9。反馈者真机仍待验收。"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "Y02.1"
@@ -5129,52 +5130,48 @@ id = "A13.3"
 title = "issue #21：沉浸和全屏静音入口及 M 快捷键"
 type = "功能"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/21"
 note = "现有 MultiviewController.toggleMuteAll 已保留声音焦点与各格音量；multiview_page.dart:382 只处理 Esc，:788 的无工具栏布局只保留退出键。 沿用现有全局静音状态；两个无工具栏模式增加 48×48 静音按钮，按 M 切换，输入框、弹层和系统组合键不拦截；恢复声音不重建会话。"
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "A17.10"
 title = "issue #22：首选直播平台使用遥控器选项对话框"
 type = "功能"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/22"
 note = "settings_editors.dart:183 的 PreferPlatformTile 绕过 AppOptionPresenter，直接打开手机 _PlatformPicker；其 TextField 和 SettingsChoiceRow 不组成电视选项导航。 电视路径通过已有 AppOptionPresenter/showTvChoice 选择可见平台；当前项获焦，方向键到选项、确认保存，返回不改值；手机筛选和图标不变。"
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "A07.26"
 title = "issue #23：全屏活动醒目留言入口和同会话列表"
 type = "功能"
 status = "待真机"
-date = "2026-10-23"
 size = "中"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/23"
 note = "全屏 PlayerView 和 RoomPanelKind 没有醒目留言入口；原 SuperChatList 仅在聊天区打开。控制器已提供活动 superChats 和最多 500 条会话历史。 全屏有活动留言时显示 SC 入口，最后一条过期后入口隐藏；复用同一列表和关闭链，退出全屏也能关闭；提供默认开启的显示开关，不改变 D-044 会话历史范围。"
-commit = "1e8fa03908a7e0cb9d7d93256109b211bce4169e"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "X04.2"
 title = "issue #24、#25：iOS 设备手势通道和常亮恢复"
 type = "原生"
 status = "待真机"
-date = "2026-10-23"
 size = "中"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/24, https://github.com/wzgrx/PureLive/issues/25"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
-commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "W01.4"
@@ -5194,67 +5191,62 @@ id = "V02.21"
 title = "issue #21：[需求] 能不能给多画面的沉浸和全屏模式加个一键静音，或者静音快捷键？"
 type = "验证"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/21"
 note = "现有 MultiviewController.toggleMuteAll 已保留声音焦点与各格音量；multiview_page.dart:382 只处理 Esc，:788 的无工具栏布局只保留退出键。 沿用现有全局静音状态；两个无工具栏模式增加 48×48 静音按钮，按 M 切换，输入框、弹层和系统组合键不拦截；恢复声音不重建会话。"
 to = ["A13.3"]
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "V02.22"
 title = "issue #22：[问题] 电视模式下，首选直播平台无法更改"
 type = "验证"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/22"
 note = "settings_editors.dart:183 的 PreferPlatformTile 绕过 AppOptionPresenter，直接打开手机 _PlatformPicker；其 TextField 和 SettingsChoiceRow 不组成电视选项导航。 电视路径通过已有 AppOptionPresenter/showTvChoice 选择可见平台；当前项获焦，方向键到选项、确认保存，返回不改值；手机筛选和图标不变。"
 to = ["A17.10"]
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "V02.23"
 title = "issue #23：[需求] 全屏观看下增加醒目留言的显示"
 type = "验证"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/23"
 note = "全屏 PlayerView 和 RoomPanelKind 没有醒目留言入口；原 SuperChatList 仅在聊天区打开。控制器已提供活动 superChats 和最多 500 条会话历史。 全屏有活动留言时显示 SC 入口，最后一条过期后入口隐藏；复用同一列表和关闭链，退出全屏也能关闭；提供默认开启的显示开关，不改变 D-044 会话历史范围。"
 to = ["A07.26"]
-commit = "1e8fa03908a7e0cb9d7d93256109b211bce4169e"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "V02.24"
 title = "issue #24：ipad上播放问题无法调节声音和亮度"
 type = "验证"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/24"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
 to = ["X04.2"]
-commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 
 [[task]]
 id = "V02.25"
 title = "issue #25：[问题] ipad播放时屏幕会变暗"
 type = "验证"
 status = "待真机"
-date = "2026-10-23"
 size = "小"
 tier = 1
-branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/25"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
 to = ["X04.2"]
-commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
+date = "2026-10-24"
+commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"

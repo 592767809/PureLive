@@ -6,3 +6,8 @@
 
 
 2026-10-23 补充自查：扩展同一电视回归用例，原候选版无法用方向键聚焦历史开关（tv-history-before.log 失败）。改用已有 TvButton 作为同一 SuperChatList 的开关，仅定制输入组件；列表顶部按上或左右键到历史开关，OK 切换，按下回到滚动，Back 仍先关面板；tv-history-after.log 通过。未扩大历史保留范围。首轮完整门禁主动停止以纳入此修正，最终同提交门禁另跑，不能引用首轮为通过。
+
+
+## 5.4.9 发布
+
+PR #27 合并 37a5f703901022cd7fcb88c0907cd3c84cd4ea68，实际构建与标签提交 a0fad683c0562e5856f0eddeec7f2df2efd030b9，随 [5.4.9](https://github.com/wzgrx/PureLive/releases/tag/v5.4.9) 发布。完整门禁、十包哈希及各端启动核验通过，详见 Y01.20；反馈者 iPad、Sony 电视、真实付费 SC 和各端完整交互未全部覆盖，保留待真机，不据此宣称所有硬件验收。

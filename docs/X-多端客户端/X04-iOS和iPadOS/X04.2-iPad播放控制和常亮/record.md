@@ -18,3 +18,8 @@ iOS 加入 DeviceControls，公开 UIScreen、AVAudioSession、MPVolumeView 原�
 
 
 2026-10-23 原生构建：Apple run 39964303651 在 Swift 编译失败，PlayerDeviceControls.swift 两处把 FlutterPluginRegistrar.viewController 写成函数调用。Xcode 明确将其导入为 UIViewController? 属性；已改为 registrar.viewController 的属性访问，不改通道行为。修正后的原生构建与启动必须重验，旧失败日志保存在本机；推送前完整门禁照常重新执行。
+
+
+## 5.4.9 发布
+
+PR #27 合并 37a5f703901022cd7fcb88c0907cd3c84cd4ea68，实际构建与标签提交 a0fad683c0562e5856f0eddeec7f2df2efd030b9，随 [5.4.9](https://github.com/wzgrx/PureLive/releases/tag/v5.4.9) 发布。完整门禁、十包哈希及各端启动核验通过，详见 Y01.20；反馈者 iPad、Sony 电视、真实付费 SC 和各端完整交互未全部覆盖，保留待真机，不据此宣称所有硬件验收。

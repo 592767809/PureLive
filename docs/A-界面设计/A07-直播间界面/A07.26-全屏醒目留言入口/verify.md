@@ -31,3 +31,8 @@ live_play_room_test.dart、tv_test.dart：新增 3 条，对应改前失败、�
 ![4K](verify/tv-super-chat-4k.png)
 
 ![720p](verify/tv-super-chat-720p.png)
+
+
+## 5.4.9 发布
+
+PR #27 合并 37a5f703901022cd7fcb88c0907cd3c84cd4ea68，实际构建与标签提交 a0fad683c0562e5856f0eddeec7f2df2efd030b9，随 [5.4.9](https://github.com/wzgrx/PureLive/releases/tag/v5.4.9) 发布。完整门禁、十包哈希及各端启动核验通过，详见 Y01.20；反馈者 iPad、Sony 电视、真实付费 SC 和各端完整交互未全部覆盖，保留待真机，不据此宣称所有硬件验收。
