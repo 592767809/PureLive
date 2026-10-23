@@ -29,6 +29,7 @@ class SuperChatList extends StatefulWidget {
     required this.now,
     this.history,
     this.scrollController,
+    this.historyControlBuilder,
     this.platformName = '',
     this.platformHasSuperChats = true,
     super.key,
@@ -42,6 +43,9 @@ class SuperChatList extends StatefulWidget {
 
   /// Optional external scrolling, for example a TV remote's arrow keys.
   final ScrollController? scrollController;
+
+  /// Optional input-specific control; the list still owns history visibility.
+  final Widget Function(bool shown, VoidCallback toggle)? historyControlBuilder;
 
   /// The clock.
   final DateTime Function() now;
@@ -125,12 +129,14 @@ class _SuperChatListState extends State<SuperChatList> {
       children: [
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            key: const ValueKey('super-chat-history-toggle'),
-            onPressed: () => setState(() => _showHistory = !_showHistory),
-            icon: const Icon(AppIcons.watchHistory, size: 18),
-            label: Text(i18n(_showHistory ? 'super_chat_hide_history' : 'super_chat_show_history')),
-          ),
+          child:
+              widget.historyControlBuilder?.call(_showHistory, () => setState(() => _showHistory = !_showHistory)) ??
+              TextButton.icon(
+                key: const ValueKey('super-chat-history-toggle'),
+                onPressed: () => setState(() => _showHistory = !_showHistory),
+                icon: const Icon(AppIcons.watchHistory, size: 18),
+                label: Text(i18n(_showHistory ? 'super_chat_hide_history' : 'super_chat_show_history')),
+              ),
         ),
         Expanded(child: body),
       ],

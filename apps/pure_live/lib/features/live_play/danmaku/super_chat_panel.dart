@@ -15,6 +15,7 @@ class RoomSuperChatPanel extends StatelessWidget {
     required this.onClose,
     this.dragToClose = false,
     this.scrollController,
+    this.historyControlBuilder,
     super.key,
   });
 
@@ -30,6 +31,9 @@ class RoomSuperChatPanel extends StatelessWidget {
   /// Optional external scrolling, used by the TV remote.
   final ScrollController? scrollController;
 
+  /// Optional input-specific control for the list's own history switch.
+  final Widget Function(bool shown, VoidCallback toggle)? historyControlBuilder;
+
   @override
   Widget build(BuildContext context) => RoomSidePanel(
     title: i18n('super_chat'),
@@ -43,6 +47,7 @@ class RoomSuperChatPanel extends StatelessWidget {
         messages: messages.$1,
         history: messages.$2,
         scrollController: scrollController,
+        historyControlBuilder: historyControlBuilder,
         now: controller.now,
         platformName: platformName(controller.site.id, fallback: controller.site.name),
         platformHasSuperChats: controller.site.hasSuperChats,

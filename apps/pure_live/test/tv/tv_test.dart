@@ -225,6 +225,15 @@ void main() {
     await _press(tester, LogicalKeyboardKey.arrowDown);
     expect(room.index, index);
     expect(room.controller!.session, same(session));
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(_focused, 'tv super chat history');
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(find.text('隐藏历史'), findsOneWidget);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(room.index, index);
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(find.text('显示历史'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await _settle(tester);
     expect(find.byKey(const ValueKey('panel-super-chats')), findsNothing);
