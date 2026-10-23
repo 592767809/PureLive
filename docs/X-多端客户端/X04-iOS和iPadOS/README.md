@@ -81,6 +81,6 @@ iPhone 和 iPad 客户端的工程层：`ios/` 运行器、Xcode 工程和权限
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
 | X04.1 | iOS 和 iPadOS 工程和云构建：生成 ios/、权限说明、Keychain 加密，GitHub 构建未签名 IPA 和 TrollStore 包 | 发布 | 完成 | 2026-10-17 | — | [设计或说明](X04.1-苹果平台的构建和签名/README.md)、[任务书](X04.1-苹果平台的构建和签名/brief.md) |
-| X04.2 | issue #24、#25：iOS 设备手势通道和常亮恢复 | 原生 | 待真机 | 2026-10-23 | b9a83362b96577dbe78333074c183f285fc7a107 | [设计或说明](X04.2-iPad播放控制和常亮/README.md)、[任务书](X04.2-iPad播放控制和常亮/brief.md)、[记录](X04.2-iPad播放控制和常亮/record.md)、[真机验证](X04.2-iPad播放控制和常亮/verify.md)、[合并审查](X04.2-iPad播放控制和常亮/review.md) |
+| X04.2 | issue #24、#25：iOS 设备手势通道和常亮恢复 | 原生 | 待真机 | 2026-10-23 | 776ae8d2bffff2c85a2fbf358453bc60d5bd1685 | [设计或说明](X04.2-iPad播放控制和常亮/README.md)、[任务书](X04.2-iPad播放控制和常亮/brief.md)、[记录](X04.2-iPad播放控制和常亮/record.md)、[真机验证](X04.2-iPad播放控制和常亮/verify.md)、[合并审查](X04.2-iPad播放控制和常亮/review.md) |
 
 <!-- docs:生成结束 -->

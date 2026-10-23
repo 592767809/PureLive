@@ -5161,7 +5161,7 @@ tier = 1
 branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/24, https://github.com/wzgrx/PureLive/issues/25"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
 
 [[task]]
 id = "W01.4"
@@ -5230,7 +5230,7 @@ branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/24"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
 to = ["X04.2"]
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
 
 [[task]]
 id = "V02.25"
@@ -5244,4 +5244,4 @@ branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/25"
 note = "background_playback.dart:286 仅 Android 支持 DeviceControls，AppDelegate 未注册设备通道，因此 iPad 不安装亮度/音量拖动处理。screen_wake.dart:23 仅首次持有请求开启，平台异常被吞后和恢复前台时没有补申请；后者是确认的实现缺口，iPad 实际失效仍需真机确认。 补 iOS 亮度/媒体音量原生通道，进入直播间不改音量，退出和后台恢复亮度；屏幕常亮按引用计数申请，恢复前台及受控周期重新确认，离开/暂停/关闭设置释放。不要声称模拟器验证了物理音量或长期防息屏。"
 to = ["X04.2"]
-commit = "b9a83362b96577dbe78333074c183f285fc7a107"
+commit = "776ae8d2bffff2c85a2fbf358453bc60d5bd1685"
