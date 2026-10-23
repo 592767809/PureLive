@@ -27,3 +27,6 @@
 
 
 电视实现同时覆盖 apps/pure_live/lib/tv/room/ 和 apps/pure_live/test/tv/；与主播放器复用同一 SC 列表、同一设置和会话历史，电视方向键只滚动留言，不换台。
+
+
+设置默认值基线范围还包括 packages/live_store/test/settings_defaults_test.dart：新键归入 v4 新增、默认 true，不改 3.x 基线值。

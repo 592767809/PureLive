@@ -21,3 +21,6 @@
 
 
 电视列表文字按 TvScale 的 960×540 画布缩放，历史按钮保留 TV 自身缩放，避免小屏叠乘；Widget 复核见 verify/tv-super-chat-panel.png。完整门禁第二轮发现两个位置布尔参数 lint，改为命名参数；受影响三成员静态检查已通过，最终门禁另跑。
+
+
+完整门禁第三轮仅 packages/live_store test 失败：新增 showFullscreenSuperChat 未登记到 newInV4 默认值表。按既有基线规则登记默认 true，保留完整键集校验，不删除或放宽断言。设置默认值和备份测试已通过；最终完整门禁另跑。
