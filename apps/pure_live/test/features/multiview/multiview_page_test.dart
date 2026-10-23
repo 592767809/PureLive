@@ -26,6 +26,7 @@ import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 
+import '../../qa_capture.dart';
 import '../../support.dart';
 import '../live_play/live_play_support.dart';
 import 'multiview_support.dart';
@@ -106,6 +107,57 @@ void _expectLeftToRight(WidgetTester tester, List<String> keys) {
 }
 
 void main() {
+  testWidgets('issue #21: both bare modes keep a mute button and restore the same audio session', (tester) async {
+    for (final mode in ['immersive', 'fullscreen']) {
+      final (services, _) = await _pump(tester, const Size(1280, 800));
+      await _pick(tester, '1');
+      final session = _cellView(tester, 1).cell.session;
+      final volume = _cellView(tester, 1).cell.volume;
+      expect(_cellView(tester, 1).audible, isTrue);
+      await tester.tap(_key('multiview-$mode'));
+      await _wait(tester);
+      final mute = _key('multiview-bare-mute-all');
+      expect(mute, findsOneWidget);
+      await captureQaFrame(tester, 'multiview-$mode-audible');
+      expect(tester.getSize(mute), const Size.square(48));
+      expect(tester.getRect(mute).overlaps(tester.getRect(_key('multiview-$mode-exit'))), isFalse);
+      await tester.tap(mute);
+      await _wait(tester);
+      expect(_cellView(tester, 1).audible, isFalse);
+      expect(session!.state.volume, 0);
+      await captureQaFrame(tester, 'multiview-$mode-muted');
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+      await _wait(tester);
+      expect(_cellView(tester, 1).audible, isTrue);
+      expect(_cellView(tester, 1).cell.session, same(session));
+      expect(session.state.volume, volume);
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue #21: M toggles once while editing and system combinations keep their keys', (tester) async {
+    final (services, _) = await _pump(tester, const Size(1280, 800));
+    await _pick(tester, '1');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyM);
+    await _wait(tester);
+    expect(_cellView(tester, 1).audible, isFalse);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await _wait(tester);
+    expect(_cellView(tester, 1).audible, isFalse);
+    await tester.tap(_key('multiview-picker-search'));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.enterText(_key('multiview-picker-search'), 'm');
+    await _wait(tester);
+    expect(_cellView(tester, 1).audible, isFalse, reason: 'typing in the room filter must not change sound');
+    await _close(tester, services);
+  });
+
   late List<String> toasts;
   setUp(() {
     toasts = [];

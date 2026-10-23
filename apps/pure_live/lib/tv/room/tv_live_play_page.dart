@@ -11,6 +11,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/music_player.dart';
 import 'package:pure_live/app/network.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/live_play/player/player_view.dart' show videoFits;
@@ -23,6 +24,7 @@ import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/room/tv_room_settings_panel.dart';
+import 'package:pure_live/tv/room/tv_super_chat_panel.dart';
 import 'package:pure_live/tv/tv_navigation.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/wallpaper/tv_wallpaper_layer.dart';
@@ -76,6 +78,7 @@ class TvLivePlayPage extends ConsumerStatefulWidget {
 class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   final FocusNode _keys = FocusNode(debugLabel: 'tv room keys');
   final FocusNode _firstControl = FocusNode(debugLabel: 'tv room first control');
+  final FocusNode _superChatFocus = FocusNode(debugLabel: 'tv room super chats');
   List<LiveRoom> _playlist = const [];
   int _index = 0;
   LiveRoomController? _controller;
@@ -87,6 +90,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
 
   /// The play settings on the right (A17.4 c3, c7).
   bool _settings = false;
+  bool _superChatPanel = false;
   bool _banner = false;
   Timer? _hideControls;
   Timer? _hideBanner;
@@ -183,6 +187,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _closeRoom();
     _keys.dispose();
     _firstControl.dispose();
+    _superChatFocus.dispose();
     TvWallpaperVideo.release();
     super.dispose();
   }
@@ -193,6 +198,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     setState(() {
       _controls = true;
       _panel = false;
+      _superChatPanel = false;
     });
     _touch();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -214,6 +220,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       _controls = false;
       _panel = false;
       _settings = false;
+      _superChatPanel = false;
     });
     _keys.requestFocus();
   }
@@ -223,6 +230,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     setState(() {
       _panel = true;
       _settings = false;
+      _superChatPanel = false;
       _controls = false;
     });
   }
@@ -232,6 +240,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     setState(() {
       _settings = true;
       _panel = false;
+      _superChatPanel = false;
       _controls = false;
     });
   }
@@ -259,6 +268,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       _index = index;
       _open(_playlist[index]);
       _panel = false;
+      _superChatPanel = false;
       _banner = true;
     });
     _hideBanner?.cancel();
@@ -290,7 +300,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       return KeyEventResult.ignored;
     }
     // The settings walk by focus; Back closes them.
-    if (_settings) return KeyEventResult.ignored;
+    if (_settings || _superChatPanel) return KeyEventResult.ignored;
     final up = key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.channelUp;
     final down = key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.channelDown;
     if (up || down) {
@@ -328,6 +338,19 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  void _showSuperChats() {
+    _hideControls?.cancel();
+    setState(() {
+      _superChatPanel = true;
+      _controls = false;
+      _settings = false;
+      _panel = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _superChatPanel) _superChatFocus.requestFocus();
+    });
   }
 
   Future<void> _pickQuality() async {
@@ -387,7 +410,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     // Back closes the list or the controls first, then leaves (the room
     // shown is already in `TvRoomArgs.shown` for the page below).
     return PopScope<Object?>(
-      canPop: !_panel && !_settings && !_controls,
+      canPop: !_panel && !_settings && !_controls && !_superChatPanel,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _hide();
       },
@@ -412,7 +435,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                       key: const ValueKey('tv-room-touch-surface'),
                       behavior: HitTestBehavior.opaque,
                       onTap: () {
-                        if (_blocked || _panel || _settings) return;
+                        if (_blocked || _panel || _settings || _superChatPanel) return;
                         if (_controls) {
                           _hide();
                         } else {
@@ -430,7 +453,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                             TvRoomStatus(controller: controller, playback: snapshot.data ?? controller.session.state),
                       ),
                     ),
-                    if (_banner && !_controls && !_panel && !_settings)
+                    if (_banner && !_controls && !_panel && !_settings && !_superChatPanel)
                       Positioned(
                         left: 0,
                         top: 0,
@@ -471,6 +494,11 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                                 unawaited(controller.load());
                               },
                               onList: _openPanel,
+                              onSuperChat:
+                                  watchSetting(ref, Settings.showFullscreenSuperChat) &&
+                                      controller.superChats.isNotEmpty
+                                  ? _showSuperChats
+                                  : null,
                               firstButton: _firstControl,
                             ),
                           ),
@@ -482,6 +510,14 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                         left: 0,
                         bottom: 0,
                         child: TvRoomList(rooms: _playlist, current: _index, onPick: switchTo),
+                      ),
+                    if (_superChatPanel)
+                      Positioned(
+                        top: 0,
+                        right: 0,
+                        bottom: 0,
+                        width: TvScale.of(context).px(roomSidePanelWidth),
+                        child: TvSuperChatPanel(controller: controller, focusNode: _superChatFocus, onClose: _hide),
                       ),
                     if (_settings)
                       Positioned(

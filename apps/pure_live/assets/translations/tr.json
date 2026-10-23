@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Geçerli odadaki ücretli mesajlar burada görünür.",
     "super_chat_empty_title": "Henüz Super Chat yok",
     "super_chat_ended": "Sona erdi",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Geçmişi gizle",
     "super_chat_history_available": "Bu oda oturumunda alınan Super Chat mesajları hâlâ kullanılabilir. Görmek için “Geçmişi göster”i seçin.",
     "super_chat_include_membership": "Super Chat’lerde üyelikler",

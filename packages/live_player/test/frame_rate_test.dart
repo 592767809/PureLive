@@ -99,6 +99,63 @@ void main() {
       child: LiveVideoView(session: session, keepScreenOn: keepOn),
     );
 
+    testWidgets('issue #25: a playing view restores a screen lock released outside the app', (tester) async {
+      var nativeAwake = false;
+      ScreenWake.apply = ({required enabled}) async => nativeAwake = enabled;
+      final session = await playing(tester);
+      await tester.pumpWidget(view(session, keepOn: true));
+      expect(nativeAwake, isTrue);
+      nativeAwake = false;
+      await tester.pump(const Duration(seconds: 16));
+      expect(nativeAwake, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      expect(nativeAwake, isFalse);
+      await session.dispose();
+    });
+
+    testWidgets('issue #25: a failed native request is retried and resume restores a lost lock', (tester) async {
+      var nativeAwake = false;
+      var failOnce = true;
+      ScreenWake.apply = ({required enabled}) async {
+        if (enabled && failOnce) {
+          failOnce = false;
+          throw StateError('temporary native control failure');
+        }
+        nativeAwake = enabled;
+      };
+      final session = await playing(tester);
+      await tester.pumpWidget(view(session, keepOn: true));
+      expect(nativeAwake, isFalse);
+      await tester.pump(const Duration(seconds: 16));
+      expect(nativeAwake, isTrue);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      nativeAwake = false;
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(nativeAwake, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await session.dispose();
+    });
+
+    testWidgets('issue #25: a delayed enable cannot outlive the final view release', (tester) async {
+      final enabling = Completer<void>();
+      var nativeAwake = false;
+      ScreenWake.apply = ({required enabled}) async {
+        if (enabled) await enabling.future;
+        nativeAwake = enabled;
+      };
+      final session = await playing(tester);
+      await tester.pumpWidget(view(session, keepOn: true));
+      await tester.pumpWidget(const SizedBox.shrink());
+      enabling.complete();
+      await tester.pump();
+      expect(nativeAwake, isFalse);
+      await session.dispose();
+    });
+
     testWidgets('off: never asked; on: asked at once, released when the view goes', (tester) async {
       final session = await playing(tester);
       await tester.pumpWidget(view(session, keepOn: false));

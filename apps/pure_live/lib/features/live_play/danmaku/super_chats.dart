@@ -28,6 +28,7 @@ class SuperChatList extends StatefulWidget {
     required this.messages,
     required this.now,
     this.history,
+    this.scrollController,
     this.platformName = '',
     this.platformHasSuperChats = true,
     super.key,
@@ -38,6 +39,9 @@ class SuperChatList extends StatefulWidget {
 
   /// Session history, including expired cards; null hides the history control.
   final List<LiveSuperChatMessage>? history;
+
+  /// Optional external scrolling, for example a TV remote's arrow keys.
+  final ScrollController? scrollController;
 
   /// The clock.
   final DateTime Function() now;
@@ -103,6 +107,7 @@ class _SuperChatListState extends State<SuperChatList> {
     } else {
       body = ListView.builder(
         key: const ValueKey('live-play-super-chats'),
+        controller: widget.scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: messages.length,
         // c5 (E2): the newest on top.

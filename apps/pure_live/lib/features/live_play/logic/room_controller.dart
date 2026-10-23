@@ -426,6 +426,15 @@ class LiveRoomController extends ChangeNotifier {
     debugPrint(line);
   }
 
+  void _logSiteFailure(String phase, Object error) {
+    final kind = error is SiteError ? error.kind : error.runtimeType.toString();
+    final line =
+        'playback-failure site=${site.id} room=${roomTag(_room.platform, _room.roomId)} phase=$phase kind=$kind';
+    // Only stable types and a room hash: never the exception detail,
+    // request headers, URLs, cookies or account identifiers.
+    AppLog.instance.warning('playback', line);
+  }
+
   /// A short tag of a room for the timing line (no room number in the log):
   /// the first six hex digits of the 32-bit FNV-1a hash of
   /// `platform:roomId`.
@@ -546,6 +555,7 @@ class LiveRoomController extends ChangeNotifier {
       fetched = await site.getRoomDetail(roomId: requested.roomId);
     } on Object catch (error, stackTrace) {
       if (!_current(epoch)) return;
+      _logSiteFailure('detail', error);
       developer.log('Room detail failed', name: 'LivePlay', error: error, stackTrace: stackTrace);
       // The stored identity and names stay; the state becomes pending
       // (M4 notes: a failed request is no evidence the broadcast ended).
@@ -622,13 +632,16 @@ class LiveRoomController extends ChangeNotifier {
       found = _normalizeQualities(await scope.discover(site, _room));
     } on Object catch (error) {
       if (!_current(epoch)) return;
+      _logSiteFailure('qualities', error);
       _unplayable(error);
       return;
     }
     if (!_current(epoch)) return;
     _startup?.markQualities();
     if (found.isEmpty) {
-      _unplayable(StreamUnavailable(site.id, 'no qualities'));
+      final error = StreamUnavailable(site.id, 'no qualities');
+      _logSiteFailure('qualities', error);
+      _unplayable(error);
       return;
     }
     final kept = previous == null ? -1 : found.indexWhere((q) => q.selectionId == previous.selectionId);
@@ -675,6 +688,7 @@ class LiveRoomController extends ChangeNotifier {
           : await site.resolvePlayUrls(detail: _room, quality: requested);
     } on Object catch (error) {
       if (!_current(epoch)) return false;
+      _logSiteFailure('urls', error);
       if (userChoice && _stage == RoomStage.playing) {
         toast?.call(failureText(error));
         return false;
@@ -685,11 +699,13 @@ class LiveRoomController extends ChangeNotifier {
     if (!_current(epoch)) return false;
     if (!userChoice) _startup?.markUrls();
     if (!resolution.hasSources) {
+      final error = StreamUnavailable(site.id, 'no urls');
+      _logSiteFailure('urls', error);
       if (userChoice && _stage == RoomStage.playing) {
         toast?.call(i18n('cannot_read_play_url'));
         return false;
       }
-      _unplayable(StreamUnavailable(site.id, 'no urls'));
+      _unplayable(error);
       return false;
     }
     // A LAN source (a home IPTV server) needs Android 17's local-network

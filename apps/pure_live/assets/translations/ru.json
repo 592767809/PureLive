@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Здесь появятся платные сообщения текущей комнаты.",
     "super_chat_empty_title": "Суперчатов пока нет",
     "super_chat_ended": "Завершено",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Скрыть историю",
     "super_chat_history_available": "Суперчаты, полученные за этот сеанс в комнате, по-прежнему доступны. Выберите «Показать историю», чтобы просмотреть их.",
     "super_chat_include_membership": "Спонсорства в суперчатах",

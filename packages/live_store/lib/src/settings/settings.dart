@@ -653,6 +653,9 @@ abstract final class Settings {
   /// [showChatGifts].
   static const danmakuShowGifts = BoolSetting('danmakuShowGifts', section: 'danmaku', defaultValue: false);
 
+  /// Shows an entry over fullscreen video while a super chat is active.
+  static const showFullscreenSuperChat = BoolSetting('showFullscreenSuperChat', section: 'danmaku', defaultValue: true);
+
   /// New (docs/D-弹幕/D07-礼物和付费消息/D07.2-醒目留言平台表和价格单位; 3.x had no
   /// memberships): a membership or subscription the platform reports
   /// (Bilibili's guards, YouTube's memberships, Twitch's, CHZZK's, Kick's
@@ -2028,6 +2031,7 @@ abstract final class Settings {
     giftValueInYuan,
     danmakuShowGifts,
     superChatIncludesMembership,
+    showFullscreenSuperChat,
     showChatNames,
     danmakuPausedBehavior,
     danmakuFps,

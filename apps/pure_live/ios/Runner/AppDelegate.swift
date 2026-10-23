@@ -11,6 +11,7 @@ import UIKit
   private var keyCommandsChannel: FlutterMethodChannel?
   /// A room is on top: its ⌘R is offered.
   private var roomOpen = false
+  private var deviceControls: PlayerDeviceControls?
 
   override func application(
     _ application: UIApplication,
@@ -21,6 +22,12 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PureLiveDeviceControls") {
+      let controls = PlayerDeviceControls(registrar: registrar)
+      deviceControls = controls
+      FlutterMethodChannel(name: "pure_live/device_controls", binaryMessenger: registrar.messenger())
+        .setMethodCallHandler(controls.handle)
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PureLiveSecretCipher") {
       FlutterMethodChannel(name: "pure_live/secret_cipher", binaryMessenger: registrar.messenger())
         .setMethodCallHandler(SecretCipher.shared.handle)

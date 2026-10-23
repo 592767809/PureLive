@@ -206,15 +206,25 @@ class PreferPlatformTile extends ConsumerWidget {
       valueWidget: PlatformLogo(current, size: 24),
       value: name(current),
       onTap: () async {
-        final picked = await showAppDialog<String>(
-          context: context,
-          builder: (context) => _PlatformPicker(
-            title: entry.titleText,
-            ids: choices,
-            names: {for (final id in choices) id: name(id)},
-            selected: current,
-          ),
-        );
+        final picked = AppOptionPresenter.maybeOf(context) != null
+            ? await showAppOptionDialog<String>(
+                context: context,
+                title: entry.titleText,
+                selected: current,
+                options: [
+                  for (final id in choices)
+                    AppDialogOption(value: id, label: name(id), key: ValueKey('settings-platform-$id')),
+                ],
+              )
+            : await showAppDialog<String>(
+                context: context,
+                builder: (context) => _PlatformPicker(
+                  title: entry.titleText,
+                  ids: choices,
+                  names: {for (final id in choices) id: name(id)},
+                  selected: current,
+                ),
+              );
         if (picked != null && context.mounted) writeSetting(ref, Settings.preferPlatform, picked);
       },
     );

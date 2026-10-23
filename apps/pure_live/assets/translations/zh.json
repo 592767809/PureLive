@@ -2666,6 +2666,8 @@
     "super_chat_empty_subtitle": "当前直播间的付费留言会显示在这里。",
     "super_chat_empty_title": "暂无醒目留言",
     "super_chat_ended": "已结束",
+    "super_chat_fullscreen_entry": "全屏醒目留言入口",
+    "super_chat_fullscreen_entry_desc": "有未过期的醒目留言时，在全屏画面显示查看按钮",
     "super_chat_hide_history": "隐藏历史",
     "super_chat_history_available": "本次进入直播间后收到的醒目留言仍在，可点击“显示历史”查看。",
     "super_chat_include_membership": "上舰和开会员进醒目留言",

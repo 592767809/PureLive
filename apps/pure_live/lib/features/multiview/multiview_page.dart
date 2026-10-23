@@ -380,9 +380,20 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   }
 
   bool _onKey(KeyEvent event) {
-    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.escape) return false;
+    if (event is! KeyDownEvent) return false;
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return false;
-    return _stepBack();
+    if (event.logicalKey == LogicalKeyboardKey.escape) return _stepBack();
+    if (event.logicalKey != LogicalKeyboardKey.keyM || _overlay != _Overlay.none) return false;
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed || keyboard.isShiftPressed) {
+      return false;
+    }
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused?.widget is EditableText || focused?.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return false;
+    }
+    _controller.toggleMuteAll();
+    return true;
   }
 
   /// The screen was sideways when the fullscreen began (a tablet held so):
@@ -786,14 +797,16 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   }
 
   /// Immersive (the status bar stays) and fullscreen (no system bars): the
-  /// cells alone on black, the same exit button in the top-left corner
+  /// cells alone on black, the exit and mute buttons in the top-left corner
   /// (c12), and a panel on the right (landscape) or at the bottom (portrait)
   /// for a long-pressed cell, the picker or the danmaku settings (c13).
   Widget _bare(BuildContext context, Size size) {
     final fullscreen = _mode == _DisplayMode.fullscreen;
     final padding = MediaQuery.paddingOf(context);
-    // The exit button; the cells' marks keep clear of it (c12, 拿不准 2).
+    // Keep the corner marks clear of both controls.
     final exit = Rect.fromLTWH(padding.left + 12, padding.top + 12, kMinInteractiveDimension, kMinInteractiveDimension);
+    final mute = exit.shift(Offset(exit.width + 8, 0));
+    final controls = exit.expandToInclude(mute);
     final wall = fullscreen
         ? MediaQuery.removePadding(
             context: context,
@@ -801,9 +814,9 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
             removeBottom: true,
             removeLeft: true,
             removeRight: true,
-            child: _wall(avoid: exit),
+            child: _wall(avoid: controls),
           )
-        : SafeArea(child: _wall(avoid: exit.shift(Offset(-padding.left, -padding.top))));
+        : SafeArea(child: _wall(avoid: controls.shift(Offset(-padding.left, -padding.top))));
     return Scaffold(
       backgroundColor: OnVideoColors.ground,
       body: Stack(
@@ -816,6 +829,19 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
               icon: fullscreen ? AppIcons.gridExitFullscreen : AppIcons.exitImmersive,
               tooltip: i18n(fullscreen ? 'multiview_fullscreen_exit' : 'multiview_immersive_exit'),
               onTap: () => unawaited(_setMode(_DisplayMode.normal)),
+            ),
+          ),
+          Positioned.fromRect(
+            rect: mute,
+            child: Semantics(
+              button: true,
+              toggled: _controller.allMuted,
+              child: _ExitButton(
+                key: const ValueKey('multiview-bare-mute-all'),
+                icon: _controller.allMuted ? AppIcons.mutedAll : AppIcons.muteAll,
+                tooltip: i18n(_controller.allMuted ? 'multiview_unmute_all' : 'multiview_mute_all'),
+                onTap: _controller.toggleMuteAll,
+              ),
             ),
           ),
           if (_overlay != _Overlay.none) _overlayPanel(size),

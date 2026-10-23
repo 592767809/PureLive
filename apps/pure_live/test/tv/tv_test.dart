@@ -28,6 +28,7 @@ import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
 
 import '../features/live_play/live_play_support.dart';
+import '../qa_capture.dart';
 import '../support.dart';
 
 /// A platform with [count] recommended rooms that all play.
@@ -176,6 +177,61 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('issue #23: the TV remote opens active super chats and scroll keys never change channel', (tester) async {
+    final services = await _pumpApp(tester);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    final room = tester.state<TvLivePlayPageState>(find.byType(TvLivePlayPage));
+    final session = room.controller!.session;
+    final now = DateTime.now();
+    (room.controller!.danmaku as FakeDanmaku).emit(
+      DanmakuReceived(
+        LiveMessage(
+          type: LiveMessageType.superChat,
+          userName: '观众',
+          message: '电视也能查看',
+          color: LiveMessageColor.white,
+          data: LiveSuperChatMessage(
+            userName: '观众',
+            face: '',
+            message: '电视也能查看',
+            price: 30,
+            startTime: now,
+            endTime: now.add(const Duration(minutes: 5)),
+            backgroundColor: '#EDF5FF',
+            backgroundBottomColor: '#2A60B2',
+          ),
+        ),
+      ),
+    );
+    await _settle(tester);
+    await _press(tester, LogicalKeyboardKey.select);
+    final entry = find.byKey(const ValueKey('tv-room-super-chat'));
+    expect(entry, findsOneWidget);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    final focused = FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvButton>();
+    expect(focused?.key, const ValueKey('tv-room-super-chat'));
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('panel-super-chats')), findsOneWidget);
+    expect(find.text('电视也能查看'), findsOneWidget);
+    await captureQaFrame(tester, 'tv-super-chat-panel');
+    final index = room.index;
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(room.index, index);
+    expect(room.controller!.session, same(session));
+    await tester.binding.handlePopRoute();
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('panel-super-chats')), findsNothing);
+    expect(find.byType(TvLivePlayPage), findsOneWidget);
+    await _close(tester, services);
+  });
+
   setUp(_toasts.clear);
 
   test('interface mode: auto follows the device, phone and tv are fixed; rules of the grid', () {

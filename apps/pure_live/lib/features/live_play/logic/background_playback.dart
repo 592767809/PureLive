@@ -276,14 +276,16 @@ abstract final class PictureInPicture {
 }
 
 /// The phone's media volume and the window's brightness
-/// (`pure_live/device_controls` in `MainActivity`; 3.x used the
+/// (`pure_live/device_controls` on Android and iOS; 3.x used the
 /// volume_controller and screen_brightness plugins). Null where there is
 /// no such control (desktop, tests).
 abstract final class DeviceControls {
   static const MethodChannel _channel = MethodChannel('pure_live/device_controls');
 
   /// Whether the controls exist on this platform.
-  static bool get available => debugAvailable ?? (!kIsWeb && Platform.isAndroid);
+  static bool get available =>
+      debugAvailable ??
+      (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS));
 
   /// Replaces [available] (tests answer the channel themselves).
   @visibleForTesting

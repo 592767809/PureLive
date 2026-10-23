@@ -171,6 +171,7 @@ class TvRoomControls extends StatelessWidget {
     required this.onFollow,
     required this.onRefresh,
     required this.onList,
+    this.onSuperChat,
     this.firstButton,
     super.key,
   });
@@ -205,6 +206,9 @@ class TvRoomControls extends StatelessWidget {
 
   /// Opens the room list.
   final VoidCallback onList;
+
+  /// Opens active super chats; null when there are none or the entry is off.
+  final VoidCallback? onSuperChat;
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +295,16 @@ class TvRoomControls extends StatelessWidget {
                     onTap: onDanmaku,
                   ),
                 ),
+                if (onSuperChat != null)
+                  _gap(
+                    scale,
+                    TvButton(
+                      key: const ValueKey('tv-room-super-chat'),
+                      icon: AppIcons.superChatMark,
+                      label: i18n('super_chat'),
+                      onTap: onSuperChat,
+                    ),
+                  ),
                 _gap(
                   scale,
                   TvButton(

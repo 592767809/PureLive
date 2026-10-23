@@ -15,6 +15,9 @@ enum RoomPanelKind {
   /// The danmaku settings (the picture's settings button).
   danmaku,
 
+  /// Active super chats and the same room session's optional history.
+  superChat,
+
   /// The IPTV programme guide in landscape fullscreen (docs/A-界面设计/A07-直播间界面/A07.7-直播间的状态
   /// c16: under the picture in portrait, in the right column on wide
   /// windows, here on the right).
