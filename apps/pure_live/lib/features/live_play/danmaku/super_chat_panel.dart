@@ -32,7 +32,7 @@ class RoomSuperChatPanel extends StatelessWidget {
   final ScrollController? scrollController;
 
   /// Optional input-specific control for the list's own history switch.
-  final Widget Function(bool shown, VoidCallback toggle)? historyControlBuilder;
+  final Widget Function({required bool shown, required VoidCallback toggle})? historyControlBuilder;
 
   @override
   Widget build(BuildContext context) => RoomSidePanel(

@@ -60,26 +60,32 @@ class _TvSuperChatPanelState extends State<TvSuperChatPanel> {
   }
 
   @override
-  Widget build(BuildContext context) => MediaQuery(
-    data: MediaQuery.of(context)
-        .copyWith(textScaler: TextScaler.linear(MediaQuery.textScalerOf(context).scale(1) * TvScale.of(context).unit)),
-    child: Focus(
-      focusNode: widget.focusNode,
-      autofocus: true,
-      onKeyEvent: _key,
-      child: RoomSuperChatPanel(
-        key: const ValueKey('panel-super-chats'),
-        controller: widget.controller,
-        scrollController: _scroll,
-        historyControlBuilder: (shown, toggle) => TvButton(
-          key: const ValueKey('super-chat-history-toggle'),
-          focusNode: _history,
-          label: i18n(shown ? 'super_chat_hide_history' : 'super_chat_show_history'),
-          icon: AppIcons.watchHistory,
-          onTap: toggle,
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    return MediaQuery(
+      // Shared phone text uses the TV's 960 x 540 canvas, like TvScale.px.
+      data: media.copyWith(textScaler: TextScaler.linear(media.textScaler.scale(1) * TvScale.of(context).unit * 2)),
+      child: Focus(
+        focusNode: widget.focusNode,
+        autofocus: true,
+        onKeyEvent: _key,
+        child: RoomSuperChatPanel(
+          key: const ValueKey('panel-super-chats'),
+          controller: widget.controller,
+          scrollController: _scroll,
+          historyControlBuilder: ({required shown, required toggle}) => MediaQuery(
+            data: media,
+            child: TvButton(
+              key: const ValueKey('super-chat-history-toggle'),
+              focusNode: _history,
+              label: i18n(shown ? 'super_chat_hide_history' : 'super_chat_show_history'),
+              icon: AppIcons.watchHistory,
+              onTap: toggle,
+            ),
+          ),
+          onClose: widget.onClose,
         ),
-        onClose: widget.onClose,
       ),
-    ),
-  );
+    );
+  }
 }

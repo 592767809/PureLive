@@ -45,7 +45,7 @@ class SuperChatList extends StatefulWidget {
   final ScrollController? scrollController;
 
   /// Optional input-specific control; the list still owns history visibility.
-  final Widget Function(bool shown, VoidCallback toggle)? historyControlBuilder;
+  final Widget Function({required bool shown, required VoidCallback toggle})? historyControlBuilder;
 
   /// The clock.
   final DateTime Function() now;
@@ -130,7 +130,10 @@ class _SuperChatListState extends State<SuperChatList> {
         Align(
           alignment: Alignment.centerRight,
           child:
-              widget.historyControlBuilder?.call(_showHistory, () => setState(() => _showHistory = !_showHistory)) ??
+              widget.historyControlBuilder?.call(
+                shown: _showHistory,
+                toggle: () => setState(() => _showHistory = !_showHistory),
+              ) ??
               TextButton.icon(
                 key: const ValueKey('super-chat-history-toggle'),
                 onPressed: () => setState(() => _showHistory = !_showHistory),
