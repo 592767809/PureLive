@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -221,6 +222,17 @@ void main() {
     expect(find.byKey(const ValueKey('panel-super-chats')), findsOneWidget);
     expect(find.text('电视也能查看'), findsOneWidget);
     await captureQaFrame(tester, 'tv-super-chat-panel');
+    for (final size in [const Size(3840, 2160), const Size(1280, 720)]) {
+      tester.view.physicalSize = size;
+      await tester.pump(const Duration(seconds: 1));
+      final heading = tester.renderObject<RenderParagraph>(find.byKey(const ValueKey('room-panel-title')));
+      expect(
+        heading.getMinIntrinsicHeight(heading.size.width),
+        lessThanOrEqualTo(heading.size.height + 0.1),
+        reason: 'the title must fit inside the panel header at $size',
+      );
+      await captureQaFrame(tester, size.width == 3840 ? 'tv-super-chat-4k' : 'tv-super-chat-720p');
+    }
     final index = room.index;
     await _press(tester, LogicalKeyboardKey.arrowDown);
     expect(room.index, index);

@@ -24,3 +24,6 @@
 
 
 完整门禁第三轮仅 packages/live_store test 失败：新增 showFullscreenSuperChat 未登记到 newInV4 默认值表。按既有基线规则登记默认 true，保留完整键集校验，不删除或放宽断言。设置默认值和备份测试已通过；最终完整门禁另跑。
+
+
+4K 扩展回归：只缩放文字会使标题固有高度 102 超过固定 52 的标题栏（tv-4k-before.log 失败）。改为将同一 RoomSuperChatPanel 的完整画布连同标题、按钮和点击区域统一缩放，复用列表与历史状态；4K、720p 的标题尺寸及遥控历史/返回回归通过（tv-scale-visual-final.log）。补充检查期间未推送，最终完整门禁按合并后的修正另跑。
