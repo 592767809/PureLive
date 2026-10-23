@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Bezahlte Nachrichten aus dem aktuellen Raum erscheinen hier.",
     "super_chat_empty_title": "Noch keine Super Chats",
     "super_chat_ended": "Beendet",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Verlauf ausblenden",
     "super_chat_history_available": "Die in dieser Raumsitzung empfangenen Super Chats sind weiterhin verfügbar. Wähle „Verlauf anzeigen“, um sie anzusehen.",
     "super_chat_include_membership": "Mitgliedschaften in Super Chats",

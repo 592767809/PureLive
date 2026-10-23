@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Qui compariranno i messaggi a pagamento della stanza attuale.",
     "super_chat_empty_title": "Ancora nessun Super Chat",
     "super_chat_ended": "Terminato",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Nascondi cronologia",
     "super_chat_history_available": "I Super Chat ricevuti in questa sessione della stanza sono ancora disponibili. Seleziona “Mostra cronologia” per consultarli.",
     "super_chat_include_membership": "Abbonamenti membro nei Super Chat",

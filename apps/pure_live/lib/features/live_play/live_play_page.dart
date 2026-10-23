@@ -21,6 +21,7 @@ import 'package:pure_live/features/live_play/danmaku/chat_list.dart';
 import 'package:pure_live/features/live_play/danmaku/chat_panel.dart';
 import 'package:pure_live/features/live_play/danmaku/danmaku_settings_panel.dart';
 import 'package:pure_live/features/live_play/danmaku/message_panel.dart';
+import 'package:pure_live/features/live_play/danmaku/super_chat_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/iptv_guide.dart';
 import 'package:pure_live/features/live_play/dialogs/room_dialogs.dart';
 import 'package:pure_live/features/live_play/dialogs/stream_dialogs.dart';
@@ -979,6 +980,12 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     ),
     RoomPanelKind.danmaku => RoomDanmakuSettingsPanel(
       key: const ValueKey('panel-danmaku'),
+      controller: controller,
+      onClose: _panels.close,
+      dragToClose: portrait,
+    ),
+    RoomPanelKind.superChat => RoomSuperChatPanel(
+      key: const ValueKey('panel-super-chats'),
       controller: controller,
       onClose: _panels.close,
       dragToClose: portrait,

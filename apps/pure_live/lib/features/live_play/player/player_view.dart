@@ -10,6 +10,7 @@ import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/live_play/buttons/fullscreen_super_chat_button.dart';
 import 'package:pure_live/features/live_play/danmaku/message_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/player_dialogs.dart';
 import 'package:pure_live/features/live_play/layout/room_panel.dart';
@@ -870,6 +871,12 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
           child: CatchupBadge(controller: _room, onOpenGuide: widget.onOpenGuide),
         ),
         // F.1d: "显示识别状态" (3.x: 12 from the left, 62 from the top).
+        if (!_inline && !pip && !_locked)
+          Positioned(
+            right: 12 + padding.right,
+            top: badgeTop,
+            child: FullscreenSuperChatButton(controller: _room),
+          ),
         if (diagnostics)
           Positioned(
             left: 12 + (_inline ? 0 : padding.left),

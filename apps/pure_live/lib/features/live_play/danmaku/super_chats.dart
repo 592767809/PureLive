@@ -28,6 +28,8 @@ class SuperChatList extends StatefulWidget {
     required this.messages,
     required this.now,
     this.history,
+    this.scrollController,
+    this.historyControlBuilder,
     this.platformName = '',
     this.platformHasSuperChats = true,
     super.key,
@@ -38,6 +40,12 @@ class SuperChatList extends StatefulWidget {
 
   /// Session history, including expired cards; null hides the history control.
   final List<LiveSuperChatMessage>? history;
+
+  /// Optional external scrolling, for example a TV remote's arrow keys.
+  final ScrollController? scrollController;
+
+  /// Optional input-specific control; the list still owns history visibility.
+  final Widget Function({required bool shown, required VoidCallback toggle})? historyControlBuilder;
 
   /// The clock.
   final DateTime Function() now;
@@ -103,6 +111,7 @@ class _SuperChatListState extends State<SuperChatList> {
     } else {
       body = ListView.builder(
         key: const ValueKey('live-play-super-chats'),
+        controller: widget.scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         itemCount: messages.length,
         // c5 (E2): the newest on top.
@@ -120,12 +129,17 @@ class _SuperChatListState extends State<SuperChatList> {
       children: [
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            key: const ValueKey('super-chat-history-toggle'),
-            onPressed: () => setState(() => _showHistory = !_showHistory),
-            icon: const Icon(AppIcons.watchHistory, size: 18),
-            label: Text(i18n(_showHistory ? 'super_chat_hide_history' : 'super_chat_show_history')),
-          ),
+          child:
+              widget.historyControlBuilder?.call(
+                shown: _showHistory,
+                toggle: () => setState(() => _showHistory = !_showHistory),
+              ) ??
+              TextButton.icon(
+                key: const ValueKey('super-chat-history-toggle'),
+                onPressed: () => setState(() => _showHistory = !_showHistory),
+                icon: const Icon(AppIcons.watchHistory, size: 18),
+                label: Text(i18n(_showHistory ? 'super_chat_hide_history' : 'super_chat_show_history')),
+              ),
         ),
         Expanded(child: body),
       ],

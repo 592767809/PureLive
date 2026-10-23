@@ -300,6 +300,7 @@ const Map<String, Object> newInV4 = {
   'chatGiftsAboveTier': false, // A08.12 (every gift, as before; D-040)
   'giftValueInYuan': false, // A08.12 (the platform's units, as before)
   'danmakuShowGifts': false, // A08.12 (no gift flies, as before)
+  'showFullscreenSuperChat': true, // A07.26: active-only fullscreen entry, on by default
   'superChatIncludesMembership': true, // D07.2: on, the exception D-040 names
   'danmakuPausedBehavior': 'pause', // A07.10
   'danmakuMaxVisibleCount': 48, // D05.2 (V01.4; 3.x's fixed 48)

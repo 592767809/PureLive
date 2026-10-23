@@ -20,6 +20,31 @@ import 'live_play_support.dart';
 
 const _bilibili = '../../fixtures/bilibili';
 
+final class _PhaseFailureSite extends FakeSite {
+  new(this.phase) : super(liveRoom());
+
+  final String phase;
+  static const failure = ApiChanged(SiteIds.bilibili, 'test-only-private-context');
+
+  @override
+  Future<LiveRoom> getRoomDetail({required String roomId}) async {
+    if (phase == 'detail') throw failure;
+    return await super.getRoomDetail(roomId: roomId);
+  }
+
+  @override
+  Future<List<LivePlayQuality>> getPlayQualities({required LiveRoom detail}) async {
+    if (phase == 'qualities') throw failure;
+    return await super.getPlayQualities(detail: detail);
+  }
+
+  @override
+  Future<List<String>> getPlayUrls({required LiveRoom detail, required LivePlayQuality quality}) async {
+    if (phase == 'urls') throw failure;
+    return await super.getPlayUrls(detail: detail, quality: quality);
+  }
+}
+
 /// `getRoomPlayInfo` at qn=0 as a room offering 原画 only answers it (the
 /// H01.3 rewrite of `S07-guest-qn0`): every codec lists 10000 alone.
 ReplaySample _onlyOriginalListed() {
@@ -572,6 +597,25 @@ void main() {
       controller.dispose();
     });
   });
+
+  for (final phase in ['detail', 'qualities', 'urls']) {
+    test('issue #15: exported playback failures identify $phase without raw platform details', () async {
+      final controller = controllerFor(_PhaseFailureSite(phase));
+      await controller.start();
+      final failures = AppLog.instance.entries.where(
+        (entry) => entry.tag == 'playback' && entry.message.startsWith('playback-failure'),
+      );
+      expect(failures, isNotEmpty);
+      final entry = failures.last;
+      expect(entry.level, LogLevel.warning);
+      expect(entry.message, contains('site=bilibili'));
+      expect(entry.message, contains('phase=$phase'));
+      expect(entry.message, contains('kind=ApiChanged'));
+      expect(entry.message, matches(RegExp('room=[0-9a-f]{6}')));
+      expect(entry.message, isNot(contains('test-only-private-context')));
+      controller.dispose();
+    });
+  }
 
   test('a failed detail keeps the card and says why; retry loads again', () async {
     final site = FakeSite(liveRoom())..detailError = const NeedsLogin(SiteIds.bilibili);

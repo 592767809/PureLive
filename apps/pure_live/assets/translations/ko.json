@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "현재 방의 유료 메시지가 여기에 표시됩니다.",
     "super_chat_empty_title": "아직 슈퍼챗이 없습니다",
     "super_chat_ended": "종료됨",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "기록 숨기기",
     "super_chat_history_available": "이번 방송방 세션에서 받은 슈퍼챗을 계속 볼 수 있습니다. “기록 보기”를 선택하세요.",
     "super_chat_include_membership": "슈퍼챗에 멤버십 포함",

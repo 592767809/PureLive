@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Aquí aparecerán los mensajes de pago de la sala actual.",
     "super_chat_empty_title": "Aún no hay Super Chats",
     "super_chat_ended": "Finalizado",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Ocultar historial",
     "super_chat_history_available": "Los Super Chats recibidos en esta sesión de la sala siguen disponibles. Selecciona «Mostrar historial» para verlos.",
     "super_chat_include_membership": "Membresías en los Super Chats",

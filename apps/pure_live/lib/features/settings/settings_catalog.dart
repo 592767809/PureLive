@@ -2027,6 +2027,14 @@ List<SettingsEntry> _build() {
       requires: () => [needsOn(Settings.showChatGifts, 'live_play_show_gifts')],
       keywords: ['礼物', '价值', '元', '人民币', '金瓜子', '钻石', '抖币', 'gift'],
     )
+    ..toggle(
+      'danmaku_fullscreen_super_chat',
+      'super_chat_fullscreen_entry',
+      Settings.showFullscreenSuperChat,
+      null,
+      desc: 'super_chat_fullscreen_entry_desc',
+      keywords: ['醒目留言', 'SC', '全屏', 'fullscreen'],
+    )
     // D07.2.
     ..toggle(
       'danmaku_membership_cards',

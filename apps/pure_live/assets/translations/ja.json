@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "現在のルームの有料メッセージがここに表示されます。",
     "super_chat_empty_title": "スーパーチャットはまだありません",
     "super_chat_ended": "終了",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "履歴を非表示",
     "super_chat_history_available": "このルームの今回のセッションで受信したスーパーチャットは残っています。「履歴を表示」で確認できます。",
     "super_chat_include_membership": "スーパーチャットにメンバーシップを含める",

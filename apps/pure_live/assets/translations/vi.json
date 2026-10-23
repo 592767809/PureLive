@@ -2667,6 +2667,8 @@
     "super_chat_empty_subtitle": "Tin nhắn trả phí của phòng hiện tại sẽ hiện ở đây.",
     "super_chat_empty_title": "Chưa có Super Chat",
     "super_chat_ended": "Đã kết thúc",
+    "super_chat_fullscreen_entry": "Fullscreen Super Chat entry",
+    "super_chat_fullscreen_entry_desc": "Show a button over fullscreen video while a Super Chat is active",
     "super_chat_hide_history": "Ẩn lịch sử",
     "super_chat_history_available": "Các Super Chat nhận trong phiên phòng này vẫn còn. Chọn “Hiện lịch sử” để xem.",
     "super_chat_include_membership": "Hội viên trong Super Chat",

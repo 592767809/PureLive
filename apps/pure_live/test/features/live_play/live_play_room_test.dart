@@ -30,6 +30,7 @@ import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
+import '../../qa_capture.dart';
 import '../../support.dart';
 import 'live_play_support.dart';
 import 'no_images.dart';
@@ -137,6 +138,97 @@ List<String> _order(WidgetTester tester, Finder scope, List<String> keys) {
 Finder _in(String key, Finder finder) => find.descendant(of: find.byKey(ValueKey(key)), matching: finder);
 
 void main() {
+  testWidgets('issue #23: active super chats open in fullscreen without replacing the playing session', (tester) async {
+    final now = DateTime.now();
+    final site = FakeSite(liveRoom())
+      ..superChats = [
+        LiveSuperChatMessage(
+          userName: '观众',
+          face: '',
+          message: '全屏也能查看',
+          price: 30,
+          startTime: now,
+          endTime: now.add(const Duration(minutes: 5)),
+          backgroundColor: '#EDF5FF',
+          backgroundBottomColor: '#2A60B2',
+        ),
+      ];
+    final room = await _pump(tester, site: site);
+    final entry = find.byKey(const ValueKey('live-play-fullscreen-super-chat'));
+    expect(entry, findsNothing);
+    await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+    await _settle(tester);
+    expect(entry, findsOneWidget);
+    await captureQaFrame(tester, 'fullscreen-super-chat-entry');
+    final opens = room.engine.opens.length;
+    await tester.tap(entry);
+    await _settle(tester);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('panel-super-chats')).hitTestable(), findsOneWidget);
+    expect(find.text('全屏也能查看'), findsOneWidget);
+    await captureQaFrame(tester, 'fullscreen-super-chat-panel');
+    expect(room.engine.opens, hasLength(opens));
+    await tester.binding.handlePopRoute();
+    await _settle(tester);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('panel-super-chats')), findsNothing);
+    expect(entry, findsOneWidget, reason: 'Back closes the panel before leaving fullscreen');
+    const setting = BoolSetting('showFullscreenSuperChat', section: 'danmaku', defaultValue: true);
+    await tester.runAsync(() => room.services.store.settings.set(setting, false));
+    await _settle(tester);
+    expect(entry, findsNothing);
+    await tester.runAsync(() => room.services.store.settings.set(setting, true));
+    await _settle(tester);
+    expect(entry, findsOneWidget);
+    await _close(tester, room);
+  });
+
+  testWidgets('issue #23: an empty fullscreen has no entry and an expired card stays in the open session list', (
+    tester,
+  ) async {
+    final room = await _pump(tester, width: 852, height: 393);
+    await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+    await _settle(tester);
+    final entry = find.byKey(const ValueKey('live-play-fullscreen-super-chat'));
+    expect(entry, findsNothing);
+    final now = DateTime.now();
+    room.danmaku.emit(
+      DanmakuReceived(
+        LiveMessage(
+          type: LiveMessageType.superChat,
+          userName: '观众',
+          message: '本场保留',
+          color: LiveMessageColor.white,
+          data: LiveSuperChatMessage(
+            userName: '观众',
+            face: '',
+            message: '本场保留',
+            price: 30,
+            startTime: now,
+            endTime: now.add(const Duration(seconds: 1)),
+            backgroundColor: '#EDF5FF',
+            backgroundBottomColor: '#2A60B2',
+          ),
+        ),
+      ),
+    );
+    await _settle(tester);
+    expect(entry, findsOneWidget);
+    await tester.tap(entry);
+    await _settle(tester);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 1200)));
+    await tester.pump(const Duration(seconds: 2));
+    await _settle(tester);
+    expect(entry, findsNothing);
+    expect(find.byKey(const ValueKey('panel-super-chats')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('super-chat-history-toggle')));
+    await _settle(tester);
+    expect(find.text('本场保留'), findsOneWidget);
+    expect(find.text('已结束'), findsOneWidget);
+    await captureQaFrame(tester, 'fullscreen-super-chat-history');
+    await _close(tester, room);
+  });
+
   testWidgets('header: back, avatar and names, follow, menu; the follow button follows the store', (tester) async {
     final room = await _pump(tester);
     final bar = find.byType(AppBar);

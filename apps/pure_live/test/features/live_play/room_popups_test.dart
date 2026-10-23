@@ -18,12 +18,15 @@ import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
+import 'package:pure_live/features/live_play/logic/room_layout.dart';
 import 'package:pure_live/features/live_play/logic/room_orientation.dart';
 import 'package:pure_live/features/live_play/player/player_gestures.dart';
+import 'package:pure_live/features/live_play/player/player_view.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 
+import '../../qa_capture.dart';
 import '../../support.dart';
 import 'live_play_support.dart';
 
@@ -139,6 +142,65 @@ String? _text(WidgetTester tester, String key) => tester.widget<Text>(_key(key))
 
 void main() {
   tearDown(() => DeviceControls.debugAvailable = null);
+
+  testWidgets('issue #24: iPad picture drags change native brightness and volume without changing them on entry', (
+    tester,
+  ) async {
+    var volume = 0.4;
+    var brightness = 0.5;
+    final calls = <String>[];
+    const channel = MethodChannel('pure_live/device_controls');
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call.method);
+      switch (call.method) {
+        case 'getVolume':
+          return volume;
+        case 'getBrightness':
+          return brightness;
+        case 'setVolume':
+          volume = ((call.arguments as Map)['value'] as num).toDouble();
+        case 'setBrightness':
+          brightness = ((call.arguments as Map)['value'] as num).toDouble();
+      }
+      return null;
+    });
+    addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+    for (final fullscreen in [false, true]) {
+      calls.clear();
+      volume = 0.4;
+      brightness = 0.5;
+      final room = await _pump(tester, width: 1024, height: 768, platform: TargetPlatform.iOS);
+      expect(DeviceControls.available, isTrue);
+      if (fullscreen) {
+        await tester.tap(_key('live-play-fullscreen'));
+        await _settle(tester);
+        expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      }
+      expect(calls.where((method) => method.startsWith('set')), isEmpty);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump();
+      Future<void> drag(double fraction) async {
+        final picture = tester.getRect(find.byType(PlayerGestureLayer));
+        final from = Offset(picture.left + picture.width * fraction, picture.top + picture.height * 0.7);
+        final gesture = await tester.startGesture(from);
+        await gesture.moveBy(const Offset(0, -20));
+        await _settle(tester);
+        await gesture.moveBy(const Offset(0, -60));
+        await tester.pump();
+        await gesture.up();
+        await _settle(tester);
+      }
+
+      await drag(0.2);
+      expect(brightness, greaterThan(0.5));
+      await drag(0.8);
+      expect(volume, greaterThan(0.4));
+      await captureQaFrame(tester, fullscreen ? 'ipad-fullscreen-volume' : 'ipad-inline-volume');
+      expect(calls, containsAll(['getBrightness', 'setBrightness', 'getVolume', 'setVolume']));
+      await _close(tester, room);
+      expect(calls, contains('resetBrightness'));
+    }
+  });
 
   group("U.2n c1: the room menu's settings are room panels", () {
     testWidgets('portrait: under the picture, all the height below it', (tester) async {
