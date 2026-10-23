@@ -1,7 +1,5 @@
 // A17.9 stage 3: the TV's show-and-move editor, the side menu's order,
 // hidden entries and icons, and the colour grid.
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -20,10 +18,10 @@ import '../support.dart';
 
 final ColorScheme _scheme = ColorScheme.fromSeed(seedColor: const Color(0xFF2196F3), brightness: Brightness.dark);
 
-Future<void> _pump(WidgetTester tester, Widget child) async {
+Future<void> _pump(WidgetTester tester, Widget child, {Size size = const Size(1920, 1080), double ratio = 2}) async {
   tester.view
-    ..physicalSize = const Size(1920, 1080)
-    ..devicePixelRatio = 2;
+    ..physicalSize = size
+    ..devicePixelRatio = ratio;
   addTearDown(tester.view.reset);
   await tester.runAsync(loadStrings);
   await tester.pumpWidget(
@@ -55,40 +53,54 @@ String? get _row =>
         ?.value;
 
 void main() {
-  testWidgets('issue 30: a full-width choice keeps both sides of its focus frame inside the viewport', (tester) async {
-    final boundary = GlobalKey();
-    await _pump(
+  for (final (panel, size, ratio) in [
+    ('720p', const Size(1280, 720), 1.0),
+    ('1080p', const Size(1920, 1080), 2.0),
+    ('4K', const Size(3840, 2160), 2.0),
+  ]) {
+    testWidgets('issue 30: $panel full-width choices keep both sides of the focus frame inside the viewport', (
       tester,
-      Align(
-        alignment: Alignment.topCenter,
-        child: RepaintBoundary(
-          key: boundary,
-          child: TvOptionRow(label: '斗鱼', current: true, autofocus: true, onTap: () {}),
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-    final colors = (await tester.runAsync(() async {
-      final image = await render.toImage(pixelRatio: 2);
-      final bytes = (await image.toByteData(format: ui.ImageByteFormat.rawRgba))!;
-      final y = image.height ~/ 2;
-      final result = [
-        for (final x in [1, image.width - 2])
-          Color.fromARGB(
-            bytes.getUint8((y * image.width + x) * 4 + 3),
-            bytes.getUint8((y * image.width + x) * 4),
-            bytes.getUint8((y * image.width + x) * 4 + 1),
-            bytes.getUint8((y * image.width + x) * 4 + 2),
+    ) async {
+      final boundary = GlobalKey();
+      await _pump(
+        tester,
+        Align(
+          alignment: Alignment.topCenter,
+          child: RepaintBoundary(
+            key: boundary,
+            child: TvOptionRow(label: '斗鱼', current: true, autofocus: true, onTap: () {}),
           ),
-      ];
-      image.dispose();
-      return result;
-    }))!;
-    for (final color in colors) {
-      expect(color, TvPalette.of(_scheme).focusRing, reason: 'a clipped outside stroke leaves only the row background');
-    }
-  });
+        ),
+        size: size,
+        ratio: ratio,
+      );
+      await tester.pumpAndSettle();
+      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final colors = (await tester.runAsync(() async {
+        final image = await render.toImage(pixelRatio: 2);
+        final bytes = (await image.toByteData())!;
+        final y = image.height ~/ 2;
+        final result = [
+          for (final x in [1, image.width - 2])
+            Color.fromARGB(
+              bytes.getUint8((y * image.width + x) * 4 + 3),
+              bytes.getUint8((y * image.width + x) * 4),
+              bytes.getUint8((y * image.width + x) * 4 + 1),
+              bytes.getUint8((y * image.width + x) * 4 + 2),
+            ),
+        ];
+        image.dispose();
+        return result;
+      }))!;
+      for (final color in colors) {
+        expect(
+          color,
+          TvPalette.of(_scheme).focusRing,
+          reason: 'a clipped outside stroke leaves only the row background',
+        );
+      }
+    });
+  }
 
   test('the side menu: the order stored first, the rest by default; hidden left out, one always stays', () {
     expect(TvPane.menuOf(), TvPane.entries);

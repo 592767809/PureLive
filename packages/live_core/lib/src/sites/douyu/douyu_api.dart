@@ -735,8 +735,9 @@ abstract final class DouyuApi {
       throw ApiChanged.withCode(_site, ApiFailureCode.douyuPlayJson, 'getH5PlayV1: HTTP $status, not an object');
     }
     final code = jsonInt(decoded['error'] ?? decoded['code']);
-    if (code == null)
+    if (code == null) {
       throw const ApiChanged.withCode(_site, ApiFailureCode.douyuPlayCode, 'getH5PlayV1: no error code');
+    }
     if (code != 0) {
       throw StreamUnavailable(_site, 'getH5PlayV1: error $code ${jsonString(decoded['msg']) ?? ''}'.trim());
     }

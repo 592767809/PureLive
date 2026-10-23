@@ -10,7 +10,7 @@
 
 ## 范围
 
-packages/live_ui/lib/src/widgets/settings_row.dart、packages/live_ui/test/settings_row_test.dart、apps/pure_live/lib/tv/widgets/、apps/pure_live/test/tv/，以及本任务文档和 docs/tasks.toml。
+packages/live_ui/lib/src/widgets/settings_row.dart、packages/live_ui/test/settings_row_test.dart、apps/pure_live/lib/tv/widgets/、tv/settings/tv_settings_style.dart 的说明注释、apps/pure_live/test/tv/，以及本任务文档和 docs/tasks.toml。
 
 ## 禁止
 

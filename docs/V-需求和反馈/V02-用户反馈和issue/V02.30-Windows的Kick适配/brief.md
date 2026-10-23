@@ -10,7 +10,7 @@ Kick API、播放与弹幕已有实现，但 bootstrap 以 AndroidNativeHttp 的
 
 ## 范围
 
-apps/pure_live/lib/app/bootstrap.dart、应用初始化测试、packages/live_net/ 和相关测试（如确有传输缺陷），以及本任务文档和 docs/tasks.toml。
+apps/pure_live/lib/app/bootstrap.dart、应用初始化测试、packages/live_net/ 和相关测试（如确有传输缺陷）、tools/live_cli 的 Kick 工厂和巡检目标及其回归，以及本任务文档和 docs/tasks.toml。
 
 ## 禁止
 

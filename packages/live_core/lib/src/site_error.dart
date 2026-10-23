@@ -133,7 +133,7 @@ final class ApiChanged extends SiteError {
   const new(super.site, [super.detail]) : code = null;
 
   /// Creates a failure with a fixed reason safe for export.
-  const ApiChanged.withCode(super.site, this.code, [super.detail]);
+  const new withCode(super.site, this.code, [super.detail]);
 
   /// A fixed reason, never a response, URL, identifier or credential.
   final ApiFailureCode? code;

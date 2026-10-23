@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
@@ -100,6 +101,34 @@ void main() {
       expect(target.right, lessThanOrEqualTo(available.right));
       expect(target.top, greaterThanOrEqualTo(available.top));
       expect(target.bottom, lessThanOrEqualTo(available.bottom));
+    });
+
+    testWidgets('issue 30: focused row ink does not paint a rectangular background outside its rounded frame', (
+      tester,
+    ) async {
+      final boundary = GlobalKey();
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+      await _pump(
+        tester,
+        RepaintBoundary(
+          key: boundary,
+          child: SettingsLinkRow(title: '首选直播平台', onTap: () {}),
+        ),
+        tv: true,
+      );
+      final ink = find.byType(InkWell);
+      Focus.of(tester.element(find.descendant(of: ink, matching: find.byType(LayoutBuilder)).first)).requestFocus();
+      await tester.pumpAndSettle();
+      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final alpha = (await tester.runAsync(() async {
+        final image = await render.toImage();
+        final bytes = (await image.toByteData())!;
+        final corner = bytes.getUint8((image.width + 1) * 4 + 3);
+        image.dispose();
+        return corner;
+      }))!;
+      expect(alpha, 0, reason: 'the extreme corner is outside the rounded row and focus frame');
     });
 
     testWidgets('explanations: three lines (A01.4 c2), secondary colour above 4.5:1 on the card', (tester) async {

@@ -445,7 +445,9 @@ final List<PatrolTarget> patrolTargets = List.unmodifiable(<PatrolTarget>[
     site: SiteIds.kick,
     name: 'Kick',
     overseas: true,
-    skip: '要 Android 原生通道（Cloudflare 按 TLS 指纹拒绝 dart:io），电脑上不测，不算失败',
+    keyword: 'xqc',
+    missingRoom: 'purelive-missing-room-20261024',
+    unsupported: {CheckId.p5: _noAnchors},
   ),
   const PatrolTarget(
     site: SiteIds.liveMe,

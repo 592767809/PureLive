@@ -6,7 +6,7 @@ import 'package:pure_live/tv/settings/tv_color_grid.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 
 /// The phone's settings rows and dialogs in their TV look (A17.9 c2, c7):
-/// the rows a step larger, ringed and grown a little with the focus, ← off
+/// the rows a step larger, with a focus frame inside their bounds, ← off
 /// and → on on a switch; a dialog of options is the TV's choice dialog
 /// (the current one in the primary colour with a tick and the focus).
 class TvSettingsStyle extends StatelessWidget {

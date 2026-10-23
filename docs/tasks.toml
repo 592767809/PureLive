@@ -5261,7 +5261,9 @@ tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/29"
 branch = "ai/V02.26"
 to = ["E04.3"]
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "V02.27"
@@ -5273,7 +5275,9 @@ tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/30"
 branch = "ai/V02.26"
 to = ["A17.11"]
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "V02.28"
@@ -5285,7 +5289,9 @@ tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/14"
 branch = "ai/V02.26"
 to = ["A06.6"]
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "V02.29"
@@ -5297,7 +5303,11 @@ tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15"
 branch = "ai/V02.26"
 to = ["E01.9"]
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：已修复身份缓存隔离缺口并补固定原因码；反馈账号主因尚未确认，不能宣称现场故障已解决。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+stages = ["现场阶段和证据", "身份隔离和安全诊断", "反馈账号验证"]
+done = 0
 
 [[task]]
 id = "V02.30"
@@ -5309,7 +5319,11 @@ tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/26"
 branch = "ai/V02.26"
 to = ["E03.21"]
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+stages = ["HTTP2和代理能力", "Windows原生画面和聊天", "合并后反馈验收"]
+done = 0
 
 [[task]]
 id = "E04.3"
@@ -5320,7 +5334,9 @@ size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/29"
 branch = "ai/V02.26"
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "A17.11"
@@ -5331,7 +5347,9 @@ size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/30"
 branch = "ai/V02.26"
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "A06.6"
@@ -5342,7 +5360,9 @@ size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/14"
 branch = "ai/V02.26"
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 
 [[task]]
 id = "E01.9"
@@ -5353,7 +5373,11 @@ size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15"
 branch = "ai/V02.26"
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：已修复身份缓存隔离缺口并补固定原因码；反馈账号主因尚未确认，不能宣称现场故障已解决。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+stages = ["现场阶段和证据", "身份隔离和安全诊断", "反馈账号验证"]
+done = 0
 
 [[task]]
 id = "E03.21"
@@ -5364,4 +5388,8 @@ size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/26"
 branch = "ai/V02.26"
-note = "2026-10-24 按最新现场重新定位；完成、发布、真机验收分别记录，详见任务说明和记录。"
+note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+
+next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+stages = ["HTTP2和代理能力", "Windows原生画面和聊天", "合并后反馈验收"]
+done = 0
