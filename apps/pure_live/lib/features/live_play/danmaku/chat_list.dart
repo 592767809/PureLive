@@ -77,6 +77,40 @@ Color _readableOn(Color color, Color background) {
 Color chatNameInk(LiveMessage message, Color background, ColorScheme scheme) =>
     chatNameColor(message.nameColor ?? message.color, background) ?? scheme.onSurfaceVariant;
 
+/// Douyu's fan-medal colour by level (3.x `DanmakuItem`): light blue through
+/// level 5, then green-blue, orange, red, purple and finally deep purple. The
+/// palette is made for Douyu's dark surface; on a light theme it is darkened
+/// to 40 % lightness so the lowest levels stay readable.
+Color douyuFanBadgeColor(int level, {required bool dark}) {
+  final color = switch (level) {
+    <= 5 => 0xFF7DD0FD,
+    <= 10 => 0xFF4CD5E1,
+    <= 15 => 0xFFFB9D23,
+    <= 20 => 0xFFFA791F,
+    <= 25 => 0xFFFA4C1C,
+    <= 30 => 0xFFAC38D3,
+    _ => 0xFF7C00E3,
+  };
+  return dark ? Color(color) : HSLColor.fromColor(Color(color)).withLightness(0.4).toColor();
+}
+
+/// Douyu's user-level colour by level (3.x `DanmakuItem`): beige, green,
+/// steel blue, blue, purple, pink, red and yellow; darkened on a light
+/// theme like [douyuFanBadgeColor].
+Color douyuUserLevelColor(int level, {required bool dark}) {
+  final color = switch (level) {
+    <= 19 => 0xFFDED9C6,
+    <= 29 => 0xFF94D256,
+    <= 39 => 0xFF97B3D5,
+    <= 69 => 0xFF3980F9,
+    <= 79 => 0xFFB42CF4,
+    <= 89 => 0xFFFA7B83,
+    <= 99 => 0xFFF94D55,
+    _ => 0xFFF5F241,
+  };
+  return dark ? Color(color) : HSLColor.fromColor(Color(color)).withLightness(0.4).toColor();
+}
+
 /// The text a double tap copies (3.x: "用户名: 内容"). A local gift's words
 /// already start with the name ("Pure Live 送出 辣条 ×1", A08.13); a
 /// platform's gift is copied as its line says it, "名字: 送出 小心心 ×3"
@@ -378,10 +412,12 @@ class _ChatListState extends ConsumerState<ChatList> {
     required bool yuan,
     required ChatSizing sizing,
   }) {
+    final platform = room.platform;
     if (_views[line] case (final made, final message)
         when identical(message, line.message) &&
             made.style == style &&
             made.showName == names &&
+            made.platform == platform &&
             made.giftRoom == room &&
             made.giftValueInYuan == yuan &&
             made.sizing == sizing &&
@@ -394,6 +430,7 @@ class _ChatListState extends ConsumerState<ChatList> {
       line: line,
       style: style,
       showName: names,
+      platform: platform,
       emotes: _emotes,
       giftRoom: room,
       giftValueInYuan: yuan,
@@ -654,16 +691,17 @@ class ChatNameHintBar extends StatelessWidget {
 /// A08.10: every line that names a sender draws the name and the content in
 /// the two [ChatText] roles, in both styles; what comes before the name is
 /// always in one order (G5): "本地" or "对方", the platform's badges, the fan
-/// medal, the name. With [showName] off ("显示用户名") the sender's name and
-/// what belongs to them (badges, fan medal, avatar) are left out and the
-/// line starts with what was said; "本地" and "对方" stay, they are about
-/// the message.
+/// medal, the level (Douyu), the name. With [showName] off ("显示用户名") the
+/// sender's name and what belongs to them (badges, fan medal, level, avatar)
+/// are left out and the line starts with what was said; "本地" and "对方" stay,
+/// they are about the message.
 class ChatLineView extends StatelessWidget {
   /// Creates the line.
   const new({
     required this.line,
     this.style = ChatListStyle.compact,
     this.showName = true,
+    this.platform = '',
     this.emotes = EmoteTable.empty,
     this.onActions,
     this.onCopy,
@@ -676,6 +714,9 @@ class ChatLineView extends StatelessWidget {
 
   /// The line.
   final ChatLine line;
+
+  /// The room's platform ([SiteIds]): Douyu's levels have their own colours.
+  final String platform;
 
   /// A mark before the name (the local interaction's "本地", U.2k).
   final Widget? tag;
@@ -825,7 +866,7 @@ class ChatLineView extends StatelessWidget {
           style: ChatChip.styleOf(theme, sizing)?.copyWith(color: theme.colorScheme.onTertiaryContainer),
         ),
       ),
-    if (showName) ...[..._badges(theme, message), ..._fans(theme, message)],
+    if (showName) ...[..._badges(theme, message), ..._fans(theme, message), ..._level(theme, message)],
   ];
 
   /// B-14 (E06.2 c2): the platform's badges before the name, in its order.
@@ -842,22 +883,39 @@ class ChatLineView extends StatelessWidget {
   ];
 
   /// B06 c2: the fan medal ("粉丝牌 等级"), in the same block as the other
-  /// marks (A08.10 G5; it was a highlighted run of text).
+  /// marks (A08.10 G5; it was a highlighted run of text). Douyu's medal takes
+  /// its level's colour (3.x), the others the theme's block.
   List<InlineSpan> _fans(ThemeData theme, LiveMessage message) {
     final fans = message.fansName.trim();
     if (fans.isEmpty) return const [];
     final level = message.fansLevel.trim();
     final scheme = theme.colorScheme;
+    final douyuColor = platform == SiteIds.douyu
+        ? douyuFanBadgeColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark)
+        : null;
     return [
       chatInline(
         ChatChip(
           key: const ValueKey('live-play-chat-fans'),
           text: level.isEmpty ? fans : '$fans $level',
-          background: scheme.primary,
-          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: scheme.onPrimary),
+          background: douyuColor?.withValues(alpha: 0.16) ?? scheme.primary,
+          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: douyuColor ?? scheme.onPrimary),
         ),
       ),
     ];
+  }
+
+  /// Douyu's sender level before the name (3.x `DanmakuItem`): "Lv.N" in the
+  /// level's colour; nothing on other platforms.
+  List<InlineSpan> _level(ThemeData theme, LiveMessage message) {
+    final level = message.userLevel.trim();
+    if (platform != SiteIds.douyu || level.isEmpty) return const [];
+    final color = douyuUserLevelColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark);
+    final style = sizing.piece(
+      theme.textTheme.labelSmall?.copyWith(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, color: color),
+      theme,
+    );
+    return [TextSpan(text: 'Lv.$level ', style: style)];
   }
 
   /// The name ("用户名：") in the name role, or nothing.
