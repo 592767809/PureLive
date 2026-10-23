@@ -274,7 +274,7 @@ void main() {
       expect(chatNameInk(_chat(), ground, theme.colorScheme), theme.colorScheme.onSurfaceVariant);
     });
 
-    testWidgets('Douyu: the fan medal and Lv.N take their levels\' colours, darkened on light themes', (tester) async {
+    testWidgets("Douyu: the fan medal and Lv.N take their levels' colours, darkened on light themes", (tester) async {
       final message = _chat(fans: '小僵尸', level: '22', userLevel: '42');
       final fan = douyuFanBadgeColor(22, dark: true);
       final user = douyuUserLevelColor(42, dark: true);
@@ -288,9 +288,16 @@ void main() {
           final chip = tester.widget<ChatChip>(find.byKey(const ValueKey('live-play-chat-fans')));
           final fanInk = douyuFanBadgeColor(22, dark: dark);
           expect(chip.background, fanInk.withValues(alpha: 0.16), reason: reason);
-          expect(chip.style?.color, fanInk, reason: reason);
+          final ground = style == ChatListStyle.card
+              ? theme.colorScheme.surfaceContainerLowest
+              : theme.colorScheme.surface;
+          expect(
+            contrastRatio(chip.style!.color!, Color.alphaBlend(chip.background, ground)),
+            greaterThanOrEqualTo(chatNameContrast),
+            reason: reason,
+          );
           final level = _span(tester, 'Lv.42 ')!.style!;
-          expect(level.color, douyuUserLevelColor(42, dark: dark), reason: reason);
+          expect(contrastRatio(level.color!, ground), greaterThanOrEqualTo(chatNameContrast), reason: reason);
           expect(level.fontWeight, FontWeight.w600, reason: reason);
           expect(level.fontSize, 11, reason: reason);
           if (!dark) {
@@ -298,6 +305,38 @@ void main() {
               HSLColor.fromColor(fanInk).lightness,
               closeTo(0.4, 0.01),
               reason: '$reason: the light theme darkens the palette',
+            );
+          }
+        }
+      }
+    });
+
+    testWidgets('PR 28: every Douyu tier keeps readable text on its actual surface', (tester) async {
+      for (final theme in _themes.values) {
+        for (final style in ChatListStyle.values) {
+          final ground = style == ChatListStyle.card
+              ? theme.colorScheme.surfaceContainerLowest
+              : theme.colorScheme.surface;
+          for (final tier in [1, 6, 11, 16, 21, 26, 31, 42, 75, 85, 95, 105]) {
+            await _pumpLine(
+              tester,
+              ChatLine.chat(_chat(fans: 'medal', level: '$tier', userLevel: '$tier')),
+              style: style,
+              theme: theme,
+              platform: SiteIds.douyu,
+            );
+            final chip = tester.widget<ChatChip>(find.byKey(const ValueKey('live-play-chat-fans')));
+            final chipGround = Color.alphaBlend(chip.background, ground);
+            expect(
+              contrastRatio(chip.style!.color!, chipGround),
+              greaterThanOrEqualTo(chatNameContrast),
+              reason: 'fan $tier, $style, ${theme.brightness}',
+            );
+            final ink = _span(tester, 'Lv.$tier ')!.style!.color!;
+            expect(
+              contrastRatio(ink, ground),
+              greaterThanOrEqualTo(chatNameContrast),
+              reason: 'user $tier, $style, ${theme.brightness}',
             );
           }
         }

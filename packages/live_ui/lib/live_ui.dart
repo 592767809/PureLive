@@ -10,6 +10,7 @@ export 'src/icons/danmaku_icon.dart';
 export 'src/icons/platform_logo.dart';
 export 'src/icons/tv_icons.dart';
 export 'src/scope.dart';
+export 'src/theme/douyu_colors.dart';
 export 'src/theme/dynamic_color.dart' show LiveDynamicColorBuilder, MaterialUiThemeBridge, toFlutterColorScheme;
 export 'src/theme/grid_columns.dart';
 export 'src/theme/live_colors.dart';

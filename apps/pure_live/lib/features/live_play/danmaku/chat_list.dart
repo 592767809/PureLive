@@ -77,40 +77,6 @@ Color _readableOn(Color color, Color background) {
 Color chatNameInk(LiveMessage message, Color background, ColorScheme scheme) =>
     chatNameColor(message.nameColor ?? message.color, background) ?? scheme.onSurfaceVariant;
 
-/// Douyu's fan-medal colour by level (3.x `DanmakuItem`): light blue through
-/// level 5, then green-blue, orange, red, purple and finally deep purple. The
-/// palette is made for Douyu's dark surface; on a light theme it is darkened
-/// to 40 % lightness so the lowest levels stay readable.
-Color douyuFanBadgeColor(int level, {required bool dark}) {
-  final color = switch (level) {
-    <= 5 => 0xFF7DD0FD,
-    <= 10 => 0xFF4CD5E1,
-    <= 15 => 0xFFFB9D23,
-    <= 20 => 0xFFFA791F,
-    <= 25 => 0xFFFA4C1C,
-    <= 30 => 0xFFAC38D3,
-    _ => 0xFF7C00E3,
-  };
-  return dark ? Color(color) : HSLColor.fromColor(Color(color)).withLightness(0.4).toColor();
-}
-
-/// Douyu's user-level colour by level (3.x `DanmakuItem`): beige, green,
-/// steel blue, blue, purple, pink, red and yellow; darkened on a light
-/// theme like [douyuFanBadgeColor].
-Color douyuUserLevelColor(int level, {required bool dark}) {
-  final color = switch (level) {
-    <= 19 => 0xFFDED9C6,
-    <= 29 => 0xFF94D256,
-    <= 39 => 0xFF97B3D5,
-    <= 69 => 0xFF3980F9,
-    <= 79 => 0xFFB42CF4,
-    <= 89 => 0xFFFA7B83,
-    <= 99 => 0xFFF94D55,
-    _ => 0xFFF5F241,
-  };
-  return dark ? Color(color) : HSLColor.fromColor(Color(color)).withLightness(0.4).toColor();
-}
-
 /// The text a double tap copies (3.x: "用户名: 内容"). A local gift's words
 /// already start with the name ("Pure Live 送出 辣条 ×1", A08.13); a
 /// platform's gift is copied as its line says it, "名字: 送出 小心心 ×3"
@@ -854,7 +820,7 @@ class ChatLineView extends StatelessWidget {
   }
 
   /// G5: what comes before the name, in one order on both styles.
-  List<InlineSpan> _lead(ThemeData theme, LiveMessage message) => [
+  List<InlineSpan> _lead(ThemeData theme, LiveMessage message, [Color? background]) => [
     if (tag case final mark?) ...[chatInline(mark), const TextSpan(text: ' ')],
     // B-16 (E06.2 c3): a PK partner room's viewer, in the block of "本地".
     if (message.isFromOtherRoom)
@@ -866,7 +832,11 @@ class ChatLineView extends StatelessWidget {
           style: ChatChip.styleOf(theme, sizing)?.copyWith(color: theme.colorScheme.onTertiaryContainer),
         ),
       ),
-    if (showName) ...[..._badges(theme, message), ..._fans(theme, message), ..._level(theme, message)],
+    if (showName) ...[
+      ..._badges(theme, message),
+      ..._fans(theme, message, background ?? theme.colorScheme.surface),
+      ..._level(theme, message, background ?? theme.colorScheme.surface),
+    ],
   ];
 
   /// B-14 (E06.2 c2): the platform's badges before the name, in its order.
@@ -885,7 +855,7 @@ class ChatLineView extends StatelessWidget {
   /// B06 c2: the fan medal ("粉丝牌 等级"), in the same block as the other
   /// marks (A08.10 G5; it was a highlighted run of text). Douyu's medal takes
   /// its level's colour (3.x), the others the theme's block.
-  List<InlineSpan> _fans(ThemeData theme, LiveMessage message) {
+  List<InlineSpan> _fans(ThemeData theme, LiveMessage message, Color background) {
     final fans = message.fansName.trim();
     if (fans.isEmpty) return const [];
     final level = message.fansLevel.trim();
@@ -893,13 +863,17 @@ class ChatLineView extends StatelessWidget {
     final douyuColor = platform == SiteIds.douyu
         ? douyuFanBadgeColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark)
         : null;
+    final chipBackground = douyuColor?.withValues(alpha: 0.16) ?? scheme.primary;
+    final chipInk = douyuColor == null
+        ? scheme.onPrimary
+        : _readableOn(douyuColor, Color.alphaBlend(chipBackground, background));
     return [
       chatInline(
         ChatChip(
           key: const ValueKey('live-play-chat-fans'),
           text: level.isEmpty ? fans : '$fans $level',
-          background: douyuColor?.withValues(alpha: 0.16) ?? scheme.primary,
-          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: douyuColor ?? scheme.onPrimary),
+          background: chipBackground,
+          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: chipInk),
         ),
       ),
     ];
@@ -907,10 +881,13 @@ class ChatLineView extends StatelessWidget {
 
   /// Douyu's sender level before the name (3.x `DanmakuItem`): "Lv.N" in the
   /// level's colour; nothing on other platforms.
-  List<InlineSpan> _level(ThemeData theme, LiveMessage message) {
+  List<InlineSpan> _level(ThemeData theme, LiveMessage message, Color background) {
     final level = message.userLevel.trim();
     if (platform != SiteIds.douyu || level.isEmpty) return const [];
-    final color = douyuUserLevelColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark);
+    final color = _readableOn(
+      douyuUserLevelColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark),
+      background,
+    );
     final style = sizing.piece(
       theme.textTheme.labelSmall?.copyWith(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, color: color),
       theme,
@@ -1003,7 +980,9 @@ class ChatLineView extends StatelessWidget {
                 ),
               Expanded(
                 child: Text.rich(
-                  TextSpan(children: [..._lead(theme, message), ..._name(theme, message, ground), _words(theme)]),
+                  TextSpan(
+                    children: [..._lead(theme, message, ground), ..._name(theme, message, ground), _words(theme)],
+                  ),
                 ),
               ),
             ],

@@ -72,3 +72,8 @@
 - `a56ec99bd` [A08.10] Tell names from words in the chat list; add "显示用户名"
 - `9ed1fe332` [A08.10] Make the gift message of the roles test const
 - 本记录的更新是第三个提交。没有推送、没有合并；合并后在登记表补 `commit`。
+
+
+## 2026-10-24 PR #28 接续审查
+
+贡献保留在原提交；新实现与审查发现按 A08.16、D01.33 登记。补齐等级/粉丝牌/通知的同时，修正低对比度与其他房间禁言通知，保留录制和迁移工程资料。本轮随 5.4.10 发布，真实账号取流故障仍由 E01.9 跟踪。

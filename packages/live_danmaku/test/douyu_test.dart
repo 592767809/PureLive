@@ -287,9 +287,27 @@ void main() {
         roomId: '1',
       );
       final vip = oni('vn@=17000/rid@=1/list@=/').single;
-      expect((vip.type, vip.userName, vip.message, vip.color), (LiveMessageType.chat, '贵宾', '17000', LiveMessageColor.white));
+      expect(
+        (vip.type, vip.userName, vip.message, vip.color),
+        (LiveMessageType.chat, '贵宾', '17000', LiveMessageColor.white),
+      );
       expect(oni('vn@=17000/rid@=2/list@=/'), isEmpty);
       expect(oni('vn@=/rid@=1/list@=/'), isEmpty);
+    });
+
+    test('PR 28: a mute from another room is ignored without losing the next message', () {
+      final bytes = [
+        ...DouyuDanmakuProtocol.packet(
+          'type@=newblackres/rid@=2/snic@=manager/dnic@=viewer/',
+          type: DouyuDanmakuProtocol.serverPacketType,
+        ),
+        ...DouyuDanmakuProtocol.packet(
+          'type@=chatmsg/rid@=1/dms@=4/nn@=A/txt@=kept/',
+          type: DouyuDanmakuProtocol.serverPacketType,
+        ),
+      ];
+      final messages = DouyuDanmakuProtocol.decode(bytes, roomId: '1');
+      expect(messages.map((message) => message.message), ['kept']);
     });
 
     test('newblackres is a red mute line without a sender', () {
@@ -346,9 +364,10 @@ void main() {
       final chats = [
         for (final frame in _frames)
           if (frame.dir == 'in')
-            ...DouyuDanmakuProtocol.decode(frame.bytes, roomId: _roomId).where(
-              (message) => message.type == LiveMessageType.chat && message.messageId.isNotEmpty,
-            ),
+            ...DouyuDanmakuProtocol.decode(
+              frame.bytes,
+              roomId: _roomId,
+            ).where((message) => message.type == LiveMessageType.chat && message.messageId.isNotEmpty),
       ];
       expect(chats, hasLength(147));
       expect(chats.every((message) => message.userLevel.isNotEmpty), isTrue);

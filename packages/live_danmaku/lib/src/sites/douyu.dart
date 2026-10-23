@@ -194,7 +194,7 @@ abstract final class DouyuDanmakuProtocol {
           'voice_trlt' => _voiceSuperChat(fields),
           'dgb' => gift(fields, roomId, gifts: gifts),
           'oni' => _vip(fields, roomId),
-          'newblackres' => _ban(fields),
+          'newblackres' => _ban(fields, roomId),
           _ => null,
         };
         if (message != null) messages.add(message);
@@ -268,17 +268,14 @@ abstract final class DouyuDanmakuProtocol {
     if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
     final count = (fields['vn'] ?? '').trim();
     if (count.isEmpty) return null;
-    return LiveMessage(
-      type: LiveMessageType.chat,
-      userName: '贵宾',
-      message: count,
-      color: LiveMessageColor.white,
-    );
+    return LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: count, color: LiveMessageColor.white);
   }
 
   /// `newblackres`: a viewer (`dnic`) muted by `snic`, shown as a red chat
   /// line without a sender, as in 3.x.
-  static LiveMessage? _ban(Map<String, String> fields) {
+  static LiveMessage? _ban(Map<String, String> fields, String roomId) {
+    final packetRoomId = fields['rid'] ?? '';
+    if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
     final actor = (fields['snic'] ?? '').trim();
     final target = (fields['dnic'] ?? '').trim();
     if (target.isEmpty) return null;
