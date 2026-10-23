@@ -32,8 +32,18 @@ final Map<String, Object?> _recorded =
 
 final String _roomId = _recorded['roomId']! as String;
 
+/// The recorded messages of the kinds 3.x reports: 147 chats and, since
+/// 13f22bb58, the 6 贵宾 (`oni`) lines.
+const int _recordedCount = 153;
+
 List<Map<String, Object?>> get _recordedMessages => [
-  for (final message in _recorded['messages']! as List<Object?>) Map.of(message! as Map<String, Object?>),
+  for (final message in _recorded['messages']! as List<Object?>)
+    {
+      ...Map.of(message! as Map<String, Object?>),
+      // D07.3: 4.x leaves a fan level empty when there is no medal; 3.x
+      // wrote the packet's `bl` (0) even then.
+      if ((message as Map<String, Object?>)['fansName'] == '') 'fansLevel': '',
+    },
 ];
 
 /// The projection legacy_expected.dart writes for 3.x's messages.
@@ -255,6 +265,43 @@ void main() {
       expect(DouyuDanmakuProtocol.isSuspectedAutomated({'if': '1'}), isFalse);
       expect(DouyuDanmakuProtocol.isSuspectedAutomated({'dms': ''}), isFalse);
     });
+
+    test('a chat carries the sender level and fan medal (13f22bb58)', () {
+      List<LiveMessage> chat(String fields) => DouyuDanmakuProtocol.decode(
+        DouyuDanmakuProtocol.packet(
+          'type@=chatmsg/rid@=1/dms@=4/uid@=7/nn@=A/txt@=hi/$fields',
+          type: DouyuDanmakuProtocol.serverPacketType,
+        ),
+        roomId: '1',
+      );
+      final marked = chat('level@=42/bnn@=小僵尸/bl@=11/').single;
+      expect((marked.userLevel, marked.fansName, marked.fansLevel), ('42', '小僵尸', '11'));
+      // D07.3: no medal, no level.
+      final plain = chat('level@=3/bnn@=/bl@=0/').single;
+      expect((plain.userLevel, plain.fansName, plain.fansLevel), ('3', '', ''));
+    });
+
+    test('oni is the 贵宾 count as a chat line; another room or no count gives nothing', () {
+      List<LiveMessage> oni(String fields) => DouyuDanmakuProtocol.decode(
+        DouyuDanmakuProtocol.packet('type@=oni/$fields', type: DouyuDanmakuProtocol.serverPacketType),
+        roomId: '1',
+      );
+      final vip = oni('vn@=17000/rid@=1/list@=/').single;
+      expect((vip.type, vip.userName, vip.message, vip.color), (LiveMessageType.chat, '贵宾', '17000', LiveMessageColor.white));
+      expect(oni('vn@=17000/rid@=2/list@=/'), isEmpty);
+      expect(oni('vn@=/rid@=1/list@=/'), isEmpty);
+    });
+
+    test('newblackres is a red mute line without a sender', () {
+      List<LiveMessage> ban(String fields) => DouyuDanmakuProtocol.decode(
+        DouyuDanmakuProtocol.packet('type@=newblackres/$fields', type: DouyuDanmakuProtocol.serverPacketType),
+        roomId: '1',
+      );
+      final muted = ban('snic@=管理员/dnic@=小明/').single;
+      expect((muted.userName, muted.message, muted.color.toString()), ('', '小明 被 管理员 禁言', '#ff0000'));
+      expect(ban('snic@=管理员/'), isEmpty);
+      expect(ban('dnic@=小明/').single.message, '小明 被禁言');
+    });
   });
 
   test('D07.2: both super chats are in yuan (cprice and realPrice in fen), as the platform table says', () {
@@ -290,9 +337,24 @@ void main() {
               if (message.type != LiveMessageType.gift) {'frame': index, ..._project(message)},
       ];
       final expected = _recordedMessages;
-      expect(decoded, hasLength(147));
+      expect(decoded, hasLength(_recordedCount));
       expect(decoded, expected);
       expect(filterCalls, 0, reason: 'every recorded chat has dms or if=1');
+    });
+
+    test('the recorded chats carry their sender level and fan medal (13f22bb58)', () {
+      final chats = [
+        for (final frame in _frames)
+          if (frame.dir == 'in')
+            ...DouyuDanmakuProtocol.decode(frame.bytes, roomId: _roomId).where(
+              (message) => message.type == LiveMessageType.chat && message.messageId.isNotEmpty,
+            ),
+      ];
+      expect(chats, hasLength(147));
+      expect(chats.every((message) => message.userLevel.isNotEmpty), isTrue);
+      final medals = chats.where((message) => message.fansName.isNotEmpty);
+      expect(medals, isNotEmpty);
+      expect(medals.every((message) => message.fansLevel.isNotEmpty), isTrue);
     });
 
     test('with the filter on, 3.x kept the same chat', () {
@@ -557,9 +619,11 @@ void main() {
     /// The intentional differences (docs/D-弹幕/D01-平台弹幕协议/D01.3-斗鱼弹幕/record.md), applied to
     /// 3.x's output of the case they concern.
     final differences = <String, List<Map<String, Object?>> Function(List<Map<String, Object?>>)>{
-      // 3.x ignored gifts (`dgb`); they are reported now (M4.D).
+      // 3.x ignored gifts (`dgb`); they are reported now (M4.D). Its 贵宾
+      // line (`oni`, 13f22bb58) stays.
       'other packet types are ignored': (legacy) {
-        expect(legacy, isEmpty);
+        expect(legacy.single['userName'], '贵宾');
+        expect(legacy.single['message'], '1');
         return [
           {
             'type': 'gift',
@@ -575,6 +639,7 @@ void main() {
             'isLocal': false,
             'data': {'id': '824', 'name': 'x', 'count': 1, 'combo': 0, 'receiver': ''},
           },
+          ...legacy,
         ];
       },
       // 3.x turned a pandora box notice into a super chat of 0 yuan.
@@ -696,7 +761,7 @@ void main() {
       for (final frame in _frames) {
         if (frame.dir == 'in') channel.incoming.add(frame.bytes);
       }
-      await _until(() => _messages(events).length == 147);
+      await _until(() => _messages(events).length == _recordedCount);
       expect(_messages(events).map(_project), [for (final message in _recordedMessages) message..remove('frame')]);
       await connection.close();
     });
@@ -927,7 +992,7 @@ void main() {
       );
       final events = _record(connection);
       await connection.connect(_args);
-      await _until(() => _messages(events).length == 147);
+      await _until(() => _messages(events).length == _recordedCount);
       expect(requested, [DouyuDanmakuProtocol.endpoint]);
       expect(received, DouyuDanmakuProtocol.joinPackets(_roomId));
       expect(_messages(events).map(_project), [for (final message in _recordedMessages) message..remove('frame')]);

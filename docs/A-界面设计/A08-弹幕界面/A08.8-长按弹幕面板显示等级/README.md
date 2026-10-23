@@ -14,7 +14,7 @@
 ## 3.x 的样子和问题
 
 - 3.x：`git show v3.2.11:lib/modules/live_play/widgets/danmaku/danmaku_message_actions.dart:17-20`：底部面板第一行 `ListTile`，标题“用户名: 内容”，`message.userLevel` 不为空时副标题 “Lv.N”。
-- 4.x 现在：`apps/pure_live/lib/features/live_play/danmaku/message_panel.dart:112-150`（`_actions`）只有一张“用户名：内容”卡片，没有等级。`LiveMessage.userLevel`（`packages/live_core/lib/src/live_message.dart:323`，字符串，默认空）在 8 个平台的弹幕里有值：BIGO、SHOWROOM、Kick、克拉克拉、酷狗、猫耳、LOOK、17LIVE（`packages/live_danmaku/lib/src/sites/`）。
+- 4.x 现在：`apps/pure_live/lib/features/live_play/danmaku/message_panel.dart:112-150`（`_actions`）只有一张“用户名：内容”卡片，没有等级。`LiveMessage.userLevel`（`packages/live_core/lib/src/live_message.dart:323`，字符串，默认空）在 9 个平台的弹幕里有值：BIGO、SHOWROOM、Kick、克拉克拉、酷狗、猫耳、LOOK、17LIVE、斗鱼（`packages/live_danmaku/lib/src/sites/`）。
 
 ## 设计
 

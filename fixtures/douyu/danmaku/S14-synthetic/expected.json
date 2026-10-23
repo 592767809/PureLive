@@ -621,7 +621,22 @@
     },
     {
       "name": "other packet types are ignored",
-      "messages": []
+      "messages": [
+        {
+          "type": "chat",
+          "userName": "贵宾",
+          "userId": "",
+          "message": "1",
+          "color": "#ffffff",
+          "messageId": "",
+          "sentAt": null,
+          "userLevel": "",
+          "fansLevel": "",
+          "fansName": "",
+          "isLocal": false,
+          "data": null
+        }
+      ]
     }
   ]
 }
