@@ -13,3 +13,6 @@
 | 合并发布 | 本轮只提交 PR；未发布前保留 issue 开放，#14/#15 不标为修复 |
 
 实现可供审查，物理设备验收和发版尚未完成。
+
+
+2026-10-23 原生构建：Apple run 39964303651 在 Swift 编译失败，PlayerDeviceControls.swift 两处把 FlutterPluginRegistrar.viewController 写成函数调用。Xcode 明确将其导入为 UIViewController? 属性；已改为 registrar.viewController 的属性访问，不改通道行为。修正后的原生构建与启动必须重验，旧失败日志保存在本机；推送前完整门禁照常重新执行。

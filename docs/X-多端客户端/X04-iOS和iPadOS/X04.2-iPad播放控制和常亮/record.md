@@ -15,3 +15,6 @@ iOS 加入 DeviceControls，公开 UIScreen、AVAudioSession、MPVolumeView 原�
 ## 停在哪
 
 实现与定向回归完成，未发布；真机步骤见 verify.md。推送前必须运行完整门禁，提交后 Apple 原生编译和模拟器启动结果附在 PR 与本机回执；此记录不预先声称通过。未操作正式安装、原始 Claude 目录或用户账号。
+
+
+2026-10-23 原生构建：Apple run 39964303651 在 Swift 编译失败，PlayerDeviceControls.swift 两处把 FlutterPluginRegistrar.viewController 写成函数调用。Xcode 明确将其导入为 UIViewController? 属性；已改为 registrar.viewController 的属性访问，不改通道行为。修正后的原生构建与启动必须重验，旧失败日志保存在本机；推送前完整门禁照常重新执行。

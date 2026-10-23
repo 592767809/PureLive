@@ -35,7 +35,7 @@ final class PlayerDeviceControls {
   }
 
   private var screen: UIScreen {
-    registrar.viewController()?.viewIfLoaded?.window?.windowScene?.screen ?? UIScreen.main
+    registrar.viewController?.viewIfLoaded?.window?.windowScene?.screen ?? UIScreen.main
   }
 
   func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -79,7 +79,7 @@ final class PlayerDeviceControls {
   }
 
   private func setVolume(_ value: Float, result: @escaping FlutterResult) {
-    guard let host = registrar.viewController()?.view else {
+    guard let host = registrar.viewController?.view else {
       result(FlutterError(code: "volume_unavailable", message: "The player window is unavailable", details: nil))
       return
     }
