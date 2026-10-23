@@ -5148,7 +5148,7 @@ tier = 1
 branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/23"
 note = "全屏 PlayerView 和 RoomPanelKind 没有醒目留言入口；原 SuperChatList 仅在聊天区打开。控制器已提供活动 superChats 和最多 500 条会话历史。 全屏有活动留言时显示 SC 入口，最后一条过期后入口隐藏；复用同一列表和关闭链，退出全屏也能关闭；提供默认开启的显示开关，不改变 D-044 会话历史范围。"
-commit = "43493040284432b782109e3409c271b3e22e8cdc"
+commit = "d01532721a4281f5b884589437166e95e71f62b4"
 
 [[task]]
 id = "X04.2"
@@ -5216,7 +5216,7 @@ branch = "ai/V02.21"
 from = "https://github.com/wzgrx/PureLive/issues/23"
 note = "全屏 PlayerView 和 RoomPanelKind 没有醒目留言入口；原 SuperChatList 仅在聊天区打开。控制器已提供活动 superChats 和最多 500 条会话历史。 全屏有活动留言时显示 SC 入口，最后一条过期后入口隐藏；复用同一列表和关闭链，退出全屏也能关闭；提供默认开启的显示开关，不改变 D-044 会话历史范围。"
 to = ["A07.26"]
-commit = "43493040284432b782109e3409c271b3e22e8cdc"
+commit = "d01532721a4281f5b884589437166e95e71f62b4"
 
 [[task]]
 id = "V02.24"
