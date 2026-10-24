@@ -59,6 +59,7 @@ final class WallGeometry {
     final shapes = switch (layout) {
       MultiviewLayout.single => const [(1, 1)],
       MultiviewLayout.dual => const [(1, 2), (2, 1)],
+      MultiviewLayout.vertical => const [(1, 4)],
       _ => const [(2, 2)],
     };
     (double, int, int)? best;

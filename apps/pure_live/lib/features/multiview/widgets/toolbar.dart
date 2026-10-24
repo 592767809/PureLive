@@ -5,7 +5,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/multiview/logic/multiview_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
 
-/// The four layouts (3.x's segmented button, docs/A-界面设计/A13-网络电视和多画面界面/A13.2-多画面 c10): the
+/// The layouts (3.x's segmented button, docs/A-界面设计/A13-网络电视和多画面界面/A13.2-多画面 c10): the
 /// words alone on phones, with 3.x's icons on wide screens ([icons]).
 class LayoutSegments extends StatelessWidget {
   /// Creates the segments.
@@ -25,8 +25,9 @@ class LayoutSegments extends StatelessWidget {
   /// shrinking below 12.
   final bool dense;
 
-  /// The width of the four segments without [icons] and not [dense]: each
-  /// is a text button's 64 less the density's 8 (the words fit inside).
+  /// The width of the original four segments without [icons] and not [dense]: each
+  /// is a text button's 64 less the density's 8. The added vertical option
+  /// scrolls into view on narrow screens without shrinking the original four.
   static const double width = 4 * (64.0 - 8);
 
   static const List<(MultiviewLayout, IconData, String)> _layouts = [
@@ -34,6 +35,7 @@ class LayoutSegments extends StatelessWidget {
     (MultiviewLayout.dual, AppIcons.layoutDual, '1×2'),
     (MultiviewLayout.quad, AppIcons.layoutQuad, '2×2'),
     (MultiviewLayout.focus, AppIcons.layoutFocus, '1+3'),
+    (MultiviewLayout.vertical, AppIcons.layoutVertical, '1×4'),
   ];
 
   @override

@@ -18,6 +18,28 @@ Future<void> _settle() => Future<void>.delayed(const Duration(milliseconds: 20))
 void main() {
   setUpAll(loadStrings);
 
+  test('issue #32: vertical keeps room sessions, audio choice and persisted layout', () async {
+    final store = await memoryStore();
+    final controller = multiviewController(store, RoomsSite());
+    await controller.start();
+    for (var i = 0; i < 4; i++) {
+      await controller.assign(i, pickRoom('$i'));
+    }
+    final sessions = controller.cells.map((cell) => cell.session).toList();
+    final audio = controller.audioIndex;
+    await controller.setLayout(MultiviewLayout.vertical);
+    expect(controller.cells.map((cell) => cell.session), sessions);
+    expect(controller.audioIndex, audio);
+    await Future<void>.delayed(const Duration(seconds: 1));
+    controller.dispose();
+    final restored = multiviewController(store, RoomsSite());
+    await restored.start();
+    expect(restored.layout, MultiviewLayout.vertical);
+    expect(restored.savedRooms.whereType<LiveRoom>(), hasLength(4));
+    restored.dispose();
+    await store.close();
+  });
+
   test('a picked room plays, becomes the sound and the others stay silent', () async {
     final store = await memoryStore();
     await store.settings.set(Settings.roomVolumes, {roomVolumeKey(SiteIds.bilibili, '2'): 0.4});

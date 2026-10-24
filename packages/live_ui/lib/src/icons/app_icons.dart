@@ -628,6 +628,9 @@ abstract final class AppIcons {
   /// Four views (2×2).
   static const IconData layoutQuad = Remix.layout_grid_line;
 
+  /// Four pictures stacked vertically.
+  static const IconData layoutVertical = Remix.layout_row_line;
+
   /// One large view and small ones (1+3).
   static const IconData layoutFocus = Remix.focus_3_line;
 
