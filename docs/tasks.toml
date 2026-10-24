@@ -5694,3 +5694,14 @@ size = "小"
 tier = 1
 branch = "ai/V02.34"
 from = "https://github.com/wzgrx/PureLive/issues/42"
+
+[[task]]
+id = "Z02.6"
+title = "Apple 原生小样有界退出与精确包独立复核"
+type = "工程"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/Z02.6"
+from = "5.4.13 Apple 原生小样成功后退出清理挂起"
+note = "仅修改验证工作流；正式包继续固定 ae2be3c，已有构建产物不重签、不重建；追加独立精确包复核，取消状态不得写成整次 CI 通过。"

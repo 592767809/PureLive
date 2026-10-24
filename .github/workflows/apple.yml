@@ -25,6 +25,14 @@ on:
         description: Start the iOS app in the simulator and take a screenshot
         type: boolean
         default: true
+      verify_run_id:
+        description: Existing build run to verify without rebuilding (empty builds normally)
+        type: string
+        default: ''
+      verify_source_sha:
+        description: Exact source SHA required when verifying an existing run
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -40,6 +48,7 @@ defaults:
 jobs:
   apple:
     name: Apple
+    if: ${{ inputs.verify_run_id == '' }}
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -245,7 +254,16 @@ jobs:
             if kill -0 "$owned_pid" 2>/dev/null; then
               actual=$(ps -ww -p "$owned_pid" -o command= | sed 's/^[[:space:]]*//')
               [[ "$actual" = "$binary" ]] || { echo 'Native smoke process identity changed'; return 1; }
-              kill -TERM "$owned_pid"
+              kill -TERM "$owned_pid" 2>/dev/null || true
+              for attempt in $(seq 1 5); do
+                kill -0 "$owned_pid" 2>/dev/null || break
+                sleep 1
+              done
+              if kill -0 "$owned_pid" 2>/dev/null; then
+                actual=$(ps -ww -p "$owned_pid" -o command= | sed 's/^[[:space:]]*//')
+                [[ "$actual" = "$binary" ]] || { echo 'Native smoke process identity changed'; return 1; }
+                kill -KILL "$owned_pid" 2>/dev/null || true
+              fi
               wait "$owned_pid" 2>/dev/null || true
             fi
           }
@@ -286,7 +304,7 @@ jobs:
   macos-package-check:
     name: Exact Mac package startup (${{ matrix.replica }})
     needs: apple
-    if: ${{ inputs.macos }}
+    if: ${{ always() && inputs.macos && (needs.apple.result == 'success' || inputs.verify_run_id != '') }}
     runs-on: macos-15
     timeout-minutes: 15
     permissions:
@@ -301,9 +319,15 @@ jobs:
       - name: Download this run's exact packages
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ github.run_id }}
+          RUN_ID: ${{ inputs.verify_run_id || github.run_id }}
+          EXPECTED_SOURCE: ${{ inputs.verify_source_sha || github.sha }}
         run: |
           set -euo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$EXPECTED_SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          actual_source=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID" --jq .head_sha)
+          test "$actual_source" = "$EXPECTED_SOURCE"
+          printf 'build_run_id=%s\nsource_commit=%s\n' "$RUN_ID" "$actual_source" > build-identity.txt
           gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern '*-apple' --dir packages
           dir=$(dirname "$(find packages -name SHA256SUMS.txt -print -quit)")
           (cd "$dir" && shasum -a 256 -c SHA256SUMS.txt)
@@ -313,6 +337,7 @@ jobs:
           archives=(packages/*/PureLive-*-macos-universal.zip)
           test "${#archives[@]}" = 1
           bash tools/release/verify_macos_startup.sh "${archives[0]}" package-shots
+          cp build-identity.txt package-shots/
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ always() }}
         with:
