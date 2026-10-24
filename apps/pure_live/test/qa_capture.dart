@@ -4,10 +4,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Optional synthetic widget frames for a local review, never a device claim.
-Future<void> captureQaFrame(WidgetTester tester, String name) async {
+/// Loads optional review fonts before the widgets create their paragraphs.
+/// Functional tests without PURELIVE_QA_DIR keep the standard test fonts.
+Future<void> prepareQaFonts(WidgetTester tester) async {
   final folder = Platform.environment['PURELIVE_QA_DIR'];
   if (folder == null || folder.isEmpty) return;
   final font = Platform.environment['PURELIVE_QA_FONT'];
@@ -27,7 +29,29 @@ Future<void> captureQaFrame(WidgetTester tester, String name) async {
     });
     await tester.pump();
   }
+}
+
+/// Optional synthetic widget frames for a local review, never a device claim.
+Future<void> captureQaFrame(WidgetTester tester, String name) async {
+  final folder = Platform.environment['PURELIVE_QA_DIR'];
+  if (folder == null || folder.isEmpty) return;
+  await prepareQaFonts(tester);
   await tester.pump();
+  if (Platform.environment['PURELIVE_QA_FONT']?.isNotEmpty ?? false) {
+    // The TV's inherited styles do not name a family. Use the loaded
+    // review font for inherited text, preserving explicit icon families.
+    // This affects only optional synthetic frames, never app font choices.
+    for (final element in find.byType(RichText).evaluate()) {
+      final paragraph = element.renderObject! as RenderParagraph;
+      if (paragraph.text.style?.fontFamily == null) {
+        paragraph.text = TextSpan(
+          style: const TextStyle(fontFamily: 'Roboto'),
+          children: [paragraph.text],
+        );
+      }
+    }
+    await tester.pump();
+  }
   final view = tester.binding.renderViews.first;
   final layer = view.debugLayer! as OffsetLayer;
   await tester.runAsync(() async {
