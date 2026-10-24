@@ -192,6 +192,9 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   /// empty one, else one that failed or is offline, else the selected one
   /// (its room is replaced, "第 1 格换台").
   int get _targetIndex {
+    // A cell panel's direct picker replaces that cell, even while another
+    // cell is empty or a previous picker had a different target.
+    if (_cellPickerVisible) return _selectedIndex;
     final cells = _controller.cells;
     final chosen = cells.indexWhere((cell) => cell.id == _targetId);
     if (chosen >= 0) return chosen;
@@ -202,6 +205,10 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     return _selectedIndex;
   }
 
+  /// A side panel or a wide upright panel keeps the picker below volume.
+  /// Compact upright phones retain the shorter controls-only sheet.
+  bool get _cellPickerVisible => _overlay == _Overlay.cell && _arrangement != _Arrangement.portrait;
+
   /// The picker is on screen (its target cell gets the dashed frame).
   bool get _pickerVisible => switch (_mode) {
     _DisplayMode.normal => switch (_arrangement) {
@@ -209,7 +216,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
       _Arrangement.wide => !_folded && _overlay != _Overlay.danmaku,
       _Arrangement.landscape => !_folded && _overlay != _Overlay.danmaku && (_columnPicker || !_hasSelection),
     },
-    _ => _overlay == _Overlay.picker,
+    _ => _overlay == _Overlay.picker || _cellPickerVisible,
   };
 
   int? _shownIn(LiveRoom room) {
@@ -237,7 +244,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
       // A landscape phone keeps picking while cells are empty, then shows
       // the controls.
       _columnPicker = _controller.cells.any((other) => other.stage == CellStage.empty);
-      if (_overlay == _Overlay.picker) _overlay = _Overlay.none;
+      if (_overlay == _Overlay.picker || _cellPickerVisible) _overlay = _Overlay.none;
     });
   }
 
@@ -246,7 +253,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     setState(() {
       _selectedId = cell.id;
       _columnPicker = false;
-      if (_overlay == _Overlay.picker) _overlay = _Overlay.none;
+      if (_overlay == _Overlay.picker || _cellPickerVisible) _overlay = _Overlay.none;
     });
     if (!cell.playing) return;
     if (_controller.layout == MultiviewLayout.focus) {
@@ -694,18 +701,28 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     );
   }
 
-  Widget _controlsAndPicker({bool compact = false}) {
-    final selection = _hasSelection;
-    return Column(
+  Widget _controlsAndPicker({bool compact = false, bool scrollControls = false}) => LayoutBuilder(
+    builder: (context, constraints) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (selection) ...[_controls(compact: compact), const Divider(height: 1)],
+        if (_hasSelection) ...[
+          if (scrollControls)
+            // Leave room for direct selection in short windows or large
+            // text. Both regions retain their own scrolling controls.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: constraints.maxHeight / 2),
+              child: SingleChildScrollView(child: _controls(compact: compact)),
+            )
+          else
+            _controls(compact: compact),
+          const Divider(height: 1),
+        ],
         Expanded(
           child: MultiviewRoomPicker(shownIn: _shownIn, onPicked: _pick, header: _pickerHeader()),
         ),
       ],
-    );
-  }
+    ),
+  );
 
   Widget _controls({required bool compact}) {
     final index = _selectedIndex;
@@ -864,7 +881,9 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
         dragToClose: !side,
         borderRadius: _panelRadius(side: side),
         onClose: close,
-        child: SingleChildScrollView(child: _controls(compact: true)),
+        child: _cellPickerVisible
+            ? _controlsAndPicker(compact: true, scrollControls: true)
+            : SingleChildScrollView(child: _controls(compact: true)),
       ),
       _Overlay.picker || _Overlay.none => RoomSidePanel(
         key: const ValueKey('multiview-picker-panel'),
@@ -878,7 +897,9 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     if (side) {
       return Positioned(top: 0, bottom: 0, right: 0, width: math.min(_columnWidth, size.width / 2), child: panel);
     }
-    final height = _overlay == _Overlay.cell ? math.min<double>(320, size.height * 0.6) : size.height * 0.55;
+    final height = _overlay == _Overlay.cell && !_cellPickerVisible
+        ? math.min<double>(320, size.height * 0.6)
+        : size.height * 0.55;
     return Positioned(left: 0, right: 0, bottom: 0, height: height, child: panel);
   }
 

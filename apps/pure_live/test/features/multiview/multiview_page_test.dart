@@ -2,7 +2,10 @@
 // windows; the order, icons and places of its controls; the cells' states;
 // UI_PLAN appendix A 7 (Back and Esc) and 13 (tap, 1+3, long press, empty
 // cells).
+import 'dart:io' as io;
+
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -41,6 +44,16 @@ Future<(AppServices, RoomsSite)> _pump(
   List<Override> overrides = const [],
   LiveFontSizes fontSizes = const LiveFontSizes(),
 }) async {
+  await prepareQaFonts(tester);
+  String? reviewFamily;
+  final reviewFont = io.Platform.environment['PURELIVE_QA_FONT'];
+  if (io.Platform.environment['PURELIVE_QA_DIR'] != null && reviewFont != null && reviewFont.isNotEmpty) {
+    reviewFamily = 'PureLiveQaCjk';
+    await tester.runAsync(() async {
+      final data = ByteData.sublistView(await io.File(reviewFont).readAsBytes());
+      await (FontLoader(reviewFamily!)..addFont(Future.value(data))).load();
+    });
+  }
   tester.view
     ..physicalSize = size
     ..devicePixelRatio = 1;
@@ -63,8 +76,9 @@ Future<(AppServices, RoomsSite)> _pump(
         ...overrides,
       ],
       child: MaterialApp(
-        theme: LiveTheme(fontSizes: fontSizes).light,
-        darkTheme: LiveTheme(fontSizes: fontSizes).dark,
+        debugShowCheckedModeBanner: false,
+        theme: LiveTheme(fontSizes: fontSizes, fontFamily: reviewFamily).light,
+        darkTheme: LiveTheme(fontSizes: fontSizes, fontFamily: reviewFamily).dark,
         themeMode: theme,
         home: const MultiviewPage(route: RouteArgs(RoutePath.kMultiview)),
       ),
@@ -107,6 +121,131 @@ void _expectLeftToRight(WidgetTester tester, List<String> keys) {
 }
 
 void main() {
+  for (final mode in ['immersive', 'fullscreen']) {
+    for (final theme in [ThemeMode.light, ThemeMode.dark]) {
+      testWidgets('issue #43: direct picker targets the right-clicked cell in $mode, ${theme.name}', (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        final (services, _) = await _pump(tester, const Size(1280, 800), theme: theme);
+        try {
+          await _pick(tester, '1');
+          await _pick(tester, '2');
+          await tester.tap(_key('multiview-cell-1'));
+          await _wait(tester);
+          final firstSession = _cellView(tester, 1).cell.session;
+          final firstVolume = _cellView(tester, 1).cell.volume;
+          await tester.tap(_key('multiview-$mode'));
+          await _wait(tester);
+          await tester.tap(_key('multiview-cell-2'), buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+          await _wait(tester);
+          await captureQaFrame(tester, 'multiview-direct-$mode-${theme.name}');
+          expect(_key('multiview-cell-panel'), findsOneWidget);
+          expect(
+            _key('multiview-picker-search'),
+            findsOneWidget,
+            reason: 'pick directly below volume, without another icon',
+          );
+          expect(find.text('第 2 格换台'), findsOneWidget, reason: 'do not target empty cell 3');
+          expect(_inCell(3, _key('multiview-pick-frame')), findsNothing);
+          expect(_inCell(1, _key('multiview-audio-badge')), findsOneWidget, reason: 'right click keeps audio focus');
+          expect(
+            tester.getBottomLeft(_key('multiview-volume-slider')).dy,
+            lessThan(tester.getTopLeft(_key('multiview-picker-title')).dy),
+          );
+          await _pick(tester, '3');
+          expect(_cellView(tester, 2).cell.room!.roomId, '3');
+          expect(_cellView(tester, 3).cell.stage, CellStage.empty);
+          expect(_cellView(tester, 1).cell.session, same(firstSession));
+          expect(_cellView(tester, 1).cell.volume, firstVolume);
+          expect(_key('multiview-cell-panel'), findsNothing);
+          expect(_key('multiview-$mode-exit'), findsOneWidget, reason: 'selection keeps the viewing mode');
+          await tester.tap(_key('multiview-cell-2'), buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+          await _wait(tester);
+          await _pick(tester, '1');
+          expect(
+            _cellView(tester, 2).cell.room!.roomId,
+            '3',
+            reason: 'an already-shown room is selected, not duplicated',
+          );
+          expect(_cellView(tester, 1).cell.session, same(firstSession));
+          expect(_inCell(1, _key('multiview-audio-badge')), findsOneWidget);
+          expect(_key('multiview-cell-panel'), findsNothing);
+          await tester.tap(_key('multiview-cell-2'), buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+          await _wait(tester);
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await _wait(tester);
+          expect(_key('multiview-cell-panel'), findsNothing);
+          expect(_key('multiview-$mode-exit'), findsOneWidget);
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+          await _wait(tester);
+          expect(find.text('多画面'), findsOneWidget);
+          expect(tester.takeException(), isNull);
+        } finally {
+          await _close(tester, services);
+          debugDefaultTargetPlatformOverride = null;
+        }
+      });
+    }
+  }
+
+  testWidgets('issue #43: direct picker remains reachable in a short panel with large text', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    const largest = LiveFontSizes(bodySmall: 15, bodyMedium: 17, bodyLarge: 18, titleMedium: 20, titleLarge: 26);
+    final (services, _) = await _pump(tester, const Size(740, 360), fontSizes: largest);
+    try {
+      await _pick(tester, '1');
+      await tester.tap(_key('multiview-immersive'));
+      await _wait(tester);
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      await tester.pump();
+      await tester.tap(_key('multiview-cell-1'), buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+      await _wait(tester);
+      expect(_key('multiview-picker-search'), findsOneWidget);
+      await tester.ensureVisible(_key('multiview-volume-slider'));
+      await _wait(tester);
+      expect(_key('multiview-volume-slider').hitTestable(), findsOneWidget);
+      final percent = tester.renderObject<RenderParagraph>(_key('multiview-volume-value'));
+      final percentStyle = percent.text.style!;
+      expect(
+        percent.size.height,
+        lessThanOrEqualTo(percent.textScaler.scale(percentStyle.fontSize!) * (percentStyle.height ?? 1.5) + 1),
+        reason: 'the volume percentage stays on one line with two-times system text',
+      );
+      await captureQaFrame(tester, 'multiview-direct-short-large');
+      await _pick(tester, '3');
+      expect(_cellView(tester, 1).cell.room!.roomId, '3');
+      expect(_cellView(tester, 2).cell.stage, CellStage.empty);
+      expect(tester.takeException(), isNull);
+    } finally {
+      await _close(tester, services);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('issue #43: a wide upright window keeps both controls and the direct picker', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final (services, _) = await _pump(tester, const Size(1080, 1920));
+    try {
+      await _pick(tester, '1');
+      await tester.tap(_key('multiview-fullscreen'));
+      await _wait(tester);
+      await tester.tap(_key('multiview-cell-1'), buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+      await _wait(tester);
+      expect(_key('multiview-picker-search'), findsOneWidget);
+      expect(
+        tester.getBottomLeft(_key('multiview-volume-slider')).dy,
+        lessThan(tester.getTopLeft(_key('multiview-picker-title')).dy),
+      );
+      await captureQaFrame(tester, 'multiview-direct-upright');
+      await _pick(tester, '3');
+      expect(_cellView(tester, 1).cell.room!.roomId, '3');
+      expect(tester.takeException(), isNull);
+    } finally {
+      await _close(tester, services);
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   testWidgets('issue #32: choose vertical, keep sessions on resize and enter fullscreen', (tester) async {
     final (services, _) = await _pump(tester, const Size(1080, 1920));
     await _pick(tester, '1');
@@ -699,7 +838,10 @@ void main() {
     await _wait(tester);
     final panel = tester.getRect(_key('multiview-cell-panel'));
     expect(panel, const Rect.fromLTRB(852 - 360, 0, 852, 393));
-    expect(find.descendant(of: _key('multiview-cell-panel'), matching: find.text('第 1 格')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.descendant(of: _key('multiview-cell-panel'), matching: _key('room-panel-title'))).data,
+      '第 1 格',
+    );
     expect(
       find.descendant(of: _key('multiview-cell-panel'), matching: _key('multiview-control-close')),
       findsOneWidget,
