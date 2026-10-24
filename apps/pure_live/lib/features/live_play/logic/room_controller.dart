@@ -19,6 +19,7 @@ import 'package:pure_live/platform/system_access.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/danmaku/gift_flights.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
+import 'package:pure_live/shared/rooms/playback_diagnostics.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// Where the room page is (3.x kept `isLoading`, `success`, `isLiving` and
@@ -405,7 +406,14 @@ class LiveRoomController extends ChangeNotifier {
   /// G02.2: one app log line per recovery attempt of the session, with its
   /// count and the failure's code (no address, no headers), also on logcat:
   /// `playback: recovering #2 buffering_stall_timeout`.
+  final _failureDiagnostics = PlaybackFailureDiagnostics();
+
   void _logRecovery(PlaybackState state) {
+    final failure = _failureDiagnostics.update(state);
+    if (failure != null) {
+      final line = 'playback-engine-failure site=${site.id} room=${roomTag(_room.platform, _room.roomId)} $failure';
+      AppLog.instance.warning('playback', line);
+    }
     final attempt = state.recovery;
     if (attempt > _loggedRecovery) {
       final line = 'recovering #$attempt ${state.recoveryCause ?? '-'}';

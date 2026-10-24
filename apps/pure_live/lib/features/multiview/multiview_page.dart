@@ -546,8 +546,8 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
           child: LayoutBuilder(
             builder: (context, box) => Align(
               alignment: AlignmentDirectional.centerStart,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
                 child: LayoutSegments(
                   controller: _controller,
                   icons: icons,

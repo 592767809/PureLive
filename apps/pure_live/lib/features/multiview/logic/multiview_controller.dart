@@ -30,20 +30,27 @@ enum MultiviewLayout {
   quad,
 
   /// One large view and a column of small ones (grows on desktop).
-  focus;
+  focus,
+
+  /// Four equal pictures from top to bottom, including on a landscape window.
+  vertical;
 
   /// Cells the layout starts with.
   int get capacity => switch (this) {
     MultiviewLayout.single => 1,
     MultiviewLayout.dual => 2,
-    MultiviewLayout.quad || MultiviewLayout.focus => 4,
+    MultiviewLayout.quad || MultiviewLayout.focus || MultiviewLayout.vertical => 4,
   };
 
   /// Columns of the plain grid.
-  int get columns => this == MultiviewLayout.single ? 1 : 2;
+  int get columns => this == MultiviewLayout.single || this == MultiviewLayout.vertical ? 1 : 2;
 
   /// Rows of the plain grid.
-  int get rows => this == MultiviewLayout.quad || this == MultiviewLayout.focus ? 2 : 1;
+  int get rows => switch (this) {
+    MultiviewLayout.vertical => 4,
+    MultiviewLayout.quad || MultiviewLayout.focus => 2,
+    _ => 1,
+  };
 }
 
 /// Where a cell is (3.x `MultiviewCellStatus`; the playing state itself is

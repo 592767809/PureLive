@@ -11,6 +11,23 @@ void _expect16by9(Iterable<Rect> rects) {
 }
 
 void main() {
+  test('issue #32: four ordered 16:9 pictures in one column at every window size', () {
+    final vertical =
+        MultiviewLayout.values.where((value) => value.name == 'vertical').firstOrNull ?? MultiviewLayout.quad;
+    for (final size in [const Size(1080, 1920), const Size(1280, 800), const Size(393, 852), const Size(740, 360)]) {
+      final wall = WallGeometry.of(vertical, width: size.width, height: size.height);
+      expect(wall.cells, hasLength(4));
+      _expect16by9(wall.cells);
+      for (var index = 0; index < 4; index++) {
+        final cell = wall.cells[index];
+        expect(cell.left, wall.cells.first.left);
+        expect(cell.right, lessThanOrEqualTo(size.width));
+        expect(cell.bottom, lessThanOrEqualTo(size.height));
+        if (index > 0) expect(cell.top, greaterThan(wall.cells[index - 1].bottom));
+      }
+    }
+  });
+
   test('the most cells follow the device (UI_PLAN §9.3)', () {
     expect(multiviewMaxCells(mobile: true, processors: 16), 4);
     expect(multiviewMaxCells(mobile: false, processors: 8), MultiviewController.desktopMaxCells);

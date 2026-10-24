@@ -107,6 +107,52 @@ void _expectLeftToRight(WidgetTester tester, List<String> keys) {
 }
 
 void main() {
+  testWidgets('issue #32: choose vertical, keep sessions on resize and enter fullscreen', (tester) async {
+    final (services, _) = await _pump(tester, const Size(1080, 1920));
+    await _pick(tester, '1');
+    final session = _cellView(tester, 1).cell.session;
+    await captureQaFrame(tester, 'multiview-before-quad-portrait-monitor');
+    final vertical = _key('multiview-layout-vertical');
+    expect(vertical, findsOneWidget);
+    await tester.ensureVisible(vertical);
+    await tester.tap(vertical);
+    await _wait(tester);
+    void expectStack() {
+      for (var position = 2; position <= 4; position++) {
+        final before = tester.getRect(_key('multiview-cell-${position - 1}'));
+        final cell = tester.getRect(_key('multiview-cell-$position'));
+        expect(cell.left, before.left);
+        expect(cell.top, greaterThan(before.bottom));
+      }
+      expect(_cellView(tester, 1).cell.session, same(session));
+    }
+
+    expectStack();
+    await captureQaFrame(tester, 'multiview-vertical-portrait-monitor');
+    tester.view.physicalSize = const Size(1280, 800);
+    await _wait(tester);
+    expectStack();
+    await tester.tap(_key('multiview-fullscreen'));
+    await _wait(tester);
+    expectStack();
+    expect(tester.takeException(), isNull);
+    await _close(tester, services);
+  });
+
+  testWidgets('issue #32: narrow phones can scroll to vertical without overlapping toolbar switches', (tester) async {
+    final (services, _) = await _pump(tester, const Size(360, 800));
+    final vertical = _key('multiview-layout-vertical');
+    await tester.ensureVisible(vertical);
+    await tester.tap(vertical);
+    await _wait(tester);
+    final segments = tester.widget<SegmentedButton<MultiviewLayout>>(find.byType(SegmentedButton<MultiviewLayout>));
+    expect(segments.selected, {MultiviewLayout.vertical});
+    expect(tester.getRect(vertical).right, lessThan(tester.getRect(_key('multiview-danmaku')).left));
+    expect(tester.takeException(), isNull);
+    await captureQaFrame(tester, 'multiview-vertical-narrow');
+    await _close(tester, services);
+  });
+
   testWidgets('issue #21: both bare modes keep a mute button and restore the same audio session', (tester) async {
     for (final mode in ['immersive', 'fullscreen']) {
       final (services, _) = await _pump(tester, const Size(1280, 800));
