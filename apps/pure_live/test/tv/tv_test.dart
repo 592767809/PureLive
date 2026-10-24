@@ -27,6 +27,8 @@ import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
+import 'package:pure_live/tv/widgets/tv_status.dart';
+import 'package:pure_live/tv/widgets/tv_tabs.dart';
 
 import '../features/live_play/live_play_support.dart';
 import '../qa_capture.dart';
@@ -91,6 +93,22 @@ final class _TvSite extends LiveSite {
   ];
 }
 
+/// A second followed platform without network calls.
+final class _ExtraTvSite extends LiveSite {
+  new(this.id, this.rooms);
+
+  @override
+  final String id;
+
+  @override
+  String get name => id;
+
+  final List<LiveRoom> rooms;
+
+  @override
+  Future<LiveRoom> getRoomDetail({required String roomId}) async => rooms.firstWhere((room) => room.roomId == roomId);
+}
+
 final List<String> _toasts = [];
 
 /// The app on a 1080p panel in [mode] (`uiMode`), on a device that is
@@ -103,6 +121,9 @@ Future<AppServices> _pumpApp(
   bool noticeAccepted = true,
   List<int> follows = const [],
   Set<int> offline = const {},
+  List<LiveSite> extraSites = const [],
+  List<LiveRoom> extraFollows = const [],
+  bool taggedFollows = false,
 }) async {
   tester.view
     ..physicalSize = const Size(1920, 1080)
@@ -113,15 +134,22 @@ Future<AppServices> _pumpApp(
     final settings = base.store.settings;
     await settings.set(Settings.showSplashPage, false);
     await settings.set(Settings.enableAutoCheckUpdate, false);
-    await settings.set(Settings.hotAreasList, [SiteIds.bilibili]);
+    await settings.set(Settings.hotAreasList, [SiteIds.bilibili, for (final site in extraSites) site.id]);
     await settings.set(Settings.uiMode, mode);
     await settings.set(Settings.language, '简体中文');
     if (noticeAccepted) await base.store.meta.set(TvHomePage.noticeKey, '1');
   });
   final site = _TvSite(rooms, offline: offline);
   await tester.runAsync(() async {
-    for (final n in follows) {
-      await base.store.follows.add(site.room(n));
+    final rooms = [for (final n in follows) site.room(n), ...extraFollows];
+    for (final room in rooms) {
+      await base.store.follows.add(room);
+    }
+    if (taggedFollows) {
+      final tag = (await base.store.tags.add('回归分组'))!;
+      for (final room in rooms) {
+        await base.store.tags.setTagsOf(room, [tag.id]);
+      }
     }
   });
   final services = AppServices(
@@ -130,7 +158,7 @@ Future<AppServices> _pumpApp(
     http: base.http,
     proxy: base.proxy,
     cookies: base.cookies,
-    sites: SiteRegistry({SiteIds.bilibili: () => site}),
+    sites: SiteRegistry({SiteIds.bilibili: () => site, for (final extra in extraSites) extra.id: () => extra}),
     danmaku: base.danmaku,
     launch: base.launch,
     dataRoot: base.dataRoot,
@@ -178,6 +206,225 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('issue #35: favorites Back visits the filter, menu and exit on both channels', (tester) async {
+    await prepareQaFonts(tester);
+    final services = await _pumpApp(tester, follows: [1, 2], offline: {2});
+    addTearDown(RoomBackChannel.instance.reset);
+    Future<void> back({required bool native}) async {
+      if (native) {
+        unawaited(
+          tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+            'pure_live/predictive_back',
+            const StandardMethodCodec().encodeMethodCall(const MethodCall('backInvoked')),
+            (_) {},
+          ),
+        );
+      } else {
+        await tester.binding.handlePopRoute();
+      }
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    try {
+      for (var attempt = 0; attempt < 5 && find.byType(TvRoomCard).evaluate().isEmpty; attempt++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
+        await tester.pump(const Duration(seconds: 1));
+      }
+      expect(find.byType(TvRoomCard), findsOneWidget);
+      for (final native in [false, true]) {
+        expect(_focused, 'tv menu favorites');
+        tester.widget<TvFocusable>(find.byKey(const ValueKey('tv-tab-live'))).focusNode!.requestFocus();
+        await tester.pump(const Duration(seconds: 1));
+        expect(_focused, 'tab live');
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump(const Duration(seconds: 1));
+        expect(_focused, 'cell 0');
+        if (native) await captureQaFrame(tester, 'tv-favorites-back-cards');
+
+        await back(native: native);
+        expect(_focused, 'tab live', reason: 'first Back restores the filter instead of skipping to the menu');
+        expect(find.byType(TvRoomCard), findsOneWidget, reason: 'the live selection is retained');
+        if (native) await captureQaFrame(tester, 'tv-favorites-back-filter');
+        await back(native: native);
+        expect(_focused, 'tv menu favorites', reason: 'second Back reaches the side menu');
+        if (native) await captureQaFrame(tester, 'tv-favorites-back-menu');
+        await back(native: native);
+        expect(find.text('退出纯粹直播？'), findsOneWidget, reason: 'the pane must not steal Back from the menu');
+        await back(native: native);
+        expect(find.text('退出纯粹直播？'), findsNothing);
+        expect(_focused, 'tv menu favorites');
+      }
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  Future<void> waitForFavorite(WidgetTester tester, Finder finder) async {
+    for (var attempt = 0; attempt < 6 && finder.evaluate().isEmpty; attempt++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
+      await tester.pump(const Duration(seconds: 1));
+    }
+    expect(finder, findsWidgets);
+  }
+
+  Future<void> pageBack(WidgetTester tester) async {
+    await tester.binding.handlePopRoute();
+    await tester.pump(const Duration(seconds: 1));
+  }
+
+  Future<void> focusTab(WidgetTester tester, String id) async {
+    tester.widget<TvFocusable>(find.byKey(ValueKey('tv-tab-$id'))).focusNode!.requestFocus();
+    await tester.pump(const Duration(seconds: 1));
+  }
+
+  testWidgets('issue #35: unselected platform focus returns without changing the selected filter', (tester) async {
+    final other = LiveRoom(
+      platform: SiteIds.douyu,
+      roomId: '35',
+      title: '另一路',
+      nick: '测试主播',
+      liveStatus: LiveStatus.live,
+    );
+    final services = await _pumpApp(
+      tester,
+      follows: [1, 2],
+      offline: {2},
+      extraSites: [
+        _ExtraTvSite(SiteIds.douyu, [other]),
+      ],
+      extraFollows: [other],
+    );
+    try {
+      await waitForFavorite(tester, find.byType(TvRoomCard));
+      await focusTab(tester, SiteIds.douyu);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      expect(_focused, startsWith('cell'));
+      expect(find.byType(TvRoomCard), findsNWidgets(2));
+      final platforms = find.byWidgetPredicate(
+        (widget) => widget is TvTabBar && widget.tabs.any((tab) => tab.id == SiteIds.douyu),
+      );
+      TvTabBar bar() => tester.widget<TvTabBar>(platforms);
+      expect(bar().tabs[bar().selected].id, 'all');
+      await pageBack(tester);
+      expect(_focused, 'tab douyu');
+      expect(bar().tabs[bar().selected].id, 'all', reason: 'focusing the Douyu filter must not select it');
+      await pageBack(tester);
+      expect(_focused, 'tv menu favorites');
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue #35: offline rows return to their state and other destinations keep their Back', (tester) async {
+    final services = await _pumpApp(tester, follows: [1, 2], offline: {2});
+    try {
+      await waitForFavorite(tester, find.byType(TvRoomCard));
+      await focusTab(tester, 'offline');
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(seconds: 1));
+      await waitForFavorite(tester, find.byType(TvRoomRow));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvRoomRow>(), isNotNull);
+      await pageBack(tester);
+      expect(_focused, 'tab offline');
+      expect(find.byType(TvRoomRow), findsOneWidget);
+      await pageBack(tester);
+      expect(_focused, 'tv menu favorites');
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(seconds: 1));
+      await waitForFavorite(tester, find.byType(TvRoomCard));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      await pageBack(tester);
+      expect(_focused, 'tv menu popular', reason: 'the favorites handler must stay local to favorites');
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue #35: empty states return to the state filter when the platform row is absent', (tester) async {
+    for (final follows in <List<int>>[
+      [],
+      [2],
+    ]) {
+      final services = await _pumpApp(tester, follows: follows, offline: {2});
+      try {
+        await waitForFavorite(tester, find.byType(TvStatusView));
+        expect(find.byKey(const ValueKey('tv-follow-divider')), findsNothing);
+        final status = find.byType(TvStatusView);
+        final action = find.descendant(of: status, matching: find.byType(TvButton));
+        expect(action, findsOneWidget);
+        final text = find.descendant(of: action, matching: find.byType(Text)).first;
+        Focus.of(tester.element(text)).requestFocus();
+        await tester.pump(const Duration(seconds: 1));
+        expect(_focused, isNot('tv menu favorites'));
+        await pageBack(tester);
+        expect(_focused, 'tab live');
+        await pageBack(tester);
+        expect(_focused, 'tv menu favorites');
+        await pageBack(tester);
+        expect(find.text('退出纯粹直播？'), findsOneWidget);
+        await pageBack(tester);
+        expect(find.text('退出纯粹直播？'), findsNothing);
+      } finally {
+        await _close(tester, services);
+      }
+    }
+  });
+
+  testWidgets('issue #35: tag and card Back restore the platform header while keeping the tag', (tester) async {
+    final other = LiveRoom(
+      platform: SiteIds.douyu,
+      roomId: '35',
+      title: '另一路',
+      nick: '测试主播',
+      liveStatus: LiveStatus.live,
+    );
+    final services = await _pumpApp(
+      tester,
+      follows: [1],
+      extraSites: [
+        _ExtraTvSite(SiteIds.douyu, [other]),
+      ],
+      extraFollows: [other],
+      taggedFollows: true,
+    );
+    try {
+      await waitForFavorite(tester, find.byType(TvRoomCard));
+      final tags = (await tester.runAsync(services.store.tags.all))!;
+      final tag = tags.single;
+      await focusTab(tester, SiteIds.douyu);
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      await focusTab(tester, tag.id);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pump(const Duration(seconds: 1));
+      expect(_focused, startsWith('cell'));
+      final tagBars = find.byWidgetPredicate(
+        (widget) => widget is TvTabBar && widget.tabs.any((value) => value.id == tag.id),
+      );
+      TvTabBar tagBar() => tester.widget<TvTabBar>(tagBars);
+      await pageBack(tester);
+      expect(_focused, 'tab douyu');
+      expect(tagBar().tabs[tagBar().selected].id, tag.id);
+      await focusTab(tester, tag.id);
+      await pageBack(tester);
+      expect(_focused, 'tab douyu', reason: 'Back from the tag row also goes to the parent filter');
+      expect(tagBar().tabs[tagBar().selected].id, tag.id);
+      await pageBack(tester);
+      expect(_focused, 'tv menu favorites');
+    } finally {
+      await _close(tester, services);
+    }
+    expect(RoomBackChannel.instance.held, isFalse);
+  });
+
   testWidgets('issue #23: the TV remote opens active super chats and scroll keys never change channel', (tester) async {
     final services = await _pumpApp(tester);
     await _press(tester, LogicalKeyboardKey.arrowDown);

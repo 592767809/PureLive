@@ -12,6 +12,7 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
+import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_room_grid.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
@@ -43,6 +44,36 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
   String _platform = allPlatforms;
   String _tag = allTags;
   GlobalKey<TvTabBarState>? _lastHeader;
+  final FocusNode _bodyFocus = FocusNode(debugLabel: 'tv favorites content');
+  TvHomeHost? _host;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final host = TvHomeScope.maybeOf(context)?.host;
+    if (identical(host, _host)) return;
+    _host?.setBackHandler(TvPane.favorites, null);
+    _host = host;
+    host?.setBackHandler(TvPane.favorites, _back);
+  }
+
+  @override
+  void dispose() {
+    _host?.setBackHandler(TvPane.favorites, null);
+    _bodyFocus.dispose();
+    super.dispose();
+  }
+
+  bool _focusHeader() =>
+      (_lastHeader?.currentState?.focusRemembered() ?? false) || (_groupTabs.currentState?.focusRemembered() ?? false);
+
+  /// Back leaves the content or tag row first. The header and side menu
+  /// keep the home's next levels, including its exit confirmation.
+  bool _back() {
+    if (!(_host?.isShown(TvPane.favorites) ?? false)) return false;
+    if (!_bodyFocus.hasFocus && !(_tagTabs.currentState?.hasFocus ?? false)) return false;
+    return _focusHeader();
+  }
 
   GlobalKey<TvRoomGridState> _grid(String key) => _grids[key] ??= GlobalKey();
 
@@ -85,9 +116,6 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
         final rowsKey = _rowsKey(key);
         final offline = _group == FollowGroup.offline;
         bool enter() => offline ? rowsKey.currentState?.enter() ?? false : gridKey.currentState?.enter() ?? false;
-        bool focusHeader() =>
-            (_lastHeader?.currentState?.focusRemembered() ?? false) ||
-            (_groupTabs.currentState?.focusRemembered() ?? false);
         bool enterFrom(GlobalKey<TvTabBarState> header) {
           _lastHeader = header;
           if (_tagTabs.currentState?.focusRemembered() ?? false) return true;
@@ -96,7 +124,7 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
 
         void leaveUp() {
           if (_tagTabs.currentState?.focusRemembered() ?? false) return;
-          focusHeader();
+          _focusHeader();
         }
 
         void refresh() => unawaited(controller.refreshVisible());
@@ -194,9 +222,11 @@ class _TvFavoritesPaneState extends ConsumerState<TvFavoritesPane> {
                 onSelect: (index) => setState(() => _tag = index == 0 ? allTags : tags[index - 1].id),
                 onRefresh: refresh,
                 onDown: enter,
-                onUp: focusHeader,
+                onUp: _focusHeader,
               ),
-            Expanded(child: body),
+            Expanded(
+              child: Focus(focusNode: _bodyFocus, skipTraversal: true, canRequestFocus: false, child: body),
+            ),
           ],
         );
       },
