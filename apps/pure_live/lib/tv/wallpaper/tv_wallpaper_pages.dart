@@ -332,7 +332,11 @@ class _TvWallpaperGridPageState extends ConsumerState<TvWallpaperGridPage> {
 
   Future<void> _more() async {
     if (_loading || _end) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      // A retry must visibly replace the old failure while it is pending.
+      _error = null;
+    });
     try {
       final next = await widget.library.items(ref.read(appServicesProvider).http, widget.category.id, _page + 1);
       if (!mounted) return;

@@ -37,14 +37,10 @@ class TvSettingsGroup extends StatelessWidget {
               ),
             ),
           DecoratedBox(
-            decoration: BoxDecoration(
-              color: palette.low,
-              borderRadius: BorderRadius.circular(scale.px(TvRadius.group)),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(scale.px(4)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-            ),
+            decoration: BoxDecoration(color: palette.low, borderRadius: BorderRadius.circular(scale.px(TvRadius.card))),
+            // The inside frame fills the same width as shared settings rows;
+            // extra group padding would make the focused row look inset.
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
           ),
         ],
       ),

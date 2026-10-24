@@ -74,18 +74,19 @@ void main() {
     });
 
     testWidgets('a group in the TV look does not clip, so the focused row keeps the sides of its ring', (tester) async {
-      Clip clipOf() => tester
-          .widgetList<Material>(find.ancestor(of: find.byKey(const ValueKey('a')), matching: find.byType(Material)))
-          .firstWhere((material) => material.borderRadius == AppRadii.card)
-          .clipBehavior;
+      Material groupMaterial() => tester.widget<Material>(
+        find.descendant(of: find.byType(SettingsGroup), matching: find.byType(Material)).first,
+      );
       final group = SettingsGroup(
         title: '主题',
         children: [SettingsLinkRow(key: const ValueKey('a'), title: '主题模式', value: '跟随系统', onTap: () {})],
       );
       await _pump(tester, group);
-      expect(clipOf(), Clip.antiAlias);
+      expect(groupMaterial().clipBehavior, Clip.antiAlias);
+      expect(groupMaterial().borderRadius, AppRadii.card);
       await _pump(tester, group, tv: true);
-      expect(clipOf(), Clip.none);
+      expect(groupMaterial().clipBehavior, Clip.none);
+      expect(groupMaterial().borderRadius, AppRadii.listRow);
     });
 
     testWidgets('issue 30: a focused TV settings row keeps its full painted target inside its layout', (tester) async {

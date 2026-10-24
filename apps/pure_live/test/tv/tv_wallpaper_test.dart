@@ -21,6 +21,7 @@ import 'package:pure_live/tv/wallpaper/wallpaper_model.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_sources.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 
+import '../qa_capture.dart';
 import '../support.dart';
 
 /// A small red PNG, drawn here.
@@ -142,6 +143,7 @@ void main() {
     }
 
     Future<(AppServices, TvWallpaperStore)> pump(WidgetTester tester, Widget child) async {
+      await prepareQaFonts(tester);
       tester.view
         ..physicalSize = const Size(1920, 1080)
         ..devicePixelRatio = 2;
@@ -271,6 +273,49 @@ void main() {
       await close(tester, services);
     });
 
+    testWidgets('issue #38: failed wallpaper retry stays reachable and visibly starts a new request', (tester) async {
+      final library = _PendingLibrary();
+      const category = TvWallpaperCategory('all', 'tv_wallpaper_bing_daily');
+      final (services, _) = await pump(tester, TvWallpaperGridPage(library: library, category: category));
+      expect(library.pending, hasLength(1));
+      library.pending[0].completeError(const TransportFailure('wallpaper', TransportReason.connect));
+      await settle(tester);
+      expect(find.text('重试'), findsOneWidget);
+      bool retryFocused() => Focus.of(tester.element(find.text('重试'))).hasPrimaryFocus;
+      expect(retryFocused(), isTrue, reason: 'the asynchronously appearing action takes focus');
+      await captureQaFrame(tester, 'wallpaper-retry-failure');
+      for (final key in [
+        LogicalKeyboardKey.arrowDown,
+        LogicalKeyboardKey.arrowRight,
+        LogicalKeyboardKey.arrowUp,
+        LogicalKeyboardKey.arrowLeft,
+      ]) {
+        await tester.sendKeyEvent(key);
+        await tester.pumpAndSettle();
+        expect(retryFocused(), isTrue, reason: 'a one-action failure page must not lose its remote focus');
+      }
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(library.pending, hasLength(2));
+      expect(find.text('重试'), findsNothing, reason: 'pending retry replaces the stale failure with loading');
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      await captureQaFrame(tester, 'wallpaper-retry-loading');
+      // Repeated OK while loading never queues duplicate requests.
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      expect(library.pending, hasLength(2));
+      library.pending[1].completeError(const TransportFailure('wallpaper', TransportReason.connect));
+      await settle(tester);
+      expect(retryFocused(), isTrue, reason: 'a repeated failure restores retry focus');
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pump();
+      expect(library.pending, hasLength(3));
+      library.pending[2].complete(const []);
+      await settle(tester);
+      expect(find.text('重试'), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await close(tester, services);
+    });
+
     testWidgets('a library page takes the focus on its first picture once it loads', (tester) async {
       const category = TvWallpaperCategory('all', 'tv_wallpaper_bing_daily');
       final (services, _) = await pump(tester, const TvWallpaperGridPage(library: _Library(), category: category));
@@ -305,4 +350,24 @@ final class _Library implements TvWallpaperLibrary {
     if (page == 1)
       for (var n = 0; n < 6; n++) TvWallpaperItem(url: 'https://a.example/$n.jpg'),
   ];
+}
+
+final class _PendingLibrary implements TvWallpaperLibrary {
+  final List<Completer<List<TvWallpaperItem>>> pending = [];
+
+  @override
+  String get id => 'test';
+
+  @override
+  String get nameKey => 'tv_wallpaper_wallhaven';
+
+  @override
+  List<TvWallpaperCategory> get categories => const [];
+
+  @override
+  Future<List<TvWallpaperItem>> items(LiveHttp http, String category, int page) {
+    final next = Completer<List<TvWallpaperItem>>();
+    pending.add(next);
+    return next.future;
+  }
 }

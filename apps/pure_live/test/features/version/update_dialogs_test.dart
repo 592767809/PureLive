@@ -24,6 +24,7 @@ import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/app_prompts.dart';
 
+import '../../qa_capture.dart';
 import '../../support.dart';
 
 Map<String, Object?> _versionJson() =>
@@ -95,9 +96,11 @@ Future<_Harness> _pump(
   WidgetTester tester, {
   double width = 393,
   double height = 852,
+  bool directional = false,
   List<Override> overrides = const [],
   LiveRouteObserver? observer,
 }) async {
+  await prepareQaFonts(tester);
   tester.view
     ..physicalSize = Size(width, height)
     ..devicePixelRatio = 1;
@@ -148,6 +151,11 @@ Future<_Harness> _pump(
         config: LiveUiConfig(strings: strings.ui),
         child: MaterialApp.router(
           theme: const LiveTheme(primaryColor: Colors.blue).light,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(navigationMode: directional ? NavigationMode.directional : NavigationMode.traditional),
+            child: child!,
+          ),
           routerConfig: router,
         ),
       ),
@@ -186,6 +194,97 @@ double _x(WidgetTester tester, String text) => tester.getCenter(find.text(text))
 
 void main() {
   group('new version (U.3d c2–c5)', () {
+    for (final longNotes in [false, true]) {
+      testWidgets('issue #37: remote leaves ${longNotes ? "long" : "short"} notes and activates footer controls', (
+        tester,
+      ) async {
+        final h = await _pump(tester, width: 1280, height: 720, directional: true);
+        final info = UpdateInfo.fromJson({
+          ..._versionJson(),
+          'version': '9.0.0',
+          'version_desc': longNotes ? [for (var i = 0; i < 45; i++) '- Release note $i'].join('\n') : '- Short note',
+          'platforms': const <String, Object?>{},
+        }, platform: 'android');
+        unawaited(
+          checkForUpdateOnStartup(
+            tester.element(find.text('home')),
+            settings: h.services.store.settings,
+            feed: _FakeFeed(info: info, history: _history('9.0.0')),
+            prompts: AppPrompts(),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        bool focusedIn(String key) {
+          final focused = FocusManager.instance.primaryFocus?.context;
+          if (focused == null) return false;
+          final target = find.byKey(ValueKey(key));
+          return find
+              .descendant(of: target, matching: find.byElementPredicate((e) => e == focused))
+              .evaluate()
+              .isNotEmpty;
+        }
+
+        Future<void> press(LogicalKeyboardKey key) async {
+          await tester.sendKeyEvent(key);
+          await tester.pumpAndSettle();
+        }
+
+        final project = find.byKey(const ValueKey('new-version-open-project'));
+        Focus.of(tester.element(find.descendant(of: project, matching: find.byType(Text)).first)).requestFocus();
+        await tester.pumpAndSettle();
+        expect(focusedIn('new-version-open-project'), isTrue);
+        await press(LogicalKeyboardKey.arrowDown);
+        if (longNotes) {
+          await captureQaFrame(tester, 'update-long-notes-focus');
+          await press(LogicalKeyboardKey.arrowUp);
+          expect(focusedIn('new-version-open-project'), isTrue, reason: 'Up at the top leaves the notes');
+          await press(LogicalKeyboardKey.arrowDown);
+          final log = find.byKey(const ValueKey('new-version-log'));
+          final scroll = tester.state<ScrollableState>(
+            find.descendant(of: log, matching: find.byType(Scrollable)).first,
+          );
+          final before = scroll.position.pixels;
+          await press(LogicalKeyboardKey.arrowDown);
+          expect(scroll.position.pixels, greaterThan(before), reason: 'the remote scrolls a long changelog');
+          await press(LogicalKeyboardKey.select);
+          expect(
+            find.byKey(const ValueKey('new-version-dialog')),
+            findsOneWidget,
+            reason: 'OK in the notes cannot install',
+          );
+        }
+        final footer = ['new-version-skip', 'new-version-details', 'new-version-cancel', 'new-version-update'];
+        for (var i = 0; i < 80 && !footer.any(focusedIn); i++) {
+          await press(LogicalKeyboardKey.arrowDown);
+        }
+        expect(footer.any(focusedIn), isTrue, reason: 'Down must leave the notes and reach a visible action');
+
+        Focus.of(tester.element(find.text('不再提醒这个版本'))).requestFocus();
+        await tester.pumpAndSettle();
+        await press(LogicalKeyboardKey.select);
+        expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+        expect(h.services.store.settings.get(Settings.skippedUpdateVersion), info.skipToken);
+        await press(LogicalKeyboardKey.select);
+        expect(h.services.store.settings.get(Settings.skippedUpdateVersion), '');
+
+        // The two neighbouring action keys remain reachable and OK acts on the focused one.
+        Focus.of(tester.element(find.text('取消'))).requestFocus();
+        await tester.pumpAndSettle();
+        await press(LogicalKeyboardKey.arrowLeft);
+        expect(focusedIn('new-version-details'), isTrue);
+        await press(LogicalKeyboardKey.arrowRight);
+        expect(focusedIn('new-version-cancel'), isTrue);
+        await press(LogicalKeyboardKey.arrowRight);
+        expect(focusedIn('new-version-update'), isTrue);
+        await captureQaFrame(tester, longNotes ? 'update-long-download-focus' : 'update-short-download-focus');
+        await press(LogicalKeyboardKey.arrowLeft);
+        await press(LogicalKeyboardKey.select);
+        expect(find.byKey(const ValueKey('new-version-dialog')), findsNothing);
+        expect(h.opened, isEmpty);
+      });
+    }
+
     testWidgets('title, installed version, the link that keeps the dialog, notes, buttons in order', (tester) async {
       final h = await _pump(tester);
       final context = tester.element(find.text('home'));
