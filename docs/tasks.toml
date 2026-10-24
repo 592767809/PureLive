@@ -5737,8 +5737,31 @@ commit = "3c8dd3626b9e86469e89605f03b3df68d6007da4"
 id = "V02.40"
 title = "多画面右键侧栏换台入口可发现性反馈"
 type = "功能"
-status = "受阻"
+status = "开发中"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/43"
-note = "现有图标和侧栏选台接线已核对；已回复操作位置，原 Windows 版本、缩放和侧栏截图待补充，文字入口诉求待确认。#43 保持开放。"
+note = "反馈者已确认找到图标，明确要求音量下方直接选台，与普通模式一致。接 A13.5 实现沉浸／全屏控制面板中的同一选台列表，验证目标格、布局、返回链及会话保留后发布。"
+to = ["A13.5"]
+
+[[task]]
+id = "A13.5"
+title = "接 A13.2：沉浸和全屏音量下方直接换台"
+type = "界面"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/43#issuecomment-6384805621"
+branch = "ai/A13.5"
+note = "复用普通模式的控制与选台列表。右键／长按当前格即固定替换目标，音量下方直接选关注或历史房间；保留图标入口、重复房间规则、返回链和其他格会话，窄小面板可滚动。"
+
+[[task]]
+id = "Y01.25"
+title = "5.4.14 全平台发布（构建号 5118）：多画面直接换台"
+type = "发布"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/43"
+branch = "ai/A13.5"
+note = "同一提交构建十个包，逐项门禁、正式包身份、远端哈希和各端启动分别验证。更新 JSON 最后同步，旧库历史失败例外须针对本版另获明确授权。"

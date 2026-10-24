@@ -114,6 +114,7 @@ class MultiviewCellControls extends StatelessWidget {
       _VolumeRow volume({required double lead}) => _VolumeRow(
         key: ValueKey('multiview-volume-${cell.id}'),
         lead: lead,
+        valueWidth: compact ? _VolumeRow.measuredValueWidth(context) : _VolumeRow._valueWidth,
         value: cell.volume,
         onChanged: (value) => unawaited(controller.setVolume(index, value)),
         onChangeEnd: (value) => unawaited(controller.setVolume(index, value, save: true)),
@@ -384,13 +385,37 @@ class _Buttons extends StatelessWidget {
 /// The room volume: the slider follows the finger, the room keeps the value
 /// when the finger lifts (3.x `_showVolumeSheet`).
 class _VolumeRow extends StatefulWidget {
-  const new({required this.lead, required this.value, required this.onChanged, required this.onChangeEnd, super.key});
+  const new({
+    required this.lead,
+    required this.value,
+    required this.onChanged,
+    required this.onChangeEnd,
+    this.valueWidth = _valueWidth,
+    super.key,
+  });
 
   /// The width of everything but the slider after [lead].
   static double chrome({required double lead}) => lead + _iconSize + _valueWidth;
 
   static const double _iconSize = 20;
   static const double _valueWidth = 40;
+
+  /// The largest percentage must fit the current font in a column.
+  static double measuredValueWidth(BuildContext context) {
+    final style = DefaultTextStyle.of(context).style.merge(Theme.of(context).textTheme.bodyMedium?.regular.tabular);
+    final painter = TextPainter(
+      text: TextSpan(text: '100%', style: style),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.width.ceilToDouble();
+    painter.dispose();
+    return width > _valueWidth ? width : _valueWidth;
+  }
+
+  /// The width reserved for the percentage.
+  final double valueWidth;
 
   /// The space before the icon.
   final double lead;
@@ -434,7 +459,7 @@ class _VolumeRowState extends State<_VolumeRow> {
             ),
           ),
           SizedBox(
-            width: _VolumeRow._valueWidth,
+            width: widget.valueWidth,
             child: Text(
               '${(value * 100).round()}%',
               key: const ValueKey('multiview-volume-value'),
