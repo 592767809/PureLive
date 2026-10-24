@@ -90,8 +90,8 @@ final class DouyuSite extends LiveSite
 
   static bool _off() => false;
 
-  ({String did, DouyuDescriptor descriptor, DateTime at})? _descriptor;
-  ({String did, Future<DouyuDescriptor> future})? _descriptorFetch;
+  ({({String cookie, String did}) identity, DouyuDescriptor descriptor, DateTime at})? _descriptor;
+  ({({String cookie, String did}) identity, Future<DouyuDescriptor> future})? _descriptorFetch;
   Future<void>? _renewal;
   final Map<String, String> _rids = {};
   final Map<String, PlayLease> _leases = {};
@@ -495,6 +495,10 @@ final class DouyuSite extends LiveSite
       try {
         final identity = _identity();
         final descriptor = await _descriptorFor(identity, force: attempt > 0);
+        if (_identity() != identity) {
+          last = const ApiChanged(_site, 'play identity changed while requesting its descriptor');
+          continue;
+        }
         final issuedAt = _now();
         final response = await _send(
           LiveRequest.form(
@@ -526,7 +530,7 @@ final class DouyuSite extends LiveSite
     throw last!;
   }
 
-  /// The descriptor for [identity]'s device id: reused while it is younger
+  /// The descriptor for [identity]'s cookie and device id: reused while it is younger
   /// than five minutes and usable, fetched once for concurrent callers;
   /// [force] fetches a new one (or joins a fetch already running).
   Future<DouyuDescriptor> _descriptorFor(({String cookie, String did}) identity, {bool force = false}) {
@@ -535,14 +539,15 @@ final class DouyuSite extends LiveSite
     final now = _now();
     if (!force &&
         cached != null &&
-        cached.did == did &&
+        cached.identity == identity &&
         now.difference(cached.at) < DouyuApi.descriptorLifetime &&
         cached.descriptor.usableAt(now)) {
       return Future.value(cached.descriptor);
     }
     final running = _descriptorFetch;
-    if (running != null && running.did == did) return running.future;
-    final future = () async {
+    if (running != null && running.identity == identity) return running.future;
+    late final Future<DouyuDescriptor> future;
+    future = () async {
       try {
         final response = await _send(
           LiveRequest(
@@ -552,13 +557,13 @@ final class DouyuSite extends LiveSite
           ),
         );
         final descriptor = DouyuApi.descriptor(response.text, now: _now(), status: response.status);
-        _descriptor = (did: did, descriptor: descriptor, at: _now());
+        if (_identity() == identity) _descriptor = (identity: identity, descriptor: descriptor, at: _now());
         return descriptor;
       } finally {
-        if (_descriptorFetch?.did == did) _descriptorFetch = null;
+        if (identical(_descriptorFetch?.future, future)) _descriptorFetch = null;
       }
     }();
-    _descriptorFetch = (did: did, future: future);
+    _descriptorFetch = (identity: identity, future: future);
     return future;
   }
 

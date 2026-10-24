@@ -428,8 +428,12 @@ class LiveRoomController extends ChangeNotifier {
 
   void _logSiteFailure(String phase, Object error) {
     final kind = error is SiteError ? error.kind : error.runtimeType.toString();
+    final code = switch (error) {
+      ApiChanged(code: final code?) => ' code=${code.name}',
+      _ => '',
+    };
     final line =
-        'playback-failure site=${site.id} room=${roomTag(_room.platform, _room.roomId)} phase=$phase kind=$kind';
+        'playback-failure site=${site.id} room=${roomTag(_room.platform, _room.roomId)} phase=$phase kind=$kind$code';
     // Only stable types and a room hash: never the exception detail,
     // request headers, URLs, cookies or account identifiers.
     AppLog.instance.warning('playback', line);

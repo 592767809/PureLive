@@ -162,11 +162,12 @@ abstract final class DouyuDanmakuProtocol {
 
   /// The messages of one server [frame] for room [roomId] (3.x
   /// `decodeMessage`): chat (`chatmsg`), super chats (`comm_chatmsg`,
-  /// `voice_trlt`) and gifts (`dgb`, M4.D; 3.x ignored them); other packets
-  /// are ignored. A packet that fails to decode
-  /// is skipped without losing the others. [filterSuspectedAutomated] is read
-  /// for each suspected chat, so a changed setting applies at once.
-  /// [gifts] prices and pictures the gifts it knows ([gift]).
+  /// `voice_trlt`), gifts (`dgb`, M4.D; 3.x ignored them), the 贵宾 count
+  /// (`oni`) and mutes (`newblackres`); other packets are ignored. A packet
+  /// that fails to decode is skipped without losing the others.
+  /// [filterSuspectedAutomated] is read for each suspected chat, so a changed
+  /// setting applies at once. [gifts] prices and pictures the gifts it knows
+  /// ([gift]).
   static List<LiveMessage> decode(
     List<int> frame, {
     required String roomId,
@@ -192,6 +193,8 @@ abstract final class DouyuDanmakuProtocol {
           'comm_chatmsg' => _superChat(fields),
           'voice_trlt' => _voiceSuperChat(fields),
           'dgb' => gift(fields, roomId, gifts: gifts),
+          'oni' => _vip(fields, roomId),
+          'newblackres' => _ban(fields, roomId),
           _ => null,
         };
         if (message != null) messages.add(message);
@@ -228,7 +231,9 @@ abstract final class DouyuDanmakuProtocol {
   static bool isSuspectedAutomated(Map<String, String> fields) => fields['dms'] == null && fields['if'] != '1';
 
   /// `chatmsg`: another room's packet and empty text are dropped; `cst` above
-  /// 10^11 is milliseconds, otherwise seconds.
+  /// 10^11 is milliseconds, otherwise seconds. The sender's level (`level`)
+  /// and fan medal (`bnn`, level `bl`) fill `userLevel`, `fansName` and
+  /// `fansLevel` (D07.3's rule: no medal, no level).
   static LiveMessage? _chat(Map<String, String> fields, String roomId, bool Function()? filterSuspectedAutomated) {
     final packetRoomId = fields['rid'] ?? '';
     if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
@@ -237,6 +242,9 @@ abstract final class DouyuDanmakuProtocol {
     if (isSuspectedAutomated(fields) && (filterSuspectedAutomated?.call() ?? false)) return null;
     final timestamp = int.tryParse(fields['cst'] ?? '');
     final messageId = fields['cid'] ?? '';
+    final level = int.tryParse(fields['level'] ?? '') ?? 0;
+    final fans = (fields['bnn'] ?? '').trim();
+    final fansLevel = int.tryParse(fields['bl'] ?? '') ?? 0;
     return LiveMessage(
       type: LiveMessageType.chat,
       userName: fields['nn'] ?? '',
@@ -244,9 +252,38 @@ abstract final class DouyuDanmakuProtocol {
       message: text,
       color: color(int.tryParse(fields['col'] ?? '') ?? 0),
       messageId: messageId.isEmpty ? '' : 'douyu:$messageId',
+      userLevel: level > 0 ? '$level' : '',
+      fansName: fans,
+      fansLevel: fans.isNotEmpty && fansLevel > 0 ? '$fansLevel' : '',
       sentAt: timestamp == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(timestamp > 100000000000 ? timestamp : timestamp * 1000),
+    );
+  }
+
+  /// `oni`: the room's 贵宾 count (`vn`), shown as a chat line from 贵宾 as in
+  /// 3.x. Another room's packet and a missing count give nothing.
+  static LiveMessage? _vip(Map<String, String> fields, String roomId) {
+    final packetRoomId = fields['rid'] ?? '';
+    if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
+    final count = (fields['vn'] ?? '').trim();
+    if (count.isEmpty) return null;
+    return LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: count, color: LiveMessageColor.white);
+  }
+
+  /// `newblackres`: a viewer (`dnic`) muted by `snic`, shown as a red chat
+  /// line without a sender, as in 3.x.
+  static LiveMessage? _ban(Map<String, String> fields, String roomId) {
+    final packetRoomId = fields['rid'] ?? '';
+    if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
+    final actor = (fields['snic'] ?? '').trim();
+    final target = (fields['dnic'] ?? '').trim();
+    if (target.isEmpty) return null;
+    return LiveMessage(
+      type: LiveMessageType.chat,
+      userName: '',
+      message: actor.isEmpty ? '$target 被禁言' : '$target 被 $actor 禁言',
+      color: color(1),
     );
   }
 

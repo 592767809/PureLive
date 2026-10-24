@@ -990,7 +990,7 @@ void main() {
         'https://www.douyin.com/search/123?type=live',
         'https://www.douyin.com/video/123',
         'https://live.douyin.com/',
-        'https://live.douyin.com/abc',
+        'https://live.douyin.com/webcast',
         'https://example.org/?next=https://v.douyin.com/abc',
         'https://v.douyin.com/',
       ]) {
@@ -1006,6 +1006,26 @@ void main() {
       ]) {
         expect(parser.containsSupportedLink(input), isTrue, reason: input);
       }
+    });
+
+    test('issue 29: custom room aliases parse with or without a scheme and after a short link', () async {
+      final (:parser, :http) = links([
+        redirect('https://v.douyin.com/custom', 'https://live.douyin.com/jianailiang2019'),
+      ]);
+      for (final alias in ['jianailiang2019', 'Live_2026-test.1']) {
+        for (final prefix in ['https://', 'http://', '']) {
+          final input = '${prefix}live.douyin.com/$alias?from=share';
+          expect(await parser.parse(input), RoomLink('douyin', alias), reason: input);
+          expect(parser.containsSupportedLink(input), isTrue, reason: input);
+        }
+      }
+      expect(http.requests, isEmpty, reason: 'direct aliases do not need a network lookup');
+      expect(await parser.parse('https://v.douyin.com/custom'), const RoomLink('douyin', 'jianailiang2019'));
+      expect(http.requests, hasLength(1));
+      for (final path in ['webcast', 'search', 'video', 'a%2Fb', '..', 'a%20b']) {
+        expect(await parser.parse('https://live.douyin.com/$path'), isNull, reason: path);
+      }
+      expect(await parser.parse('https://www.douyin.com/jianailiang2019'), isNull);
     });
 
     test('a short link to a room page ends there (one request, no redirect following)', () async {

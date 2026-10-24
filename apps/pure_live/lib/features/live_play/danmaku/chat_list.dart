@@ -378,10 +378,12 @@ class _ChatListState extends ConsumerState<ChatList> {
     required bool yuan,
     required ChatSizing sizing,
   }) {
+    final platform = room.platform;
     if (_views[line] case (final made, final message)
         when identical(message, line.message) &&
             made.style == style &&
             made.showName == names &&
+            made.platform == platform &&
             made.giftRoom == room &&
             made.giftValueInYuan == yuan &&
             made.sizing == sizing &&
@@ -394,6 +396,7 @@ class _ChatListState extends ConsumerState<ChatList> {
       line: line,
       style: style,
       showName: names,
+      platform: platform,
       emotes: _emotes,
       giftRoom: room,
       giftValueInYuan: yuan,
@@ -654,16 +657,17 @@ class ChatNameHintBar extends StatelessWidget {
 /// A08.10: every line that names a sender draws the name and the content in
 /// the two [ChatText] roles, in both styles; what comes before the name is
 /// always in one order (G5): "本地" or "对方", the platform's badges, the fan
-/// medal, the name. With [showName] off ("显示用户名") the sender's name and
-/// what belongs to them (badges, fan medal, avatar) are left out and the
-/// line starts with what was said; "本地" and "对方" stay, they are about
-/// the message.
+/// medal, the level (Douyu), the name. With [showName] off ("显示用户名") the
+/// sender's name and what belongs to them (badges, fan medal, level, avatar)
+/// are left out and the line starts with what was said; "本地" and "对方" stay,
+/// they are about the message.
 class ChatLineView extends StatelessWidget {
   /// Creates the line.
   const new({
     required this.line,
     this.style = ChatListStyle.compact,
     this.showName = true,
+    this.platform = '',
     this.emotes = EmoteTable.empty,
     this.onActions,
     this.onCopy,
@@ -676,6 +680,9 @@ class ChatLineView extends StatelessWidget {
 
   /// The line.
   final ChatLine line;
+
+  /// The room's platform ([SiteIds]): Douyu's levels have their own colours.
+  final String platform;
 
   /// A mark before the name (the local interaction's "本地", U.2k).
   final Widget? tag;
@@ -813,7 +820,7 @@ class ChatLineView extends StatelessWidget {
   }
 
   /// G5: what comes before the name, in one order on both styles.
-  List<InlineSpan> _lead(ThemeData theme, LiveMessage message) => [
+  List<InlineSpan> _lead(ThemeData theme, LiveMessage message, [Color? background]) => [
     if (tag case final mark?) ...[chatInline(mark), const TextSpan(text: ' ')],
     // B-16 (E06.2 c3): a PK partner room's viewer, in the block of "本地".
     if (message.isFromOtherRoom)
@@ -825,7 +832,11 @@ class ChatLineView extends StatelessWidget {
           style: ChatChip.styleOf(theme, sizing)?.copyWith(color: theme.colorScheme.onTertiaryContainer),
         ),
       ),
-    if (showName) ...[..._badges(theme, message), ..._fans(theme, message)],
+    if (showName) ...[
+      ..._badges(theme, message),
+      ..._fans(theme, message, background ?? theme.colorScheme.surface),
+      ..._level(theme, message, background ?? theme.colorScheme.surface),
+    ],
   ];
 
   /// B-14 (E06.2 c2): the platform's badges before the name, in its order.
@@ -842,22 +853,46 @@ class ChatLineView extends StatelessWidget {
   ];
 
   /// B06 c2: the fan medal ("粉丝牌 等级"), in the same block as the other
-  /// marks (A08.10 G5; it was a highlighted run of text).
-  List<InlineSpan> _fans(ThemeData theme, LiveMessage message) {
+  /// marks (A08.10 G5; it was a highlighted run of text). Douyu's medal takes
+  /// its level's colour (3.x), the others the theme's block.
+  List<InlineSpan> _fans(ThemeData theme, LiveMessage message, Color background) {
     final fans = message.fansName.trim();
     if (fans.isEmpty) return const [];
     final level = message.fansLevel.trim();
     final scheme = theme.colorScheme;
+    final douyuColor = platform == SiteIds.douyu
+        ? douyuFanBadgeColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark)
+        : null;
+    final chipBackground = douyuColor?.withValues(alpha: 0.16) ?? scheme.primary;
+    final chipInk = douyuColor == null
+        ? scheme.onPrimary
+        : _readableOn(douyuColor, Color.alphaBlend(chipBackground, background));
     return [
       chatInline(
         ChatChip(
           key: const ValueKey('live-play-chat-fans'),
           text: level.isEmpty ? fans : '$fans $level',
-          background: scheme.primary,
-          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: scheme.onPrimary),
+          background: chipBackground,
+          style: ChatChip.styleOf(theme, sizing)?.copyWith(color: chipInk),
         ),
       ),
     ];
+  }
+
+  /// Douyu's sender level before the name (3.x `DanmakuItem`): "Lv.N" in the
+  /// level's colour; nothing on other platforms.
+  List<InlineSpan> _level(ThemeData theme, LiveMessage message, Color background) {
+    final level = message.userLevel.trim();
+    if (platform != SiteIds.douyu || level.isEmpty) return const [];
+    final color = _readableOn(
+      douyuUserLevelColor(int.tryParse(level) ?? 0, dark: theme.brightness == Brightness.dark),
+      background,
+    );
+    final style = sizing.piece(
+      theme.textTheme.labelSmall?.copyWith(fontSize: 11, height: 1.2, fontWeight: FontWeight.w600, color: color),
+      theme,
+    );
+    return [TextSpan(text: 'Lv.$level ', style: style)];
   }
 
   /// The name ("用户名：") in the name role, or nothing.
@@ -945,7 +980,9 @@ class ChatLineView extends StatelessWidget {
                 ),
               Expanded(
                 child: Text.rich(
-                  TextSpan(children: [..._lead(theme, message), ..._name(theme, message, ground), _words(theme)]),
+                  TextSpan(
+                    children: [..._lead(theme, message, ground), ..._name(theme, message, ground), _words(theme)],
+                  ),
                 ),
               ),
             ],

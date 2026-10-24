@@ -671,10 +671,31 @@ abstract final class DouyuApi {
   /// `getEncryption`: the descriptor, which must be complete and usable at
   /// [now]; anything else is `ApiChanged`.
   static DouyuDescriptor descriptor(String body, {required DateTime now, int status = 200}) {
-    final root = _checked(body, status: status, what: 'getEncryption');
+    final Map<String, dynamic> root;
+    try {
+      root = _checked(body, status: status, what: 'getEncryption');
+    } on ApiChanged catch (error) {
+      throw ApiChanged.withCode(
+        _site,
+        _decode(body) is Map<String, dynamic>
+            ? ApiFailureCode.douyuDescriptorEnvelope
+            : ApiFailureCode.douyuDescriptorJson,
+        error.detail,
+      );
+    }
     final descriptor = DouyuDescriptor.fromJson(root['data']);
-    if (descriptor == null || !descriptor.usableAt(now)) {
-      throw const ApiChanged(_site, 'getEncryption: descriptor incomplete or expired');
+    if (descriptor == null) {
+      final rounds = jsonInt(_object(root['data'])?['enc_time']);
+      throw ApiChanged.withCode(
+        _site,
+        rounds != null && (rounds < 1 || rounds > 16)
+            ? ApiFailureCode.douyuDescriptorRounds
+            : ApiFailureCode.douyuDescriptorFields,
+        'getEncryption: descriptor incomplete',
+      );
+    }
+    if (!descriptor.usableAt(now)) {
+      throw const ApiChanged.withCode(_site, ApiFailureCode.douyuDescriptorExpiry, 'getEncryption: descriptor expired');
     }
     return descriptor;
   }
@@ -711,15 +732,19 @@ abstract final class DouyuApi {
     _status(status, 'getH5PlayV1', body);
     final decoded = _decode(body);
     if (decoded is! Map<String, dynamic>) {
-      throw ApiChanged(_site, 'getH5PlayV1: HTTP $status, not an object (${_snippet(body)})');
+      throw ApiChanged.withCode(_site, ApiFailureCode.douyuPlayJson, 'getH5PlayV1: HTTP $status, not an object');
     }
     final code = jsonInt(decoded['error'] ?? decoded['code']);
-    if (code == null) throw ApiChanged(_site, 'getH5PlayV1: no error code (${_snippet(body)})');
+    if (code == null) {
+      throw const ApiChanged.withCode(_site, ApiFailureCode.douyuPlayCode, 'getH5PlayV1: no error code');
+    }
     if (code != 0) {
       throw StreamUnavailable(_site, 'getH5PlayV1: error $code ${jsonString(decoded['msg']) ?? ''}'.trim());
     }
     final data = _object(decoded['data']);
-    if (data == null || status < 200 || status >= 300) throw ApiChanged(_site, 'getH5PlayV1: HTTP $status, no data');
+    if (data == null || status < 200 || status >= 300) {
+      throw ApiChanged.withCode(_site, ApiFailureCode.douyuPlayData, 'getH5PlayV1: HTTP $status, no data');
+    }
     return data;
   }
 

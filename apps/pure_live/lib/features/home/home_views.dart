@@ -148,9 +148,9 @@ abstract final class HomeRailMetrics {
 /// parser, multi-view), a short line, then the destinations, the recording
 /// centre among them (U.3b c2–c5); a vertical line; the page.
 ///
-/// When the window is too short for everything, the destinations stay in
-/// view and the menu and tools above them scroll (3.x scrolled the whole
-/// rail, so on a landscape phone the destinations were pushed off screen).
+/// The whole rail scrolls in short windows, as in 3.x. Every entry shares
+/// one drag area, including the destinations, rather than leaving only a
+/// small tool viewport above fixed destinations.
 class HomeTabletView extends ConsumerWidget {
   /// Creates the layout.
   const new({required this.menus, required this.selected, required this.onSelected, required this.body, super.key});
@@ -200,26 +200,8 @@ class HomeTabletView extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 6, bottom: 14),
       color: scheme.outlineVariant,
     );
-    final rail = LayoutBuilder(
-      builder: (context, constraints) {
-        // A larger system font makes each name taller.
-        final textExtra = MediaQuery.textScalerOf(context).scale(16) - 16;
-        final fixed =
-            HomeRailMetrics.separatorHeight +
-            destinations.length * (HomeRailMetrics.destinationHeight + textExtra) +
-            HomeRailMetrics.menuHeight;
-        // Too short even for the destinations and the menu: all of it scrolls.
-        if (constraints.maxHeight < fixed) {
-          return SingleChildScrollView(child: Column(children: [top, separator, ...destinations]));
-        }
-        return Column(
-          children: [
-            Flexible(child: SingleChildScrollView(child: top)),
-            separator,
-            ...destinations,
-          ],
-        );
-      },
+    final rail = Scrollbar(
+      child: SingleChildScrollView(child: Column(children: [top, separator, ...destinations])),
     );
     return Scaffold(
       body: SafeArea(

@@ -111,14 +111,16 @@ void main() {
       expect(report.hasFailure, isTrue);
     });
 
-    test('Kick is skipped as a whole and does not fail', () async {
+    test('Kick executes its checks and reports real adapter failures after HTTP2 admission', () async {
+      final site = FakeSite(id: 'kick')..recommend = {1: const ApiChanged('kick', 'fixture-adapter-failure')};
       final report = await runPatrol(
         _parse(['kick', '--proxy', '127.0.0.1:7890']),
-        factories: {'kick': (_, _) => FakeSite(id: 'kick')},
+        factories: {'kick': (_, _) => site},
         httpFor: (_) => _NoNetwork(),
       );
-      expect(report.sites.single.results.first.note, contains('Android'));
-      expect(report.hasFailure, isFalse);
+      expect(report.sites.single.results.first.outcome, isNot(Outcome.notRun));
+      expect(report.sites.single.results.first.note, contains('fixture-adapter-failure'));
+      expect(report.hasFailure, isTrue);
     });
   });
 }

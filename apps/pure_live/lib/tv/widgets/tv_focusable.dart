@@ -44,7 +44,8 @@ typedef TvFocusBuilder = Widget Function(BuildContext context, bool focused);
 /// (docs/A-界面设计/A17-电视界面/A17.1-电视设计系统和通用组件 c2): a near-white 3 px ring outside the target and,
 /// for cards, buttons, tabs and menu items ([zoom]), 5 % growth; no glow.
 /// Whole rows (settings rows, dialog options, input fields) pass
-/// `zoom: false`: growing a full-width row would push it off the screen.
+/// `zoom: false`: growing a full-width row would push it off the screen;
+/// their frame stays inside the target so a scroll viewport cannot crop it.
 /// Gaining focus animates (120 ms), losing it snaps, so a held arrow never
 /// leaves a trail of half-lit items; a held OK shrinks the target a little.
 /// The `tvFocusZoom` setting turns the growth off on slow boxes.
@@ -235,7 +236,7 @@ class _TvFocusableState extends State<TvFocusable> {
                     border: Border.all(
                       color: palette.focusRing,
                       width: scale.px(tvFocusRingWidth),
-                      strokeAlign: BorderSide.strokeAlignOutside,
+                      strokeAlign: widget.zoom ? BorderSide.strokeAlignOutside : BorderSide.strokeAlignInside,
                     ),
                   )
                 : const BoxDecoration(),

@@ -20,10 +20,12 @@
 | 加入 | 打开即就绪（`onOpen` 先 `session.ready()`，`douyu.dart:374-376`），随后发 `type@=loginreq/roomid@=<房间号>/` 和 `type@=joingroup/rid@=<房间号>/gid@=-9999/`；每次重连都重新发；没有加入计时器，不等 `loginres` |
 | 心跳 | 45 s 发 `type@=mrkl/`（`heartbeatInterval`，`douyu.dart:99`）；服务端的 `pingreq` 不回应；无消息 135 s（max(3 × 45 s, 90 s)）换连接；握手超时 10 s；只有一个地址，重连间隔 2、3、4、5、6、6、6、6 s，连续失败 8 次放弃（`DanmakuSocketPolicy` 默认值，`socket_connection.dart:15-24`；退避算法在 `packages/live_net/lib/src/socket.dart:351`） |
 | 文本格式 | STT（`key@=value/`，`@A` 表示 `@`、`@S` 表示 `/`）；4.x 的 `DouyuStt`（`douyu.dart:60`）按层解析，每个值只反转义一次，只有确实嵌套的字段（醒目留言的 `chatmsg`、语音醒目留言的 `list` 和 `uat`）再解析一层 |
-| 聊天 | `chatmsg`：`rid` 不为空且和房间不同就丢，`txt` 为空就丢；昵称 `nn`、用户 id `uid`、文字 `txt`；颜色 `col` 走 3.x 的 6 色表（`color`，`douyu.dart:204`，其余白色，不经过 `numberToColor`）；时间 `cst`（大于 10¹¹ 按毫秒，否则按秒）；消息 id `douyu:<cid>` |
+| 聊天 | `chatmsg`：`rid` 不为空且和房间不同就丢，`txt` 为空就丢；昵称 `nn`、用户 id `uid`、文字 `txt`；颜色 `col` 走 3.x 的 6 色表（`color`，`douyu.dart:204`，其余白色，不经过 `numberToColor`）；时间 `cst`（大于 10¹¹ 按毫秒，否则按秒）；消息 id `douyu:<cid>`；用户等级 `level`、粉丝牌 `bnn`/`bl`（没有牌子时等级留空，D07.3） |
 | 醒目留言 | `comm_chatmsg`：开始 `now`（毫秒）、时长 `cet`（秒）、价格 `cprice`（分，除以 100），嵌套的 `chatmsg{nn, txt, ic}`，头像 `https://apic.douyucdn.cn/upload/<ic>_small.jpg`，配色 `#c1c1ff`/`#292a60`；价格或时长不大于 0 的（开箱通知）不算 |
 | 语音醒目留言 | `voice_trlt`：取 `list` 第一项的 `acptime`、`etime`（秒）、`realPrice`（分）、`content`、`un`，头像 `https://` + `uat` 第二项，配色 `#ffffff`/`#246488` |
 | 礼物（E01.2 加） | `dgb`：报成 `LiveMessageType.gift`，数据 `DouyuGift`（`douyu.dart:15`：`gfid`、`gfn`、`gfcnt`、`hits` 连击、`receive_nn` 收礼人），文字 `<礼物名> ×<数量>`；别的房间的、没有名字的不报；`gfid` 为 0 的背包道具编号为空；包里没有消息 id 和时间 |
+| 贵宾数（13f22bb58 加） | `oni`：`vn` 报成一条 `LiveMessageType.chat`，用户名“贵宾”，文字是数字，白色；只收本房间的，空数字不报 |
+| 禁言（13f22bb58 加） | `newblackres`：`dnic` 被 `snic` 禁言，报成一条红色聊天行，没有用户名 |
 | 下播（E01.2 加） | 本房间（或包里没有 `rid`）的 `rss` 且 `ss@=0`：`read` 报告下播，同一帧里它之前的消息照常上报、之后的不读，连接以 `connectionFailed`（`Broadcast ended`）结束、不重连；开播（`ss@=1`）和别的房间的不报 |
 | 过滤 | 没有 `dms` 且 `if` 不是 `1` 的聊天（`isSuspectedAutomated`，`douyu.dart:216`）只在设置 `filterDouyuSuspectedAutomatedMessages`（`packages/live_store/lib/src/settings/settings.dart:584`，默认关）打开时丢；每条疑似的读一次设置，改了不用重连 |
 | 出错 | 一个包解析失败（例如时间戳超出 `DateTime` 范围）只丢这一个包，同帧后面的照常；文本帧忽略 |
@@ -37,7 +39,7 @@
 | 就绪和加入 | `onReady` 里先 `markConnected`、报就绪，再 `joinRoom`（:69-74、:92-94） | `onOpen`（:374）先 `ready`，再发 `joinPackets`（:128-131） | 一致；发出的包和 3.x、录制逐字节相同 |
 | 包长 | `serializeDouyu` 按字符串长度（UTF-16 码元，:221-222） | `packet`（:111）按 UTF-8 字节数 | 修好（3.x 问题 4；只发 ASCII，线上没影响） |
 | STT 解析 | `sttToJObject`（:118、:267-295）每个值递归猜结构，普通文字被反转义两次 | `DouyuStt`（:60）按层解析 | 修好（3.x 问题 1）：文字和昵称不再被改 |
-| 聊天 | `decodeMessage` 的 `chatmsg` 分支（:123-144），过滤在 :129-130 | `_chat`（:220） | 147 条录制聊天逐字段一致 |
+| 聊天 | `decodeMessage` 的 `chatmsg` 分支（:123-144），过滤在 :129-130 | `_chat`（:237） | 147 条录制聊天逐字段一致（`level`、`bnn`、`bl` 照 13f22bb58） |
 | 醒目留言 | `_parseCommonSuperChat`（:159-178）只检查字段在不在，开箱通知变成 0 元醒目留言 | `_superChat`（:244）价格或时长不大于 0 的不算 | 修好（3.x 问题 3） |
 | 语音醒目留言头像 | `_parseVoiceSuperChat`（:180），头像永远是空（:188-189，`uat` 被解析成字符串） | `_voiceSuperChat`（:271），`https://` + `uat` 第二项（:279） | 修好（3.x 问题 2） |
 | 文本帧 | `decodeMessage(List<int>)` 收到文本帧抛类型错误（:66-67） | `onData`（:381）只收二进制（:383） | 修好（3.x 问题 5） |
@@ -47,10 +49,10 @@
 ## 结果
 
 - **提交**：`04717fcf9`（2026-09-29，`feat(live_danmaku): Douyu danmaku refactored from v3 (M5.2)`）。之后同一文件的改动属于 E01.2：`8eca75a32`（2026-10-01，礼物上报，“国内平台完善”）、`398f68f87`（2026-10-01，下播通知结束连接，附录 C-6）。2026-10-03 的两次文档提交（`c613b73f9`、`9dfbb424d`）只改了代码和测试注释里的文档路径。
-- **和 3.x 的对照**：`fixtures/douyu/danmaku/legacy_expected.dart` 把 3.x 的解码代码原样搬成独立程序生成冻结输出。S13-live（房间 9999，约 30 s，183 帧收到）的 147 条聊天顺序、所在帧和全部字段一致，发出的 `loginreq`、`joingroup`、心跳和 3.x、录制逐字节相同；S14-synthetic 17 组合成帧除 3 处有意差异（文字不再被改、语音醒目留言有头像、开箱通知不是醒目留言）外一致；打开过滤后录制的 147 条全部保留（都带 `dms` 或 `if=1`），和 3.x 一样。
-- **有意差异**（record.md“与 v3 的有意差异”6 条）：按层解析文字、语音醒目留言头像、0 元 `comm_chatmsg` 不算、包长按 UTF-8、文本帧忽略、`connect` 只接受 `DouyuDanmakuArgs`。保持 3.x 的地方：打开即就绪、只检查聊天的 `rid`、`cst=0` 仍是 1970 年（被 D01.1 的去重闸门丢掉）、每个包最后一个字节不检查、不显示进场和榜单。
+- **和 3.x 的对照**：`fixtures/douyu/danmaku/legacy_expected.dart` 把 3.x 的解码代码原样搬成独立程序生成冻结输出。S13-live（房间 9999，约 30 s，183 帧收到）的 153 条消息（147 条聊天 + 6 条贵宾）顺序、所在帧和全部字段一致，发出的 `loginreq`、`joingroup`、心跳和 3.x、录制逐字节相同；S14-synthetic 17 组合成帧除 3 处有意差异（文字不再被改、语音醒目留言有头像、开箱通知不是醒目留言）外一致；打开过滤后录制的 153 条全部保留（聊天都带 `dms` 或 `if=1`），和 3.x 一样。
+- **有意差异**（record.md“与 v3 的有意差异”7 条）：按层解析文字、语音醒目留言头像、0 元 `comm_chatmsg` 不算、包长按 UTF-8、文本帧忽略、`connect` 只接受 `DouyuDanmakuArgs`、没有粉丝牌时 `fansLevel` 留空（D07.3）和 `oni` 只收本房间。保持 3.x 的地方：打开即就绪、只检查聊天的 `rid`、`cst=0` 仍是 1970 年（被 D01.1 的去重闸门丢掉）、每个包最后一个字节不检查、不显示进场和榜单。
 - **样本**：`fixtures/douyu/danmaku/` 下 S13-live（`frames.jsonl`、`expected.json`）、S14-synthetic（`cases.json` 17 组、`expected.json`），后来 E01.2 加了 S15-gifts（9263298 的 57 个 `dgb` 包体，已脱敏）、S16-broadcast-end（1 个 `rss` 包体）。
-- **测试**：`packages/live_danmaku/test/douyu_test.dart` 现在 45 个（当时 40 个：协议 6、录制对照 3、合成对照 18、连接 13；E01.2 礼物 +3、下播 +2）。其中 17 个由 S14 的 `cases.json` 循环生成（`douyu_test.dart:463-466`），所以 `grep -c "test("` 只数到 29（28 个固定的加循环里的 1 处）。
+- **测试**：`packages/live_danmaku/test/douyu_test.dart` 现在 49 个（当时 40 个：协议 6、录制对照 3、合成对照 18、连接 13；E01.2 礼物 +3、下播 +2；13f22bb58 等级/粉丝牌/贵宾/禁言 +4，协议 9、录制对照 4）。其中 17 个由 S14 的 `cases.json` 循环生成（`douyu_test.dart:463-466`），所以 `grep -c "test("` 只数到 29（28 个固定的加循环里的 1 处）。
 
 ## 验证
 
@@ -62,6 +64,6 @@
 
 - 进房时补上还在显示的醒目留言（附录 C-5）：查了 PC 和手机网页的 100 多个脚本分包都没找到列表接口，醒目留言仍只从弹幕来。[specs/UPGRADES.md](../../../specs/UPGRADES.md) 记为“受阻，未排”；没有任务（E01.2 记录候选 D-1），找到接口前做不了；巡检时顺带留意（[E01.6](../../../E-直播平台/E01-国内五大平台/E01.6-国内五大平台巡检和修复/README.md)）。
 - 加入一个已下播或轮播的房间时服务端会不会立刻发 `ss@=0` 的 `rss` 没验证（录到的都是直播中的房间）；如果会，轮播房间的弹幕会马上结束。去向：真机清单第 2 节第 1 条和 [E01.6](../../../E-直播平台/E01-国内五大平台/E01.6-国内五大平台巡检和修复/README.md) 的弹幕 120 秒检查，进一个轮播房间（例如 93976）看一次。
-- 平台通知 `hpsc`、`blab`、`spbc` 不显示，贵宾数 `oun`/`oni` 不上报（口径不是在线人数）：没有任务，E01.2 记录候选 D-2、D-3 决定不做。
+- 平台通知 `hpsc`、`blab`、`spbc` 不显示；贵宾数 `oni` 按 3.x 报成“贵宾”聊天行（用户 2026-10-23 要求），`oun` 仍不上报。E01.2 记录候选 D-2、D-3。
 - 礼物现在在聊天列表里单独一行（C01.2 按 B-21 做的，可在弹幕设置里关），不用另开任务。
 - 真机结果还没有：等 [S03.1](../../../S-质量和验证/S03-统一验证/S03.1-统一验证/README.md) 统一验证或下一次 K90 验证时补第 2 节第 1、4 条。

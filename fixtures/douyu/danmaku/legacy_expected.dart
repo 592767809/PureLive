@@ -7,6 +7,8 @@
 // _parseCommonSuperChat, _parseVoiceSuperChat, _superChatMessage,
 // serializeDouyu, deserializeDouyuPackets, sttToJObject, unscapeSlashAt and
 // getColor, with the room id and the suspected-automated preference it reads.
+// 3.x commit 13f22bb58 adds the chat sender's level and fan medal (`level`,
+// `bnn`, `bl`) and the 贵宾 (`oni`) and mute (`newblackres`) lines.
 // Only CoreLog is replaced (it prints to stderr), `onMessage` is a list, and
 // 3.x's LiveMessage, LiveSuperChatMessage and LiveMessageColor are reduced to
 // their fields (from legacy/lib/common/models/live_message.dart). 3.x's
@@ -316,11 +318,32 @@ class DouyuDanmaku {
             color: getColor(col),
             messageId: messageId.isEmpty ? '' : 'douyu:$messageId',
             sentAt: sentAt,
+            // 3.x 13f22bb58: the sender's level and fan medal.
+            userLevel: jsonData['level']?.toString() ?? '',
+            fansLevel: jsonData['bl']?.toString() ?? '',
+            fansName: jsonData['bnn']?.toString() ?? '',
           );
         } else if (type == "comm_chatmsg") {
           liveMsg = _parseCommonSuperChat(jsonData);
         } else if (type == "voice_trlt") {
           liveMsg = _parseVoiceSuperChat(jsonData);
+        } else if (type == 'oni') {
+          // 3.x 13f22bb58: the 贵宾 count as a chat line.
+          liveMsg = LiveMessage(
+            type: LiveMessageType.chat,
+            userName: '贵宾',
+            message: jsonData['vn']?.toString() ?? '',
+            color: LiveMessageColor.white,
+          );
+        } else if (type == 'newblackres') {
+          final snic = jsonData['snic']?.toString() ?? '';
+          final dnic = jsonData['dnic']?.toString() ?? '';
+          liveMsg = LiveMessage(
+            type: LiveMessageType.chat,
+            userName: '',
+            message: "$dnic 被 $snic 禁言",
+            color: getColor(1),
+          );
         }
         if (liveMsg != null) onMessage?.call(liveMsg);
       } catch (e) {

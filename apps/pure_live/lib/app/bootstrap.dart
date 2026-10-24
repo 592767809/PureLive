@@ -338,8 +338,9 @@ abstract final class AppBootstrap {
         if (TwitchWebViewHttp.isAvailable) TwitchWebViewHttp(proxy: proxy),
       ],
       // Kick's API refuses HTTP/1.1 since 2026-10 (S02.4): HTTP/2 from Dart.
-      // Still Android only, where Kick's playback and danmaku were checked.
-      kickApi: native == null ? null : Http2LiveHttp(proxy: proxy),
+      // Android and Windows share the same HTTP/2 implementation; it does
+      // not depend on Android's native HTTP channel.
+      kickApi: native != null || Platform.isWindows ? Http2LiveHttp(proxy: proxy) : null,
       iptv: IptvSite(
         library: library,
         importer: importer,

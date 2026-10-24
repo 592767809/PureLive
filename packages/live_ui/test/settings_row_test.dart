@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
@@ -85,6 +86,49 @@ void main() {
       expect(clipOf(), Clip.antiAlias);
       await _pump(tester, group, tv: true);
       expect(clipOf(), Clip.none);
+    });
+
+    testWidgets('issue 30: a focused TV settings row keeps its full painted target inside its layout', (tester) async {
+      const key = ValueKey('bounded-tv-row');
+      await _pump(tester, SettingsLinkRow(key: key, title: '首选直播平台', onTap: () {}), tv: true, width: 1280);
+      final row = find.byKey(key);
+      final ink = find.descendant(of: row, matching: find.byType(InkWell));
+      Focus.of(tester.element(find.descendant(of: ink, matching: find.byType(LayoutBuilder)).first)).requestFocus();
+      await tester.pumpAndSettle();
+      final available = tester.getRect(row);
+      final target = tester.getRect(ink);
+      expect(target.left, greaterThanOrEqualTo(available.left));
+      expect(target.right, lessThanOrEqualTo(available.right));
+      expect(target.top, greaterThanOrEqualTo(available.top));
+      expect(target.bottom, lessThanOrEqualTo(available.bottom));
+    });
+
+    testWidgets('issue 30: focused row ink does not paint a rectangular background outside its rounded frame', (
+      tester,
+    ) async {
+      final boundary = GlobalKey();
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTraditional;
+      addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
+      await _pump(
+        tester,
+        RepaintBoundary(
+          key: boundary,
+          child: SettingsLinkRow(title: '首选直播平台', onTap: () {}),
+        ),
+        tv: true,
+      );
+      final ink = find.byType(InkWell);
+      Focus.of(tester.element(find.descendant(of: ink, matching: find.byType(LayoutBuilder)).first)).requestFocus();
+      await tester.pumpAndSettle();
+      final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final alpha = (await tester.runAsync(() async {
+        final image = await render.toImage();
+        final bytes = (await image.toByteData())!;
+        final corner = bytes.getUint8((image.width + 1) * 4 + 3);
+        image.dispose();
+        return corner;
+      }))!;
+      expect(alpha, 0, reason: 'the extreme corner is outside the rounded row and focus frame');
     });
 
     testWidgets('explanations: three lines (A01.4 c2), secondary colour above 4.5:1 on the card', (tester) async {
@@ -300,7 +344,7 @@ void main() {
       expect(picked, 'compact');
     });
 
-    testWidgets('search words are marked; the focus frame shows only for the keyboard; TV enlarges', (tester) async {
+    testWidgets('search words are marked; keyboard and TV focus draw the frame', (tester) async {
       await _pump(
         tester,
         SettingsHighlight(
@@ -321,11 +365,6 @@ void main() {
       addTearDown(() => FocusManager.instance.highlightStrategy = FocusHighlightStrategy.automatic);
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pumpAndSettle();
-      expect(
-        tester.widget<AnimatedScale>(find.byType(AnimatedScale)).scale,
-        1.02,
-        reason: 'A17.9 c5: a row grows a little',
-      );
       final frame = tester
           .widgetList<DecoratedBox>(find.byType(DecoratedBox))
           .where(
