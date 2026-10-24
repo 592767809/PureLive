@@ -5641,3 +5641,14 @@ size = "小"
 tier = 1
 branch = "ai/V02.34"
 from = "https://github.com/wzgrx/PureLive/issues/15#issuecomment-6382456250"
+
+
+[[task]]
+id = "Z02.5"
+title = "macOS 精确候选的渲染后端对照诊断"
+type = "工程"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/Z02.5"
+from = "5.4.13 两个 Mac 候选的视觉验收未通过"
