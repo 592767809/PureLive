@@ -18,8 +18,8 @@ final class TxtParser {
   /// The group of channels before any genre line.
   static const String defaultGroup = 'Uncategorized';
 
-  /// URL schemes 3.x accepted in TXT playlists.
-  static const Set<String> schemes = {'http', 'https', 'rtmp', 'rtsp', 'udp', 'mms', 'p2p'};
+  /// URL schemes accepted in TXT playlists.
+  static const Set<String> schemes = {'http', 'https', 'rtmp', 'rtsp', 'rtp', 'udp', 'mms', 'p2p'};
 
   static final RegExp _genre = RegExp(r',\s*#genre#\s*$', caseSensitive: false);
 

@@ -33,8 +33,8 @@ final class M3uParser {
   static const String _extHttp = '#EXTHTTP:';
   static const String _kodiProp = '#KODIPROP:';
 
-  /// URL schemes 3.x accepted in M3U playlists.
-  static const Set<String> schemes = {'http', 'https', 'rtmp', 'rtsp', 'udp', 'mms'};
+  /// URL schemes accepted in M3U playlists.
+  static const Set<String> schemes = {'http', 'https', 'rtmp', 'rtsp', 'rtp', 'udp', 'mms'};
 
   static const Set<String> _transportOptions = {
     'seekable',

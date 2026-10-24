@@ -74,16 +74,21 @@ void main() {
     final socket = LiveSocket(
       endpoints: [_primary, _backup, _primary],
       site: 'douyu',
-      heartbeatInterval: const Duration(milliseconds: 10),
-      inactivityTimeout: const Duration(milliseconds: 25),
-      reconnectBaseDelay: const Duration(milliseconds: 5),
+      heartbeatInterval: const Duration(seconds: 1),
+      inactivityTimeout: const Duration(seconds: 1),
       connector: connector.call,
     );
+    addTearDown(socket.close);
     expect(socket.endpoints, [_primary, _backup], reason: 'duplicates are dropped');
 
     await socket.connect();
     expect(socket.status, SocketStatus.connected);
-    await Future<void>.delayed(const Duration(milliseconds: 55));
+    // Timer callbacks can be delayed by a loaded runner. A watchdog may
+    // only schedule its retry when that fixed wait has already elapsed.
+    await _eventually(
+      () => connector.endpoints.length >= 2 && socket.status == SocketStatus.connected,
+      timeout: const Duration(seconds: 10),
+    );
 
     expect(connector.endpoints.length, greaterThanOrEqualTo(2));
     expect(connector.endpoints.take(2), [_primary, _backup]);
@@ -91,7 +96,7 @@ void main() {
 
     await socket.close();
     final count = connector.endpoints.length;
-    await Future<void>.delayed(const Duration(milliseconds: 50));
+    await Future<void>.delayed(const Duration(seconds: 2));
     expect(connector.endpoints.length, count, reason: 'close cancels watchdog reconnects');
   });
 

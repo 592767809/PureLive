@@ -110,6 +110,7 @@ final class _ExtraTvSite extends LiveSite {
 }
 
 final List<String> _toasts = [];
+final GlobalKey _menuFrame = GlobalKey();
 
 /// The app on a 1080p panel in [mode] (`uiMode`), on a device that is
 /// [television] or not.
@@ -174,7 +175,10 @@ Future<AppServices> _pumpApp(
         danmakuProvider.overrideWithValue(DanmakuRegistry({SiteIds.bilibili: FakeDanmaku.new})),
         playbackSessionFactoryProvider.overrideWithValue(({config}) => fakeSession(FakeEngine())),
       ],
-      child: PureLiveApp(strings: strings, bundle: FileAssetBundle()),
+      child: RepaintBoundary(
+        key: _menuFrame,
+        child: PureLiveApp(strings: strings, bundle: FileAssetBundle()),
+      ),
     ),
   );
   await _settle(tester);
@@ -206,6 +210,102 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  for (final zoom in [true, false]) {
+    testWidgets('issue 46: first menu item paints its complete top focus ring (zoom=$zoom)', (tester) async {
+      await prepareQaFonts(tester);
+      final services = await _pumpApp(tester);
+      addTearDown(() => _close(tester, services));
+      await tester.runAsync(() => services.store.settings.set(Settings.tvFocusZoom, zoom));
+      await _settle(tester);
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      await _settle(tester);
+      expect(_focused, 'tv menu favorites');
+      final target = find.byKey(const ValueKey('tv-menu-favorites'));
+      final ring = find
+          .descendant(
+            of: target,
+            matching: find.byWidgetPredicate((w) => w is DecoratedBox && w.position == DecorationPosition.foreground),
+          )
+          .first;
+      final rect = tester.getRect(ring);
+      final scale = TvScale.of(tester.element(target));
+      final origin = tester.getTopLeft(find.byKey(_menuFrame));
+      final y = ((rect.top - scale.px(1.5) - origin.dy) * 2).round();
+      final x = ((rect.center.dx - origin.dx) * 2).round();
+      final render = _menuFrame.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final color = (await tester.runAsync(() async {
+        final image = await render.toImage(pixelRatio: 2);
+        final bytes = (await image.toByteData())!;
+        final offset = (y * image.width + x) * 4;
+        final value = Color.fromARGB(
+          bytes.getUint8(offset + 3),
+          bytes.getUint8(offset),
+          bytes.getUint8(offset + 1),
+          bytes.getUint8(offset + 2),
+        );
+        image.dispose();
+        return value;
+      }))!;
+      await captureQaFrame(tester, 'tv-first-menu-ring-$zoom');
+      expect(
+        color,
+        TvTheme.of(tester.element(target)).focusRing,
+        reason: 'The top horizontal ring must be painted above the first menu row, even at the scroll boundary',
+      );
+    });
+  }
+
+  for (final zoom in [true, false]) {
+    testWidgets('issue 46: last menu item paints its complete bottom focus ring (zoom=$zoom)', (tester) async {
+      await prepareQaFonts(tester);
+      final services = await _pumpApp(tester);
+      addTearDown(() => _close(tester, services));
+      await tester.runAsync(() => services.store.settings.set(Settings.tvFocusZoom, zoom));
+      await _settle(tester);
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      await _settle(tester);
+      expect(_focused, 'tv menu favorites');
+      for (var step = 0; step < 12 && _focused != 'tv menu iptv'; step++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      expect(_focused, 'tv menu iptv');
+      final target = find.byKey(const ValueKey('tv-menu-iptv'));
+      final ring = find
+          .descendant(
+            of: target,
+            matching: find.byWidgetPredicate((w) => w is DecoratedBox && w.position == DecorationPosition.foreground),
+          )
+          .first;
+      final rect = tester.getRect(ring);
+      final scale = TvScale.of(tester.element(target));
+      final origin = tester.getTopLeft(find.byKey(_menuFrame));
+      final y = ((rect.bottom + scale.px(1.5) - origin.dy) * 2).round();
+      final x = ((rect.center.dx - origin.dx) * 2).round();
+      final render = _menuFrame.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final color = (await tester.runAsync(() async {
+        final image = await render.toImage(pixelRatio: 2);
+        final bytes = (await image.toByteData())!;
+        final offset = (y * image.width + x) * 4;
+        final value = Color.fromARGB(
+          bytes.getUint8(offset + 3),
+          bytes.getUint8(offset),
+          bytes.getUint8(offset + 1),
+          bytes.getUint8(offset + 2),
+        );
+        image.dispose();
+        return value;
+      }))!;
+      await captureQaFrame(tester, 'tv-last-menu-ring-$zoom');
+      expect(
+        color,
+        TvTheme.of(tester.element(target)).focusRing,
+        reason: 'The bottom horizontal ring must be painted below the last menu row, even at the scroll boundary',
+      );
+    });
+  }
+
   testWidgets('issue #35: favorites Back visits the filter, menu and exit on both channels', (tester) async {
     await prepareQaFonts(tester);
     final services = await _pumpApp(tester, follows: [1, 2], offline: {2});

@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/live_play/logic/room_layout.dart';
@@ -93,6 +94,7 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
   double _pendingMinimum = 0;
   double _pendingMaximum = 1;
   bool _pendingMoved = false;
+  bool _reportedUpdate = false;
 
   /// A drag in the middle third moves between rooms (U.2b2).
   bool _switching = false;
@@ -111,9 +113,21 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   bool get _systemVolume => DeviceControls.available;
 
+  void _trace(String phase, {GestureLevel? kind}) {
+    if (defaultTargetPlatform != TargetPlatform.iOS) return;
+    AppLog.instance.info('gesture', 'gesture-input phase=$phase enabled=${widget.enabled} kind=${kind?.name ?? "-"}');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _trace('attached');
+  }
+
   @override
   void didUpdateWidget(covariant PlayerGestureLayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled != widget.enabled) _trace('enabled-changed');
     if (oldWidget.enabled && !widget.enabled) _onDragCancel();
   }
 
@@ -155,6 +169,10 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   /// Shows [kind]'s level at once and tells the system with the next frame.
   void _applySoon(GestureLevel kind) {
+    if (!_reportedUpdate) {
+      _reportedUpdate = true;
+      _trace('update', kind: kind);
+    }
     _show(kind, _level);
     _unsent = kind;
     _sending ??= SchedulerBinding.instance.scheduleFrameCallback((_) {
@@ -199,6 +217,8 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
   void _onDragStart(DragStartDetails details) {
     final size = context.size ?? Size.zero;
     final epoch = ++_dragEpoch;
+    _reportedUpdate = false;
+    _trace('start');
     _reading = false;
     _pendingDelta = 0;
     _pendingMinimum = 0;
@@ -209,6 +229,7 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     _switching = false;
     if (widget.onSwipeUp != null && details.localPosition.dy >= size.height - portraitRestoreZone) {
       _restoring = 0;
+      _trace('restore-panel');
       return;
     }
     // A07.15: going home (or pulling down the status bar) from the screen's
@@ -221,6 +242,7 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
       insets: (top: edges.top, bottom: edges.bottom),
       bottomFallback: defaultTargetPlatform == TargetPlatform.android ? androidGestureFallback : 0,
     )) {
+      _trace('system-edge');
       return;
     }
     final swipe = widget.swipe;
@@ -234,10 +256,12 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     final kind = drag == PictureDrag.brightness ? GestureLevel.brightness : GestureLevel.volume;
     _dragging = kind;
     _reading = true;
+    _trace('reading', kind: kind);
     unawaited(
       _current(kind).then((value) {
         if (!mounted || epoch != _dragEpoch || !widget.enabled) return;
         _reading = false;
+        _trace('baseline', kind: kind);
         _level = (value + _pendingDelta).clamp(_pendingMinimum, _pendingMaximum);
         // A normal release keeps the moves already made. Cancellation,
         // locking, disposal or a newer drag invalidate this read instead.
@@ -306,7 +330,10 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     if (widget.enabled && (mobile || widget.onSwipeUp != null || widget.swipe != null)) {
       content = GestureDetector(
         behavior: HitTestBehavior.translucent,
-        onVerticalDragDown: (details) => _downY = details.globalPosition.dy,
+        onVerticalDragDown: (details) {
+          _downY = details.globalPosition.dy;
+          _trace('down');
+        },
         onVerticalDragStart: _onDragStart,
         onVerticalDragUpdate: _onDragUpdate,
         onVerticalDragEnd: _onDragEnd,

@@ -585,13 +585,18 @@ class _TvHomePageState extends ConsumerState<TvHomePage> with WidgetsBindingObse
               // Entries past the height scroll; clipped above and below only
               // (the focused entry grows past the sides).
               Expanded(
-                child: ClipRect(
-                  clipper: const _VerticalClip(),
-                  child: SingleChildScrollView(
-                    clipBehavior: Clip.none,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [for (final pane in menuPanes) _menuItem(pane, compact: !expanded)],
+                child: Padding(
+                  // Reserve paint space outside the scrolling viewport for
+                  // the focused row's growth and outside ring at either edge.
+                  padding: EdgeInsets.symmetric(vertical: scale.pxText(8)),
+                  child: ClipRect(
+                    clipper: _VerticalClip(overflow: scale.pxText(8)),
+                    child: SingleChildScrollView(
+                      clipBehavior: Clip.none,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [for (final pane in menuPanes) _menuItem(pane, compact: !expanded)],
+                      ),
                     ),
                   ),
                 ),
@@ -735,11 +740,13 @@ class _ClockState extends State<_Clock> {
 
 /// Clips above and below a box, not at its sides.
 class _VerticalClip extends CustomClipper<Rect> {
-  const new();
+  const new({required this.overflow});
+
+  final double overflow;
 
   @override
-  Rect getClip(Size size) => Rect.fromLTRB(-size.width, 0, size.width * 2, size.height);
+  Rect getClip(Size size) => Rect.fromLTRB(-size.width, -overflow, size.width * 2, size.height + overflow);
 
   @override
-  bool shouldReclip(_VerticalClip oldClipper) => false;
+  bool shouldReclip(_VerticalClip oldClipper) => overflow != oldClipper.overflow;
 }

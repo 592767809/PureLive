@@ -5774,11 +5774,13 @@ note = "5.4.14 同源十包、完整 all/14、十一项远端哈希和匿名下�
 id = "V02.41"
 title = "电视首页菜单首项焦点框上沿裁切"
 type = "功能"
-status = "未开始"
+status = "开发中"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/46"
 note = "构建期间新增。已查看原 Sony Android9 截图，确认上沿缺失；源码中菜单列表竖向裁剪与放大外描边相邻，根因回归和修复未完成，不归入 5.4.14 已修复。"
+to = ["A17.16"]
+branch = "ai/A17.16"
 
 [[task]]
 id = "V02.42"
@@ -5794,8 +5796,76 @@ note = "原 Win10/GTX760/475.14 整窗白屏包含标题按钮，但按钮仍可
 id = "V02.43"
 title = "IPTV节目单首次刷新与RTP导入反馈"
 type = "功能"
-status = "未开始"
+status = "开发中"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
 note = "#48 原 Win11 26H2／5.4.13 报告首次节目单不显示、进出全屏后恢复及 RTP 导入失败。离线同格式 HTTP 对照各解析一条，RTP 的 TXT／M3U 均为零，导入拒绝已复现；节目单迟到元数据刷新仍为源码假设。未验证原生组播播放，两项均未包含在 5.4.14 修复中，保留开放。"
+to = ["A13.6"]
+branch = "ai/A17.16"
+
+[[task]]
+id = "A17.16"
+title = "接 A17.2：菜单边缘焦点完整绘制"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/46"
+branch = "ai/A17.16"
+note = "已登记，按任务书先复现和验证。"
+
+[[task]]
+id = "A13.6"
+title = "接 A13.1：节目单首次刷新与RTP导入"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/48"
+branch = "ai/A17.16"
+note = "已登记，按任务书先复现和验证。"
+
+[[task]]
+id = "V02.44"
+title = "快手TV端无音视频反馈"
+type = "功能"
+status = "受阻"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/49"
+branch = "ai/A17.16"
+note = "同网络手机与Windows正常、Sony Android9无音视频，尚缺媒体连接与解码诊断，先分段取证，不假定与#33相同。"
+
+[[task]]
+id = "Y01.26"
+title = "5.4.15全平台发布（构建号5119）：电视菜单与IPTV"
+type = "发布"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/46"
+branch = "ai/A17.16"
+note = "已登记，按任务书先复现和验证。"
+
+[[task]]
+id = "A07.28"
+title = "接A07.27：iPhone手势阶段诊断"
+type = "工程"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/41#issuecomment-6389166537"
+branch = "ai/A17.16"
+note = "原iPhone在5.4.14无提示，iPad和Android正常；完整播放界面受控识别和模拟原生通道通过，尚未复现原设备故障。补充固定阶段、无坐标无数值无账号的iOS手势日志，不声明故障已修复。"
+
+[[task]]
+id = "Z02.7"
+title = "静默Socket重连回归按完成条件等待"
+type = "工程"
+status = "开发中"
+size = "小"
+tier = 1
+from = "5.4.15完整门禁：packages/live_net/test/socket_test.dart首项固定55ms等待失败"
+branch = "ai/A17.16"
+note = "受控80ms事件循环阻塞复现旧断言仅1次连接，等到真实重连则2次且旧连接已关；生产socket源码与基线字节一致。仅修测试等待条件与失败清理，使用至少1s的被测定时参数，不改网络重试策略。失败门禁完整保留后再跑all/14。"

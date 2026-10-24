@@ -73,6 +73,33 @@ void main() {
   IptvSite site() =>
       IptvSite(library: library, importer: importer, selectedGuideSourceId: () => selected, now: () => clock);
 
+  for (final format in ['m3u', 'txt']) {
+    test('issue 48: $format imports RTP and preserves it through room resolution', () async {
+      const stream = 'rtp://239.1.2.3:5140';
+      final body = format == 'm3u'
+          ? '#EXTM3U\n#EXTINF:-1 group-title="News",CCTV1\n$stream\n'
+          : 'News,#genre#\nCCTV1,$stream\n';
+      final imported = await importer.importPlaylistText(body, 'multicast.$format');
+      expect(imported.status, IptvImportStatus.imported);
+      final channels = await library.channels(imported.id!);
+      expect(channels.single.entry.streamUrl, stream);
+      final iptv = site();
+      final detail = await iptv.getRoomDetail(roomId: channels.single.id);
+      final quality = (await iptv.getPlayQualities(detail: detail)).single;
+      expect(await iptv.getPlayUrls(detail: detail, quality: quality), [stream]);
+      expect(http.requests, isEmpty, reason: 'Parsing does not contact the multicast network');
+    });
+  }
+
+  test('issue 48: direct RTP channel id is resolved without a playlist or network', () async {
+    const stream = 'rtp://239.1.2.3:5140';
+    final iptv = site();
+    final detail = await iptv.getRoomDetail(roomId: stream);
+    final quality = (await iptv.getPlayQualities(detail: detail)).single;
+    expect(await iptv.getPlayUrls(detail: detail, quality: quality), [stream]);
+    expect(http.requests, isEmpty);
+  });
+
   test('URL import, guide import, mapping on sync and the platform view', () async {
     http.bodies['https://f/list/cn.m3u'] = utf8.encode(_playlist);
     http.bodies['https://f/epg.xml.gz'] = gzip.encode(utf8.encode(_guide));
