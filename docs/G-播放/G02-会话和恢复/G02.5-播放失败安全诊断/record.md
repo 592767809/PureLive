@@ -22,3 +22,8 @@
 [5.4.11](https://github.com/wzgrx/PureLive/releases/tag/v5.4.11) 已公开；PR #34 合并 `528bcd023ec4d2dbfeb5d668df404f1a1e84530a`，构建与标签固定 `815473543f5e08a11e3db062525723ffabd3a7b1`。完整门禁 all/14 通过；十个正式包和 SHA256SUMS 的全部远端哈希及公开下载通过。
 
 本轮定向测试、合成截图、Windows/Linux/macOS/iPhone 模拟器首页与同提交 K90 v4dev 冒烟分别记录在 Y01.22 和本地 outputs/purelive-5.4.11。Windows/K90 多画面操作以独立原生回执为准；不将布局或首页测试扩大为所有硬件和多路长时间播放通过。#32 发布后回复关闭；#33 智慧屏故障与 #15 账号故障继续开放。Apple 真机、原智慧屏、Windows 安装覆盖及长时间多路播放尚未验证。
+
+
+## 5.4.12 首房成功后换房失败的新证据
+
+原反馈日志显示首次斗鱼房间 result=playing、engine=new、firstFrame=773，原作者确认有声有画；后续换房为 buffering_stall_timeout。该证据只证明至少一次首帧成功，换房媒体连接、会话复用、输出状态仍需区分，不判定为固定解码器故障。source 中 room_runtime 在停止完成后才交给 standby，session 的代次与释放逻辑已有保护，不能从代码推导原设备正常。raw.kkgithub 与 jsDelivr 为更新镜像来源，相关错误不直接证明直播媒体失败。已回复一组保持其他设置不变的“播放器强制销毁”及 A→B→A 对照，待原设备结果（[回复](https://github.com/wzgrx/PureLive/issues/33#issuecomment-6385021640)）；#33 保持开放。

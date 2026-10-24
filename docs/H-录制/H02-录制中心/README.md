@@ -89,18 +89,12 @@ AppBootstrap.wire → platformAppRecording（recording_platform.dart:348）
 属于 [H 录制](../README.md)。
 
 - 代码：`features/recorder/`、`app/recording.dart`
-- 进度：`█████████████████░░░` 87%
+- 进度：`███████████████████░` 97%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
 | H02.1 | 录制中心与录制设置（含录制接入） | 功能 | 完成 | 2026-10-01 | de14b3c8e | [设计或说明](H02.1-录制中心与录制设置/README.md)、[记录](H02.1-录制中心与录制设置/record.md) |
-| H02.2 | 接 H02.1：Apple 录制能力接线与原生内核验证 | 功能 | 开发中 | — | — | [设计或说明](H02.2-Apple录制能力接线/README.md)、[任务书](H02.2-Apple录制能力接线/brief.md)、[记录](H02.2-Apple录制能力接线/record.md)、[真机验证](H02.2-Apple录制能力接线/verify.md)、[合并审查](H02.2-Apple录制能力接线/review.md) |
-
-## 还没完成的
-
-- **H02.2 接 H02.1：Apple 录制能力接线与原生内核验证**（开发中，第一档，规模 小）
-  - 分支：ai/V02.34
-  - 来源：https://github.com/wzgrx/PureLive/issues/42
+| H02.2 | 接 H02.1：Apple 录制能力接线与原生内核验证 | 功能 | 待真机 | 2026-10-24 | 83ab860fd914cc16ea38552c6fc0b6a76669a532 | [设计或说明](H02.2-Apple录制能力接线/README.md)、[任务书](H02.2-Apple录制能力接线/brief.md)、[记录](H02.2-Apple录制能力接线/record.md)、[真机验证](H02.2-Apple录制能力接线/verify.md)、[合并审查](H02.2-Apple录制能力接线/review.md) |
 
 <!-- docs:生成结束 -->
