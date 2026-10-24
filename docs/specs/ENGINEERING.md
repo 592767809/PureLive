@@ -37,7 +37,7 @@
 | 状态和路由 | Riverpod 3（手写 provider）、go_router；页面跳转用 `AppNavigator`（对应 3.x 的同名接口） |
 | 多语言 | 应用自带的翻译：`apps/pure_live/assets/translations/zh.json`、`en.json`（中文、英文），键名排序、4 空格缩进 |
 | 存储 | drift + sqlite3；3.x 的 Hive 数据在首次启动时自动迁移；Cookie 和密码加密存储 |
-| 网络 | 纯 Dart 的 `dart:io` HTTP 客户端，按平台分配代理；Twitch、Kick 用系统 TLS 的原生 HTTP 通道 |
+| 网络 | 纯 Dart 的 `dart:io` HTTP 客户端，按平台分配代理；Twitch 按平台使用原生或 WebView 通道；Kick 在 Android、Windows 使用现有 HTTP/2 客户端并沿用应用代理 |
 
 包的划分（依赖只能从上往下）：
 

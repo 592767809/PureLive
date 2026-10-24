@@ -102,7 +102,7 @@
 属于 [E 直播平台](../README.md)。
 
 - 代码：`packages/live_core/lib/src/sites/`
-- 进度：`███████████████████░` 95%
+- 进度：`████████████████████` 99%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
@@ -127,15 +127,6 @@
 | E03.18 | 接 E07.1：17LIVE 线路全部不通、第 2 页只给重复的一个 | 平台 | 完成 | 2026-10-08 | — | [设计或说明](E03.18-17LIVE线路和翻页/README.md)、[记录](E03.18-17LIVE线路和翻页/record.md) |
 | E03.19 | BIGO 请求头换成完整浏览器形态：只带 Mozilla/5.0 会被平台防火墙降级（接口 418、详情回 needLogin 空壳） | 平台 | 完成 | 2026-10-08 | — | [设计或说明](E03.19-BIGO请求头/README.md)、[记录](E03.19-BIGO请求头/record.md) |
 | E03.20 | Kick 改用 HTTP/2 和新的聊天密钥（API 不再接受 HTTP/1.1，Pusher 应用换了） | 平台 | 完成 | 2026-10-15 | — | [设计或说明](E03.20-Kick改用HTTP2和新的聊天密钥/README.md)、[记录](E03.20-Kick改用HTTP2和新的聊天密钥/record.md) |
-| E03.21 | 接 E03.20：Windows 复用 Kick HTTP2 通道与桌面验收 | 平台 | 开发中 | — | — | [设计或说明](E03.21-Windows的Kick适配/README.md)、[任务书](E03.21-Windows的Kick适配/brief.md)、[记录](E03.21-Windows的Kick适配/record.md)、[真机验证](E03.21-Windows的Kick适配/verify.md)、[合并审查](E03.21-Windows的Kick适配/review.md) |
-
-## 还没完成的
-
-- **E03.21 接 E03.20：Windows 复用 Kick HTTP2 通道与桌面验收**（开发中，第一档，规模 中）
-  - 阶段：HTTP2和代理能力 → Windows原生画面和聊天 → 合并后反馈验收
-  - 接着做：检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。
-  - 分支：ai/V02.26
-  - 说明：2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。
-  - 来源：https://github.com/wzgrx/PureLive/issues/26
+| E03.21 | 接 E03.20：Windows 复用 Kick HTTP2 通道与桌面验收 | 平台 | 待真机 | 2026-10-24 | 7a823612a836d04a774a575d1e6dee5ff16b18b1 | [设计或说明](E03.21-Windows的Kick适配/README.md)、[任务书](E03.21-Windows的Kick适配/brief.md)、[记录](E03.21-Windows的Kick适配/record.md)、[真机验证](E03.21-Windows的Kick适配/verify.md)、[合并审查](E03.21-Windows的Kick适配/review.md) |
 
 <!-- docs:生成结束 -->

@@ -1465,12 +1465,13 @@ note = "依赖 A08.10（行样式和 ChatText）；新设置 danmakuListFontSize
 id = "A08.16"
 title = "斗鱼等级和粉丝牌配色与可读性（接 A08.10）"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.26"
 from = "GitHub PR #28；用户要求合并并发布"
-note = "已补改前失败回归，待最终完整门禁与同提交原生验证；不将离线测试等同于真实禁言事件验证。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "A09.1"
@@ -2338,12 +2339,13 @@ note = "2026-10-15 收尾：没有在真机上逐项走（用户定“快速测�
 id = "D01.33"
 title = "斗鱼聊天等级、粉丝牌和通知（接 D01.3）"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/V02.26"
 from = "GitHub PR #28；用户要求合并并发布"
-note = "已补改前失败回归，待最终完整门禁与同提交原生验证；不将离线测试等同于真实禁言事件验证。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "D02.1"
@@ -4923,14 +4925,15 @@ commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 id = "Y01.21"
 title = "5.4.10 全平台发布（构建号 5114）：横屏侧栏、电视焦点、抖音链接、Windows KICK 与斗鱼聊天"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/V02.26"
 stages = ["审查与最终完整门禁", "十包构建和启动", "同提交 K90 冒烟", "合并与公开", "双更新通道与反馈收尾"]
-done = 0
+done = 5
 from = "用户：解决问题，发布更新，合并pr，关闭issues"
-note = "PR #31 集成 #28，发布后关闭 #14、#26、#29、#30；#15 继续跟踪。旧归档库例外需本次确认。"
+note = "5.4.10+5114 已公开，PR #31 集成 #28；十包和 SHA256SUMS 远端哈希及匿名下载通过，同提交原生启动与 K90 冒烟分别记录。双仓库仅同步相同更新 JSON，旧库单次例外另记；#15 继续开放。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "Y02.1"
@@ -5290,141 +5293,143 @@ commit = "37a5f703901022cd7fcb88c0907cd3c84cd4ea68"
 id = "V02.26"
 title = "issue #29：抖音自定义字母房间链接被纯数字规则拒绝"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/29"
-branch = "ai/V02.26"
 to = ["E04.3"]
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "V02.27"
 title = "issue #30：电视二级设置行缩放与选择框外描边越界"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/30"
-branch = "ai/V02.26"
 to = ["A17.11"]
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "V02.28"
 title = "接 issue #14：小横屏侧栏的整条拖动与全部入口可达"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/14"
-branch = "ai/V02.26"
 to = ["A06.6"]
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "V02.29"
 title = "接 issue #15：按 5.4.9 清晰度阶段失败日志定位登录取流"
 type = "平台"
-status = "开发中"
+status = "受阻"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15"
-branch = "ai/V02.26"
 to = ["E01.9"]
-note = "2026-10-24：已修复身份缓存隔离缺口并补固定原因码；反馈账号主因尚未确认，不能宣称现场故障已解决。"
+note = "身份缓存隔离和固定诊断码随 5.4.10 发布；受影响账号主因未完全确认，#15 保持开放，不用匿名巡检代替账号验证。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 stages = ["现场阶段和证据", "身份隔离和安全诊断", "反馈账号验证"]
-done = 0
+done = 2
+next = "等待受影响账号的首次失败时间与 phase/kind/code 行，继续定位；不索取凭据。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "V02.30"
 title = "issue #26：复用 HTTP2 通道验证 Windows Kick"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/26"
-branch = "ai/V02.26"
 to = ["E03.21"]
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 stages = ["HTTP2和代理能力", "Windows原生画面和聊天", "合并后反馈验收"]
-done = 0
+done = 2
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "E04.3"
 title = "接 E04.2：抖音直播自定义字母房间链接解析"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/29"
-branch = "ai/V02.26"
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "A17.11"
 title = "接 A17.9：电视二级设置与选择弹窗的焦点框保持行内"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/30"
-branch = "ai/V02.26"
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "A06.6"
 title = "接 A06.1：小横屏侧栏所有入口可从整条侧栏拖动访问"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/14"
-branch = "ai/V02.26"
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "E01.9"
 title = "接 E01.2：斗鱼清晰度阶段的登录取流失败定位"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15"
-branch = "ai/V02.26"
-note = "2026-10-24：已修复身份缓存隔离缺口并补固定原因码；反馈账号主因尚未确认，不能宣称现场故障已解决。"
+note = "身份缓存隔离和固定诊断码随 5.4.10 发布；受影响账号主因未完全确认，#15 保持开放，不用匿名巡检代替账号验证。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 stages = ["现场阶段和证据", "身份隔离和安全诊断", "反馈账号验证"]
-done = 0
+done = 2
+next = "等待受影响账号的首次失败时间与 phase/kind/code 行，继续定位；不索取凭据。"
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
 id = "E03.21"
 title = "接 E03.20：Windows 复用 Kick HTTP2 通道与桌面验收"
 type = "平台"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/26"
-branch = "ai/V02.26"
-note = "2026-10-24：实现和相关回归完成，原生/设备证据见 verify；完整门禁通过后提交 PR，未合并、未发布，issues 保持开放。"
+note = "代码与完整门禁通过，随 5.4.10 发布；已完成的定向/K90/Windows 实测见 verify 和 Y01.21。原反馈设备、真实事件或长期场景仍待补齐，不据发布而宣称全覆盖。"
 
-next = "检查本批 PR 的完整门禁回执，合并发布后按 verify 复核；不修改 5.4.9 发布资产。"
 stages = ["HTTP2和代理能力", "Windows原生画面和聊天", "合并后反馈验收"]
-done = 0
+done = 2
+date = "2026-10-24"
+commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
