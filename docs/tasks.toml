@@ -5557,7 +5557,7 @@ from = "https://github.com/wzgrx/PureLive/issues/38"
 to = ["A17.15"]
 date = "2026-10-24"
 commit = "83ab860fd914cc16ea38552c6fc0b6a76669a532"
-note = "壁纸重试加载反馈已发布；原 Sony 连接失败和失焦主诉仍待现场复现，#38 继续开放。"
+note = "壁纸重试加载反馈已发布；反馈者补充同网络 API 需代理才可达并自行关闭 #38。原电视失焦未据此认定已复测，保留既有真机范围。"
 
 [[task]]
 id = "V02.36"
@@ -5638,26 +5638,26 @@ note = "受控时钟覆盖 ACK 保活、静默超时与完整退避，完整门�
 id = "V02.37"
 title = "斗鱼登录后签名轮数原因码反馈"
 type = "功能"
-status = "受阻"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15#issuecomment-6382456250"
 to = ["E01.10"]
-date = "2026-10-24"
+date = "2026-10-25"
 commit = "83ab860fd914cc16ea38552c6fc0b6a76669a532"
-note = "较高签名轮数的本地兼容缺口已修正；实际反馈账号的完整登录播放仍待复测，#15 继续开放。"
+note = "5.4.13 签名轮数兼容修正及独立向量/缓存/113项检查后，原受影响用户确认 Win11 与 Android 登录、重启及离开等待后返回正常，另有小米13恢复反馈，#15已回复关闭；精确等待时间未提供，未扩大为全账号长期验收。"
 
 [[task]]
 id = "E01.10"
 title = "斗鱼签名解析支持有界的较高迭代次数"
 type = "功能"
-status = "待真机"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/15#issuecomment-6382456250"
-date = "2026-10-24"
+date = "2026-10-25"
 commit = "83ab860fd914cc16ea38552c6fc0b6a76669a532"
-note = "较高轮数独立签名向量、缓存重取和 113 项斗鱼解析/适配回归通过；实际反馈账号待复测。"
+note = "5.4.13 签名轮数兼容修正及独立向量/缓存/113项检查后，原受影响用户确认 Win11 与 Android 登录、重启及离开等待后返回正常，另有小米13恢复反馈，#15已回复关闭；精确等待时间未提供，未扩大为全账号长期验收。"
 
 [[task]]
 id = "V02.38"
@@ -5737,31 +5737,55 @@ commit = "3c8dd3626b9e86469e89605f03b3df68d6007da4"
 id = "V02.40"
 title = "多画面右键侧栏换台入口可发现性反馈"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/43"
-note = "反馈者已确认找到图标，明确要求音量下方直接选台，与普通模式一致。接 A13.5 实现沉浸／全屏控制面板中的同一选台列表，验证目标格、布局、返回链及会话保留后发布。"
 to = ["A13.5"]
+date = "2026-10-25"
+commit = "f3a1f81aa9442017a0d783f81e8f07176d935418"
+note = "#43 明确要求的音量下方直接选台已实现并在 Windows 两路真实播放验证，5.4.14 发布后回复关闭。"
 
 [[task]]
 id = "A13.5"
 title = "接 A13.2：沉浸和全屏音量下方直接换台"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/43#issuecomment-6384805621"
-branch = "ai/A13.5"
-note = "复用普通模式的控制与选台列表。右键／长按当前格即固定替换目标，音量下方直接选关注或历史房间；保留图标入口、重复房间规则、返回链和其他格会话，窄小面板可滚动。"
+date = "2026-10-25"
+commit = "f3a1f81aa9442017a0d783f81e8f07176d935418"
+note = "已发布并在隔离 Windows 候选中验证沉浸／全屏真实两路换台、正确目标、重复房间及 Esc。K90 同源启动通过；手机长按横屏与电视遥控器等其余逐项真机仍待验收。"
 
 [[task]]
 id = "Y01.25"
 title = "5.4.14 全平台发布（构建号 5118）：多画面直接换台"
 type = "发布"
-status = "开发中"
+status = "待确认"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/43"
-branch = "ai/A13.5"
-note = "同一提交构建十个包，逐项门禁、正式包身份、远端哈希和各端启动分别验证。更新 JSON 最后同步，旧库历史失败例外须针对本版另获明确授权。"
+date = "2026-10-25"
+commit = "f3a1f81aa9442017a0d783f81e8f07176d935418"
+note = "5.4.14 已公开，同源十包、各端启动、十一项哈希和匿名下载通过；主库更新文件独立全门禁后已推送。旧库精确两JSON已测，仍有相同六项历史失败，执行尚待本版明确例外；不能继承5.4.13授权。"
+
+[[task]]
+id = "V02.41"
+title = "电视首页菜单首项焦点框上沿裁切"
+type = "功能"
+status = "未开始"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/46"
+note = "构建期间新增。已查看原 Sony Android9 截图，确认上沿缺失；源码中菜单列表竖向裁剪与放大外描边相邻，根因回归和修复未完成，不归入 5.4.14 已修复。"
+
+[[task]]
+id = "V02.42"
+title = "Windows 偶发启动白屏但日志记录首页完成"
+type = "功能"
+status = "受阻"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/47"
+note = "构建期间新增并有第二用户反馈。原 Win10/GTX760/475.14 从托盘退出，白屏时拖动及隐藏恢复无效，但盲点最大化后主页出现，再还原正常。首帧338ms、首页1323ms和尺寸变化恢复使首次呈现时序成为线索，尚不能断言根因；隔离候选三次正常不代替原机修复验收。"
