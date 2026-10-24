@@ -15,7 +15,7 @@ defaults:
     shell: bash
 jobs:
   diagnostic:
-    name: Exact artifact A-B-A-B renderer comparison
+    name: Exact artifact original-default-Skia renderer comparison
     runs-on: macos-15
     timeout-minutes: 25
     steps:
@@ -35,7 +35,7 @@ jobs:
           actual=$(shasum -a 256 "artifacts/$name" | awk '{print $1}')
           test "$actual" = "$expected"
           printf 'source=%s\nzip_sha256=%s\n' "$actual_source" "$actual" > diag/original-identity.txt
-      - name: Compare default renderer and explicit Skia on the same binary
+      - name: Compare untouched original, re-signed default and explicit Skia
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN
@@ -43,8 +43,9 @@ jobs:
           ditto -x -k artifacts/PureLive-5.4.13-5117-macos-universal.zip "$root/original"
           original="$root/original/PureLive.app"
           codesign --verify --deep --strict "$original"
-          codesign -d --entitlements - "$original" > "$root/entitlements.plist" 2> diag/original-codesign.txt
+          codesign -d --entitlements - --xml "$original" > "$root/entitlements.plist" 2> diag/original-codesign.txt
           plutil -lint "$root/entitlements.plist"
+          shasum -a 256 "$original/Contents/MacOS/PureLive" > diag/original-binary-before.txt
           sw_vers > diag/os.txt
           system_profiler SPDisplaysDataType -json > diag/displays.json
           for renderer in default skia; do
@@ -85,9 +86,13 @@ jobs:
             owned_pid=''
           }
           trap stop_owned EXIT
-          for trial in default-1 skia-1 default-2 skia-2; do
+          for trial in original-1 default-1 skia-1 original-2 default-2 skia-2; do
             renderer=${trial%-*}
-            app="$root/$renderer/PureLive.app"
+            if [[ "$renderer" = original ]]; then
+              app="$original"
+            else
+              app="$root/$renderer/PureLive.app"
+            fi
             owned_binary="$app/Contents/MacOS/PureLive"
             "$owned_binary" > "diag/$trial-stdout.log" 2> "diag/$trial-stderr.log" &
             owned_pid=$!
@@ -102,11 +107,18 @@ jobs:
               fi
               osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $owned_pid) to true" || true
               screencapture -x "diag/$trial-$target.png"
+              ps -ww -p "$owned_pid" -o pid=,etime=,%cpu=,command= > "diag/$trial-$target-process.txt" || true
+              if [[ "$target" = 30 ]]; then
+                sample "$owned_pid" 1 -file "diag/$trial-sample.txt" > "diag/$trial-sample-command.log" 2>&1 || true
+              fi
               printf 'alive_at=%s\n' "$target" >> "diag/$trial-state.txt"
             done
             log show --last 2m --predicate "processID == $owned_pid" --style compact > "diag/$trial-unified.log" || true
             stop_owned
           done
+          codesign --verify --deep --strict "$original"
+          shasum -a 256 "$original/Contents/MacOS/PureLive" > diag/original-binary-after.txt
+          cmp diag/original-binary-before.txt diag/original-binary-after.txt
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ always() }}
         with:
