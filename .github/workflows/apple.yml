@@ -1,23 +1,28 @@
-# Temporary diagnostic branch: no packages are built or published here.
-# It compares the exact rejected artifact with only its renderer preference changed.
+# Temporary exact-artifact diagnostic; never builds or publishes packages.
 name: Apple
-run-name: Exact macOS artifact renderer comparison
+run-name: macOS fresh-runner first-launch comparison
 on:
   workflow_dispatch:
 permissions:
   contents: read
   actions: read
 concurrency:
-  group: mac-render-diagnostic-${{ github.ref }}
+  group: mac-cold-diagnostic-${{ github.ref }}
   cancel-in-progress: false
 defaults:
   run:
     shell: bash
 jobs:
   diagnostic:
-    name: Exact artifact original-default-Skia renderer comparison
+    name: First launch ${{ matrix.renderer }} replica ${{ matrix.replica }}
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        renderer: [original, default, skia]
+        replica: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Fetch the immutable original artifact
@@ -35,7 +40,10 @@ jobs:
           actual=$(shasum -a 256 "artifacts/$name" | awk '{print $1}')
           test "$actual" = "$expected"
           printf 'source=%s\nzip_sha256=%s\n' "$actual_source" "$actual" > diag/original-identity.txt
-      - name: Compare untouched original, re-signed default and explicit Skia
+      - name: Observe this condition on its fresh runner
+        env:
+          PL_RENDERER: ${{ matrix.renderer }}
+          PL_REPLICA: ${{ matrix.replica }}
         run: |
           set -euo pipefail
           unset GH_TOKEN GITHUB_TOKEN
@@ -47,6 +55,7 @@ jobs:
           plutil -lint "$root/entitlements.plist"
           shasum -a 256 "$original/Contents/MacOS/PureLive" > diag/original-binary-before.txt
           sw_vers > diag/os.txt
+          uname -m > diag/architecture.txt
           system_profiler SPDisplaysDataType -json > diag/displays.json
           for renderer in default skia; do
             mkdir -p "$root/$renderer"
@@ -86,8 +95,14 @@ jobs:
             owned_pid=''
           }
           trap stop_owned EXIT
-          for trial in original-1 default-1 skia-1 original-2 default-2 skia-2; do
-            renderer=${trial%-*}
+          selected="$PL_RENDERER"
+          replica="$PL_REPLICA"
+          case "$selected" in original|default|skia) ;; *) exit 64 ;; esac
+          case "$replica" in 1|2) ;; *) exit 64 ;; esac
+          printf 'renderer=%s\nreplica=%s\n' "$selected" "$replica" > diag/selected-condition.txt
+          for iteration in 1 2; do
+            trial="$selected-$replica-$iteration"
+            renderer="$selected"
             if [[ "$renderer" = original ]]; then
               app="$original"
             else
@@ -98,6 +113,7 @@ jobs:
             owned_pid=$!
             printf 'trial=%s\npid=%s\n' "$trial" "$owned_pid" > "diag/$trial-state.txt"
             elapsed=0
+            started_epoch=$(date +%s)
             for target in 5 30 60 90; do
               sleep "$((target-elapsed))"
               elapsed=$target
@@ -105,13 +121,22 @@ jobs:
                 printf 'ended_before=%s\n' "$target" >> "diag/$trial-state.txt"
                 break
               fi
-              osascript -e "tell application \"System Events\" to set frontmost of (first process whose unix id is $owned_pid) to true" || true
+              osascript - "$owned_pid" > "diag/$trial-$target-foreground.log" 2>&1 <<'APPLESCRIPT' || true
+          on run argv
+            with timeout of 15 seconds
+              tell application "System Events"
+                set frontmost of (first process whose unix id is (item 1 of argv as integer)) to true
+              end tell
+            end timeout
+          end run
+          APPLESCRIPT
               screencapture -x "diag/$trial-$target.png"
               ps -ww -p "$owned_pid" -o pid=,etime=,%cpu=,command= > "diag/$trial-$target-process.txt" || true
               if [[ "$target" = 30 ]]; then
                 sample "$owned_pid" 1 -file "diag/$trial-sample.txt" > "diag/$trial-sample-command.log" 2>&1 || true
               fi
-              printf 'alive_at=%s\n' "$target" >> "diag/$trial-state.txt"
+              actual_elapsed=$(($(date +%s)-started_epoch))
+              printf 'alive_at_nominal=%s actual_elapsed_seconds=%s\n' "$target" "$actual_elapsed" >> "diag/$trial-state.txt"
             done
             log show --last 2m --predicate "processID == $owned_pid" --style compact > "diag/$trial-unified.log" || true
             stop_owned
@@ -122,6 +147,6 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: ${{ always() }}
         with:
-          name: mac-renderer-diagnostics
+          name: mac-cold-${{ matrix.renderer }}-${{ matrix.replica }}
           path: diag/
           retention-days: 14
