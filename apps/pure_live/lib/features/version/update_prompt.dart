@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/version/app_version.dart';
@@ -126,6 +127,47 @@ class NewVersionDialog extends StatefulWidget {
 }
 
 class _NewVersionDialogState extends State<NewVersionDialog> {
+  final ScrollController _notesScroll = ScrollController();
+  final FocusNode _notesFocus = FocusNode(debugLabel: 'update notes');
+  bool _notesFocused = false;
+
+  @override
+  void dispose() {
+    _notesScroll.dispose();
+    _notesFocus.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _onNotesKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final direction = switch (key) {
+      LogicalKeyboardKey.arrowUp => -1,
+      LogicalKeyboardKey.arrowDown => 1,
+      _ => 0,
+    };
+    if (direction != 0 && _notesScroll.hasClients) {
+      final position = _notesScroll.position;
+      final next = (position.pixels + direction * position.viewportDimension * 0.8).clamp(
+        position.minScrollExtent,
+        position.maxScrollExtent,
+      );
+      if ((next - position.pixels).abs() > 0.5) {
+        _notesScroll.jumpTo(next);
+        return KeyEventResult.handled;
+      }
+      // At either end the directional traversal reaches the project link
+      // or footer. The notes must never hold the remote in an invisible node.
+    }
+    if (key == LogicalKeyboardKey.select ||
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter ||
+        key == LogicalKeyboardKey.gameButtonA) {
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   late bool _skip = widget.info.skippedAs(widget.settings?.get(Settings.skippedUpdateVersion) ?? '');
 
   bool get _inApp => widget.package != null && widget.sources.isNotEmpty;
@@ -207,6 +249,43 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
         i18n(_releasePage != null ? 'update_go_download_page' : (_inApp ? 'update_download_install' : 'update')),
       ),
     );
+    final directional = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    Widget notes = SingleChildScrollView(
+      key: const ValueKey('new-version-log'),
+      controller: _notesScroll,
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            i18n('update_log_title'),
+            style: styles.t13.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Theme(
+            data: theme.copyWith(textTheme: theme.textTheme.copyWith(bodyMedium: body.copyWith(height: 1.5))),
+            child: MarkdownText(log),
+          ),
+        ],
+      ),
+    );
+    if (directional) {
+      notes = Focus(
+        focusNode: _notesFocus,
+        onKeyEvent: _onNotesKey,
+        onFocusChange: (focused) => setState(() => _notesFocused = focused),
+        child: DecoratedBox(
+          position: DecorationPosition.foreground,
+          decoration: BoxDecoration(
+            borderRadius: AppRadii.listRow,
+            border: _notesFocused ? Border.all(color: TvColors.focusRing, width: 3) : null,
+          ),
+          // SelectionArea consumes bare arrows for text selection. Keep
+          // pointer selection, but give the remote a visible scroll target.
+          child: ExcludeFocus(child: notes),
+        ),
+      );
+    }
     return DialogButtonsTheme(
       child: DialogKeys(
         onEnter: _primary,
@@ -257,30 +336,7 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
                         ],
                       ),
                     ),
-                    if (log.isNotEmpty)
-                      Flexible(
-                        child: SingleChildScrollView(
-                          key: const ValueKey('new-version-log'),
-                          padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                i18n('update_log_title'),
-                                style: styles.t13.copyWith(color: scheme.primary, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 6),
-                              // The notes at the dialog's body size (3.x: 16).
-                              Theme(
-                                data: theme.copyWith(
-                                  textTheme: theme.textTheme.copyWith(bodyMedium: body.copyWith(height: 1.5)),
-                                ),
-                                child: MarkdownText(log),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    if (log.isNotEmpty) Flexible(child: notes),
                     if (skip != null && !wide)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(14, 8, 24, 0),

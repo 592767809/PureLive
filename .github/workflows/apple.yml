@@ -206,6 +206,60 @@ jobs:
           data=$(xcrun simctl get_app_container "$device" com.mystyle.purelive.liu data)
           find "$data" -name '*.log' -exec cp {} ../../shots/ \; 2>/dev/null || true
 
+      - name: Native iOS recording kernel
+        if: ${{ inputs.ios && inputs.simulator }}
+        working-directory: apps/pure_live
+        run: |
+          set -euo pipefail
+          flutter build ios --simulator --debug --target test/native/recording_kernel_smoke.dart
+          device=$(xcrun simctl list devices booted -j | python3 -c '
+          import json,sys
+          ids=[d["udid"] for ds in json.load(sys.stdin)["devices"].values() for d in ds if d["name"].startswith("iPhone")]
+          assert len(ids)==1,ids
+          print(ids[0])')
+          xcrun simctl terminate "$device" com.mystyle.purelive.liu || true
+          xcrun simctl install "$device" build/ios/iphonesimulator/Runner.app
+          xcrun simctl launch "$device" com.mystyle.purelive.liu
+          data=$(xcrun simctl get_app_container "$device" com.mystyle.purelive.liu data)
+          proof="$data/tmp/purelive-recording-kernel-smoke"
+          for attempt in $(seq 1 60); do
+            [[ -f "$proof/result.json" ]] && break
+            sleep 2
+          done
+          mkdir -p ../../shots/ios-recording-kernel
+          cp -R "$proof/." ../../shots/ios-recording-kernel/
+          python3 -c 'import json; v=json.load(open("../../shots/ios-recording-kernel/result.json")); print(v); assert v["passed"] and v["operating_system"]=="ios"'
+          xcrun simctl terminate "$device" com.mystyle.purelive.liu
+
+      - name: Native macOS recording kernel
+        if: ${{ inputs.macos }}
+        working-directory: apps/pure_live
+        run: |
+          set -euo pipefail
+          flutter build macos --debug --target test/native/recording_kernel_smoke.dart
+          binary="$PWD/build/macos/Build/Products/Debug/PureLive.app/Contents/MacOS/PureLive"
+          mkdir -p ../../shots/macos-recording-kernel
+          "$binary" > ../../shots/macos-recording-kernel/stdout.log 2> ../../shots/macos-recording-kernel/stderr.log &
+          owned_pid=$!
+          stop_owned() {
+            if kill -0 "$owned_pid" 2>/dev/null; then
+              actual=$(ps -ww -p "$owned_pid" -o command= | sed 's/^[[:space:]]*//')
+              [[ "$actual" = "$binary" ]] || { echo 'Native smoke process identity changed'; return 1; }
+              kill -TERM "$owned_pid"
+              wait "$owned_pid" 2>/dev/null || true
+            fi
+          }
+          trap stop_owned EXIT
+          # macOS sandbox redirects NSTemporaryDirectory into its container.
+          for attempt in $(seq 1 60); do
+            proof=$(find "$HOME/Library/Containers/com.mystyle.pureLive" "${TMPDIR:-/tmp}" -path '*/purelive-recording-kernel-smoke/result.json' -print -quit 2>/dev/null || true)
+            [[ -n "$proof" ]] && break
+            sleep 2
+          done
+          test -n "$proof"
+          cp -R "$(dirname "$proof")/." ../../shots/macos-recording-kernel/
+          python3 -c 'import json; v=json.load(open("../../shots/macos-recording-kernel/result.json")); print(v); assert v["passed"] and v["operating_system"]=="macos"'
+
       - name: Checksums
         if: ${{ always() }}
         run: |
@@ -226,4 +280,43 @@ jobs:
           name: screenshots
           path: shots/
           if-no-files-found: warn
+          retention-days: 14
+
+
+  macos-package-check:
+    name: Exact Mac package startup (${{ matrix.replica }})
+    needs: apple
+    if: ${{ inputs.macos }}
+    runs-on: macos-15
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        replica: [1, 2]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Download this run's exact packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern '*-apple' --dir packages
+          dir=$(dirname "$(find packages -name SHA256SUMS.txt -print -quit)")
+          (cd "$dir" && shasum -a 256 -c SHA256SUMS.txt)
+      - name: Observe first launch and reopen without modifying the bundle
+        run: |
+          set -euo pipefail
+          archives=(packages/*/PureLive-*-macos-universal.zip)
+          test "${#archives[@]}" = 1
+          bash tools/release/verify_macos_startup.sh "${archives[0]}" package-shots
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ always() }}
+        with:
+          name: macos-package-startup-${{ matrix.replica }}
+          path: package-shots/
+          if-no-files-found: error
           retention-days: 14

@@ -5532,3 +5532,165 @@ from = "https://github.com/wzgrx/PureLive/issues/35"
 date = "2026-10-24"
 commit = "8ed2226dfe36413691ea5c0f2cd2947dca226011"
 note = "5.4.12 已发布；修改前失败、五项回归、完整门禁、同提交 K90 电视界面分级返回与十包启动/哈希分别核验；原反馈电视盒子和遥控器仍待现场确认。"
+
+[[task]]
+id = "V02.34"
+title = "电视升级弹窗遥控器焦点反馈"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/37"
+to = ["A17.13"]
+
+[[task]]
+id = "V02.35"
+title = "Wallhaven 壁纸库网络超时反馈"
+type = "功能"
+status = "受阻"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/38"
+to = ["A17.15"]
+note = "本机 API 与图片片段成功；原 Sony 超时未复现，等待原设备错误类别，不作已修复关闭。"
+
+[[task]]
+id = "V02.36"
+title = "电视设置菜单焦点框边距反馈"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/39"
+to = ["A17.14"]
+
+[[task]]
+id = "A17.13"
+title = "接 A17.10：升级弹窗说明区和操作键遥控可达"
+type = "界面"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/37"
+
+[[task]]
+id = "A17.14"
+title = "接 A17.11：设置分组与整行焦点框边界一致"
+type = "界面"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/39"
+
+[[task]]
+id = "A17.15"
+title = "接 A17.8：壁纸库重试加载反馈与请求诊断"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/38"
+note = "已修正重试期间旧错误页未隐藏；网络和设备失焦尚未复现，反馈 #38 仍开放。"
+
+[[task]]
+id = "Y01.24"
+title = "5.4.13 全平台发布（构建号 5117）：电视焦点与移动端手势"
+type = "发布"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/37 / https://github.com/wzgrx/PureLive/issues/38 / https://github.com/wzgrx/PureLive/issues/39"
+
+
+[[task]]
+id = "Z02.4"
+title = "Showroom 心跳回归使用受控时间"
+type = "工程"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "5.4.13 完整门禁中暴露的真实计时不稳定"
+
+
+[[task]]
+id = "V02.37"
+title = "斗鱼登录后签名轮数原因码反馈"
+type = "功能"
+status = "受阻"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/15#issuecomment-6382456250"
+to = ["E01.10"]
+note = "新日志确定本地轮数边界拒绝；实际 enc_time 未取得，修正上限后仍待受影响账号验证，不关闭 #15。"
+
+[[task]]
+id = "E01.10"
+title = "斗鱼签名解析支持有界的较高迭代次数"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/15#issuecomment-6382456250"
+
+[[task]]
+id = "V02.38"
+title = "iPhone 全屏亮度和音量手势无效反馈"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/41"
+to = ["A07.27"]
+
+[[task]]
+id = "A07.27"
+title = "接 A07.15：原生数值回读期间保留拖动"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/41"
+
+[[task]]
+id = "Z02.5"
+title = "macOS 精确候选渲染对照与临时回退"
+type = "原生"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "5.4.13 候选视觉验收和六作业精确包对照"
+note = "原生日志确定一次 Impeller Metal GPU Hang，Skia 四次启动的 16 帧正常；采用官方支持的 Mac-only 回退缓解，待新源十包和最终包启动复核，不声称底层根因已确定。"
+
+[[task]]
+id = "V02.39"
+title = "iOS 自签版录制内核不可用反馈"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/42"
+to = ["H02.2"]
+
+[[task]]
+id = "H02.2"
+title = "接 H02.1：Apple 录制能力接线与原生内核验证"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+branch = "ai/V02.34"
+from = "https://github.com/wzgrx/PureLive/issues/42"

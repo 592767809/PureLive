@@ -13,12 +13,15 @@ import 'package:pure_live/tv/settings/tv_settings_style.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
+import 'package:pure_live/tv/widgets/tv_settings_rows.dart';
 
+import '../qa_capture.dart';
 import '../support.dart';
 
 final ColorScheme _scheme = ColorScheme.fromSeed(seedColor: const Color(0xFF2196F3), brightness: Brightness.dark);
 
 Future<void> _pump(WidgetTester tester, Widget child, {Size size = const Size(1920, 1080), double ratio = 2}) async {
+  await prepareQaFonts(tester);
   tester.view
     ..physicalSize = size
     ..devicePixelRatio = ratio;
@@ -53,6 +56,71 @@ String? get _row =>
         ?.value;
 
 void main() {
+  for (final (panel, size, ratio) in [
+    ('720p', const Size(1280, 720), 1.0),
+    ('1080p', const Size(1920, 1080), 2.0),
+    ('4K', const Size(3840, 2160), 2.0),
+  ]) {
+    for (final shared in [false, true]) {
+      testWidgets('issue #39: $panel ${shared ? "shared" : "TV"} settings ring fills the group boundary', (
+        tester,
+      ) async {
+        final boundary = GlobalKey();
+        await _pump(
+          tester,
+          Align(
+            alignment: Alignment.topCenter,
+            child: RepaintBoundary(
+              key: boundary,
+              child: shared
+                  ? TvSettingsStyle(
+                      child: SettingsGroup(
+                        children: [SettingsLinkRow(title: 'Platform', onTap: () {})],
+                      ),
+                    )
+                  : TvSettingsGroup(
+                      children: [TvSettingsRow(id: 'frame', title: 'Platform', autofocus: true, onTap: () {})],
+                    ),
+            ),
+          ),
+          size: size,
+          ratio: ratio,
+        );
+        if (shared) {
+          Focus.of(tester.element(find.text('Platform'))).requestFocus();
+        }
+        await tester.pumpAndSettle();
+        final render = boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final colors = (await tester.runAsync(() async {
+          final image = await render.toImage(pixelRatio: 2);
+          final bytes = (await image.toByteData())!;
+          // Ignore the group's bottom spacing; sample through the focused row's centre.
+          final target = find.text('Platform');
+          final y = ((tester.getCenter(target).dy - tester.getTopLeft(find.byKey(boundary)).dy) * 2).round();
+          final result = [
+            for (final x in [1, image.width - 2])
+              Color.fromARGB(
+                bytes.getUint8((y * image.width + x) * 4 + 3),
+                bytes.getUint8((y * image.width + x) * 4),
+                bytes.getUint8((y * image.width + x) * 4 + 1),
+                bytes.getUint8((y * image.width + x) * 4 + 2),
+              ),
+          ];
+          image.dispose();
+          return result;
+        }))!;
+        expect(
+          colors,
+          everyElement(shared ? LiveTvColors.focusFrame : TvPalette.of(_scheme).focusRing),
+          reason: 'all settings groups use the full row width',
+        );
+        if (panel == '1080p') {
+          await captureQaFrame(tester, shared ? 'settings-shared-full-frame' : 'settings-tv-full-frame');
+        }
+      });
+    }
+  }
+
   for (final (panel, size, ratio) in [
     ('720p', const Size(1280, 720), 1.0),
     ('1080p', const Size(1920, 1080), 2.0),

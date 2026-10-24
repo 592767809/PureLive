@@ -592,6 +592,34 @@ void main() {
       expect(_count(refused.http, _play), 2);
     });
 
+    test('issue 15: larger signing rounds survive the shared five-minute descriptor cache', () async {
+      var clock = _captured;
+      final vault = MemoryCookieVault()..set('douyu', 'dy_did=synthetic-device; acf_auth=synthetic-login');
+      addTearDown(vault.dispose);
+      final data = jsonDecode(Fixture.load('douyu', 'S06-encryption').body) as Map<String, dynamic>;
+      (data['data'] as Map)['enc_time'] = 1000;
+      final setup = _setup(
+        ['S08-meta-24422'],
+        cookies: vault,
+        now: () => clock,
+        extra: [_synthetic('https://www.douyu.com$_encryption', data)],
+      );
+      final room = _room('24422');
+      for (final seconds in [0, 1, 299, 300]) {
+        clock = _captured.add(Duration(seconds: seconds));
+        expect(await setup.site.getPlayQualities(detail: room), isNotEmpty);
+        expect(_count(setup.http, _encryption), seconds < 300 ? 1 : 2);
+      }
+      expect(_count(setup.http, _play), 4);
+      expect(_count(setup.http, _passport), 0);
+      final descriptor = DouyuApi.descriptor(jsonEncode(data), now: _captured);
+      for (final request in setup.http.requests.where((request) => request.url.path == _play)) {
+        final form = _form(request);
+        expect(form['auth'], descriptor.auth('24422', int.parse(form['tt']!)));
+        expect(request.headers['cookie'], contains('acf_auth=synthetic-login'));
+      }
+    });
+
     test('the descriptor: shared by concurrent callers, renewed after five minutes and per device id', () async {
       var clock = _captured;
       final vault = MemoryCookieVault();

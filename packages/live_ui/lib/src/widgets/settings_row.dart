@@ -202,7 +202,7 @@ class SettingsGroup extends StatelessWidget {
           // corner radius differs from the enclosing group's radius.
           Material(
             color: colors.surfaceContainerLow,
-            borderRadius: AppRadii.card,
+            borderRadius: SettingsRowStyle.tvOf(context) ? AppRadii.listRow : AppRadii.card,
             clipBehavior: SettingsRowStyle.tvOf(context) ? Clip.none : Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,

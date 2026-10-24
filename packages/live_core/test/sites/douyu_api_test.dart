@@ -475,6 +475,14 @@ void main() {
         final tt = input['timestampSeconds'] as int;
         final descriptor = DouyuDescriptor.fromJson(input['encryptionKey']);
         final name = vector['name'];
+        // Preserve the archived 3.x oracle; only its obsolete 16-round bound
+        // intentionally differs. E01.10 has independent larger-round vectors.
+        if (name == 'enc-time-17') {
+          expect(descriptor, isNotNull);
+          expect(descriptor!.usableAt(_seconds(tt)), isTrue);
+          expect(descriptor.auth(input['roomId'] as String, tt), '98be4e0a3fdd3307a55f00534d6310be');
+          continue;
+        }
         expect(
           descriptor != null && descriptor.usableAt(_seconds(tt)),
           output['isEncryptionKeyUsable'],

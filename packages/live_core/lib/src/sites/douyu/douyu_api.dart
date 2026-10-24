@@ -170,8 +170,12 @@ final class DouyuDescriptor {
     required this.isSpecial,
   });
 
+  /// Defensive CPU bound for descriptors with more than the legacy 16 rounds.
+  /// The signing algorithm itself supports any positive round count.
+  static const int maxHashRounds = 4096;
+
   /// Reads the `data` object; null when a field is missing or blank, or
-  /// `enc_time` is outside 1–16. Numbers may be strings.
+  /// `enc_time` is outside 1–[maxHashRounds]. Numbers may be strings.
   static DouyuDescriptor? fromJson(Object? value) {
     if (value is! Map) return null;
     final key = jsonString(value['key']);
@@ -180,7 +184,7 @@ final class DouyuDescriptor {
     final encTime = jsonInt(value['enc_time']);
     final expireAt = jsonInt(value['expire_at']);
     if (key == null || randStr == null || encData == null || encTime == null || expireAt == null) return null;
-    if (encTime < 1 || encTime > 16) return null;
+    if (encTime < 1 || encTime > maxHashRounds) return null;
     return DouyuDescriptor(
       key: key,
       randStr: randStr,
@@ -200,7 +204,7 @@ final class DouyuDescriptor {
   /// Passed through to the play form as is.
   final String encData;
 
-  /// Hashing rounds, 1–16.
+  /// Positive hashing rounds, bounded by [maxHashRounds] when parsed.
   final int encTime;
 
   /// When the platform stops accepting it.
@@ -688,7 +692,7 @@ abstract final class DouyuApi {
       final rounds = jsonInt(_object(root['data'])?['enc_time']);
       throw ApiChanged.withCode(
         _site,
-        rounds != null && (rounds < 1 || rounds > 16)
+        rounds != null && (rounds < 1 || rounds > DouyuDescriptor.maxHashRounds)
             ? ApiFailureCode.douyuDescriptorRounds
             : ApiFailureCode.douyuDescriptorFields,
         'getEncryption: descriptor incomplete',

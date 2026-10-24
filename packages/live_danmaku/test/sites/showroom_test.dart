@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_net/live_net.dart';
@@ -549,46 +550,56 @@ void main() {
       await connection.close();
     });
 
-    test('PING at every heartbeat and on demand; ACKs keep a quiet socket', () async {
-      final connector = _Connector();
-      final connection = ShowroomDanmakuConnection(
-        connector: connector.call,
-        policy: const DanmakuSocketPolicy(
-          heartbeatInterval: Duration(milliseconds: 20),
-          // Wide enough that a loaded machine never misses an answer.
-          inactivityTimeout: Duration(seconds: 1),
-          reconnectBaseDelay: Duration(milliseconds: 5),
-        ),
-      );
-      final events = _record(connection);
-      await connection.connect(_args);
-      final channel = connector.channels.single;
-      // Answer every ping as the server does, for 500 ms: the socket stays.
-      final deadline = DateTime.now().add(const Duration(milliseconds: 500));
-      var answered = 0;
-      while (DateTime.now().isBefore(deadline)) {
-        final pings = channel.sent.where((frame) => frame == ShowroomDanmakuProtocol.ping).length;
-        for (; answered < pings; answered++) {
-          await channel.receive(ShowroomDanmakuProtocol.ack);
+    test('PING at every heartbeat and on demand; ACKs keep a quiet socket', () {
+      fakeAsync((time) {
+        final connector = _Connector();
+        final connection = ShowroomDanmakuConnection(
+          connector: connector.call,
+          policy: const DanmakuSocketPolicy(
+            heartbeatInterval: Duration(seconds: 1),
+            inactivityTimeout: Duration(seconds: 3),
+          ),
+        );
+        final events = _record(connection);
+        unawaited(connection.connect(_args));
+        time.flushMicrotasks();
+        final channel = connector.channels.single;
+        // ACK each tick over twice the silence window without wall-clock waits.
+        for (var tick = 0; tick < 7; tick++) {
+          final before = channel.sent.length;
+          time.elapse(const Duration(seconds: 1));
+          expect(channel.sent.length, before + 1);
+          channel.incoming.add(ShowroomDanmakuProtocol.ack);
+          time.flushMicrotasks();
         }
-        await _wait(const Duration(milliseconds: 5));
-      }
-      expect(connector.channels, hasLength(1));
-      expect(events, [const DanmakuReady()]);
-      expect(channel.sent.first, 'SUB\t$_key');
-      expect(channel.sent.skip(1), everyElement(ShowroomDanmakuProtocol.ping));
-      expect(channel.sent.length, greaterThan(2));
-      final before = channel.sent.length;
-      connection.heartbeat();
-      expect(channel.sent, hasLength(before + 1));
-      expect(channel.sent.last, ShowroomDanmakuProtocol.ping);
-      // Unanswered pings: the socket is replaced and subscribes again.
-      await _until(() => connector.channels.length == 2);
-      expect(channel.closed, isTrue);
-      await _until(() => events.whereType<DanmakuReady>().length == 2);
-      expect(events[1], const DanmakuReconnecting(DanmakuInterruption.disconnected));
-      expect(connector.channels.last.sent.first, 'SUB\t$_key');
-      await connection.close();
+        expect(connector.channels, hasLength(1));
+        expect(events, [const DanmakuReady()]);
+        expect(channel.sent.first, 'SUB\t$_key');
+        expect(channel.sent.skip(1), everyElement(ShowroomDanmakuProtocol.ping));
+        final before = channel.sent.length;
+        connection.heartbeat();
+        expect(channel.sent, hasLength(before + 1));
+        expect(channel.sent.last, ShowroomDanmakuProtocol.ping);
+        // No ACK: report silence, then replace the socket after one full round.
+        time.elapse(const Duration(seconds: 2));
+        expect(connector.channels, hasLength(1));
+        expect(channel.closed, isFalse);
+        time.elapse(const Duration(seconds: 1));
+        expect(channel.closed, isFalse);
+        expect(connector.channels, hasLength(1));
+        expect(events[1], const DanmakuReconnecting(DanmakuInterruption.disconnected));
+        time.elapse(const Duration(seconds: 1));
+        expect(connector.channels, hasLength(1));
+        time.elapse(const Duration(seconds: 1));
+        expect(channel.closed, isTrue);
+        expect(connector.channels, hasLength(2));
+        expect(events.whereType<DanmakuReady>(), hasLength(2));
+        expect(connector.channels.last.sent.first, 'SUB\t$_key');
+        unawaited(connection.close());
+        time.flushMicrotasks();
+        expect(time.periodicTimerCount, 0);
+        expect(time.nonPeriodicTimerCount, 0);
+      });
     });
 
     test('a dropped socket reconnects to the same server and subscribes again', () async {

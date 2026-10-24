@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:clock/clock.dart';
 import 'package:live_net/src/proxy.dart';
 
 /// State of a [LiveSocket].
@@ -283,12 +284,12 @@ final class LiveSocket {
     _status = SocketStatus.connected;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    _lastMessageAt = DateTime.now();
+    _lastMessageAt = clock.now();
     _subscription = channel.stream.listen(
       (message) {
         if (_manualClose || generation != _generation) return;
         _failures = 0;
-        _lastMessageAt = DateTime.now();
+        _lastMessageAt = clock.now();
         onMessage?.call(message);
       },
       onError: (Object error, StackTrace _) {
@@ -316,7 +317,7 @@ final class LiveSocket {
     _heartbeat = Timer.periodic(heartbeatInterval, (_) {
       if (_status != SocketStatus.connected) return;
       final last = _lastMessageAt;
-      if (last != null && DateTime.now().difference(last) >= _silenceLimit) {
+      if (last != null && clock.now().difference(last) >= _silenceLimit) {
         _scheduleReconnect('WebSocket heartbeat timed out');
         return;
       }
