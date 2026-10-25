@@ -28,10 +28,13 @@ final Provider<LogFileSharer?> logSharerProvider = Provider((ref) => null);
 /// ([redactSecrets]).
 class LogPage extends ConsumerStatefulWidget {
   /// Creates the page over [log] (the app's by default).
-  const new({this.log, super.key});
+  const new({this.log, this.onBack, super.key});
 
   /// The log shown.
   final AppLog? log;
+
+  /// Returns to the settings overview after a wide pane becomes narrow.
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<LogPage> createState() => _LogPageState();
@@ -82,8 +85,16 @@ class _LogPageState extends ConsumerState<LogPage> {
   }
 
   Future<void> _share() async {
+    final bridge = PhoneBridge.maybeOf(context);
     try {
       final file = await _log.export(await getTemporaryDirectory());
+      if (!mounted) return;
+      if (bridge != null) {
+        final text = await file.readAsString();
+        if (!mounted) return;
+        await bridge.view(context, title: i18n('log_manage'), text: text);
+        return;
+      }
       final share = ref.read(logSharerProvider);
       if (share != null && await share(file)) return;
       await Clipboard.setData(ClipboardData(text: await file.readAsString()));
@@ -134,6 +145,7 @@ class _LogPageState extends ConsumerState<LogPage> {
       appBar: settingsPageAppBar(
         context,
         title: i18n('log_manage'),
+        onBack: widget.onBack,
         actions: [
           IconButton(
             key: const ValueKey('log-copy-all'),
@@ -143,7 +155,7 @@ class _LogPageState extends ConsumerState<LogPage> {
           ),
           IconButton(
             key: const ValueKey('log-share'),
-            tooltip: i18n('settings_log_share'),
+            tooltip: i18n(PhoneBridge.maybeOf(context) == null ? 'settings_log_share' : 'settings_log_phone_export'),
             onPressed: _log.entries.isEmpty ? null : () => unawaited(_share()),
             icon: const Icon(AppIcons.exportFile),
           ),

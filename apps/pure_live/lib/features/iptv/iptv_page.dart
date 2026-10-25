@@ -28,10 +28,13 @@ import 'package:pure_live/routes/route_args.dart';
 /// write, the background auto-sync included.
 class IptvPage extends ConsumerStatefulWidget {
   /// Creates the page for [route].
-  const new({required this.route, super.key});
+  const new({required this.route, this.onBack, super.key});
 
   /// The path and arguments the page was opened with.
   final RouteArgs route;
+
+  /// Returns to the overview when an embedded settings page becomes narrow.
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<IptvPage> createState() => _IptvPageState();
@@ -487,6 +490,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
     final syncAll = _syncAll;
     return Scaffold(
       appBar: AppBar(
+        leading: widget.onBack == null ? null : BackButton(onPressed: widget.onBack),
         title: Text(i18n('iptv_settings')),
         actions: [
           IconButton(

@@ -78,6 +78,9 @@ Future<SettingsHarness> pumpSettings(
         RoutePath.kBackup,
         RoutePath.kIptv,
         RoutePath.kRecordSettings,
+        RoutePath.kLocalInteraction,
+        RoutePath.kLogs,
+        RoutePath.kWebDavPage,
         RoutePath.kSettingsHotAreas,
         RoutePath.kSettingsTags,
       ])
@@ -114,6 +117,16 @@ Future<void> settleSettings(WidgetTester tester) async {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pumpAndSettle();
   }
+}
+
+/// Lets a local directory read finish between fake-clock frames.
+Future<void> settleSettingsFiles(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 10; attempt++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
+    await tester.pump(const Duration(seconds: 1));
+    if (find.byType(CircularProgressIndicator).evaluate().isEmpty && !tester.binding.hasScheduledFrame) return;
+  }
+  fail('the generated-data settings page did not finish its local reads');
 }
 
 /// The row of a catalogue entry.

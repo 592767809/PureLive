@@ -17,6 +17,7 @@ import 'package:pure_live/shared/backup/backup_data.dart';
 import 'package:pure_live/shared/backup/backup_files.dart';
 import 'package:pure_live/shared/backup/backup_preview_dialog.dart';
 import 'package:pure_live/shared/qr_scan.dart';
+import 'package:pure_live/shared/settings/settings_content_navigation.dart';
 
 /// The page's clock, for file names (tests replace it).
 final Provider<DateTime Function()> backupClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
@@ -56,10 +57,13 @@ enum _Action { create, createFollows, restore, restoreFollows, folder, tv, file 
 /// moved to settings (Q1, `RoutePath.kLogs`).
 class BackupPage extends ConsumerStatefulWidget {
   /// Creates the page for [route].
-  const new({required this.route, super.key});
+  const new({required this.route, this.onBack, super.key});
 
   /// The path and arguments the page was opened with.
   final RouteArgs route;
+
+  /// Returns to the settings overview in the narrow form of an embedded page.
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<BackupPage> createState() => _BackupPageState();
@@ -275,7 +279,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
     final files = _files;
     final opensFolder = ref.watch(backupOpensFolderProvider);
     return Scaffold(
-      appBar: settingsPageAppBar(context, title: i18n('backup_recover')),
+      appBar: settingsPageAppBar(context, title: i18n('backup_recover'), onBack: widget.onBack),
       // 3.x's bounce and classic header (P02).
       body: AppRefreshView(
         onRefresh: () async {
@@ -296,21 +300,21 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                   icon: AppIcons.cloudOff,
                   title: i18n('backup_cloud_retired'),
                   subtitle: i18n('backup_cloud_retired_desc'),
-                  onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kMine)),
+                  onTap: () => unawaited(openSettingsDestination<void>(context, RoutePath.kMine)),
                 ),
                 SettingsLinkRow(
                   key: const ValueKey('backup-webdav'),
                   icon: AppIcons.webDav,
                   title: i18n('webdav'),
                   subtitle: i18n('backup_to_webdav'),
-                  onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kWebDavPage)),
+                  onTap: () => unawaited(openSettingsDestination<void>(context, RoutePath.kWebDavPage)),
                 ),
                 SettingsLinkRow(
                   key: const ValueKey('backup-remote-sync'),
                   icon: AppIcons.deviceSync,
                   title: i18n('remote_sync'),
                   subtitle: i18n('remote_sync_subtitle'),
-                  onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kRemoteSync)),
+                  onTap: () => unawaited(openSettingsDestination<void>(context, RoutePath.kRemoteSync)),
                 ),
                 SettingsLinkRow(
                   key: const ValueKey('backup-tv'),

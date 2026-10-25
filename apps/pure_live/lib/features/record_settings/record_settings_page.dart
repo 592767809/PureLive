@@ -28,10 +28,13 @@ const Duration recordLimitHighlight = Duration(seconds: 2);
 /// [recordSettingsMaxTasks] scrolls to "最大同时录制任务数" and highlights it.
 class RecordSettingsPage extends ConsumerStatefulWidget {
   /// Creates the page for [route].
-  const new({required this.route, super.key});
+  const new({required this.route, this.onBack, super.key});
 
   /// The path and arguments the page was opened with.
   final RouteArgs route;
+
+  /// Returns to the overview in the narrow form of an embedded settings page.
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<RecordSettingsPage> createState() => _RecordSettingsPageState();
@@ -238,7 +241,7 @@ class _RecordSettingsPageState extends ConsumerState<RecordSettingsPage> {
   Widget build(BuildContext context) {
     final recording = _recording;
     return Scaffold(
-      appBar: settingsPageAppBar(context, title: i18n('record_settings')),
+      appBar: settingsPageAppBar(context, title: i18n('record_settings'), onBack: widget.onBack),
       body: recording == null
           ? AppStatusView(
               type: AppStatusType.empty,
