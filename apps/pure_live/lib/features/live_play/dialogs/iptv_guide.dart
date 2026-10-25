@@ -105,33 +105,55 @@ class _IptvGuideViewState extends ConsumerState<IptvGuideView> {
   Timer? _clock;
   bool _anchored = false;
   int _loads = 0;
+  StreamSubscription<String>? _sourceChanges;
+  late (String, String?, double?) _guideIdentity;
+
+  (String, String?, double?) get _identity => (_room.room.roomId, _room.room.epgId, _room.room.catchUp.days);
 
   LiveRoomController get _room => widget.controller;
 
   @override
   void initState() {
     super.initState();
+    _guideIdentity = _identity;
+    _room.addListener(_roomChanged);
+    _sourceChanges = ref
+        .read(storeProvider)
+        .settings
+        .watch(Settings.selectedSourceId)
+        .distinct()
+        .skip(1)
+        .listen((_) => unawaited(_read()));
     unawaited(_read());
     // 3.x redrew the whole dialog every 30 s; the marks of the lines move on
     // as programmes start and end.
     _clock = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
-    widget.reveal?.addListener(_jump);
+    widget.reveal?.addListener(_reveal);
   }
 
   @override
   void didUpdateWidget(IptvGuideView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_roomChanged);
+      _room.addListener(_roomChanged);
+      _guideIdentity = _identity;
+      unawaited(_read());
+    }
     if (oldWidget.reveal != widget.reveal) {
-      oldWidget.reveal?.removeListener(_jump);
-      widget.reveal?.addListener(_jump);
+      oldWidget.reveal?.removeListener(_reveal);
+      widget.reveal?.addListener(_reveal);
     }
   }
 
   @override
   void dispose() {
-    widget.reveal?.removeListener(_jump);
+    _loads++;
+    _room.removeListener(_roomChanged);
+    unawaited(_sourceChanges?.cancel());
+    widget.reveal?.removeListener(_reveal);
     _clock?.cancel();
     _scroll.dispose();
     super.dispose();
@@ -141,7 +163,23 @@ class _IptvGuideViewState extends ConsumerState<IptvGuideView> {
     if (_load != load && mounted) setState(() => _load = load);
   }
 
+  void _roomChanged() {
+    final identity = _identity;
+    if (identity == _guideIdentity) return;
+    _guideIdentity = identity;
+    unawaited(_read());
+  }
+
+  void _reveal() {
+    if (_load != _Load.loading && (_load != _Load.ready || _programmes.isEmpty)) {
+      unawaited(_read());
+    } else {
+      _jump();
+    }
+  }
+
   Future<void> _read() async {
+    if (!mounted) return;
     final load = ++_loads;
     final source = ref.read(storeProvider).settings.get(Settings.selectedSourceId);
     if (source.trim().isEmpty) {

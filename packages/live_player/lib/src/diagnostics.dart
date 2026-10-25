@@ -32,6 +32,7 @@ final class NativeDiagnosticGate {
 
   static const _prefixes = {'file', 'vd', 'ad', 'ffmpeg/video', 'ffmpeg/audio', 'cplayer', 'stream'};
 
+  Duration? _decoderStartupWindow;
   bool _opening = false;
   bool _closed = false;
   bool _videoReady = false;
@@ -72,7 +73,11 @@ final class NativeDiagnosticGate {
   }
 
   /// A new source starts opening; everything of the previous one is dropped.
-  void beginOpen() {
+  /// [decoderStartupWindow] optionally gives a packet-joined source longer
+  /// to produce its first output. Terminal errors and subsequent decoder
+  /// failures retain their existing handling.
+  void beginOpen({Duration? decoderStartupWindow}) {
+    _decoderStartupWindow = decoderStartupWindow;
     _cancelPending();
     _opening = true;
     _videoReady = false;
@@ -171,7 +176,15 @@ final class NativeDiagnosticGate {
     _pending = error;
     _pendingComponent = classification.component;
     _pendingProgress = _progress;
-    _timer = Timer(window, () {
+    final startup = _decoderStartupWindow;
+    final delay =
+        startup != null &&
+            startup > window &&
+            classification.component != NativeDiagnosticComponent.either &&
+            !_ready(classification.component)
+        ? startup
+        : window;
+    _timer = Timer(delay, () {
       _timer = null;
       final pending = _pending;
       _pending = null;

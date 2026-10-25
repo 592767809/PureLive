@@ -15,6 +15,7 @@ import 'package:live_media/live_media.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/layout/room_details.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
@@ -138,6 +139,52 @@ List<String> _order(WidgetTester tester, Finder scope, List<String> keys) {
 Finder _in(String key, Finder finder) => find.descendant(of: find.byKey(ValueKey(key)), matching: finder);
 
 void main() {
+  for (final kind in ['Brightness', 'Volume']) {
+    testWidgets('issue 41 integration: iPhone fullscreen $kind reaches the gesture and native channel', (tester) async {
+      final writes = <double>[];
+      await AppLog.instance.clear();
+      const channel = MethodChannel('pure_live/device_controls');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'get$kind') return 0.3;
+        if (call.method == 'set$kind') writes.add(((call.arguments as Map)['value'] as num).toDouble());
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, null));
+      final room = await _pump(tester, width: 430, height: 932);
+      addTearDown(() => _close(tester, room));
+      await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+      await _settle(tester);
+      tester.view
+        ..physicalSize = const Size(932, 430)
+        ..viewPadding = const FakeViewPadding(left: 59, right: 59, bottom: 21)
+        ..systemGestureInsets = const FakeViewPadding(bottom: 21);
+      await _settle(tester);
+      await tester.pump(const Duration(seconds: 1));
+      final drag = await tester.startGesture(Offset(kind == 'Brightness' ? 200 : 730, 270));
+      await drag.moveBy(const Offset(0, -30));
+      await tester.pump();
+      await drag.moveBy(const Offset(0, -60));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(ValueKey('gesture-level-${kind.toLowerCase()}')), findsOneWidget);
+      await drag.up();
+      expect(writes, isNotEmpty);
+      expect(writes.last, greaterThan(0.3));
+      final messages = AppLog.instance.entries.where((e) => e.tag == 'gesture').map((e) => e.message).toList();
+      expect(messages.any((m) => m.contains('phase=down')), isTrue);
+      expect(messages.any((m) => m.contains('phase=reading')), isTrue);
+      expect(messages.any((m) => m.contains('phase=baseline')), isTrue);
+      expect(messages.where((m) => m.contains('phase=update')), hasLength(1));
+      expect(
+        messages.every(
+          (m) => RegExp(r'^gesture-input phase=[a-z-]+ enabled=(true|false) kind=(-|volume|brightness)$').hasMatch(m),
+        ),
+        isTrue,
+        reason: 'Only fixed labels are logged, without coordinates, native values, room or media identifiers',
+      );
+    }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
+  }
+
   testWidgets('issue #23: active super chats open in fullscreen without replacing the playing session', (tester) async {
     final now = DateTime.now();
     final site = FakeSite(liveRoom())

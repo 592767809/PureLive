@@ -6,3 +6,6 @@
 
 
 最新原图已查看：整个客户端区和自绘标题栏均白，但按钮仍能盲点；最小化／恢复同样无效，盲点最大化可恢复，再还原保持正常。[补图](https://github.com/wzgrx/PureLive/issues/47#issuecomment-6387083306)、[回复](https://github.com/wzgrx/PureLive/issues/47#issuecomment-6387361866)。呈现／窗口尺寸时序仍是待验证假设。
+
+
+2026-10-25 对照：Flutter上游 [190200](https://github.com/flutter/flutter/issues/190200) 报告过Nvidia呈现失败而Dart继续运行；[187922](https://github.com/flutter/flutter/issues/187922) 是另一已修的尺寸同步问题。它们是排查线索，缺少本例原机Present错误码或可复现A/B，未归因为其中任何一项，未盲改启动尺寸或强制重绘。

@@ -5,6 +5,7 @@ import 'package:live_media/live_media.dart';
 import 'package:live_player/src/diagnostics.dart';
 import 'package:live_player/src/engine.dart';
 import 'package:live_player/src/frame_rate.dart';
+import 'package:live_player/src/mpv_input.dart';
 import 'package:live_player/src/mpv_options.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -192,12 +193,16 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
 
   @override
   Future<void> open(EngineMedia media) async {
-    _gate.beginOpen();
+    _gate.beginOpen(decoderStartupWindow: mpvDecoderStartupWindow(media.uri));
     try {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
       await _setExternalAudio(media.audio);
-      await player.open(Media(media.uri.toString(), httpHeaders: media.headers, start: media.start));
+      await openMpvMediaInput(
+        media.uri,
+        configure: _setProperty,
+        open: (input) => player.open(Media(input, httpHeaders: media.headers, start: media.start)),
+      );
     } on Object catch (error, stack) {
       if (error is PlayerException) rethrow;
       final classification = NativeDiagnostic.classify(error.toString());
