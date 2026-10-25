@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "¿Seguro que quieres eliminar “{name}” de forma permanente?",
     "delete_tag_named": "Eliminar etiqueta: {name}",
     "desktop_default_volume": "Volumen predeterminado en escritorio",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "Detalles",
     "dialog_import_epg_title": "Importar guía de TV (XML / GZ / JSON)",
     "dialog_import_playlist_title": "Importar lista de reproducción (M3U / TXT)",

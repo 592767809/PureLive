@@ -864,6 +864,15 @@ List<SettingsEntry> _build() {
     )
     ..group = 'playback_behavior_settings'
     ..toggle(
+      'desktop_pause_when_minimized',
+      'desktop_pause_when_minimized',
+      Settings.desktopPauseWhenMinimized,
+      AppIcons.settingsBackgroundPlay,
+      desc: 'desktop_pause_when_minimized_desc',
+      keywords: ['最小化', '暂停', 'minimize', 'pause'],
+      when: _desktop,
+    )
+    ..toggle(
       'fullscreen_default',
       'enable_fullscreen_default',
       Settings.enableFullScreenDefault,

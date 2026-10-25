@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "確定要永久刪除標籤“{name}”嗎？",
     "delete_tag_named": "刪除標籤：{name}",
     "desktop_default_volume": "電腦端預設音量",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "詳情",
     "dialog_import_epg_title": "匯入電視節目單 (XML / GZ / JSON)",
     "dialog_import_playlist_title": "匯入播放列表 (M3U / TXT)",

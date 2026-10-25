@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "Bạn có chắc muốn xóa vĩnh viễn “{name}”?",
     "delete_tag_named": "Xóa thẻ: {name}",
     "desktop_default_volume": "Âm lượng mặc định trên máy tính",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "Chi tiết",
     "dialog_import_epg_title": "Nhập lịch phát sóng (XML / GZ / JSON)",
     "dialog_import_playlist_title": "Nhập danh sách phát (M3U / TXT)",

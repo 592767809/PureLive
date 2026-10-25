@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "“{name}” kalıcı olarak silinsin mi?",
     "delete_tag_named": "Etiketi sil: {name}",
     "desktop_default_volume": "Masaüstü Varsayılan Ses Düzeyi",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "Ayrıntılar",
     "dialog_import_epg_title": "TV Rehberini İçe Aktar (XML / GZ / JSON)",
     "dialog_import_playlist_title": "Oynatma Listesini İçe Aktar (M3U / TXT)",

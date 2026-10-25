@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -12,6 +13,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/desktop/mac_menu_bar.dart';
+import 'package:pure_live/app/desktop/mouse_back.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/fonts.dart';
 import 'package:pure_live/app/image_cache.dart';
@@ -323,6 +325,15 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
             // keys (A18.1 c10).
             if (DesktopShell.current != null) framed = MacMenuBar(child: framed);
             framed = AppCommandShortcuts(child: framed);
+            framed = DesktopMouseBack(
+              enabled: const {
+                TargetPlatform.windows,
+                TargetPlatform.linux,
+                TargetPlatform.macOS,
+              }.contains(defaultTargetPlatform),
+              onBack: AppNavigator.mouseBack,
+              child: framed,
+            );
             if (tv) framed = TvAppFrame(child: framed);
             return LiveUiScope(
               config: uiConfig,

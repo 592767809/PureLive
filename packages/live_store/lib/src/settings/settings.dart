@@ -20,6 +20,14 @@ abstract final class Settings {
   /// Keep playing in the background.
   static const enableBackgroundPlay = BoolSetting('enableBackgroundPlay', section: 'app', defaultValue: false);
 
+  /// Pause desktop playback only while the native window is minimized.
+  /// Occlusion and focus changes do not pause; off by default.
+  static const desktopPauseWhenMinimized = BoolSetting(
+    'desktopPauseWhenMinimized',
+    section: 'app',
+    defaultValue: false,
+  );
+
   /// Away from the app with background play on, only the sound plays (the
   /// video decoder stops); back, the picture returns (O01.3). New in v4,
   /// off: the video goes on decoding as before.
@@ -1982,6 +1990,7 @@ abstract final class Settings {
     autoRefreshTime,
     enableDenseFavorites,
     enableBackgroundPlay,
+    desktopPauseWhenMinimized,
     backgroundAudioOnly,
     backgroundPauseDanmaku,
     pauseOnPipClose,

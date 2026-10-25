@@ -69,6 +69,9 @@ abstract final class DesktopWindow {
   /// restores it then (U.13 c3).
   static final ValueNotifier<bool> maximized = ValueNotifier(false);
 
+  /// Native minimization, distinct from loss of focus or macOS occlusion.
+  static final ValueNotifier<bool> minimized = ValueNotifier(false);
+
   /// The title bar's window actions: the shell's, null without a desktop
   /// shell; tests set their own.
   static WindowControls? controls;
@@ -570,6 +573,12 @@ final class DesktopShell with WindowListener {
 
   @override
   void onWindowFocus() => _shared?.check();
+
+  @override
+  void onWindowMinimize() => DesktopWindow.minimized.value = true;
+
+  @override
+  void onWindowRestore() => DesktopWindow.minimized.value = false;
 
   @override
   void onWindowEnterFullScreen() => DesktopWindow.fullScreen.value = true;

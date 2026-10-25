@@ -212,6 +212,8 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// The flying danmaku under the last tap when it went down (the danmaku
   /// moves on before the tap ends).
   LiveMessage? _tapHit;
+  LiveMessage? _secondaryHit;
+  bool _secondaryAllowed = false;
 
   /// Where the last tap went down.
   Offset? _tapAt;
@@ -492,6 +494,10 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// press opens the pinned one's actions, which stand everything (the
   /// finger is still on it, so it is the one hit).
   void _onPointerDown(PointerDownEvent event) {
+    if (event.buttons == kSecondaryMouseButton) {
+      _secondaryAllowed = _canSecondaryAt(event.position);
+      _secondaryHit = _secondaryAllowed ? _danmakuAt(event.position, longPress: true) : null;
+    }
     if (_pinPointer != null || !ref.read(storeProvider).settings.get(Settings.holdDanmakuOnPress)) return;
     if (_flyingPoint(event.position) case (final flying, final local) when flying.pinAt(local) != null) {
       _pinPointer = event.pointer;
@@ -514,6 +520,34 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
     _pinPointer = null;
     _pinFrom = null;
     _flying.currentState?.unpin();
+  }
+
+  bool _canSecondaryAt(Offset global) {
+    if (!widget.platform.desktop || widget.pip || _locked || widget.onWindowFullscreen == null) return false;
+    if (widget.display != RoomDisplay.inline && widget.display != RoomDisplay.windowFullscreen) return false;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize) return false;
+    final local = box.globalToLocal(global);
+    final (top, bottom) = _bars();
+    return danmakuTapAllowed(local: local, size: box.size, controlsVisible: _controls, top: top, bottom: bottom);
+  }
+
+  void _cancelSecondary() {
+    _secondaryAllowed = false;
+    _secondaryHit = null;
+  }
+
+  void _onSecondaryTap(TapUpDetails details) {
+    final allowed = _secondaryAllowed;
+    final hit = _secondaryHit;
+    _cancelSecondary();
+    if (!allowed || !widget.platform.desktop || widget.pip || _locked) return;
+    if (widget.display != RoomDisplay.inline && widget.display != RoomDisplay.windowFullscreen) return;
+    if (hit != null) {
+      unawaited(_openMessage(hit));
+      return;
+    }
+    widget.onWindowFullscreen?.call();
   }
 
   /// The flying layer and [global] in its coordinates where a tap may hit a
@@ -806,6 +840,8 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
                       _tapHit = _danmakuAt(details.globalPosition, longPress: false);
                     },
                     onTap: _onTap,
+                    onSecondaryTapUp: widget.platform.desktop ? _onSecondaryTap : null,
+                    onSecondaryTapCancel: widget.platform.desktop ? _cancelSecondary : null,
                     // F.2b: only with its switch on, so it never holds a drag back.
                     onLongPressStart: longPress
                         ? (details) {

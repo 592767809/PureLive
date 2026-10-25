@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "Вы уверены, что хотите навсегда удалить «{name}»?",
     "delete_tag_named": "Удалить тег: {name}",
     "desktop_default_volume": "Громкость по умолчанию на компьютере",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "Подробнее",
     "dialog_import_epg_title": "Импорт телепрограммы (XML / GZ / JSON)",
     "dialog_import_playlist_title": "Импорт плейлиста (M3U / TXT)",

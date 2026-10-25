@@ -278,6 +278,10 @@ jobs:
           cp -R "$(dirname "$proof")/." ../../shots/macos-recording-kernel/
           python3 -c 'import json; v=json.load(open("../../shots/macos-recording-kernel/result.json")); print(v); assert v["passed"] and v["operating_system"]=="macos"'
 
+      - name: Native macOS occlusion and minimized playback
+        if: ${{ inputs.macos }}
+        run: bash tools/release/check_macos_playback.sh
+
       - name: Checksums
         if: ${{ always() }}
         run: |

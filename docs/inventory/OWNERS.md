@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 224 条；设置 284 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
+路径规则 224 条；设置 285 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -60,7 +60,7 @@
 | I05 搜索 | 5 |  |  |  |  |
 | I06 观看历史 | 2 | 1 |  |  |  |
 | I08 小页面 | 1 | 1 |  |  |  |
-| J01 设置 | 4 | 3 |  |  |  |
+| J01 设置 | 4 | 4 |  |  |  |
 | J02 存储和加密 | 2 |  |  |  | 1 |
 | J03 备份恢复 | 2 | 1 |  |  |  |
 | J04 WebDAV | 5 | 6 |  |  |  |
@@ -337,7 +337,7 @@
 ## J01 设置
 
 - 代码：`apps/pure_live/lib/features/settings/loading_style_names.dart`、`apps/pure_live/lib/features/settings/settings_catalog.dart`、`apps/pure_live/lib/features/settings/settings_model.dart`、`packages/live_store/lib/src/settings/`
-- 设置：`autoRefreshTime`、`autoShutDownTime`、`enableAutoShutDownTime`
+- 设置：`autoRefreshTime`、`desktopPauseWhenMinimized`、`autoShutDownTime`、`enableAutoShutDownTime`
 
 ## J02 存储和加密
 

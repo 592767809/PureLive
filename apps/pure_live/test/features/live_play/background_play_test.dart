@@ -4,6 +4,8 @@
 // "后台只播声音", "后台断开弹幕", "关闭画中画时暂停", and coming back.
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_media/live_media.dart';
@@ -68,12 +70,17 @@ void main() {
     refreshInterval: Duration.zero,
   );
 
-  RoomBackgroundPolicy policyFor(LiveRoomController controller, {Stream<bool>? online}) => RoomBackgroundPolicy(
+  RoomBackgroundPolicy policyFor(
+    LiveRoomController controller, {
+    Stream<bool>? online,
+    ValueListenable<bool>? minimized,
+  }) => RoomBackgroundPolicy(
     controller: controller,
     settings: store.settings,
     // At least a second (AGENTS.md).
     hiddenPauseDelay: const Duration(seconds: 1),
     online: online,
+    desktopMinimized: minimized,
     keeperTimer: clock.timer,
     now: () => clock.now,
   )..start();
@@ -92,15 +99,84 @@ void main() {
       engine.onOpen = (_) async =>
           throw const PlayerException(message: 'connection reset', type: PlayerErrorType.network, code: 'transport');
 
-  Future<(LiveRoomController, RoomBackgroundPolicy)> playing({Stream<bool>? online}) async {
+  Future<(LiveRoomController, RoomBackgroundPolicy)> playing({
+    Stream<bool>? online,
+    ValueListenable<bool>? minimized,
+  }) async {
     final controller = controllerFor(FakeSite(liveRoom()));
-    final policy = policyFor(controller, online: online);
+    final policy = policyFor(controller, online: online, minimized: minimized);
     await controller.start();
     await until(() => session.state.status == PlaybackStatus.playing);
     // In front the locks were let go (a no-op); only what follows counts.
     locks.clear();
     return (controller, policy);
   }
+
+  test('desktop occlusion does not apply the mobile background pause', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await store.settings.set(Settings.enableBackgroundPlay, false);
+    final (controller, policy) = await playing();
+    addTearDown(controller.dispose);
+    addTearDown(policy.dispose);
+    policy.didChangeAppLifecycleState(AppLifecycleState.hidden);
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    expect(session.state.status, PlaybackStatus.playing);
+    expect(policy.mayStartInBackground, isTrue);
+    policy.didChangeAppLifecycleState(AppLifecycleState.inactive);
+    expect(session.state.status, PlaybackStatus.playing);
+  });
+
+  for (final pause in [false, true]) {
+    test('desktop native minimize pause=$pause, occlusion and restore remain separate', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      await store.settings.set(Settings.enableBackgroundPlay, false);
+      await store.settings.set(Settings.desktopPauseWhenMinimized, pause);
+      final minimized = ValueNotifier(false);
+      addTearDown(minimized.dispose);
+      final (controller, policy) = await playing(minimized: minimized);
+      addTearDown(controller.dispose);
+      addTearDown(policy.dispose);
+      policy.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      expect(session.state.status, PlaybackStatus.playing);
+      minimized.value = true;
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      expect(session.state.status, pause ? PlaybackStatus.paused : PlaybackStatus.playing);
+      policy.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      expect(
+        session.state.status,
+        pause ? PlaybackStatus.paused : PlaybackStatus.playing,
+        reason: 'visibility alone must not restore a still-minimized window',
+      );
+      minimized.value = false;
+      await until(() => session.state.status == PlaybackStatus.playing);
+      expect(session.state.status, PlaybackStatus.playing);
+    });
+  }
+
+  test('desktop restore does not resume a user pause; opt-out cancels pending minimize pause', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await store.settings.set(Settings.desktopPauseWhenMinimized, true);
+    final minimized = ValueNotifier(false);
+    addTearDown(minimized.dispose);
+    final (controller, policy) = await playing(minimized: minimized);
+    addTearDown(controller.dispose);
+    addTearDown(policy.dispose);
+    await session.pause();
+    minimized.value = true;
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    minimized.value = false;
+    expect(session.state.status, PlaybackStatus.paused);
+    await session.resume();
+    minimized.value = true;
+    await store.settings.set(Settings.desktopPauseWhenMinimized, false);
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    expect(session.state.status, PlaybackStatus.playing);
+    minimized.value = false;
+  });
 
   test('away and playing: the notification plays and the locks are held; back, they go', () async {
     final (controller, policy) = await playing();

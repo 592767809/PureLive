@@ -315,6 +315,8 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     final background = RoomBackgroundPolicy(
       controller: controller,
       settings: store.settings,
+      desktop: _platform.desktop,
+      desktopMinimized: _platform.desktop ? DesktopWindow.minimized : null,
       // O01.3: a stream that failed away from the app is tried again as
       // soon as a network is back.
       online: ref.read(networkChangesProvider).map((kind) => kind != NetworkKind.none),
