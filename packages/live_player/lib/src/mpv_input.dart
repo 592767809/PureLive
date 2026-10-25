@@ -11,3 +11,8 @@ Future<void> openMpvMediaInput(
   await configure('demuxer-lavf-format', source.isScheme('rtp') ? 'mpegts' : '');
   await open(source.toString());
 }
+
+/// RTP may join before the next decodable video frame. Allow a bounded
+/// initial wait for recoverable decoder logs; other inputs keep the normal
+/// diagnostic window. This does not delay terminal or later runtime faults.
+Duration? mpvDecoderStartupWindow(Uri source) => source.isScheme('rtp') ? const Duration(seconds: 5) : null;

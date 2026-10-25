@@ -5914,8 +5914,20 @@ note = "受控80ms事件循环阻塞复现旧断言仅1次连接，等到真实�
 id = "G02.6"
 title = "RTP MPEG-TS 原生兼容：接两轮否决候选"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
 note = "Android 精确内核缺少 RTP/SDP 解复用器，否决第二候选；保留原 URI 按 open 选择 mpegts，其他协议清空。最终普通应用原生链路、all/14及十包待完成。"
+date = "2026-10-25"
+
+[[task]]
+id = "G02.7"
+title = "RTP 首帧解码诊断等待：接 G02.6 原生时序"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "5.4.15 第三私有候选 K90 精确普通包原生日志与错误遮罩"
+branch = "ai/A17.16"
+note = "首帧前1.2秒诊断窗口过早耗尽两次解码恢复；仅RTP引入5秒有界等待，致命/运行期及其他协议不变。多次原生预检、最终all/14与十包尚待完成。"

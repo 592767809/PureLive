@@ -193,7 +193,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
 
   @override
   Future<void> open(EngineMedia media) async {
-    _gate.beginOpen();
+    _gate.beginOpen(decoderStartupWindow: mpvDecoderStartupWindow(media.uri));
     try {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
