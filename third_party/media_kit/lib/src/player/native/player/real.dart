@@ -26,6 +26,7 @@ import 'package:media_kit/src/models/playlist_mode.dart';
 import 'package:media_kit/src/models/playlist.dart';
 import 'package:media_kit/src/models/track.dart';
 import 'package:media_kit/src/models/video_params.dart';
+import 'package:media_kit/src/player/native/core/direct_media_load.dart';
 import 'package:media_kit/src/player/native/core/fallback_bitrate_handler.dart';
 import 'package:media_kit/src/player/native/core/native_event_loop.dart';
 import 'package:media_kit/src/player/native/core/native_library.dart';
@@ -175,10 +176,10 @@ class NativePlayer extends PlatformPlayer {
       // Enter paused state.
       await _setPropertyFlag('pause', true);
 
-      if (playlist.any((media) => media.uri.startsWith('fd://'))) {
-        // The fd:// scheme is used to reference content:// URIs on Android.
-        // The loadlist command does not support this by default, yielding "Refusing to load potentially unsafe URL from a playlist."
-        // So, we fallback to loading each file individually.
+      if (playlist.any((media) => needsDirectMediaLoad(media.uri))) {
+        // Descriptor and internal RTP demuxer inputs cannot be loaded from
+        // a playlist. Keep their loadfile path without relaxing mpv's
+        // playlist protocol policy for unrelated inputs.
         for (int i = 0; i < playlist.length; i++) {
           await _command(['loadfile', playlist[i].uri, 'append']);
         }

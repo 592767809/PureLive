@@ -5801,7 +5801,7 @@ size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
 note = "#48 原 Win11 26H2／5.4.13 报告首次节目单不显示、进出全屏后恢复及 RTP 导入失败。离线同格式 HTTP 对照各解析一条，RTP 的 TXT／M3U 均为零，导入拒绝已复现；节目单迟到元数据刷新仍为源码假设。未验证原生组播播放，两项均未包含在 5.4.14 修复中，保留开放。"
-to = ["A13.6"]
+to = ["A13.6", "G02.6"]
 branch = "ai/A17.16"
 
 [[task]]
@@ -5869,3 +5869,13 @@ tier = 1
 from = "5.4.15完整门禁：packages/live_net/test/socket_test.dart首项固定55ms等待失败"
 branch = "ai/A17.16"
 note = "受控80ms事件循环阻塞复现旧断言仅1次连接，等到真实重连则2次且旧连接已关；生产socket源码与基线字节一致。仅修测试等待条件与失败清理，使用至少1s的被测定时参数，不改网络重试策略。失败门禁完整保留后再跑all/14。"
+
+[[task]]
+id = "G02.6"
+title = "RTP输入直接交给包解复用器"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/48"
+note = "5.4.15首轮候选导入成功，但本地RTP原生接收失败；相同数据FFprobe识别，精确libmpv探测携带RTP头的字节流，av RTP入口可识别视频。只对RTP映射内部输入，其他协议不变，保留原地址与参数；需原生预检和完整重建。"

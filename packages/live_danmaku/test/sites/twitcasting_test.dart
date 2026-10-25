@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_net/live_net.dart';
@@ -685,35 +686,52 @@ void main() {
       expect(http.requests, hasLength(2));
     });
 
-    test('a silent socket is replaced; keep-alives keep it', () async {
-      final http = _Http([_answer(_url(1)), _answer(_url(2))]);
-      final connector = _Connector();
-      final connection = TwitcastingDanmakuConnection(
-        http: http,
-        connector: connector.call,
-        policy: const DanmakuSocketPolicy(
-          heartbeatInterval: Duration(milliseconds: 20),
-          // Wide enough that a loaded machine never misses a keep-alive.
-          inactivityTimeout: Duration(seconds: 1),
-          reconnectBaseDelay: Duration(milliseconds: 5),
-        ),
-      );
-      final events = _record(connection);
-      await connection.connect(_args);
-      // Keep-alives every 25 ms for 600 ms: the socket stays.
-      for (var i = 0; i < 24; i++) {
-        await connector.channels.single.receive('[]');
-        await _wait(const Duration(milliseconds: 25));
-      }
-      expect(connector.channels, hasLength(1));
-      expect(events, [const DanmakuReady()]);
-      // Then silence: replaced with a newly signed URL.
-      await _until(() => connector.channels.length == 2);
-      expect(connector.channels.first.closed, isTrue);
-      expect(connector.endpoints.last, _gifts(_url(2)));
-      await _until(() => events.whereType<DanmakuReady>().length == 2);
-      expect(events[1], const DanmakuReconnecting(DanmakuInterruption.disconnected));
-      await connection.close();
+    test('a silent socket is replaced; keep-alives keep it', () {
+      fakeAsync((async) {
+        final http = _Http([_answer(_url(1)), _answer(_url(2))]);
+        final connector = _Connector();
+        final connection = TwitcastingDanmakuConnection(
+          http: http,
+          connector: connector.call,
+          policy: const DanmakuSocketPolicy(
+            heartbeatInterval: Duration(seconds: 1),
+            inactivityTimeout: Duration(seconds: 3),
+          ),
+        );
+        final events = _record(connection);
+        try {
+          unawaited(connection.connect(_args));
+          async.flushMicrotasks();
+          // Twenty-four virtual seconds exceed the inactivity limit: frames must
+          // reset it. The host's scheduling delays cannot create silence.
+          for (var i = 0; i < 24; i++) {
+            unawaited(connector.channels.single.receive('[]'));
+            async
+              ..elapse(Duration.zero)
+              ..elapse(const Duration(seconds: 1));
+          }
+          expect(connector.channels, hasLength(1));
+          expect(events.whereType<DanmakuReady>(), hasLength(1));
+          // Last frame was one second ago. Keep it below three seconds,
+          // then cross it. A single endpoint completes one failed round,
+          // so the one-second reconnect base gives a two-second pause.
+          async.elapse(const Duration(seconds: 1));
+          expect(connector.channels, hasLength(1));
+          async.elapse(const Duration(seconds: 1));
+          expect(events.whereType<DanmakuReconnecting>(), hasLength(1));
+          expect(connector.channels, hasLength(1));
+          async.elapse(const Duration(seconds: 2));
+          expect(connector.channels, hasLength(2));
+          expect(connector.channels.first.closed, isTrue);
+          expect(connector.endpoints.last, _gifts(_url(2)));
+          expect(events.whereType<DanmakuReady>(), hasLength(2));
+          expect(events[1], const DanmakuReconnecting(DanmakuInterruption.disconnected));
+        } finally {
+          unawaited(connection.close());
+          async.elapse(Duration.zero);
+        }
+        expect(async.periodicTimerCount, 0);
+      });
     });
 
     test('arguments without a broadcast end at once, without a request', () async {

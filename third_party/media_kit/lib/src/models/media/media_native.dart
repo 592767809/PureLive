@@ -49,7 +49,7 @@ class Media extends Playable {
       }
       // content:// : Close the possible file descriptor on Android.
       try {
-        if (Platform.isAndroid) {
+        if (Platform.isAndroid && uri.toLowerCase().startsWith('fd:')) {
           final data = Uri.parse(uri);
           if (data.isScheme('FD')) {
             final fd = int.parse(data.authority);
@@ -144,6 +144,10 @@ class Media extends Playable {
 
   /// Normalizes the passed URI.
   static String normalizeURI(String uri) {
+    // libmpv's internal RTP demuxer syntax is opaque to Dart's Uri parser.
+    // Preserve it before Android's content-URI handling to avoid parsing or
+    // logging a malformed authority containing the original media endpoint.
+    if (uri.startsWith('av://rtp:rtp://')) return uri;
     if (uri.startsWith(_kAssetScheme)) {
       // Handle asset:// scheme. Only for Flutter.
       return AssetLoader.load(uri);
