@@ -8,3 +8,8 @@
 ## 无账号隔离截图
 
 [windows-inline](verify/windows-inline.jpg)；[windows-fullscreen](verify/windows-fullscreen.jpg)；[linux-home](verify/linux-home.jpg)；[macos-home](verify/macos-home.jpg)；[macos-covered](verify/macos-covered.jpg)。真实K90截图仅本地保存。
+
+
+## 2026-10-26 发布期间原机确认
+
+原报告者随后确认实际运行一直是5.4.5，覆盖未替换，重新安装新版后亮度和音量手势恢复；按原机确认回复关闭#41。新版本的精确构建号未提供，不写成确定5.4.17构建的验收，覆盖未生效原因未知。证据：https://github.com/wzgrx/PureLive/issues/41#issuecomment-6402728137。此前680字节三行日志缺少attached与旧包身份吻合；没有新增手势代码修复。
