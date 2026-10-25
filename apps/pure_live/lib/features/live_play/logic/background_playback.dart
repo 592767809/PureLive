@@ -635,6 +635,8 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
   new({
     required this.controller,
     required this.settings,
+    this.desktop,
+    this.desktopMinimized,
     this.hiddenPauseDelay = const Duration(milliseconds: 1500),
     this.online,
     KeeperTimer? keeperTimer,
@@ -648,6 +650,21 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
 
   /// `enableBackgroundPlay` and the O01.3 switches.
   final SettingsStore settings;
+
+  /// Desktop policy; null follows the target platform (tests can override).
+  final bool? desktop;
+
+  /// Native minimization events; occlusion is a separate lifecycle signal.
+  final ValueListenable<bool>? desktopMinimized;
+
+  bool get _desktop =>
+      desktop ??
+      switch (defaultTargetPlatform) {
+        TargetPlatform.windows || TargetPlatform.linux || TargetPlatform.macOS => true,
+        _ => false,
+      };
+
+  bool _desktopOccluded = false;
 
   /// Android reports a short hidden/paused pair while rotating or entering
   /// picture-in-picture; only a longer stay counts (3.x 1.5 s).
@@ -679,14 +696,17 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
   bool _pipJustClosed = false;
   StreamSubscription<PlaybackState>? _states;
   StreamSubscription<bool>? _backgroundSetting;
+  StreamSubscription<bool>? _desktopPauseSetting;
   StreamSubscription<bool>? _network;
 
   PlaybackSession get _session => controller.session;
 
-  bool get _continues => shouldContinueInBackground(
-    backgroundPlaybackEnabled: settings.get(Settings.enableBackgroundPlay),
-    sleepSessionActive: controller.sleepSessionActive,
-  );
+  bool get _continues => _desktop
+      ? !settings.get(Settings.desktopPauseWhenMinimized)
+      : shouldContinueInBackground(
+          backgroundPlaybackEnabled: settings.get(Settings.enableBackgroundPlay),
+          sleepSessionActive: controller.sleepSessionActive,
+        );
 
   /// What is kept away from the app now (O01.3).
   @visibleForTesting
@@ -714,6 +734,21 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
     _states = _session.states.listen((_) => _syncNotification());
     controller.addListener(_syncNotification);
     _backgroundSetting = settings.watch(Settings.enableBackgroundPlay).skip(1).listen((_) => _syncNotification());
+    if (_desktop) {
+      desktopMinimized?.addListener(_desktopMinimizedChanged);
+      _desktopPauseSetting = settings.watch(Settings.desktopPauseWhenMinimized).skip(1).listen((_) {
+        if (!_hidden || _disposed) return;
+        _pauseTimer?.cancel();
+        if (_continues && _pausedByUs) {
+          _pausedByUs = false;
+          unawaited(_session.resume());
+        } else if (!_continues) {
+          _scheduleHiddenPause();
+        }
+        _syncNotification();
+      });
+      _desktopMinimizedChanged();
+    }
     _network = online?.listen((online) => _keeper.networkChanged(online: online));
     PictureInPicture.active.addListener(_onPipChanged);
   }
@@ -817,6 +852,7 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
   /// The notification's or the lock screen's pause and stop: nothing is
   /// kept or tried until the room plays again (O01.3).
   Future<void> _userPause() async {
+    _pausedByUs = false;
     _keeper.markUserPause();
     onUserPause?.call();
     await _session.pause();
@@ -830,6 +866,14 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_desktop) {
+      _desktopOccluded = switch (state) {
+        AppLifecycleState.hidden || AppLifecycleState.paused || AppLifecycleState.detached => true,
+        AppLifecycleState.resumed || AppLifecycleState.inactive => false,
+      };
+      _session.setPresentationVisible(visible: !_desktopOccluded && !(desktopMinimized?.value ?? false));
+      return;
+    }
     switch (state) {
       case AppLifecycleState.hidden || AppLifecycleState.paused || AppLifecycleState.detached:
         onHidden();
@@ -838,6 +882,16 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
       case AppLifecycleState.inactive:
         break;
     }
+  }
+
+  void _desktopMinimizedChanged() {
+    if (_disposed) return;
+    if (desktopMinimized?.value ?? false) {
+      onHidden();
+    } else {
+      onResumed();
+    }
+    _session.setPresentationVisible(visible: !_desktopOccluded && !(desktopMinimized?.value ?? false));
   }
 
   /// The app left the screen.
@@ -861,10 +915,14 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
       _syncNotification();
       return;
     }
+    _scheduleHiddenPause();
+  }
+
+  void _scheduleHiddenPause() {
     _pauseTimer?.cancel();
     _pauseTimer = Timer(hiddenPauseDelay, () {
       _pauseTimer = null;
-      if (!_hidden || _continues) return;
+      if (_disposed || !_hidden || _continues) return;
       final status = _session.state.status;
       if (status == PlaybackStatus.paused || status == PlaybackStatus.idle || status == PlaybackStatus.stopped) return;
       _pausedByUs = true;
@@ -883,7 +941,7 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
     _hiddenInPip = false;
     if (!_hidden || _disposed) return;
     _hidden = false;
-    _session.setPresentationVisible(visible: true);
+    _session.setPresentationVisible(visible: !_desktop || !_desktopOccluded);
     unawaited(BackgroundKeepAlive.set(enabled: false));
     _restoreAway();
     if (_pausedByUs) {
@@ -924,6 +982,7 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
   }
 
   void _scheduleAway() {
+    if (_desktop) return;
     _awayTimer?.cancel();
     _awayTimer = Timer(hiddenPauseDelay, () {
       _awayTimer = null;
@@ -983,10 +1042,12 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
     if (_started) {
       WidgetsBinding.instance.removeObserver(this);
       PictureInPicture.active.removeListener(_onPipChanged);
+      desktopMinimized?.removeListener(_desktopMinimizedChanged);
     }
     controller.removeListener(_syncNotification);
     if (controller.mayAutoStart == _mayStart) controller.mayAutoStart = null;
     unawaited(_backgroundSetting?.cancel());
+    unawaited(_desktopPauseSetting?.cancel());
     unawaited(_states?.cancel());
     unawaited(_network?.cancel());
     unawaited(BackgroundKeepAlive.set(enabled: false));

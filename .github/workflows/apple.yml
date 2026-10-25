@@ -33,12 +33,16 @@ on:
         description: Exact source SHA required when verifying an existing run
         type: string
         default: ''
+      native_playback_only:
+        description: Run only the disposable native Mac playback probe
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: apple-${{ github.ref }}
+  group: apple-${{ github.ref }}-${{ inputs.native_playback_only && 'native-playback' || 'full' }}
   cancel-in-progress: false
 
 defaults:
@@ -48,7 +52,7 @@ defaults:
 jobs:
   apple:
     name: Apple
-    if: ${{ inputs.verify_run_id == '' }}
+    if: ${{ inputs.verify_run_id == '' && !inputs.native_playback_only }}
     runs-on: macos-15
     timeout-minutes: 120
     steps:
@@ -278,6 +282,10 @@ jobs:
           cp -R "$(dirname "$proof")/." ../../shots/macos-recording-kernel/
           python3 -c 'import json; v=json.load(open("../../shots/macos-recording-kernel/result.json")); print(v); assert v["passed"] and v["operating_system"]=="macos"'
 
+      - name: Native macOS occlusion and minimized playback
+        if: ${{ inputs.macos }}
+        run: bash tools/release/check_macos_playback.sh
+
       - name: Checksums
         if: ${{ always() }}
         run: |
@@ -301,10 +309,44 @@ jobs:
           retention-days: 14
 
 
+  native-playback-probe:
+    name: Native Mac playback probe
+    if: ${{ inputs.native_playback_only }}
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Probe toolchain
+        run: |
+          set -euo pipefail
+          grep -E '^FLUTTER_VERSION=' toolchain.env >> "$GITHUB_ENV"
+          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' -print | sort -V | tail -n 1)
+          if [[ -n "$xcode" ]]; then sudo xcode-select --switch "$xcode/Contents/Developer"; fi
+          xcodebuild -version
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - name: Probe dependencies
+        run: |
+          set -euo pipefail
+          flutter pub get --enforce-lockfile
+          bash tools/ffmpeg_kit/fetch.sh macos
+      - name: Native macOS occlusion and minimized playback
+        run: bash tools/release/check_macos_playback.sh
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: ${{ always() }}
+        with:
+          name: native-playback-probe
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 14
+
   macos-package-check:
     name: Exact Mac package startup (${{ matrix.replica }})
     needs: apple
-    if: ${{ always() && inputs.macos && (needs.apple.result == 'success' || inputs.verify_run_id != '') }}
+    if: ${{ always() && !inputs.native_playback_only && inputs.macos && (needs.apple.result == 'success' || inputs.verify_run_id != '') }}
     runs-on: macos-15
     timeout-minutes: 15
     permissions:

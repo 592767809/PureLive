@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "「{name}」を完全に削除してもよろしいですか？",
     "delete_tag_named": "タグを削除：{name}",
     "desktop_default_volume": "デスクトップの既定音量",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "詳細",
     "dialog_import_epg_title": "番組表をインポート（XML / GZ / JSON）",
     "dialog_import_playlist_title": "プレイリストをインポート（M3U / TXT）",

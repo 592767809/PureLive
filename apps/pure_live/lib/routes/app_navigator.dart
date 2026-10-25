@@ -70,6 +70,15 @@ abstract final class AppNavigator {
     if (router.canPop()) router.pop<T>(result);
   }
 
+  /// A desktop mouse's Back: modal, nested page and PopScope first;
+  /// an unpoppable home never delegates to the operating system.
+  static Future<bool> mouseBack() async {
+    final router = _router;
+    if (router == null) return false;
+    if (router.routeInformationProvider.value.uri.path == RoutePath.kInitial && !router.canPop()) return false;
+    return await router.routerDelegate.popRoute();
+  }
+
   /// Opens the rooms of [category] on [site] (3.x `toCategoryDetail`). CC's
   /// official entries are web pages and open in the browser.
   static Future<void> toCategoryDetail({required LiveSite site, required LiveArea category}) async {

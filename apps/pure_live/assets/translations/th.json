@@ -497,6 +497,8 @@
     "delete_tag_confirm_named": "ต้องการลบ “{name}” อย่างถาวรใช่ไหม",
     "delete_tag_named": "ลบแท็ก: {name}",
     "desktop_default_volume": "ระดับเสียงเริ่มต้นบนเดสก์ท็อป",
+    "desktop_pause_when_minimized": "最小化窗口时暂停播放",
+    "desktop_pause_when_minimized_desc": "默认继续播放；开启后仅实际最小化时暂停，恢复时继续。其他窗口遮挡不暂停。",
     "details": "รายละเอียด",
     "dialog_import_epg_title": "นำเข้าผังรายการทีวี (XML / GZ / JSON)",
     "dialog_import_playlist_title": "นำเข้าเพลย์ลิสต์ (M3U / TXT)",

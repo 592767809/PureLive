@@ -5973,11 +5973,12 @@ note = "#52共享代理焦点修复已随5.4.15发布并回复关闭，原Sony�
 id = "V02.46"
 title = "鼠标全屏与返回需求"
 type = "功能"
-status = "设计中"
+status = "开发中"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/53"
-note = "记录右键切换窗口内全屏、鼠标侧后退键的需求，评估弹幕菜单、控件和弹窗优先级；没有实现或验收，不随5.4.15关闭。"
+note = "本轮用户再次要求解决并发布，按D-003采用原评估的最小方案，由A07.29实现；保留弹幕、控件、弹窗和小窗/多画面原右键优先级。"
+to = ["A07.29"]
 
 [[task]]
 id = "V02.47"
@@ -6052,3 +6053,48 @@ from = "用户要求解决问题、合并PR和发布更新"
 date = "2026-10-25"
 commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
 note = "5.4.16同源十包与校验文件11项哈希和匿名访问通过，PR55/57合并、#54/#56回复关闭；D062仅本版旧库两JSON同步，最终新库记录与更新通道另留回执。"
+
+[[task]]
+id = "A16.3"
+title = "桌面遮挡与最小化播放策略"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+branch = "ai/A16.3"
+from = "https://github.com/wzgrx/PureLive/issues/58"
+note = "遮挡不自动暂停；实际最小化事件单独驱动默认关闭的暂停选项，恢复只继续本策略暂停的会话；手机后台规则保留。"
+
+[[task]]
+id = "A07.29"
+title = "桌面鼠标画面全屏与返回"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+branch = "ai/A16.3"
+from = "https://github.com/wzgrx/PureLive/issues/53"
+note = "仅桌面主画面右键切换窗口内全屏，飞行弹幕动作和控件、弹窗优先；鼠标后退键交给现有返回链，到首页不退出；小窗和多画面原右键保留。"
+
+[[task]]
+id = "V02.50"
+title = "macOS遮挡导致直播暂停"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+branch = "ai/A16.3"
+from = "https://github.com/wzgrx/PureLive/issues/58"
+note = "共享手机后台策略把桌面hidden误当作离开应用；按A16.3区分遮挡与原生最小化；原M5现场结果独立记录。"
+to = ["A16.3"]
+
+[[task]]
+id = "Y01.28"
+title = "发布5.4.17"
+type = "发布"
+status = "开发中"
+size = "中"
+tier = 1
+branch = "ai/A16.3"
+from = "用户要求解决问题、发布更新、合并PR和关闭issues"
+note = "固定源码全量门禁、同源十包、原生检查和11项远端哈希后发布，最后同步两JSON；旧库例外仅在精确候选检查后另行确认。"

@@ -1,4 +1,5 @@
-import 'package:flutter/gestures.dart' show kDoubleTapTimeout, kLongPressTimeout;
+import 'package:flutter/gestures.dart'
+    show PointerDeviceKind, kDoubleTapTimeout, kLongPressTimeout, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
+import 'package:pure_live/features/live_play/logic/room_layout.dart';
 import 'package:pure_live/features/live_play/player/player_view.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
@@ -283,6 +285,39 @@ void main() {
           find.ancestor(of: find.byKey(const ValueKey('live-play-fullscreen')), matching: find.byType(AnimatedOpacity)),
         )
         .opacity;
+
+    testWidgets('desktop secondary click on a flying message opens actions before fullscreen', (tester) async {
+      final danmaku = FakeDanmaku();
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku, width: 1280);
+      final (_, at) = await fly(tester, danmaku);
+      await tester.tapAt(at, buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('live-play-message-sheet')), findsOneWidget);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await tester.tap(find.byKey(const ValueKey('room-panel-close')));
+      await tester.pump(const Duration(seconds: 1));
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('desktop secondary press keeps its message target while the message moves', (tester) async {
+      final danmaku = FakeDanmaku();
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku, width: 1280);
+      await tester.runAsync(() => services.store.settings.set(Settings.holdDanmakuOnPress, false));
+      await _settle(tester);
+      final (_, at) = await fly(tester, danmaku);
+      final pointer = await tester.createGesture(buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+      await pointer.down(at);
+      for (var i = 0; i < 240; i++) {
+        await tester.pump(const Duration(milliseconds: 17));
+      }
+      await pointer.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('live-play-message-sheet')), findsOneWidget);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await tester.tap(find.byKey(const ValueKey('room-panel-close')));
+      await tester.pump(const Duration(seconds: 1));
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
     testWidgets('opens the long-press sheet; the danmaku stand until it closes', (tester) async {
       final danmaku = FakeDanmaku();
@@ -647,4 +682,31 @@ void main() {
     await _close(tester, services);
     expect(applied.last, isFalse, reason: 'released when the room goes');
   });
+  testWidgets('desktop picture secondary click toggles only in-window fullscreen', (tester) async {
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+    await tester.tapAt(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await _settle(tester);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.windowFullscreen);
+    await tester.tapAt(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kSecondaryMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await _settle(tester);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+    final top = tester.getTopLeft(find.byType(RoomPlayer)) + const Offset(100, 15);
+    await tester.tapAt(top, buttons: kSecondaryMouseButton, kind: PointerDeviceKind.mouse);
+    await _settle(tester);
+    expect(
+      tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
+      RoomDisplay.inline,
+      reason: 'a secondary click over the controls does not toggle the picture',
+    );
+    await _close(tester, services);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 }
