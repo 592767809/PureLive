@@ -5983,66 +5983,72 @@ note = "记录右键切换窗口内全屏、鼠标侧后退键的需求，评估
 id = "V02.47"
 title = "Windows 网格自动铺满和房间卡片大小"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "用户反馈（2026-10-25）：Windows 窗口大小变化后每页数量不铺满，且不能调整房间卡片大小"
 stages = ["自动铺满", "卡片大小六档", "测试和真机"]
-done = 0
-next = "跑定向测试和门禁；Windows 上验证缩放铺满、翻页锚定和六档卡片大小"
-note = "自动每页 = 覆盖当前网格可用高度的行 × 列（最后一行可部分显示），窗口变化重算并补足；手动 20/40/60/80 固定。卡片大小六档 XS/S/M/L/XL/XXL（0.8×/12 列、0.9×/10、1×/8、1.25×/8、1.5×/8、2×/8）在“房间卡片设置 → 桌面端 → 外观”，只在桌面端目标显示、桌面系统生效，手机端固定 M（不可修改）。自动测试和门禁已由 CI 跑；Windows 真机待验收。"
+done = 3
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "PR55原提交历史保留，自动容量/手动20/翻页锚点及六档控件在Windows正式包验证，实际网格XS/M/XXL和六档几何单测分别记录，默认M恢复；本地完整all/14通过。"
 
 [[task]]
 id = "A17.18"
 title = "电视日志扫码导出"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/54"
-branch = "ai/A17.18"
-note = "电视日志导出复用现有PhoneBridge，发送完整导出文本到扫码查看流程；手机/iOS系统分享与当前筛选复制入口保留，避免进入Sony系统分享目标选择器。"
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "电视完整日志经现有手机桥接导出；K90实际读取LAN文本、Enter取消关闭服务，自动界面及free/0旋转和关/Info恢复；原Sony和DPAD_CENTER保留边界。"
 
 [[task]]
 id = "A11.7"
 title = "宽屏设置独立页嵌入"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/56"
-branch = "ai/A17.18"
-note = "沿用840断点及已有双栏容器，将IPTV、录制、本地互动、备份和日志放入右侧内容导航；窄屏根路由保留，切换窗口与返回链保持可用。"
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "宽屏五页嵌入内容导航；正式Windows隔离副本逐项验证及WebDAV返回、日志筛选宽窄变化和窄屏返回；完整all/14通过。"
 
 [[task]]
 id = "V02.48"
 title = "电视系统分享焦点反馈"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/54"
-branch = "ai/A17.18"
-note = "截图为Android系统分享目标选择器，应用按钮本身有焦点；按A17.18复用现有手机桥接处理电视日志导出，不声称修改OEM选择器。"
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "#54电视日志改为扫码完整文本已随5.4.16发布并回复关闭；OEM选择器未修改，K90局域网页面及Enter取消已验，原Sony未直接操作。"
 
 [[task]]
 id = "V02.49"
 title = "桌面设置导航一致性"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/56"
-branch = "ai/A17.18"
-note = "现有设置宽屏契约要求内容留在右侧，五项独立路由提前跳出主导航，按A11.7补齐并覆盖窄屏、回退与窗口变化。"
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "#56五个独立设置页已统一宽屏导航，Windows正式包隔离交互及共享回归通过，5.4.16发布并回复关闭。"
 
 [[task]]
 id = "Y01.27"
 title = "发布5.4.16"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "用户要求解决问题、合并PR和发布更新"
-branch = "ai/A17.18"
-note = "审查PR #55固定源码并修复#54/#56；最终源码完整all/14后同源构建十包，原生验证、11项远端哈希和匿名下载通过后公开与更新通道同步。旧库例外需按精确候选另行确认，不沿用5.4.15授权。"
+date = "2026-10-25"
+commit = "f0e73af7f420e73cea6b7afb52a30ea6b773cd4b"
+note = "5.4.16同源十包与校验文件11项哈希和匿名访问通过，PR55/57合并、#54/#56回复关闭；D062仅本版旧库两JSON同步，最终新库记录与更新通道另留回执。"
