@@ -514,24 +514,29 @@ class _ProxyEditorTileState extends ConsumerState<ProxyEditorTile> {
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: Opacity(
-            opacity: enabled ? 1 : 0.6,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final host = field(_host, i18n('proxy_address_label'), port: false);
-                final port = field(_port, i18n('proxy_port_label'), port: true);
-                if (constraints.maxWidth >= 420) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: host),
-                      const SizedBox(width: 12),
-                      Expanded(flex: 2, child: port),
-                    ],
-                  );
-                }
-                return Column(mainAxisSize: MainAxisSize.min, children: [host, const SizedBox(height: 12), port]);
-              },
+          // Directional navigation keeps disabled TextFields focusable by default.
+          // These inactive editors must not hide the TV switch focus ring.
+          child: ExcludeFocus(
+            excluding: !enabled,
+            child: Opacity(
+              opacity: enabled ? 1 : 0.6,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final host = field(_host, i18n('proxy_address_label'), port: false);
+                  final port = field(_port, i18n('proxy_port_label'), port: true);
+                  if (constraints.maxWidth >= 420) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 3, child: host),
+                        const SizedBox(width: 12),
+                        Expanded(flex: 2, child: port),
+                      ],
+                    );
+                  }
+                  return Column(mainAxisSize: MainAxisSize.min, children: [host, const SizedBox(height: 12), port]);
+                },
+              ),
             ),
           ),
         ),

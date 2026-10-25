@@ -5931,3 +5931,33 @@ tier = 1
 from = "5.4.15 第三私有候选 K90 精确普通包原生日志与错误遮罩"
 branch = "ai/A17.16"
 note = "首帧前1.2秒诊断窗口过早耗尽两次解码恢复；仅RTP引入5秒有界等待，致命/运行期及其他协议不变。多次原生预检、最终all/14与十包尚待完成。"
+
+[[task]]
+id = "A17.17"
+title = "电视代理禁用输入焦点"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/52"
+note = "关闭代理时禁用编辑区排除遥控器焦点，保持开关和启用后的地址、端口编辑。"
+
+[[task]]
+id = "V02.45"
+title = "电视代理页向下焦点反馈"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/52"
+note = "Windows隔离正式候选电视模式复现首次Down落到禁用地址框、白框消失；原Sony Android9尚未操作，修正转A17.17。"
+
+[[task]]
+id = "V02.46"
+title = "鼠标全屏与返回需求"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/53"
+note = "记录右键切换窗口内全屏、鼠标侧后退键的需求，评估弹幕菜单、控件和弹窗优先级；没有实现或验收，不随5.4.15关闭。"
