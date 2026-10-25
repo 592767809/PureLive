@@ -5714,7 +5714,7 @@ from = "https://github.com/wzgrx/PureLive/issues/41"
 to = ["A07.27"]
 date = "2026-10-24"
 commit = "83ab860fd914cc16ea38552c6fc0b6a76669a532"
-note = "延迟原生回读时序缺口已修正，18 项新增和 26 项原有回归通过；原 iPhone 已确认 iOS 18.7.8，实际效果待复测，#41 继续开放。"
+note = "5.4.17发布收尾期间收到#41新日志，已完整读取680字节3行：历史导入、冷启动、B站播放成功；没有gesture-input，连attached也无。现有证据仍不能定位手势识别、原生回读或提示绘制，已请求实际关于版本/构建及IPA名，先核对诊断包身份，不归因用户没有滑动，也不反复要求相同录屏。#41继续开放。"
 
 [[task]]
 id = "A07.27"
@@ -5973,12 +5973,14 @@ note = "#52共享代理焦点修复已随5.4.15发布并回复关闭，原Sony�
 id = "V02.46"
 title = "鼠标全屏与返回需求"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/53"
-note = "本轮用户再次要求解决并发布，按D-003采用原评估的最小方案，由A07.29实现；保留弹幕、控件、弹窗和小窗/多画面原右键优先级。"
 to = ["A07.29"]
+date = "2026-10-26"
+commit = "b52a6af6a21736fa353588790fc9b560d593c15c"
+note = "#53两项桌面鼠标需求由A07.29实现，5.4.17发布并回复关闭；Windows右键实测与Back指针/路由回归分开记录。"
 
 [[task]]
 id = "V02.47"
@@ -6058,35 +6060,44 @@ note = "5.4.16同源十包与校验文件11项哈希和匿名访问通过，PR55
 id = "A16.3"
 title = "桌面遮挡与最小化播放策略"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/A16.3"
 from = "https://github.com/wzgrx/PureLive/issues/58"
-note = "遮挡不自动暂停；实际最小化事件单独驱动默认关闭的暂停选项，恢复只继续本策略暂停的会话；手机后台规则保留。"
+stages = ["桌面策略设计", "实现与回归", "原生窗口验证"]
+done = 3
+date = "2026-10-26"
+commit = "b52a6af6a21736fa353588790fc9b560d593c15c"
+note = "桌面遮挡与实际最小化分离；默认继续播放，桌面播放行为新增默认关选项。云端真实mpv遮挡/最小化/恢复/手动暂停及Windows设置通过，M5原机与长期播放未外推。"
 
 [[task]]
 id = "A07.29"
 title = "桌面鼠标画面全屏与返回"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/A16.3"
 from = "https://github.com/wzgrx/PureLive/issues/53"
-note = "仅桌面主画面右键切换窗口内全屏，飞行弹幕动作和控件、弹窗优先；鼠标后退键交给现有返回链，到首页不退出；小窗和多画面原右键保留。"
+stages = ["鼠标交互评估", "实现与回归", "正式包验证"]
+done = 3
+date = "2026-10-26"
+commit = "b52a6af6a21736fa353588790fc9b560d593c15c"
+note = "右键窗口内全屏及Back返回链已实现；移动弹幕目标按下捕获，控件/弹幕/弹窗优先、首页不退出。63项聚焦及Windows正式隔离包右键往返通过，实体鼠标侧键未逐款验证。"
 
 [[task]]
 id = "V02.50"
 title = "macOS遮挡导致直播暂停"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
-branch = "ai/A16.3"
 from = "https://github.com/wzgrx/PureLive/issues/58"
-note = "共享手机后台策略把桌面hidden误当作离开应用；按A16.3区分遮挡与原生最小化；原M5现场结果独立记录。"
 to = ["A16.3"]
+stages = ["复现和根因", "修复复核", "发布回复"]
+done = 3
+date = "2026-10-26"
+commit = "b52a6af6a21736fa353588790fc9b560d593c15c"
+note = "#58桌面遮挡误暂停修复随5.4.17发布并回复关闭；原生Mac隐藏状态下持续播放及真实最小化开关已验，保留原M5硬件验收边界。"
 
 [[task]]
 id = "Y01.28"
@@ -6095,6 +6106,59 @@ type = "发布"
 status = "开发中"
 size = "中"
 tier = 1
-branch = "ai/A16.3"
 from = "用户要求解决问题、发布更新、合并PR和关闭issues"
-note = "固定源码全量门禁、同源十包、原生检查和11项远端哈希后发布，最后同步两JSON；旧库例外仅在精确候选检查后另行确认。"
+stages = ["固定候选与门禁", "十包及原生验证", "发布和更新通道"]
+done = 2
+date = "2026-10-26"
+commit = "b52a6af6a21736fa353588790fc9b560d593c15c"
+note = "5.4.17同源十包与11项哈希及匿名访问通过，PR合并、#53/#58回复关闭；新库更新JSON和记录独立完整门禁，旧库相同六项历史失败的本版例外等待授权，未同步旧远端，发布收尾不记为全部完成。"
+
+[[task]]
+id = "V02.51"
+title = "电视配置预览布局焦点"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/59"
+note = "截图已查看：配置预览在右栏、左侧仍为设置总览。代码确认电视入口将configPreview转到通用SettingsPage，该页按840断点走双栏；需要改为电视全页并覆盖长JSON树遥控滚动、返回及焦点。当前是代码路径与截图吻合的线索，未在Sony原机验证。"
+
+[[task]]
+id = "V02.52"
+title = "手机设置入口动画统一"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/60"
+note = "窄屏五个独立路由通过AppNavigator打开，普通设置分类则在SettingsPage内部换content；两条导航路径确有不同。需要按手机既有分类体验统一切换，同时保留系统返回、深链和宽屏双栏，不能只关闭全应用动画。未计入5.4.17修复。"
+
+[[task]]
+id = "V02.53"
+title = "电视独立设置页统一"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/61"
+note = "两张截图已逐张查看：普通分类有自定义背景与白框，IPTV为通用AppBar且背景覆盖。tv_router对独立页只包TvSettingsStyle，未统一使用TvSettingsScaffold；须逐页核对七页的首焦点、首项Up边界/滚动、标题返回和壁纸透明策略，不能将单一页面样式修补当七页验收。"
+
+[[task]]
+id = "V02.54"
+title = "电视启动初始焦点框"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/62"
+note = "两张对照图已查看，蓝色选中态和白色焦点框须区分。TvHomePage已有启动及提示后requestFocus，因此不能仅凭截图认定未请求焦点；需复现首次/再次启动、无按键状态和弹窗关闭后的节点状态及框绘制。未在Sony原机定位。"
+
+[[task]]
+id = "V02.55"
+title = "分区平台标签增加图标"
+type = "功能"
+status = "设计中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/63"
+note = "手机和Windows共用AreasView，当前TabLabel只传平台名，电视另有平台标签。后续应复用既有平台图标资源，保持中文名、平台顺序、选中态及无障碍语义，并检查窄屏、大字体和横向滚动；无需新下载图标。"
