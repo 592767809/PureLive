@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "ข้อผิดพลาด",
     "settings_log_level_info": "ข้อมูล",
     "settings_log_level_warning": "คำเตือน",
+    "settings_log_phone_export": "ส่งออกบันทึกทั้งหมดไปยังโทรศัพท์",
     "settings_log_share": "ส่งออก / แชร์",
     "settings_menu_bar_icon": "แสดงไอคอนในแถบเมนู",
     "settings_menu_bar_icon_desc": "เมื่อปิด ให้เปิดหน้าต่างจากไอคอนใน Dock การบันทึกและการแจ้งเตือนไลฟ์ยังทำงานต่อ",

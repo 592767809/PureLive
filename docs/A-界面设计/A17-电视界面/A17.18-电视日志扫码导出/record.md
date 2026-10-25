@@ -17,3 +17,14 @@ apps/pure_live/lib/features/backup/log_page.dart；shared/phone_bridge.dart；pl
 ## 当前进度
 
 已登记，尚未修改本任务运行时代码；PR #55的原始提交保留在本地非快进合并中，另行审查和验证，当前不视作完成。
+
+
+## 5.4.16 候选进展
+
+log_page.dart::_share在PhoneBridge存在时改走完整导出文本的扫码查看；无桥接继续原系统分享。旧代码在TV桥接测试中调用了系统分享，失败回归保留；普通手机同用例通过。新实现覆盖过滤后仍导出完整日志。
+
+当前定向回归共21项通过；原生截图、安装包哈希和真实服务器/原机验证不由此替代，发布前继续按清单核对。
+
+## Gate follow-up
+
+Shared settings navigation lives under `lib/shared/settings/`; the application page factory lives under `lib/routes/`. The UI dependency baseline was not expanded. A11 owns the new shared folder. The first full test pass exposed two old wide backup tests that still expected a root route and did not yield to directory I/O; their original overview and video-subpage scroll assertions remain, and backup now asserts embedded position and no root navigation. A bounded real-I/O test helper is shared by the updated cases. The resulting 26 focused regressions and fatal-info analysis pass; a fresh complete all/14 gate is required before push. Prior stopped gate and fixture command logs remain in the release evidence folder.

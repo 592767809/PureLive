@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Errore",
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Avviso",
+    "settings_log_phone_export": "Esporta il registro completo sul telefono",
     "settings_log_share": "Esporta / condividi",
     "settings_menu_bar_icon": "Mostra icona nella barra dei menu",
     "settings_menu_bar_icon_desc": "Se disattivata, apri la finestra dall’icona nel Dock; registrazione e avvisi continuano.",

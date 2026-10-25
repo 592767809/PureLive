@@ -17,3 +17,10 @@ apps/pure_live/lib/features/settings；routes/app_router.dart；features/iptv/ip
 ## 当前进度
 
 已登记，尚未修改本任务运行时代码；PR #55的原始提交保留在本地非快进合并中，另行审查和验证，当前不视作完成。
+
+
+## 5.4.16 候选进展
+
+settings_page.dart::_openSection对独立路由直接跳根导航，旧宽屏五项和日志缩窗场景均失败。复用现有内容Navigator与独立页工厂，窄屏保留根路由；可嵌入的备份子页在内容栈返回，并保留日志筛选状态。
+
+当前定向回归共21项通过；原生截图、安装包哈希和真实服务器/原机验证不由此替代，发布前继续按清单核对。

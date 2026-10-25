@@ -60,7 +60,11 @@ final class PageFillScheduler {
       _pending = null;
       return;
     }
-    if (capacity == _applied || capacity == _pending) return;
+    if (capacity == _applied) {
+      _pending = null;
+      return;
+    }
+    if (capacity == _pending) return;
     _pending = capacity;
     if (_scheduled) return;
     _scheduled = true;

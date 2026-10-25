@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Error",
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Warning",
+    "settings_log_phone_export": "Export full log to phone",
     "settings_log_share": "Export / share",
     "settings_menu_bar_icon": "Show icon in menu bar",
     "settings_menu_bar_icon_desc": "When off, open the window from the Dock icon; recording and live alerts carry on.",

@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Lỗi",
     "settings_log_level_info": "Thông tin",
     "settings_log_level_warning": "Cảnh báo",
+    "settings_log_phone_export": "Xuất toàn bộ nhật ký sang điện thoại",
     "settings_log_share": "Xuất / chia sẻ",
     "settings_menu_bar_icon": "Hiện biểu tượng trên thanh menu",
     "settings_menu_bar_icon_desc": "Khi tắt, mở cửa sổ bằng biểu tượng trên Dock; việc ghi và thông báo phát sóng vẫn tiếp tục.",

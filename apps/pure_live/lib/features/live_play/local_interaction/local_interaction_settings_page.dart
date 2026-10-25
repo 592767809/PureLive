@@ -27,16 +27,22 @@ const double _contentMaxWidth = 720;
 /// U.6d; the room panel's "设置 ›" too).
 class LocalInteractionSettingsPage extends ConsumerWidget {
   /// Creates the page.
-  const new({this.route, super.key});
+  const new({this.route, this.onBack, super.key});
 
   /// How the page was opened.
   final RouteArgs? route;
+
+  /// Returns to the overview after an embedded settings page becomes narrow.
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final interaction = ref.watch(localInteractionProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(i18n('local_interaction_settings'))),
+      appBar: AppBar(
+        leading: onBack == null ? null : BackButton(onPressed: onBack),
+        title: Text(i18n('local_interaction_settings')),
+      ),
       body: ListenableBuilder(
         listenable: interaction,
         builder: (context, _) => ListView(

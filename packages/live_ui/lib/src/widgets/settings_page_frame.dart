@@ -20,9 +20,11 @@ PreferredSizeWidget settingsPageAppBar(
   List<Widget> actions = const [],
   PreferredSizeWidget? bottom,
   bool centerTitle = false,
+  VoidCallback? onBack,
 }) {
   final heading = Text(title, style: context.textStyles.t20.emphasis);
   return AppBar(
+    leading: onBack == null ? null : BackButton(onPressed: onBack),
     title: subtitle == null
         ? heading
         : Column(

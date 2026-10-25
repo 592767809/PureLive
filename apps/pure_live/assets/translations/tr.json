@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Hata",
     "settings_log_level_info": "Bilgi",
     "settings_log_level_warning": "Uyarı",
+    "settings_log_phone_export": "Tam günlüğü telefona aktar",
     "settings_log_share": "Dışa aktar / paylaş",
     "settings_menu_bar_icon": "Menü çubuğunda simge göster",
     "settings_menu_bar_icon_desc": "Kapalıyken pencereyi Dock simgesinden açın; kayıt ve yayın bildirimleri sürer.",

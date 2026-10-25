@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "오류",
     "settings_log_level_info": "정보",
     "settings_log_level_warning": "경고",
+    "settings_log_phone_export": "전체 로그를 휴대전화로 내보내기",
     "settings_log_share": "내보내기 / 공유",
     "settings_menu_bar_icon": "메뉴 막대에 아이콘 표시",
     "settings_menu_bar_icon_desc": "끄면 Dock 아이콘으로 창을 엽니다. 녹화와 방송 알림은 그대로 계속됩니다.",

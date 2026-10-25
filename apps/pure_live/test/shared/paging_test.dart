@@ -61,6 +61,21 @@ void main() {
   });
 
   group('PageFillScheduler (V02.47)', () {
+    testWidgets('a resize back to the applied capacity cancels a stale pending resize', (tester) async {
+      final scheduler = PageFillScheduler();
+      final applied = <int>[];
+      void report(int capacity) => scheduler.report(capacity, enabled: () => true, apply: applied.add);
+      report(20);
+      tester.binding.scheduleFrame();
+      await tester.pump();
+      expect(applied, [20]);
+      report(40);
+      report(20);
+      tester.binding.scheduleFrame();
+      await tester.pump();
+      expect(applied, [20], reason: 'the last measurement matches the displayed capacity');
+    });
+
     testWidgets('applies a new capacity once, after the frame', (tester) async {
       final scheduler = PageFillScheduler();
       final applied = <int>[];

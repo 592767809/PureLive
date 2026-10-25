@@ -2456,6 +2456,7 @@
     "settings_log_level_error": "錯誤",
     "settings_log_level_info": "資訊",
     "settings_log_level_warning": "警告",
+    "settings_log_phone_export": "掃碼匯出完整日誌",
     "settings_log_share": "匯出/分享",
     "settings_menu_bar_icon": "在選單欄顯示圖示",
     "settings_menu_bar_icon_desc": "關掉後用程式塢圖示開啟視窗；錄製和開播提醒照常。",

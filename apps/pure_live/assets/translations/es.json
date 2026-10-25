@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Error",
     "settings_log_level_info": "Información",
     "settings_log_level_warning": "Advertencia",
+    "settings_log_phone_export": "Exportar el registro completo al móvil",
     "settings_log_share": "Exportar / compartir",
     "settings_menu_bar_icon": "Mostrar icono en la barra de menús",
     "settings_menu_bar_icon_desc": "Si está desactivado, abre la ventana desde el icono del Dock; la grabación y los avisos siguen.",

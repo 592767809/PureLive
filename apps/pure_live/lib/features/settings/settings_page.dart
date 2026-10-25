@@ -13,6 +13,8 @@ import 'package:pure_live/features/settings/settings_tiles.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
+import 'package:pure_live/routes/settings_route_pages.dart';
+import 'package:pure_live/shared/settings/settings_content_navigation.dart';
 
 /// From this width (of the page, not the screen) the overview and the open
 /// page sit side by side (U.6a c9, c10).
@@ -47,10 +49,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   final _searchFocus = FocusNode();
   final _content = GlobalKey<NavigatorState>();
   late final _contentObserver = _ContentObserver(_contentChanged);
-  late SettingsSection? _open = switch (SettingsSection.byName(widget.route.arguments)) {
-    final SettingsSection section when section.route == null => section,
-    _ => null,
-  };
+  late SettingsSection? _open = SettingsSection.byName(widget.route.arguments);
   String _query = '';
   String? _highlight;
   int _shown = 0;
@@ -94,8 +93,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (canPop != _contentCanPop && mounted) setState(() => _contentCanPop = canPop);
   }
 
-  void _openSection(SettingsSection section) {
-    if (section.route case final route?) {
+  void _openSection(SettingsSection section, {required bool twoPane}) {
+    if (section.route case final route? when !twoPane) {
       unawaited(AppNavigator.toNamed<void>(route));
       return;
     }
@@ -132,24 +131,34 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     _contentCanPop = false;
   });
 
-  Widget _contentNavigator(SettingsSection section, {required bool twoPane}) => HeroControllerScope.none(
-    child: Navigator(
-      key: _content,
-      observers: [_contentObserver],
-      pages: [
-        MaterialPage<void>(
-          key: ValueKey('settings-content-${section.name}-$_shown'),
-          child: SettingsSectionPage(section: section, highlight: _highlight, onBack: twoPane ? null : _closeSection),
-        ),
-      ],
-      onDidRemovePage: (_) {},
+  Widget _contentNavigator(SettingsSection section, {required bool twoPane}) => SettingsContentNavigation(
+    pageBuilder: buildSettingsRoutePage,
+    child: HeroControllerScope.none(
+      child: Navigator(
+        key: _content,
+        observers: [_contentObserver],
+        pages: [
+          MaterialPage<void>(
+            key: ValueKey('settings-content-${section.name}-$_shown'),
+            child: switch (section.route) {
+              final route? => buildSettingsRoutePage(RouteArgs(route), onBack: twoPane ? null : _closeSection)!,
+              _ => SettingsSectionPage(section: section, highlight: _highlight, onBack: twoPane ? null : _closeSection),
+            },
+          ),
+        ],
+        onDidRemovePage: (_) {},
+      ),
     ),
   );
 
   Widget _overviewBody({required bool twoPane, required SettingsSection? selected}) {
     final env = SettingsEnv.current();
     return _query.isEmpty
-        ? _Overview(selected: selected, onOpen: _openSection, twoPane: twoPane)
+        ? _Overview(
+            selected: selected,
+            onOpen: (section) => _openSection(section, twoPane: twoPane),
+            twoPane: twoPane,
+          )
         : SettingsReveal(
             reveal: _reveal,
             child: _SearchResults(query: _query, env: env, twoPane: twoPane),

@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Ошибка",
     "settings_log_level_info": "Инфо",
     "settings_log_level_warning": "Предупреждение",
+    "settings_log_phone_export": "Экспорт полного журнала на телефон",
     "settings_log_share": "Экспорт / поделиться",
     "settings_menu_bar_icon": "Значок в строке меню",
     "settings_menu_bar_icon_desc": "Если выключено, окно открывается значком в Dock; запись и уведомления об эфирах продолжаются.",

@@ -1,7 +1,9 @@
 // A11.6: back from a page the settings opened, the list is where it was.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pure_live/features/backup/backup_page.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
+import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 
@@ -24,7 +26,12 @@ Future<double> _open(WidgetTester tester, String key, Finder row) async {
   await tester.pumpAndSettle();
   final pixels = _position(tester, key).pixels;
   await tester.tap(row);
-  await settleSettings(tester);
+  await tester.pump();
+  if (find.byType(BackupPage).evaluate().isNotEmpty) {
+    await settleSettingsFiles(tester);
+  } else {
+    await settleSettings(tester);
+  }
   return pixels;
 }
 
@@ -126,11 +133,10 @@ void main() {
         expect(_position(tester, 'settings-overview').pixels, overview);
 
         final backup = await _open(tester, 'settings-overview', settingsSection(SettingsSection.backup));
-        expect(h.opened.last, RoutePath.kBackup);
-        AppNavigator.router.pop();
-        await settleSettings(tester);
+        expect(h.opened, isEmpty, reason: 'wide backup stays inside the settings content navigator');
+        expect(find.byType(BackupPage), findsOneWidget);
+        expect(tester.getTopLeft(find.byType(BackupPage)).dx, greaterThanOrEqualTo(settingsOverviewWidth));
         expect(_position(tester, 'settings-overview').pixels, backup);
-        expect(_position(tester, 'settings-section-view-video').pixels, video);
       });
     }
 

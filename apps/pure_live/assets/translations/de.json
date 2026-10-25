@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "Fehler",
     "settings_log_level_info": "Info",
     "settings_log_level_warning": "Warnung",
+    "settings_log_phone_export": "Vollständiges Protokoll aufs Handy exportieren",
     "settings_log_share": "Exportieren / teilen",
     "settings_menu_bar_icon": "Symbol in der Menüleiste zeigen",
     "settings_menu_bar_icon_desc": "Aus: Das Fenster öffnet sich über das Dock-Symbol; Aufnahmen und Live-Hinweise laufen weiter.",

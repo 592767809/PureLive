@@ -2457,6 +2457,7 @@
     "settings_log_level_error": "エラー",
     "settings_log_level_info": "情報",
     "settings_log_level_warning": "警告",
+    "settings_log_phone_export": "完全なログをスマートフォンにエクスポート",
     "settings_log_share": "エクスポート / 共有",
     "settings_menu_bar_icon": "メニューバーにアイコンを表示",
     "settings_menu_bar_icon_desc": "オフにすると Dock のアイコンからウインドウを開きます。録画とライブ通知はそのまま続きます。",

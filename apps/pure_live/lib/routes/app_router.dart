@@ -6,18 +6,13 @@ import 'package:pure_live/features/account/account_page.dart';
 import 'package:pure_live/features/area_rooms/area_rooms_page.dart';
 import 'package:pure_live/features/areas/areas_page.dart';
 import 'package:pure_live/features/auth/auth_page.dart';
-import 'package:pure_live/features/backup/backup_page.dart';
-import 'package:pure_live/features/backup/log_page.dart';
 import 'package:pure_live/features/favorite/favorite_page.dart';
 import 'package:pure_live/features/history/history_page.dart';
 import 'package:pure_live/features/home/home_page.dart';
 import 'package:pure_live/features/hot_areas/hot_areas_page.dart';
-import 'package:pure_live/features/iptv/iptv_page.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
-import 'package:pure_live/features/live_play/local_interaction/local_interaction_settings_page.dart';
 import 'package:pure_live/features/multiview/multiview_page.dart';
 import 'package:pure_live/features/popular/popular_page.dart';
-import 'package:pure_live/features/record_settings/record_settings_page.dart';
 import 'package:pure_live/features/recorder/recorder_page.dart';
 import 'package:pure_live/features/remote_receiver/remote_receiver_page.dart';
 import 'package:pure_live/features/search/search_page.dart';
@@ -32,6 +27,7 @@ import 'package:pure_live/features/web_dav/web_dav_page.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/routes/settings_route_pages.dart';
 
 /// Builds a page from how it was opened.
 typedef PageBuilder = Widget Function(RouteArgs route);
@@ -49,8 +45,8 @@ final Map<String, PageBuilder> pageRoutes = {
   RoutePath.kSettings: (route) => SettingsPage(route: route),
   RoutePath.kHistory: (route) => HistoryPage(route: route),
   RoutePath.kSearch: (route) => SearchPage(route: route),
-  RoutePath.kBackup: (route) => BackupPage(route: route),
-  RoutePath.kIptv: (route) => IptvPage(route: route),
+  RoutePath.kBackup: (route) => buildSettingsRoutePage(route)!,
+  RoutePath.kIptv: (route) => buildSettingsRoutePage(route)!,
   RoutePath.kAbout: (route) => AboutPage(route: route),
   RoutePath.kAreaRooms: (route) => AreaRoomsPage(route: route),
   RoutePath.kLivePlay: (route) => LivePlayPage(route: route),
@@ -76,12 +72,12 @@ final Map<String, PageBuilder> pageRoutes = {
   RoutePath.kSplash: (route) => SplashPage(route: route),
   RoutePath.kVersionPage: (route) => VersionPage(route: route),
   RoutePath.kRecordPage: (route) => RecorderPage(route: route),
-  RoutePath.kRecordSettings: (route) => RecordSettingsPage(route: route),
+  RoutePath.kRecordSettings: (route) => buildSettingsRoutePage(route)!,
   RoutePath.kWebSearch: (route) => SearchPage(route: route),
   RoutePath.kSettingsTags: (route) => TagsPage(route: route),
   RoutePath.kRemoteSync: (route) => RemoteReceiverPage(route: route),
-  RoutePath.kLocalInteraction: (route) => LocalInteractionSettingsPage(route: route),
-  RoutePath.kLogs: (route) => const LogPage(),
+  RoutePath.kLocalInteraction: (route) => buildSettingsRoutePage(route)!,
+  RoutePath.kLogs: (route) => buildSettingsRoutePage(route)!,
 };
 
 /// The router of home and [pageRoutes], starting at [initialLocation] (the

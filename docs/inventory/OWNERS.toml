@@ -149,6 +149,7 @@ path = [
   { glob = "apps/pure_live/lib/shared/panels/", sub = "A02" },
   { glob = "apps/pure_live/lib/shared/permission_prompts.dart", sub = "O04" },
   { glob = "apps/pure_live/lib/shared/qr_scan.dart", sub = "A12" },
+  { glob = "apps/pure_live/lib/shared/settings/", sub = "A11" },
   { glob = "apps/pure_live/lib/shared/record/record_actions.dart", sub = "H02" },
   { glob = "apps/pure_live/lib/shared/record/record_state.dart", sub = "H02" },
   { glob = "apps/pure_live/lib/shared/record/saved_file.dart", sub = "H02" },

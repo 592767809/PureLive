@@ -35,3 +35,10 @@ Windows/Linux/macOS 的编号翻页保留，但“自动”每页数量改为覆
 - 分区卡片页（`platform_areas_view.dart`）不是房间卡片，未应用自动铺满和卡片大小。
 - 电视用自己的网格，不受影响。
 - `isPhoneDevice` 仍用 `Platform.isAndroid/isIOS`，Widget 测试无法覆盖 Android 的运行时门槛，只能由目录的 `_desktop` 覆盖显示层。
+
+
+## 5.4.16 候选进展
+
+PR #55固定7688dbb7d44f98cdea3d33f98af08f3aede69254非快进整合，原任务号与既有快手V02.44冲突，登记为V02.47；原D-058与WebDAV决定冲突，保留两边并改为D-060。审查发现PageFillScheduler在20已应用、40待处理、最新又20时错误应用40；新增失败回归后修正为取消过期更新。
+
+当前定向回归共21项通过；原生截图、安装包哈希和真实服务器/原机验证不由此替代，发布前继续按清单核对。
