@@ -1745,15 +1745,16 @@ old = ["U.11c", "T09e.1"]
 id = "A12.7"
 title = "WebDAV 自动备份设置（接 A12.5、V01.9）"
 type = "界面"
-status = "开发中"
-date = "2026-10-24"
+status = "待真机"
 size = "小"
 tier = 2
 from = "V01.9（D-057）"
 stages = ["设置对话框和入口", "界面测试和真机对照"]
 done = 1
-next = "补界面测试；竖屏/横屏/宽屏看设置对话框"
-note = "WebDAV 页 ⋮ 菜单新增“自动备份”，对话框包含开关、间隔、内容、远程文件夹、保留份数、账号和上次成功；代码已写，测试和真机未跑。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+next = "逐项核对手机竖横屏、Apple和电视的自动备份对话框；保留真实供应商上传验证边界。"
+note = "已发布5.4.15；设置与相关服务55项回归及完整all/14通过，最终正式Windows包实际核对默认关闭、24小时、purelive目录、保留7份、不含账号并取消未保存；手机、Apple及电视各布局仍待逐项对照。"
 
 [[task]]
 id = "A13.1"
@@ -3628,15 +3629,16 @@ old = ["F.4b", "T09d.2"]
 id = "J04.2"
 title = "运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9）"
 type = "功能"
-status = "开发中"
-date = "2026-10-24"
+status = "待真机"
 size = "中"
 tier = 2
 from = "V01.9（D-057）"
 stages = ["设置和自动命名", "目录创建和上传", "调度和通知", "测试和真机"]
 done = 3
-next = "跑定向测试、i18n 和门禁；K90/Windows 上验证目录创建、成功通知和保留清理"
-note = "代码已写：WebDavClient.ensureFolder、WebDavAutoBackupService、WebDavAutoBackupScheduler、AppStartup 主窗口启动；尚未运行 Flutter 测试和门禁。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+next = "在配置好的真实WebDAV供应商上验证目录创建、上传成功与失败通知、保留清理；不把本地模拟服务代替真实服务器验收。"
+note = "已随PR #50合并PR #51并发布5.4.15；四项旧代码失败回归修正，相关服务和设置55项及完整all/14通过。混合类型按时间保留、仅清理直接子自动文件、隐藏窗口暂停已验证；真实供应商目录创建、上传、通知和清理仍待现场验证。"
 
 [[task]]
 id = "J05.1"
@@ -4277,13 +4279,15 @@ note = "4.x 录制中心的“播放”交给系统里的其他应用；等用�
 id = "V01.9"
 title = "应用运行时的定时 WebDAV 备份（先出方案）"
 type = "功能"
-status = "开发中"
-date = "2026-10-24"
+status = "待真机"
 size = "小"
 tier = 3
 from = "用户 2026-10-24"
 to = ["J04.2", "A12.7"]
-note = "用户确认：不做后台（WorkManager），只在应用运行时按间隔上传；启动和回前台补跑；只上传不自动恢复；成功后弹应用内通知，失败每次运行首次弹一次；设置默认关、24 小时、全部设置、purelive 目录、保留 7 份、不含账号；设置随备份同步（D-057）。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+next = "继续J04.2和A12.7的真实服务器与跨端验证，结果齐备后再标完成。"
+note = "D-058方案已实现并随5.4.15发布：默认关闭、24小时、purelive目录、保留7份、不含账号，只在前台检查且不自动恢复；服务与设置55项及完整门禁通过，最终Windows默认值已实测；J04.2/A12.7仍保留真实服务器和其他端验收。"
 
 [[task]]
 id = "V02.1"
@@ -5814,13 +5818,14 @@ note = "5.4.14 同源十包、完整 all/14、十一项远端哈希和匿名下�
 id = "V02.41"
 title = "电视首页菜单首项焦点框上沿裁切"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/46"
-note = "构建期间新增。已查看原 Sony Android9 截图，确认上沿缺失；源码中菜单列表竖向裁剪与放大外描边相邻，根因回归和修复未完成，不归入 5.4.14 已修复。"
 to = ["A17.16"]
-branch = "ai/A17.16"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "#46绘制裁切修复发布，像素回归与K90电视模式首末项已验证并回复关闭。"
 
 [[task]]
 id = "V02.42"
@@ -5836,35 +5841,38 @@ note = "原 Win10/GTX760/475.14 整窗白屏包含标题按钮，但按钮仍可
 id = "V02.43"
 title = "IPTV节目单首次刷新与RTP导入反馈"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
-note = "#48 原 Win11 26H2／5.4.13 报告首次节目单不显示、进出全屏后恢复及 RTP 导入失败。离线同格式 HTTP 对照各解析一条，RTP 的 TXT／M3U 均为零，导入拒绝已复现；节目单迟到元数据刷新仍为源码假设。未验证原生组播播放，两项均未包含在 5.4.14 修复中，保留开放。"
 to = ["A13.6", "G02.6"]
-branch = "ai/A17.16"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "#48节目单刷新与RTP协议识别已修复发布并回复关闭；Windows首次节目单与Linux回环收流通过，原运营商组播网络仍有现场边界。"
 
 [[task]]
 id = "A17.16"
 title = "接 A17.2：菜单边缘焦点完整绘制"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/46"
-branch = "ai/A17.16"
-note = "已登记，按任务书先复现和验证。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "电视菜单首末项与放大开关像素回归及K90电视模式焦点已验证，5.4.15发布；原Sony仍欢迎复测，不外推所有电视。"
 
 [[task]]
 id = "A13.6"
 title = "接 A13.1：节目单首次刷新与RTP导入"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
-branch = "ai/A17.16"
-note = "已登记，按任务书先复现和验证。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "节目单与RTP导入回归、Windows首次节目单、Linux本地HTTP/RTP实际接收通过，5.4.15已发布；原运营商组播网络和其他端场景仍待现场验证。"
 
 [[task]]
 id = "V02.44"
@@ -5881,34 +5889,37 @@ note = "同网络手机与Windows正常、Sony Android9无音视频，尚缺媒�
 id = "Y01.26"
 title = "5.4.15全平台发布（构建号5119）：电视菜单与IPTV"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/46"
-branch = "ai/A17.16"
-note = "已登记，按任务书先复现和验证。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "5.4.15同源十包、全量门禁、11项远端哈希和匿名下载、各端启动已核对；两更新JSON完成精确候选校验，旧库仅本次六项历史失败两文件例外已授权D-059；最终同步及通道回执见PR。"
 
 [[task]]
 id = "A07.28"
 title = "接A07.27：iPhone手势阶段诊断"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/41#issuecomment-6389166537"
-branch = "ai/A17.16"
-note = "原iPhone在5.4.14无提示，iPad和Android正常；完整播放界面受控识别和模拟原生通道通过，尚未复现原设备故障。补充固定阶段、无坐标无数值无账号的iOS手势日志，不声明故障已修复。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "固定阶段iOS手势诊断及完整房间模拟原生通道回归已交付，#41原iPhone无提示继续开放，不记为原机修复。"
 
 [[task]]
 id = "Z02.7"
 title = "静默Socket重连回归按完成条件等待"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "5.4.15完整门禁：packages/live_net/test/socket_test.dart首项固定55ms等待失败"
-branch = "ai/A17.16"
-note = "受控80ms事件循环阻塞复现旧断言仅1次连接，等到真实重连则2次且旧连接已关；生产socket源码与基线字节一致。仅修测试等待条件与失败清理，使用至少1s的被测定时参数，不改网络重试策略。失败门禁完整保留后再跑all/14。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "固定55ms等待导致Socket误判，经受控阻塞复现后改为条件等待及清理；另两项保活测试按1.1秒阻塞复现后改为虚拟计时，覆盖24秒保活和失活边界，最终all/14通过；生产网络及弹幕源码未改。"
 
 [[task]]
 id = "G02.6"
@@ -5918,39 +5929,45 @@ status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
-note = "Android 精确内核缺少 RTP/SDP 解复用器，否决第二候选；保留原 URI 按 open 选择 mpegts，其他协议清空。最终普通应用原生链路、all/14及十包待完成。"
 date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "最终RTP保持原URI并显式选择MPEG-TS，其他协议每次清空覆盖；12项输入协调回归及K90、Linux实际变化画面通过。前三轮否决与第四轮扩充前候选全部保留，由最终提交重建十包；原运营商及Apple真机仍有边界。"
 
 [[task]]
 id = "G02.7"
 title = "RTP 首帧解码诊断等待：接 G02.6 原生时序"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "5.4.15 第三私有候选 K90 精确普通包原生日志与错误遮罩"
-branch = "ai/A17.16"
-note = "首帧前1.2秒诊断窗口过早耗尽两次解码恢复；仅RTP引入5秒有界等待，致命/运行期及其他协议不变。多次原生预检、最终all/14与十包尚待完成。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "第三候选首帧前解码误报已按精确普通包和离线时序复现；仅RTP首次输出前5秒有界等待，运行期和致命错误不变。六项回归及多次正常包原生图像/日志验证通过，运营商与其他设备仍有边界。"
 
 [[task]]
 id = "A17.17"
 title = "电视代理禁用输入焦点"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/52"
-note = "关闭代理时禁用编辑区排除遥控器焦点，保持开关和启用后的地址、端口编辑。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "禁用代理编辑区排除方向焦点；旧源码两项失败，修正后17项设置回归及完整all/14通过，最终Windows电视模式真实方向键验证，5.4.15发布；原Sony另留复测边界。"
 
 [[task]]
 id = "V02.45"
 title = "电视代理页向下焦点反馈"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/52"
-note = "Windows隔离正式候选电视模式复现首次Down落到禁用地址框、白框消失；原Sony Android9尚未操作，修正转A17.17。"
+date = "2026-10-25"
+commit = "7974b0338dcb408949c73d7920d0c3a3934f6114"
+note = "#52共享代理焦点修复已随5.4.15发布并回复关闭，原Sony遥控器未直接操作；最终Windows正式包电视模式方向键及原代码失败回归分别记录。"
 
 [[task]]
 id = "V02.46"

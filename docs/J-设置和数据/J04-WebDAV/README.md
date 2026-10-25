@@ -97,20 +97,12 @@ WebDavClient(LiveHttp, WebDavConfig)（web_dav_client.dart:76）
 属于 [J 设置和数据](../README.md)。
 
 - 代码：`features/web_dav/`
-- 进度：`█████████████████░░░` 84%
+- 进度：`███████████████████░` 95%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
 | J04.1 | WebDAV Digest 认证 | 功能 | 完成 | 2026-10-02 | c168fdb99 | [设计或说明](J04.1-WebDAVDigest认证/README.md)、[记录](J04.1-WebDAVDigest认证/record.md) |
-| J04.2 | 运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9） | 功能 | 开发中 | 2026-10-24 | — | [设计或说明](J04.2-应用运行时的定时WebDAV备份/README.md)、[任务书](J04.2-应用运行时的定时WebDAV备份/brief.md)、[记录](J04.2-应用运行时的定时WebDAV备份/record.md)、[合并审查](J04.2-应用运行时的定时WebDAV备份/review.md) |
-
-## 还没完成的
-
-- **J04.2 运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9）**（开发中，第二档，规模 中）
-  - 阶段：✓ 设置和自动命名 → ✓ 目录创建和上传 → ✓ 调度和通知 → 测试和真机
-  - 接着做：跑定向测试、i18n 和门禁；K90/Windows 上验证目录创建、成功通知和保留清理
-  - 说明：代码已写：WebDavClient.ensureFolder、WebDavAutoBackupService、WebDavAutoBackupScheduler、AppStartup 主窗口启动；尚未运行 Flutter 测试和门禁。
-  - 来源：V01.9（D-057）
+| J04.2 | 运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9） | 功能 | 待真机 | 2026-10-25 | 7974b0338dcb408949c73d7920d0c3a3934f6114 | [设计或说明](J04.2-应用运行时的定时WebDAV备份/README.md)、[任务书](J04.2-应用运行时的定时WebDAV备份/brief.md)、[记录](J04.2-应用运行时的定时WebDAV备份/record.md)、[真机验证](J04.2-应用运行时的定时WebDAV备份/verify.md)、[合并审查](J04.2-应用运行时的定时WebDAV备份/review.md) |
 
 <!-- docs:生成结束 -->

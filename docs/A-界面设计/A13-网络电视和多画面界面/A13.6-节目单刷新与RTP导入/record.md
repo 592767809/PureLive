@@ -38,3 +38,10 @@ media_kit仅为这个内部RTP语法增加早返回，在Android content URI解�
 ## 第三候选接续
 
 第二候选 Linux RTP 通过，但 Android 原生检测发现缺少 rtp/sdp 解复用器，已否决且保留全部十包。之前 opaque RTP 方案及其通过记录仅代表该候选和对应环境，不是最终方案。最终保持 RTP URL，按每次 open 选择 MPEG-TS 并对其他协议清空覆盖；已撤回 media_kit 的 RTP 修改。正常 K90 应用依次 RTP→HTTP MP4→RTP 验证、最终完整门禁与全部十包必须重新执行。详见 G02.6。本轮同时审查合入 PR #51，修正混合备份保留顺序、目录边界及隐藏窗口调度，默认仍关闭且不含账号；未验证的 Apple/电视场景保持待真机。
+
+
+## 5.4.15 发布交付
+
+节目单与RTP导入回归、Windows首次节目单、Linux本地HTTP/RTP实际接收通过，5.4.15已发布；原运营商组播网络和其他端场景仍待现场验证。
+
+已发布 [5.4.15](https://github.com/wzgrx/PureLive/releases/tag/v5.4.15)，PR #50 已合并。详见[完整验证、范围限制和本次旧库例外记录](../../../Y-发布和运营/Y01-版本签名和发布/Y01.26-5.4.15全平台发布/verify.md)。

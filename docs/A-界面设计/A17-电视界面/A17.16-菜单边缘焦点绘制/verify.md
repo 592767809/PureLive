@@ -23,3 +23,10 @@ iPhone #41在5.4.14仍无提示，完整播放界面横屏安全区内左右滑�
 
 
 [改前](verify/before-first-menu-ring.png)；[首项放大](verify/tv-first-menu-ring-true.png)；[首项不放大](verify/tv-first-menu-ring-false.png)；[末项放大](verify/tv-last-menu-ring-true.png)；[末项不放大](verify/tv-last-menu-ring-false.png)。
+
+
+## 5.4.15 发布交付
+
+电视菜单首末项与放大开关像素回归及K90电视模式焦点已验证，5.4.15发布；原Sony仍欢迎复测，不外推所有电视。
+
+已发布 [5.4.15](https://github.com/wzgrx/PureLive/releases/tag/v5.4.15)，PR #50 已合并。详见[完整验证、范围限制和本次旧库例外记录](../../../Y-发布和运营/Y01-版本签名和发布/Y01.26-5.4.15全平台发布/verify.md)。
