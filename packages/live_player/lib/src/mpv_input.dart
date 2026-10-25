@@ -1,7 +1,13 @@
-/// The input passed to libmpv for a prepared media source.
+/// Opens MPEG-TS over RTP with the demuxer present in every bundled kernel.
 ///
-/// The bundled mpv otherwise probes RTP datagrams as a byte stream, leaving
-/// their packet headers in the TS payload. Its opaque avdevice input opens
-/// FFmpeg's RTP demuxer directly, preserving packet boundaries and jitter
-/// handling (G02.6). Other protocols retain their ordinary source URI.
-String mpvMediaInput(Uri source) => source.isScheme('rtp') ? 'av://rtp:$source' : source.toString();
+/// Android's FFmpeg has no RTP/SDP demuxer. Keep the ordinary RTP protocol
+/// input and select MPEG-TS explicitly rather than probing packet headers.
+/// Clear the per-player override before other sources reuse the engine.
+Future<void> openMpvMediaInput(
+  Uri source, {
+  required Future<void> Function(String name, String value) configure,
+  required Future<void> Function(String input) open,
+}) async {
+  await configure('demuxer-lavf-format', source.isScheme('rtp') ? 'mpegts' : '');
+  await open(source.toString());
+}

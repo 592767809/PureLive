@@ -25,3 +25,21 @@ media_kit仅为这个内部RTP语法增加早返回，在Android content URI解�
 接入逐文件路径后，使用原单播RTP地址和同一生成的视频，实际计数345→391、时间23.000→26.067秒，画面持续变化，首屏节目单出现。启动时出现一次video_decoder_runtime自动恢复，随后result=playing，后续画面持续变化且无新增恢复；未将这次容器测试写成零恢复、硬件解码或听感验收。该预检为profile、静音、回环网络，不是正式包或运营商现场验收。完整源指纹与截图哈希在独立回执中保留。
 
 预检后仅补Android专用finalizer的fd前缀判断，避免对内部opaque RTP地址做Uri解析并打印格式异常；Linux的RTP输入、逐文件加载实现未改。此Android分支将在最终同源K90包中检查；最终提交仍需完整all/14及十包、正式Linux原生重验。未把profile源指纹替换成最终源指纹，两者及这一行Android差异分别记录。
+
+
+## 第二候选否决及第三候选
+
+
+## 当前方案及根因
+
+首轮候选的普通 RTP 输入自动探测未识别 MPEG-TS。第二候选 opaque av 入口在 Linux 实际播放通过，但同源 K90 测试失败；精确 Android libmpv 的诊断确认 FFmpeg 没有 rtp 和 sdp 解复用器，均返回 Unknown lavf format。强制 mpegts 后识别 H.264 和视频尺寸，说明 Linux 的成功不能替代 Android 验收。两轮全部包、失败及诊断回执独立保留，均未公开发布。
+
+最终方法保持原始 RTP URL、协议、端点及参数，只在每次 open 前按协议设置 demuxer-lavf-format：RTP 为 mpegts，其他来源明确清空。配置完成后才打开媒体，失败不打开；复用播放器切到 MP4/HLS/RTSP 时不遗留容器状态。EngineMedia、录制地址、HTTP headers 与 start 参数不改。范围是 MPEG-TS over RTP，不宣称支持任意动态 RTP 编码或完整 RTP 解复用器能力。
+
+第二候选对 third_party/media_kit 的所有 RTP 专用修改已恢复到首轮版本；不再使用 opaque 语法，不需要放宽播放列表或内容 URI 规则。只改 packages/live_player 的 mpv_input.dart、mpv_engine.dart 和对应测试，以及本任务与发布文档。原生内核不换包，不把 RTP 改成 UDP。
+
+## 验证与发布条件
+
+12 项输入协调回归覆盖单播、组播、IPv6、参数保留、RTP→其他容器清空、异步配置顺序和失败阻断。K90 必须用正常 v4dev profile 应用依次验证 RTP、HTTP MP4、RTP 的变化画面；诊断工具识别到尺寸不算通过。随后冻结源码跑完整 all/14，重新构建全部十包，核对 Android/桌面真实正式候选、Apple 检查和远端 11 项哈希。两轮旧包不混入最终清单。
+
+生成媒体、私网发送和回环接收只证明所测链路；不代表运营商组播网络、音质或 Apple 真机播放。只有最终同源原生证据齐备才公开 5.4.15。

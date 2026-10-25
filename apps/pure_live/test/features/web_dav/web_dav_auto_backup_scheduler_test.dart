@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
@@ -78,7 +79,7 @@ Future<void> _enable(LiveStore store, {bool enabled = true}) => store.settings.s
 });
 
 ({WebDavAutoBackupScheduler scheduler, WebDavAutoBackupService service, _SchedulerDav dav, List<String> toasts})
-_scheduler(LiveStore store, {_SchedulerDav? dav, DateTime Function()? now}) {
+_scheduler(LiveStore store, {_SchedulerDav? dav, DateTime Function()? now, bool observeLifecycle = false}) {
   final server = dav ?? _SchedulerDav();
   final service = WebDavAutoBackupService(
     store,
@@ -93,7 +94,7 @@ _scheduler(LiveStore store, {_SchedulerDav? dav, DateTime Function()? now}) {
     toast: toasts.add,
     checkInterval: const Duration(seconds: 1),
     timer: (_, _) => _FakeTimer(),
-    observeLifecycle: false,
+    observeLifecycle: observeLifecycle,
   );
   addTearDown(scheduler.dispose);
   return (scheduler: scheduler, service: service, dav: server, toasts: toasts);
@@ -151,6 +152,56 @@ void main() {
     await setup.scheduler.checkNow();
     expect(setup.scheduler.timerActive, isTrue);
     expect(setup.dav.putCount, 2);
+    setup.scheduler.dispose();
+  });
+
+  test('a hidden desktop window pauses checks and catches up when visible', () async {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized()
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    addTearDown(() {
+      binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+    final store = await _store();
+    addTearDown(store.close);
+    await _enable(store);
+    final setup = _scheduler(store, observeLifecycle: true);
+    setup.scheduler.start();
+    await setup.scheduler.checkNow();
+    expect(setup.dav.putCount, 1);
+    await store.meta.set(WebDavAutoBackupService.lastSuccessKey, DateTime.utc(2026, 10, 23).toIso8601String());
+    binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    expect(setup.scheduler.timerActive, isFalse);
+    await setup.scheduler.checkNow();
+    expect(setup.dav.putCount, 1);
+    binding
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await setup.scheduler.checkNow();
+    expect(setup.dav.putCount, 2);
+    setup.scheduler.dispose();
+  });
+
+  test('starting with a hidden window leaves checks paused', () async {
+    final binding = TestWidgetsFlutterBinding.ensureInitialized()
+      ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+      ..handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    addTearDown(() {
+      binding
+        ..handleAppLifecycleStateChanged(AppLifecycleState.inactive)
+        ..handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    });
+    final store = await _store();
+    addTearDown(store.close);
+    await _enable(store);
+    final setup = _scheduler(store, observeLifecycle: true);
+    setup.scheduler.start();
+    await setup.scheduler.checkNow();
+    expect(setup.scheduler.timerActive, isFalse);
+    expect(setup.dav.putCount, 0);
     setup.scheduler.dispose();
   });
 

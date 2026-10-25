@@ -198,7 +198,11 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
       await _setExternalAudio(media.audio);
-      await player.open(Media(mpvMediaInput(media.uri), httpHeaders: media.headers, start: media.start));
+      await openMpvMediaInput(
+        media.uri,
+        configure: _setProperty,
+        open: (input) => player.open(Media(input, httpHeaders: media.headers, start: media.start)),
+      );
     } on Object catch (error, stack) {
       if (error is PlayerException) rethrow;
       final classification = NativeDiagnostic.classify(error.toString());

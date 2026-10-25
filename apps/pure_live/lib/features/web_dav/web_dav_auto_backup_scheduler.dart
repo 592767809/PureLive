@@ -67,12 +67,14 @@ final class WebDavAutoBackupScheduler {
     });
     if (observeLifecycle) {
       _paused = switch (WidgetsBinding.instance.lifecycleState) {
-        AppLifecycleState.paused || AppLifecycleState.detached => true,
+        AppLifecycleState.paused || AppLifecycleState.detached || AppLifecycleState.hidden => true,
         _ => false,
       };
       _lifecycle = AppLifecycleListener(
         onStateChange: (state) {
-          if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+          if (state == AppLifecycleState.paused ||
+              state == AppLifecycleState.detached ||
+              state == AppLifecycleState.hidden) {
             pause();
           } else if (state == AppLifecycleState.resumed) {
             resume();

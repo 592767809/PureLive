@@ -186,10 +186,18 @@ final class WebDavAutoBackupService {
   Future<void> _prune(WebDavClient client, List<String> folder, int keep) async {
     try {
       final entries = await client.list(folder);
-      final files = [
-        for (final entry in entries)
-          if (!entry.isDir && isAutoBackupFile(entry.name)) entry,
-      ]..sort((a, b) => b.name.compareTo(a.name));
+      final files =
+          [
+            for (final entry in entries)
+              if (!entry.isDir &&
+                  entry.path.length == folder.length + 1 &&
+                  List.generate(folder.length, (index) => entry.path[index] == folder[index]).every((same) => same) &&
+                  isAutoBackupFile(entry.name))
+                entry,
+          ]..sort((a, b) {
+            final time = autoBackupTimeKey(b.name)!.compareTo(autoBackupTimeKey(a.name)!);
+            return time == 0 ? b.name.compareTo(a.name) : time;
+          });
       for (final entry in files.skip(keep)) {
         try {
           await client.remove(entry.path);

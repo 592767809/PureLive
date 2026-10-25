@@ -5912,10 +5912,10 @@ note = "受控80ms事件循环阻塞复现旧断言仅1次连接，等到真实�
 
 [[task]]
 id = "G02.6"
-title = "RTP输入直接交给包解复用器"
+title = "RTP MPEG-TS 原生兼容：接两轮否决候选"
 type = "功能"
 status = "开发中"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/48"
-note = "5.4.15首轮候选导入成功，但本地RTP原生接收失败；相同数据FFprobe识别，精确libmpv探测携带RTP头的字节流，av RTP入口可识别视频。只对RTP映射内部输入，其他协议不变，保留原地址与参数；需原生预检和完整重建。"
+note = "Android 精确内核缺少 RTP/SDP 解复用器，否决第二候选；保留原 URI 按 open 选择 mpegts，其他协议清空。最终普通应用原生链路、all/14及十包待完成。"

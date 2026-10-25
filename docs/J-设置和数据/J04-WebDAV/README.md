@@ -103,7 +103,7 @@ WebDavClient(LiveHttp, WebDavConfig)（web_dav_client.dart:76）
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
 | J04.1 | WebDAV Digest 认证 | 功能 | 完成 | 2026-10-02 | c168fdb99 | [设计或说明](J04.1-WebDAVDigest认证/README.md)、[记录](J04.1-WebDAVDigest认证/record.md) |
-| J04.2 | 运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9） | 功能 | 开发中 | 2026-10-24 | — | [设计或说明](J04.2-应用运行时的定时WebDAV备份/README.md)、[任务书](J04.2-应用运行时的定时WebDAV备份/brief.md)、[记录](J04.2-应用运行时的定时WebDAV备份/record.md) |
+| J04.2 | 运行时的定时 WebDAV 备份：启动补传、间隔上传、自动命名和保留份数（接 V01.9） | 功能 | 开发中 | 2026-10-24 | — | [设计或说明](J04.2-应用运行时的定时WebDAV备份/README.md)、[任务书](J04.2-应用运行时的定时WebDAV备份/brief.md)、[记录](J04.2-应用运行时的定时WebDAV备份/record.md)、[合并审查](J04.2-应用运行时的定时WebDAV备份/review.md) |
 
 ## 还没完成的
 

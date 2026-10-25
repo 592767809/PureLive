@@ -23,12 +23,15 @@ String autoBackupFileName(BackupScope scope, DateTime now) {
 /// Matches the files [autoBackupFileName] writes; manual `purelive_<date>`
 /// files and renamed files do not match.
 final RegExp _autoBackupName = RegExp(
-  r'^purelive(?:_favorites)?_auto_\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2}\.txt$',
+  r'^purelive(?:_favorites)?_auto_(\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2})\.txt$',
   caseSensitive: false,
 );
 
 /// Whether [name] is a scheduled WebDAV backup.
-bool isAutoBackupFile(String name) => _autoBackupName.hasMatch(name);
+bool isAutoBackupFile(String name) => autoBackupTimeKey(name) != null;
+
+/// A sortable timestamp independent of the full/follows filename prefix.
+String? autoBackupTimeKey(String name) => _autoBackupName.firstMatch(name)?.group(1);
 
 /// A file named [name] in [folder] that does not exist yet: `_2`, `_3` … are
 /// added before the extension (3.x overwrote a backup made in the same

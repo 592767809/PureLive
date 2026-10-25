@@ -21,6 +21,7 @@ final class _AutoDav implements LiveHttp {
   final Set<String> dirs = {''};
   final List<String> requests = [];
   int failPutStatus = 0;
+  bool includeOtherDepths = false;
 
   @override
   Future<LiveResponse> send(LiveRequest request) async {
@@ -56,7 +57,9 @@ final class _AutoDav implements LiveHttp {
               '<D:resourcetype><D:collection/></D:resourcetype></D:prop></D:propstat></D:response>',
             );
           }
-          for (final MapEntry(key: path, value: bytes) in files.entries.where((entry) => child(entry.key))) {
+          for (final MapEntry(key: path, value: bytes) in files.entries.where(
+            (entry) => includeOtherDepths || child(entry.key),
+          )) {
             responses.write(
               '<D:response><D:href>${href(path, dir: false)}</D:href><D:propstat><D:prop>'
               '<D:resourcetype/><D:getcontentlength>${bytes.length}</D:getcontentlength>'
@@ -263,6 +266,59 @@ void main() {
     expect(names, contains('purelive_auto_2026-10-02T10_00_00.txt'));
     expect(names, contains('purelive_auto_2026-10-03T10_00_00.txt'));
     expect(names, contains('purelive_2026-10-04T10_00_00.txt'));
+  });
+
+  test('mixed scopes retain by timestamp, including the new full backup', () async {
+    final dav = _AutoDav();
+    dav.dirs.add('purelive');
+    dav.files['purelive/purelive_favorites_auto_2026-10-01T10_00_00.txt'] = utf8.encode('{}');
+    dav.files['purelive/purelive_auto_2026-10-23T10_00_00.txt'] = utf8.encode('{}');
+    final store = await _store();
+    addTearDown(store.close);
+    await _enable(store, keep: 2);
+    final service = WebDavAutoBackupService(
+      store,
+      dav,
+      BackupService(store),
+      now: () => DateTime.utc(2026, 10, 24, 12),
+    );
+    final result = await service.runIfDue();
+    expect(result.fileName, 'purelive_auto_2026-10-24T12_00_00.txt');
+    expect(
+      dav.files.keys,
+      unorderedEquals([
+        'purelive/purelive_auto_2026-10-23T10_00_00.txt',
+        'purelive/purelive_auto_2026-10-24T12_00_00.txt',
+      ]),
+    );
+  });
+
+  test('retention ignores sibling and nested files in a malformed depth-one listing', () async {
+    final dav = _AutoDav()..includeOtherDepths = true;
+    dav.dirs.add('purelive');
+    final protected = [
+      'sibling/purelive_auto_2026-10-01T10_00_00.txt',
+      'purelive/nested/purelive_auto_2026-10-02T10_00_00.txt',
+      'purelive/purelive_2026-10-03T10_00_00.txt',
+    ];
+    for (final path in protected) {
+      dav.files[path] = utf8.encode('{}');
+    }
+    dav.files['purelive/purelive_auto_2026-10-04T10_00_00.txt'] = utf8.encode('{}');
+    final store = await _store();
+    addTearDown(store.close);
+    await _enable(store, keep: 1);
+    final service = WebDavAutoBackupService(
+      store,
+      dav,
+      BackupService(store),
+      now: () => DateTime.utc(2026, 10, 24, 12),
+    );
+    await service.runIfDue();
+    expect(dav.files.keys, containsAll(protected));
+    expect(dav.requests.where((request) => request.startsWith('DELETE ')), [
+      'DELETE purelive/purelive_auto_2026-10-04T10_00_00.txt',
+    ]);
   });
 
   test('follows only and accounts are what the settings say', () async {
