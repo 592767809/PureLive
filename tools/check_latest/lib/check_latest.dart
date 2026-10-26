@@ -258,6 +258,13 @@ Future<List<Finding>> collect({
     });
   }
   final androidRepository = http.get('https://dl.google.com/android/repository/repository2-3.xml');
+  if (env['CLANG_VERSION'] case final pinned?) {
+    await check('toolchain', 'Clang (official Linux release)', pinned, () async {
+      final data =
+          (await http.json('https://api.github.com/repos/llvm/llvm-project/releases/latest'))! as Map<String, Object?>;
+      return (data['tag_name']! as String).replaceFirst('llvmorg-', '');
+    });
+  }
   if (env['WINDOW_MANAGER_UPSTREAM_VERSION'] case final pinned?) {
     await check('fork', 'window_manager (published base)', pinned, () async {
       final data = (await http.json('https://pub.dev/api/packages/window_manager'))! as Map<String, Object?>;

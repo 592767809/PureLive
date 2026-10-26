@@ -31,3 +31,11 @@
 cmdline-tools 23.0 实际安装在 SDK 的 latest 子目录，已纠正项目 PATH。它的 sdkmanager 兼容脚本转发到独立 Android CLI，后者另有版本更新；按官方更新命令升级到 1.1.16717390，在项目 XDG 安装中核对实际版本，保留原 SDK launcher。原 launcher 文件哈希没有变化，真实版本是其加载的嵌入安装，不能以外层文件哈希猜版本。检查器补入官方 Android CLI release notes。Flutter doctor 的旧 license 探测仍与新 CLI 不兼容；实际 Gradle 构建通过，不把 doctor 的 unknown 冒充已通过。
 
 Apple 工作流增加官方 setup-python v7.1.0 固定提交，并从 toolchain.env 选择 Python 3.15.2；helper 核对实际 Python。Xcode 27.1/CocoaPods 1.17.0/Python 3.15.2 的云端构建仍待最终完整门禁后运行。
+
+## 正式编译器与最终工具清单
+
+发现系统的 Clang 23.1.5 是开发快照（++20261020），并非官方正式发布。已另装 LLVM 官方最新正式版23.1.4，核对GitHub发布档案SHA-256，实际C++编译和运行通过；系统原快照保留，项目CC/CXX和PATH指定独立正式版。最终Linux包将清理构建缓存的影响（保留旧构建目录）并核对CMake选中的编译器。Apple/Windows仍分别使用固定Xcode/Visual Studio的编译器，不混用LinuxClang。
+
+检查器补入Clang与vendored window_manager的官方发布基线，最终75项全部当前、查询失败0。官方Actions版本核对：checkout7.0.1、upload-artifact7.0.2、setup-python7.1.0、flutter-action2.23.0。原生播放器预构建也重新查询供应方：Darwin0.6.8、Windows202609151348、Android1.3.1、Linux20260810均仍是其最新发布；本项目Android/Linux x64使用自建mpv0.41.0/FFmpeg9.0.2。供应方Windows为FFmpeg master、Apple版本未声明，不能把所有平台运行库都写成相同FFmpeg版本。
+
+45210494b的完整门禁只有应用翻译集合检查失败：新增三个文案已在中英添加，但其余13种语言尚缺。全部修复行为测试及其他13成员通过，早前正则耗时偶发失败本轮未重现。现已补齐15种语言，i18n完整专项通过；不放宽或跳过检查，继续对新固定提交跑完整all/14。

@@ -6,9 +6,9 @@
 
 Flutter 3.47.8 / Dart 3.13.7；Gradle 9.8.2、AGP 9.4.1、Kotlin 2.4.21；Temurin 27.0.1.0.2+1。Android compile SDK 37.2、build-tools 37.0.0、NDK 30.0.16248370、platform-tools 37.0.1、cmdline-tools 23.0、SDK CMake 4.1.2 保持官方当前稳定版本。mpv 0.41.0、FFmpeg 9.0.2 和自维护播放器上游提交未改变。
 
-桌面登记独立 CMake 4.4.4、Ninja 1.13.2、Visual Studio 18.11.2、Inno Setup 7.1.0；Flutter Windows 实际使用最新 Visual Studio 自带的 CMake 4.3.1-msvc1，而非 PATH 上的独立 CMake。项目脚本使用独立 Python 3.15.2。Apple 工作流选择 `xcode-27` 镜像中固定的正式 Xcode 27.1、CocoaPods 1.17.0，拒绝自动选中较新的 RC。Apple 原生构建仍待本次源码完整门禁后执行。
+Linux 使用官方正式 Clang 23.1.4；桌面登记独立 CMake 4.4.4、Ninja 1.13.2、Visual Studio 18.11.2、Inno Setup 7.1.0；Flutter Windows 实际使用最新 Visual Studio 自带的 CMake 4.3.1-msvc1，而非 PATH 上的独立 CMake。项目脚本使用独立 Python 3.15.2。Apple 工作流选择 `xcode-27` 镜像中固定的正式 Xcode 27.1、CocoaPods 1.17.0，拒绝自动选中较新的 RC。Apple 原生构建仍待本次源码完整门禁后执行。
 
-官方检查器共 72 项，落后 0、查询失败 0；查询失败现在退出非零，Android 稳定包按 channelRef 与 preview 判定。直接依赖升级 10 项，锁文件调整 48 项；5 个传递依赖受 SDK/依赖自身约束保留，没有用无依据的覆盖强行提高版本。
+官方检查器共 75 项，落后 0、查询失败 0；查询失败现在退出非零，Android 稳定包按 channelRef 与 preview 判定。直接依赖升级 10 项，锁文件调整 48 项；5 个传递依赖受 SDK/依赖自身约束保留，没有用无依据的覆盖强行提高版本。
 
 ## 关键兼容约束
 
