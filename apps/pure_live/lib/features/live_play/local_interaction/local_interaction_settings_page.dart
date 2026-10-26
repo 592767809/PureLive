@@ -476,6 +476,26 @@ class _Tile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final value = this.value;
     final tap = value != null && onChanged != null ? () => onChanged!(!value) : onTap;
+    if (SettingsRowStyle.tvOf(context)) {
+      // A TV row is one focus target with the shared visible frame. The
+      // phone's custom tile has a separately focusable switch and allows
+      // informational rows into traversal, neither of which fits a remote.
+      final key = ValueKey('local-settings-$id');
+      if (value != null) {
+        return SettingsSwitchRow(
+          key: key,
+          title: title,
+          subtitle: subtitle,
+          icon: icon,
+          value: value,
+          onChanged: onChanged,
+        );
+      }
+      if (onTap != null) {
+        return SettingsLinkRow(key: key, title: title, subtitle: subtitle, icon: icon, value: trailing, onTap: onTap);
+      }
+      return SettingsRow(key: key, title: title, subtitle: subtitle, icon: icon);
+    }
     return MergeSemantics(
       child: InkWell(
         key: ValueKey('local-settings-$id'),

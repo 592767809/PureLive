@@ -354,6 +354,23 @@ void main() {
         isNull,
         reason: 'initial focus belongs to the content',
       );
+      if (path == RoutePath.kLocalInteraction) {
+        final row = find.byKey(const ValueKey('local-settings-enabled'));
+        final frame = find.descendant(
+          of: row,
+          matching: find.byWidgetPredicate(
+            (widget) => widget is DecoratedBox && widget.position == DecorationPosition.foreground,
+          ),
+        );
+        expect(frame, findsOneWidget, reason: 'the enabled row needs the same visible TV frame as other settings');
+        final decoration = tester.widget<DecoratedBox>(frame).decoration as BoxDecoration;
+        expect(decoration.border, Border.all(color: LiveTvColors.focusFrame, width: 3));
+        expect(
+          first.context!.findAncestorWidgetOfExactType<Switch>(),
+          isNull,
+          reason: 'the row, not its visual switch, owns directional focus',
+        );
+      }
       await _press(tester, LogicalKeyboardKey.arrowUp);
       final afterUp = FocusManager.instance.primaryFocus!;
       if (afterUp != first) {
@@ -366,6 +383,14 @@ void main() {
       for (var step = 0; step < 12; step++) {
         await _press(tester, LogicalKeyboardKey.arrowDown);
         final focused = FocusManager.instance.primaryFocus!;
+        if (path == RoutePath.kLocalInteraction) {
+          var informational = false;
+          focused.context!.visitAncestorElements((element) {
+            informational |= element.widget.key == const ValueKey('local-settings-status');
+            return !informational;
+          });
+          expect(informational, isFalse, reason: 'the non-actionable status row is skipped');
+        }
         final page = tester.getRect(root);
         expect(focused.rect.top, greaterThanOrEqualTo(page.top - 1));
         expect(focused.rect.bottom, lessThanOrEqualTo(page.bottom + 1), reason: 'directional focus remains in view');
