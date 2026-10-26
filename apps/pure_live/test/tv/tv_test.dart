@@ -146,7 +146,11 @@ Future<AppServices> _pumpApp(
     final settings = base.store.settings;
     await settings.set(Settings.showSplashPage, false);
     await settings.set(Settings.enableAutoCheckUpdate, false);
-    await settings.set(Settings.hotAreasList, [SiteIds.bilibili, for (final site in extraSites) site.id]);
+    await settings.set(Settings.hotAreasList, [
+      SiteIds.bilibili,
+      if (iptvEnabled) SiteIds.iptv,
+      for (final site in extraSites) site.id,
+    ]);
     await settings.set(Settings.uiMode, mode);
     await settings.set(Settings.language, '简体中文');
     if (noticeAccepted) await base.store.meta.set(TvHomePage.noticeKey, '1');

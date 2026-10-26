@@ -9,6 +9,53 @@ import 'package:pure_live/tv/widgets/tv_button.dart';
 import '../support.dart';
 
 void main() {
+  testWidgets('settings replace a focused loading row with their real first row', (tester) async {
+    await tester.runAsync(loadStrings);
+    final ready = ValueNotifier(0);
+    final temporary = FocusNode(debugLabel: 'temporary settings row');
+    final first = FocusNode(debugLabel: 'loaded first row');
+    final second = FocusNode(debugLabel: 'loaded second row');
+    addTearDown(ready.dispose);
+    addTearDown(temporary.dispose);
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TvSettingsScaffold(
+          title: 'Settings',
+          child: ValueListenableBuilder<int>(
+            valueListenable: ready,
+            builder: (context, loaded, _) => loaded > 0
+                ? Column(
+                    key: const ValueKey('loaded'),
+                    children: [
+                      TextButton(focusNode: first, onPressed: () {}, child: const Text('First row')),
+                      TextButton(focusNode: second, onPressed: () {}, child: const Text('Second row')),
+                    ],
+                  )
+                : TextButton(
+                    key: const ValueKey('loading'),
+                    focusNode: temporary,
+                    onPressed: () {},
+                    child: const Text('Temporary row while loading'),
+                  ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(temporary.hasFocus, isTrue);
+    ready.value = 1;
+    await tester.pumpAndSettle();
+    expect(first.hasFocus, isTrue, reason: 'removing the loading target must not leave the scope without a row');
+    second.requestFocus();
+    await tester.pumpAndSettle();
+    ready.value = 2;
+    await tester.pumpAndSettle();
+    expect(second.hasFocus, isTrue, reason: 'ordinary rebuilds must keep the selected row');
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('settings loaded under a dialog receive their initial focus when it closes', (tester) async {
     await tester.runAsync(loadStrings);
     final navigator = GlobalKey<NavigatorState>();

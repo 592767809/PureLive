@@ -86,8 +86,21 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
   }
 
   void _followFocus() {
+    final primary = FocusManager.instance.primaryFocus;
+    if (_currentRoute &&
+        _focusedInitially &&
+        primary is FocusScopeNode &&
+        (_body.hasFocus || _body.ancestors.contains(primary))) {
+      // Loading can replace a previously focused row (IPTV inserts its
+      // overview above the settings). A scope is not a usable target.
+      // Recover only after that target disappeared, never from another
+      // control, a header action, or a dialog covering this route.
+      _focusedInitially = false;
+      _focusFirst();
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
     if (!_body.hasFocus) return;
-    final target = FocusManager.instance.primaryFocus?.context;
+    final target = primary?.context;
     if (target == null || Scrollable.maybeOf(target) == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && target.mounted) {
