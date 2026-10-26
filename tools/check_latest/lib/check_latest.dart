@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:pub_semver/pub_semver.dart';
+import 'package:xml/xml.dart';
 import 'package:yaml/yaml.dart';
 
 /// One compared item.
@@ -125,6 +126,44 @@ String highestStable(Iterable<String> candidates, {String prefix = ''}) {
   return bestRaw;
 }
 
+/// Selects an Android package only from the stable channel, without a preview
+/// revision. Numeric paths alone do not distinguish a preview NDK from stable.
+String latestAndroidPackage(String xml, String prefix, {bool revision = false}) {
+  final versions = <String>[];
+  for (final package in XmlDocument.parse(xml).findAllElements('remotePackage')) {
+    final path = package.getAttribute('path') ?? '';
+    if (!path.startsWith(prefix)) continue;
+    if (package.getElement('channelRef')?.getAttribute('ref') != 'channel-0') continue;
+    final rev = package.getElement('revision');
+    if (rev?.getElement('preview') != null) continue;
+    if (revision) {
+      if (path != prefix || rev == null) continue;
+      versions.add(
+        [
+          for (final part in ['major', 'minor', 'micro']) rev.getElement(part)?.innerText ?? '0',
+        ].join('.'),
+      );
+    } else {
+      versions.add(path.substring(prefix.length));
+    }
+  }
+  return highestStable(versions);
+}
+
+/// Selects final Xcode releases from Apple's release feed, excluding beta/RC.
+String latestStableXcode(String rss) => highestStable([
+  for (final title in XmlDocument.parse(rss).findAllElements('title'))
+    if (RegExp(r'^Xcode ([0-9.]+)(?: \([A-Za-z0-9]+\))?$').firstMatch(title.innerText.trim()) case final match?)
+      match.group(1)!,
+]);
+
+/// A failed lookup is not evidence that a pin is current.
+int findingsExitCode(Iterable<Finding> findings, {bool reportOnly = false}) {
+  if (reportOnly) return 0;
+  if (findings.any((finding) => finding.latest.isEmpty)) return 2;
+  return findings.any((finding) => finding.isBehind) ? 1 : 0;
+}
+
 /// Minimal HTTP GET that honours HTTPS_PROXY / HTTP_PROXY and GITHUB_TOKEN.
 class Fetcher {
   /// Creates a fetcher.
@@ -166,7 +205,9 @@ Future<List<Finding>> collect({
 
   Future<void> check(String group, String name, String pinned, Future<String> Function() latest) async {
     try {
-      findings.add(Finding(group, name, pinned, await latest()));
+      final version = await latest();
+      if (version.isEmpty) throw const FormatException('No stable release in the official response');
+      findings.add(Finding(group, name, pinned, version));
     } on Object catch (error) {
       findings.add(Finding(group, name, pinned, '', note: 'lookup failed: $error'));
     }
@@ -179,6 +220,14 @@ Future<List<Finding>> collect({
     final hash = (data['current_release']! as Map<String, Object?>)['stable'];
     final releases = (data['releases']! as List<Object?>).cast<Map<String, Object?>>();
     return releases.firstWhere((release) => release['hash'] == hash)['version']! as String;
+  });
+  await check('toolchain', 'Dart (Flutter stable bundle)', env['DART_VERSION'] ?? '', () async {
+    final data =
+        (await http.json('https://storage.googleapis.com/flutter_infra_release/releases/releases_linux.json'))!
+            as Map<String, Object?>;
+    final hash = (data['current_release']! as Map<String, Object?>)['stable'];
+    final releases = (data['releases']! as List<Object?>).cast<Map<String, Object?>>();
+    return releases.firstWhere((release) => release['hash'] == hash)['dart_sdk_version']! as String;
   });
   await check('toolchain', 'Gradle', env['GRADLE_VERSION'] ?? '', () async {
     final data = (await http.json('https://services.gradle.org/versions/current'))! as Map<String, Object?>;
@@ -199,35 +248,76 @@ Future<List<Finding>> collect({
     final data = (await http.json('https://api.adoptium.net/v3/info/available_releases'))! as Map<String, Object?>;
     return '${data['most_recent_feature_release']}';
   });
+  if (env['JDK_VERSION'] case final pinned?) {
+    await check('toolchain', 'JDK (Temurin full release)', pinned, () async {
+      final feature = env['JDK_FEATURE_VERSION'];
+      final data =
+          (await http.json('https://api.github.com/repos/adoptium/temurin$feature-binaries/releases/latest'))!
+              as Map<String, Object?>;
+      return (data['tag_name']! as String).replaceFirst('jdk-', '');
+    });
+  }
   final androidRepository = http.get('https://dl.google.com/android/repository/repository2-3.xml');
   await check('toolchain', 'Android NDK', env['ANDROID_NDK_VERSION'] ?? '', () async {
     final xml = await androidRepository;
-    return highestStable(RegExp('path="ndk;([0-9.]+)"').allMatches(xml).map((m) => m.group(1)!));
+    return latestAndroidPackage(xml, 'ndk;');
   });
   await check('toolchain', 'Android platform (compileSdk)', env['ANDROID_COMPILE_SDK'] ?? '', () async {
     final xml = await androidRepository;
-    return highestStable(RegExp('path="platforms;android-([0-9.]+)"').allMatches(xml).map((m) => m.group(1)!));
+    return latestAndroidPackage(xml, 'platforms;android-');
   });
   await check('toolchain', 'Android build-tools', env['ANDROID_BUILD_TOOLS'] ?? '', () async {
     final xml = await androidRepository;
-    return highestStable(RegExp('path="build-tools;([0-9.]+)"').allMatches(xml).map((m) => m.group(1)!));
+    return latestAndroidPackage(xml, 'build-tools;');
   });
   await check('toolchain', 'Android platform-tools', env['ANDROID_PLATFORM_TOOLS'] ?? '', () async {
     final xml = await androidRepository;
-    final revision = RegExp(
-      r'path="platform-tools">.*?<major>(\d+)</major>\s*<minor>(\d+)</minor>\s*<micro>(\d+)</micro>',
-      dotAll: true,
-    ).firstMatch(xml)!;
-    return '${revision.group(1)}.${revision.group(2)}.${revision.group(3)}';
+    return latestAndroidPackage(xml, 'platform-tools', revision: true);
   });
   await check('toolchain', 'Android cmdline-tools', env['ANDROID_CMDLINE_TOOLS'] ?? '', () async {
     final xml = await androidRepository;
-    return highestStable(RegExp('path="cmdline-tools;([0-9.]+)"').allMatches(xml).map((m) => m.group(1)!));
+    return latestAndroidPackage(xml, 'cmdline-tools;');
   });
   await check('toolchain', 'Android CMake', env['ANDROID_CMAKE_VERSION'] ?? '', () async {
     final xml = await androidRepository;
-    return highestStable(RegExp('path="cmake;([0-9.]+)"').allMatches(xml).map((m) => m.group(1)!));
+    return latestAndroidPackage(xml, 'cmake;');
   });
+  for (final (key, name, repository, prefix) in [
+    ('CMAKE_VERSION', 'CMake (standalone)', 'Kitware/CMake', 'v'),
+    ('NINJA_VERSION', 'Ninja', 'ninja-build/ninja', 'v'),
+    ('INNO_SETUP_VERSION', 'Inno Setup', 'jrsoftware/issrc', 'is-'),
+  ]) {
+    if (env[key] case final pinned?) {
+      await check('toolchain', name, pinned, () async {
+        final data =
+            (await http.json('https://api.github.com/repos/$repository/releases/latest'))! as Map<String, Object?>;
+        return (data['tag_name']! as String).replaceFirst(prefix, '').replaceAll('_', '.');
+      });
+    }
+  }
+  if (env['VISUAL_STUDIO_VERSION'] case final pinned?) {
+    await check('toolchain', 'Visual Studio (stable)', pinned, () async {
+      final data = (await http.json('https://aka.ms/vs/18/stable/channel'))! as Map<String, Object?>;
+      return (data['info']! as Map<String, Object?>)['productDisplayVersion']! as String;
+    });
+  }
+  if (env['XCODE_VERSION'] case final pinned?) {
+    await check('toolchain', 'Xcode', pinned, () async {
+      return latestStableXcode(await http.get('https://developer.apple.com/news/releases/rss/releases.rss'));
+    });
+  }
+  if (env['COCOAPODS_VERSION'] case final pinned?) {
+    await check('toolchain', 'CocoaPods', pinned, () async {
+      final data = (await http.json('https://rubygems.org/api/v1/gems/cocoapods.json'))! as Map<String, Object?>;
+      return data['version']! as String;
+    });
+  }
+  if (env['PYTHON_VERSION'] case final pinned?) {
+    await check('toolchain', 'Python', pinned, () async {
+      final tags = (await http.json('https://api.github.com/repos/python/cpython/tags?per_page=100'))! as List<Object?>;
+      return highestStable(tags.map((tag) => (tag! as Map<String, Object?>)['name']! as String), prefix: 'v');
+    });
+  }
   await check('toolchain', 'mpv', env['MPV_VERSION'] ?? '', () async {
     final data =
         (await http.json('https://api.github.com/repos/mpv-player/mpv/releases/latest'))! as Map<String, Object?>;

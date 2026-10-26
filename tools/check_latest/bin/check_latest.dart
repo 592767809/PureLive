@@ -50,5 +50,5 @@ Future<void> main(List<String> arguments) async {
   final behind = findings.where((f) => f.isBehind).length;
   final failed = findings.where((f) => f.latest.isEmpty).length;
   stderr.writeln('check_latest: ${findings.length} items, $behind behind, $failed lookups failed');
-  if (!options.flag('report-only') && behind > 0) exit(1);
+  exitCode = findingsExitCode(findings, reportOnly: options.flag('report-only'));
 }

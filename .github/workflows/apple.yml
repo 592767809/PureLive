@@ -53,7 +53,7 @@ jobs:
   apple:
     name: Apple
     if: ${{ inputs.verify_run_id == '' && !inputs.native_playback_only }}
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -63,9 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -E '^FLUTTER_VERSION=' toolchain.env >> "$GITHUB_ENV"
-          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' -print | sort -V | tail -n 1)
-          if [[ -n "$xcode" ]]; then sudo xcode-select --switch "$xcode/Contents/Developer"; fi
-          xcodebuild -version
+          bash tools/toolchain/apple.sh
           version=$(sed -n 's/^version: \([0-9.]*\)+\([0-9]*\)$/\1/p' apps/pure_live/pubspec.yaml)
           build=$(sed -n 's/^version: \([0-9.]*\)+\([0-9]*\)$/\2/p' apps/pure_live/pubspec.yaml)
           echo "name=PureLive-$version-$build" >> "$GITHUB_OUTPUT"
@@ -294,7 +292,7 @@ jobs:
           mkdir -p out shots
           (cd out && shasum -a 256 * > SHA256SUMS.txt 2>/dev/null || true; cat SHA256SUMS.txt || true)
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() }}
         with:
           name: ${{ steps.toolchain.outputs.name }}-apple
@@ -302,7 +300,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ always() }}
         with:
           name: screenshots
@@ -314,7 +312,7 @@ jobs:
   native-playback-probe:
     name: Native Mac playback probe
     if: ${{ inputs.native_playback_only }}
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -322,9 +320,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -E '^FLUTTER_VERSION=' toolchain.env >> "$GITHUB_ENV"
-          xcode=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' -print | sort -V | tail -n 1)
-          if [[ -n "$xcode" ]]; then sudo xcode-select --switch "$xcode/Contents/Developer"; fi
-          xcodebuild -version
+          bash tools/toolchain/apple.sh
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
         with:
           channel: stable
@@ -339,7 +335,7 @@ jobs:
           bash tools/ffmpeg_kit/fetch.sh macos
       - name: Native macOS occlusion and minimized playback
         run: bash tools/release/check_macos_playback.sh
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: ${{ always() }}
         with:
           name: native-playback-probe
@@ -351,7 +347,7 @@ jobs:
     name: Exact Mac package startup (${{ matrix.replica }})
     needs: apple
     if: ${{ always() && !inputs.native_playback_only && inputs.macos && (needs.apple.result == 'success' || inputs.verify_run_id != '') }}
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 15
     permissions:
       contents: read
@@ -362,6 +358,8 @@ jobs:
         replica: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify stable Apple toolchain
+        run: bash tools/toolchain/apple.sh
       - name: Download this run's exact packages
         env:
           GH_TOKEN: ${{ github.token }}
@@ -384,7 +382,7 @@ jobs:
           test "${#archives[@]}" = 1
           bash tools/release/verify_macos_startup.sh "${archives[0]}" package-shots
           cp build-identity.txt package-shots/
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: ${{ always() }}
         with:
           name: macos-package-startup-${{ matrix.replica }}

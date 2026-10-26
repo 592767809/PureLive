@@ -9,7 +9,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   ffmpeg_kit_extended_flutter
   flutter_inappwebview_windows
   media_kit_video
-  screen_retriever_windows
   share_plus
   url_launcher_windows
   window_manager
