@@ -126,6 +126,53 @@ Future<void> _settle(WidgetTester tester) async {
 
 void main() {
   group('RecordSettingsStore', () {
+    test(
+      'issue 42: a restored iOS default follows the current container without changing stored custom paths',
+      () async {
+        final services = await testServices();
+        addTearDown(services.close);
+        const previous =
+            '/var/mobile/Containers/Data/Application/12345678-1234-1234-1234-123456789ABC/Documents/PURE_LIVE/RECORDS';
+        const documents = '/var/mobile/Containers/Data/Application/ABCDEF12-1234-1234-1234-123456789ABC/Documents';
+        await services.store.settings.set(Settings.recordSavePath, previous);
+        final settings = RecordSettingsStore(services.store, iosDocuments: () async => Directory(documents));
+        await settings.load();
+        expect(settings.current.savePath, '$documents/PURE_LIVE/RECORDS');
+        expect(
+          services.store.settings.get(Settings.recordSavePath),
+          previous,
+          reason: 'resolution must preserve the backup value',
+        );
+        await services.store.settings.set(Settings.recordSavePath, '/custom/recordings');
+        expect(settings.current.savePath, '/custom/recordings');
+        await services.store.settings.set(Settings.recordSavePath, previous);
+        expect(
+          settings.current.savePath,
+          '$documents/PURE_LIVE/RECORDS',
+          reason: 'an import after startup is resolved too',
+        );
+        expect(
+          RecordSettingsStore(services.store).current.savePath,
+          previous,
+          reason: 'other platforms keep their existing path',
+        );
+        for (final path in [
+          '',
+          '/storage/emulated/0/Records',
+          '$previous/custom',
+          '$previous/../other',
+          '$previous/../../Documents/PURE_LIVE/RECORDS',
+          previous.replaceFirst('/Data/', '/Bundle/'),
+        ]) {
+          expect(iosRecordingDirectory(path, documentsDirectory: documents), path);
+        }
+        expect(
+          iosRecordingDirectory('/private$previous', documentsDirectory: documents),
+          '$documents/PURE_LIVE/RECORDS',
+        );
+      },
+    );
+
     test('moves the values kept before M8.1 into the store once: v4 meta first, then 3.x parked values', () async {
       final services = await testServices();
       addTearDown(services.close);

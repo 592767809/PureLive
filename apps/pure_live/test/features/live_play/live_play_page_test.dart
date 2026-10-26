@@ -1,5 +1,5 @@
 import 'package:flutter/gestures.dart'
-    show PointerDeviceKind, kDoubleTapTimeout, kLongPressTimeout, kSecondaryMouseButton;
+    show PointerDeviceKind, kDoubleTapTimeout, kLongPressTimeout, kMiddleMouseButton, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -682,6 +682,57 @@ void main() {
     await _close(tester, services);
     expect(applied.last, isFalse, reason: 'released when the room goes');
   });
+  testWidgets('issue 65: Windows middle click toggles only in-window fullscreen', (tester) async {
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+    await tester.tapAt(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kMiddleMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await _settle(tester);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.windowFullscreen);
+    await tester.tapAt(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kMiddleMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await _settle(tester);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+    final top = tester.getTopLeft(find.byType(RoomPlayer)) + const Offset(100, 15);
+    await tester.tapAt(top, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+    await _settle(tester);
+    expect(
+      tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
+      RoomDisplay.inline,
+      reason: 'middle click leaves controls to their own handlers',
+    );
+    final cancelled = await tester.startGesture(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kMiddleMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await cancelled.cancel();
+    await _settle(tester);
+    expect(
+      tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
+      RoomDisplay.inline,
+      reason: 'a cancelled middle click does not toggle',
+    );
+    await _close(tester, services);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+  testWidgets('issue 65: middle click remains unmapped outside Windows', (tester) async {
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+    await tester.tapAt(
+      tester.getCenter(find.byType(RoomPlayer)),
+      buttons: kMiddleMouseButton,
+      kind: PointerDeviceKind.mouse,
+    );
+    await _settle(tester);
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+    await _close(tester, services);
+  }, variant: const TargetPlatformVariant({TargetPlatform.macOS, TargetPlatform.android}));
+
   testWidgets('desktop picture secondary click toggles only in-window fullscreen', (tester) async {
     final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
     expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);

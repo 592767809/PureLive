@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -15,7 +18,7 @@ import 'package:pure_live/tv/widgets/tv_page_header.dart';
 /// that opened it.
 class TvSettingsScaffold extends StatefulWidget {
   /// Creates the page.
-  const new({required this.title, required this.child, this.pageKey, super.key});
+  const new({required this.title, required this.child, this.pageKey, this.contentHasHeader = false, super.key});
 
   /// The title.
   final String title;
@@ -26,29 +29,63 @@ class TvSettingsScaffold extends StatefulWidget {
   /// The scaffold's key (`tv-settings-page-<name>`).
   final Key? pageKey;
 
+  /// The shared page supplies a header through [SettingsPageHeaderScope].
+  final bool contentHasHeader;
+
   @override
   State<TvSettingsScaffold> createState() => _TvSettingsScaffoldState();
 }
 
 class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
-  final FocusNode _body = FocusNode(debugLabel: 'tv settings page', skipTraversal: true, canRequestFocus: false);
+  final FocusScopeNode _body = FocusScopeNode(debugLabel: 'tv settings page', skipTraversal: true);
+  bool _focusedInitially = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      for (final node in _body.traversalDescendants) {
-        if (node.canRequestFocus) {
-          node.requestFocus();
+    FocusManager.instance.addListener(_followFocus);
+    _focusFirst();
+  }
+
+  void _focusFirst() {
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => scheduleMicrotask(() {
+        if (!mounted || _focusedInitially || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+        final primary = FocusManager.instance.primaryFocus;
+        if (_body.hasFocus && primary is! FocusScopeNode) {
+          _focusedInitially = true;
           return;
         }
+        for (final node in _body.traversalDescendants) {
+          if (node is! FocusScopeNode &&
+              node.context != null &&
+              node.context!.findAncestorWidgetOfExactType<TvPageHeader>() == null) {
+            _focusedInitially = true;
+            node.requestFocus();
+            return;
+          }
+        }
+        // A shared page may load for many frames before attaching targets.
+        // Wait on its next actual frame; never request frames while idle.
+        _focusFirst();
+      }),
+    );
+  }
+
+  void _followFocus() {
+    if (!_body.hasFocus) return;
+    final target = FocusManager.instance.primaryFocus?.context;
+    if (target == null || Scrollable.maybeOf(target) == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && target.mounted) {
+        Scrollable.ensureVisible(target, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd).ignore();
       }
     });
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeListener(_followFocus);
     _body.dispose();
     super.dispose();
   }
@@ -64,16 +101,47 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TvPageHeader(title: widget.title, subtitle: i18n('tv_menu_settings')),
-            SizedBox(height: scale.px(16)),
+            if (!widget.contentHasHeader) ...[
+              TvPageHeader(title: widget.title, subtitle: i18n('tv_menu_settings')),
+              SizedBox(height: scale.px(16)),
+            ],
             Expanded(
-              child: Focus(
-                focusNode: _body,
-                child: TvSettingsStyle(child: widget.child),
+              child: FocusScope(
+                node: _body,
+                child: TvSettingsStyle(
+                  child: SettingsPageHeaderScope(
+                    builder: _header,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(scaffoldBackgroundColor: OnVideoColors.clear),
+                      child: widget.child,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _header(
+    BuildContext context, {
+    required String title,
+    String? subtitle,
+    List<Widget> actions = const [],
+    PreferredSizeWidget? bottom,
+  }) {
+    final scale = TvScale.of(context);
+    return PreferredSize(
+      preferredSize: Size.fromHeight(scale.pxText(76) + (bottom?.preferredSize.height ?? 0)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TvPageHeader(title: title, subtitle: subtitle ?? i18n('tv_menu_settings'), actions: actions),
+          SizedBox(height: scale.px(16)),
+          ?bottom,
+        ],
       ),
     );
   }

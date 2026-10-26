@@ -61,6 +61,159 @@ Future<AppServices> _pump(
 }
 
 void main() {
+  testWidgets('issue 65: hiding navigation removes the followed-platform header too', (tester) async {
+    final services = await _pump(tester, width: 400);
+    addTearDown(() => tester.runAsync(services.close));
+    await tester.runAsync(() async {
+      await services.store.settings.set(Settings.liquidGlass, false);
+      await services.store.settings.set(Settings.homeNavigationAutoHide, true);
+      await services.store.follows.add(LiveRoom(platform: SiteIds.bilibili, roomId: 'qa-header', nick: 'QA'));
+      await Future<void>.delayed(const Duration(seconds: 1));
+    });
+    await tester.pumpAndSettle();
+    expect(tester.widget<AppBar>(find.byType(AppBar)).bottom, isNotNull);
+    final context = tester.element(find.byType(FavoritePage));
+    ScrollUpdateNotification(
+      metrics: FixedScrollMetrics(
+        minScrollExtent: 0,
+        maxScrollExtent: 2000,
+        pixels: 300,
+        viewportDimension: 700,
+        axisDirection: AxisDirection.down,
+        devicePixelRatio: 1,
+      ),
+      context: context,
+      scrollDelta: 30,
+      dragDetails: DragUpdateDetails(globalPosition: Offset.zero, delta: const Offset(0, -30)),
+    ).dispatch(context);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppBar), findsNothing, reason: 'the complete header, including the platform row, must hide');
+    expect(find.byType(NavigationBar), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  testWidgets('issue 65: navigation label options preserve accessible names', (tester) async {
+    final services = await _pump(tester, width: 1280);
+    await tester.runAsync(
+      () => services.store.settings.set(
+        const BoolSetting('desktopNavigationLabels', section: 'theme', defaultValue: true),
+        false,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final rail = find.byKey(const ValueKey('home-rail'));
+    expect(find.descendant(of: rail, matching: find.byType(Text)), findsNothing);
+    expect(find.descendant(of: rail, matching: find.byTooltip('搜索直播')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(services.close);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+  testWidgets('issue 65: Android hides both navigation bars on vertical user scroll and restores them', (tester) async {
+    final services = await _pump(tester, width: 400);
+    await tester.runAsync(() async {
+      await services.store.settings.set(Settings.liquidGlass, false);
+      await services.store.settings.set(
+        const BoolSetting('homeNavigationAutoHide', section: 'theme', defaultValue: false),
+        true,
+      );
+    });
+    await tester.pumpAndSettle();
+    void scroll(double delta, AxisDirection axis, {bool user = true, double pixels = 300}) {
+      final context = tester.element(find.byType(FavoritePage));
+      ScrollUpdateNotification(
+        metrics: FixedScrollMetrics(
+          minScrollExtent: 0,
+          maxScrollExtent: 2000,
+          pixels: pixels,
+          viewportDimension: 700,
+          axisDirection: axis,
+          devicePixelRatio: 1,
+        ),
+        context: context,
+        scrollDelta: delta,
+        dragDetails: user ? DragUpdateDetails(globalPosition: Offset.zero, delta: Offset(0, -delta)) : null,
+      ).dispatch(context);
+    }
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    scroll(30, AxisDirection.right);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'horizontal paging leaves navigation visible');
+    scroll(30, AxisDirection.down, user: false);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'programmatic scrolling leaves navigation visible');
+    scroll(30, AxisDirection.down);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(AppBar), findsNothing);
+    scroll(0, AxisDirection.down, user: false, pixels: 0);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'the jump-to-top action restores navigation too');
+    scroll(30, AxisDirection.down);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    scroll(-30, AxisDirection.down);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(tester.getSize(find.byType(AppBar)).height, greaterThan(0));
+    scroll(30, AxisDirection.down);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsNothing);
+    scroll(-2, AxisDirection.down, pixels: 0);
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationBar), findsOneWidget, reason: 'returning to the start always restores navigation');
+    scroll(30, AxisDirection.down);
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(700, 400);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-rail')), findsOneWidget, reason: 'rotation restores the navigation layout');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(services.close);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+
+  for (final glass in [true, false]) {
+    testWidgets('issue 65: mobile labels can be hidden in either bottom bar (glass=$glass)', (tester) async {
+      final services = await _pump(tester, width: 400);
+      addTearDown(() => tester.runAsync(services.close));
+      await tester.runAsync(() async {
+        await services.store.settings.set(Settings.liquidGlass, glass);
+        await services.store.settings.set(Settings.mobileNavigationLabels, false);
+        await services.store.settings.set(Settings.homeNavigationAutoHide, true);
+      });
+      await tester.pumpAndSettle();
+      if (glass) {
+        expect(tester.widget<LiquidGlassBar>(find.byType(LiquidGlassBar)).showLabels, isFalse);
+        expect(find.descendant(of: find.byType(LiquidGlassBar), matching: find.byType(Text)), findsNothing);
+      } else {
+        expect(
+          tester.widget<NavigationBar>(find.byType(NavigationBar)).labelBehavior,
+          NavigationDestinationLabelBehavior.alwaysHide,
+        );
+      }
+      final context = tester.element(find.byType(FavoritePage));
+      ScrollUpdateNotification(
+        metrics: FixedScrollMetrics(
+          minScrollExtent: 0,
+          maxScrollExtent: 2000,
+          pixels: 300,
+          viewportDimension: 700,
+          axisDirection: AxisDirection.down,
+          devicePixelRatio: 1,
+        ),
+        context: context,
+        scrollDelta: 30,
+        dragDetails: DragUpdateDetails(globalPosition: Offset.zero, delta: const Offset(0, -30)),
+      ).dispatch(context);
+      await tester.pumpAndSettle();
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(LiquidGlassBar), findsNothing);
+      await tester.runAsync(() => services.store.settings.set(Settings.homeNavigationAutoHide, false));
+      await tester.pumpAndSettle();
+      expect(glass ? find.byType(LiquidGlassBar) : find.byType(NavigationBar), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+  }
+
   test("every page 3.x registered has a route, each built by its page folder's class", () {
     expect(
       {RoutePath.kInitial, ...pageRoutes.keys},

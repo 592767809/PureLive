@@ -57,18 +57,27 @@ List<HomeMenu> visibleHomeMenus(Iterable<String> saved) {
 /// its own width; the tabs used to read the whole screen, 3.x `Get.width`).
 class HomeLayoutScope extends InheritedWidget {
   /// Marks [child] as laid out with the bottom bar ([phone]) or the rail.
-  const new({required this.phone, required super.child, super.key});
+  const new({required this.phone, required super.child, this.navigationHidden = false, super.key});
 
   /// Whether the bottom bar layout is used.
   final bool phone;
+
+  /// The phone shell temporarily hides the whole home header while scrolling.
+  final bool navigationHidden;
 
   /// The scope above [context], or null outside the home shell.
   static HomeLayoutScope? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<HomeLayoutScope>();
 
   @override
-  bool updateShouldNotify(HomeLayoutScope oldWidget) => oldWidget.phone != phone;
+  bool updateShouldNotify(HomeLayoutScope oldWidget) =>
+      oldWidget.phone != phone || oldWidget.navigationHidden != navigationHidden;
 }
+
+/// Whether the home shell temporarily hides this tab's complete app bar,
+/// including its platform tabs. Standalone routes keep their own header.
+bool hidesHomeBar(BuildContext context, {required bool inHome}) =>
+    inHome && (HomeLayoutScope.maybeOf(context)?.navigationHidden ?? false);
 
 /// Whether a page shows the home buttons in its bar (menu at the left,
 /// search and more at the right): only as a home tab ([inHome]) of the

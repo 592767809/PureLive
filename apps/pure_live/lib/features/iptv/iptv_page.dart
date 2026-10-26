@@ -489,9 +489,10 @@ class _IptvPageState extends ConsumerState<IptvPage> {
     final overview = state.value;
     final syncAll = _syncAll;
     return Scaffold(
-      appBar: AppBar(
-        leading: widget.onBack == null ? null : BackButton(onPressed: widget.onBack),
-        title: Text(i18n('iptv_settings')),
+      appBar: settingsPageAppBar(
+        context,
+        onBack: widget.onBack,
+        title: i18n('iptv_settings'),
         actions: [
           IconButton(
             key: const ValueKey('iptv-sync-all'),

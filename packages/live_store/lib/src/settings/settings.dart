@@ -197,6 +197,15 @@ abstract final class Settings {
   /// instead of 68. Off: as before.
   static const homeBottomBarCompact = BoolSetting('homeBottomBarCompact', section: 'theme', defaultValue: false);
 
+  /// Android home navigation hides on upward content scrolling when enabled.
+  static const homeNavigationAutoHide = BoolSetting('homeNavigationAutoHide', section: 'theme', defaultValue: false);
+
+  /// The phone's navigation destinations keep their visible names by default.
+  static const mobileNavigationLabels = BoolSetting('mobileNavigationLabels', section: 'theme', defaultValue: true);
+
+  /// The desktop side rail keeps its visible names by default.
+  static const desktopNavigationLabels = BoolSetting('desktopNavigationLabels', section: 'theme', defaultValue: true);
+
   /// How frosted the liquid glass is, 0 clear to 1 heavy frost (A01.8,
   /// iOS 27's "Liquid Glass" slider); 0.5, the middle, by default.
   static const liquidGlassFrost = DoubleSetting(
@@ -2023,6 +2032,9 @@ abstract final class Settings {
     liquidGlass,
     homeBottomBarOnWide,
     homeBottomBarCompact,
+    homeNavigationAutoHide,
+    mobileNavigationLabels,
+    desktopNavigationLabels,
     liquidGlassFrost,
     themeColorSwitch,
     pureBlackTheme,

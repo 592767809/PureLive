@@ -74,7 +74,9 @@ class _AboutViewState extends State<AboutView> {
     final styles = context.textStyles;
     return Scaffold(
       // 3.x: only "back", no title.
-      appBar: AppBar(toolbarHeight: WindowClassScope.toolbarHeightOf(context)),
+      appBar:
+          SettingsPageHeaderScope.maybeOf(context)?.builder(context, title: i18n('about'), actions: const []) ??
+          AppBar(toolbarHeight: WindowClassScope.toolbarHeightOf(context)),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final logoSize = constraints.maxWidth < 600 ? 80.0 : 96.0;

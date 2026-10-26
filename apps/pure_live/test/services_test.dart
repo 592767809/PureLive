@@ -305,7 +305,13 @@ void main() {
       expect(File(p.join(legacy.path, 'old', 'Old.ttf')).existsSync(), isTrue, reason: '3.x files are only read');
 
       // A missing weight falls back to the family and forgets the weight.
-      final second = FontLibrary(root: library.root, http: http, register: (family, fonts) async {});
+      final second = FontLibrary(
+        root: library.root,
+        http: http,
+        register: (family, fonts) async {
+          await Future.wait(fonts);
+        },
+      );
       await settings.set(Settings.fontFamilyFileName, 'Gone.ttf');
       await second.restore(settings);
       expect(second.registered, contains('demo'));

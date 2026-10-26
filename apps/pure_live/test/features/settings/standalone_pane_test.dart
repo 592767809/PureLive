@@ -14,7 +14,6 @@ import 'package:pure_live/features/record_settings/record_settings_page.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/features/web_dav/web_dav_page.dart';
-import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 
 import 'settings_harness.dart';
@@ -131,11 +130,14 @@ void main() {
     expect(find.byKey(const ValueKey('settings-overview')), findsOneWidget);
   });
   for (final section in [SettingsSection.localInteraction, SettingsSection.log]) {
-    testWidgets('issue56: ${section.name} keeps the existing root route on a narrow window', (tester) async {
+    testWidgets('issue56: ${section.name} uses the immediate content stack on a narrow window (issue60)', (
+      tester,
+    ) async {
       final h = await pumpSettings(tester);
       await tapSettings(tester, settingsSection(section));
-      expect(h.opened.last, section.route);
-      AppNavigator.router.pop();
+      expect(h.opened, isEmpty);
+      expect(find.byType(section == SettingsSection.log ? LogPage : LocalInteractionSettingsPage), findsOneWidget);
+      await tester.binding.handlePopRoute();
       await settleSettings(tester);
       expect(find.byKey(const ValueKey('settings-overview')), findsOneWidget);
     });

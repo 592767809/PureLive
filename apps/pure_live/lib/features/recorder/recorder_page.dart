@@ -297,32 +297,34 @@ class _RecorderPageState extends ConsumerState<RecorderPage> {
     final recorder = recording?.recorder;
     final phoneTab = showsHomeBarButtons(context, inHome: widget.route.inHome);
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: centredPageTitle,
-        // The home's tab has the menu (3.x); opened from the rail or a room,
-        // back. This follows the home's layout, not the screen's width (U.7a
-        // P11, U.3a).
-        automaticallyImplyLeading: !widget.route.inHome,
-        leading: phoneTab ? const MenuButton() : null,
-        title: Text(i18n('recorder_title')),
-        actions: [
-          if (recording != null)
-            IconButton(
-              key: const ValueKey('recorder-open-folder'),
-              tooltip: i18n('recorder_open_folder'),
-              icon: const Icon(AppIcons.recordFolder, size: 22),
-              onPressed: () => unawaited(openRecordFolder(recording)),
+      appBar: hidesHomeBar(context, inHome: widget.route.inHome)
+          ? null
+          : AppBar(
+              centerTitle: centredPageTitle,
+              // The home's tab has the menu (3.x); opened from the rail or a room,
+              // back. This follows the home's layout, not the screen's width (U.7a
+              // P11, U.3a).
+              automaticallyImplyLeading: !widget.route.inHome,
+              leading: phoneTab ? const MenuButton() : null,
+              title: Text(i18n('recorder_title')),
+              actions: [
+                if (recording != null)
+                  IconButton(
+                    key: const ValueKey('recorder-open-folder'),
+                    tooltip: i18n('recorder_open_folder'),
+                    icon: const Icon(AppIcons.recordFolder, size: 22),
+                    onPressed: () => unawaited(openRecordFolder(recording)),
+                  ),
+                IconButton(
+                  key: const ValueKey('recorder-settings'),
+                  tooltip: i18n('record_settings'),
+                  icon: const Icon(AppIcons.recordSettings, size: 22),
+                  onPressed: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kRecordSettings)),
+                ),
+                // As a phone tab, search and "more" as on every home tab (U.3a c6).
+                if (phoneTab) const CommonAppBarActions() else const SizedBox(width: 8),
+              ],
             ),
-          IconButton(
-            key: const ValueKey('recorder-settings'),
-            tooltip: i18n('record_settings'),
-            icon: const Icon(AppIcons.recordSettings, size: 22),
-            onPressed: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kRecordSettings)),
-          ),
-          // As a phone tab, search and "more" as on every home tab (U.3a c6).
-          if (phoneTab) const CommonAppBarActions() else const SizedBox(width: 8),
-        ],
-      ),
       body: recording == null || recorder == null
           ? AppStatusView(
               type: AppStatusType.empty,

@@ -39,10 +39,7 @@ class LocalInteractionSettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final interaction = ref.watch(localInteractionProvider);
     return Scaffold(
-      appBar: AppBar(
-        leading: onBack == null ? null : BackButton(onPressed: onBack),
-        title: Text(i18n('local_interaction_settings')),
-      ),
+      appBar: settingsPageAppBar(context, onBack: onBack, title: i18n('local_interaction_settings')),
       body: ListenableBuilder(
         listenable: interaction,
         builder: (context, _) => ListView(

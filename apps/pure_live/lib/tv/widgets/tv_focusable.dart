@@ -113,7 +113,7 @@ class TvFocusable extends StatefulWidget {
 
 class _TvFocusableState extends State<TvFocusable> {
   FocusNode? _own;
-  bool _focused = false;
+  bool get _focused => _node.hasFocus;
   Timer? _hold;
   bool _pressed = false;
   bool _longFired = false;
@@ -190,7 +190,7 @@ class _TvFocusableState extends State<TvFocusable> {
       _hold?.cancel();
       _pressed = false;
     }
-    setState(() => _focused = focused);
+    setState(() {});
     widget.onFocusChange?.call(focused);
   }
 

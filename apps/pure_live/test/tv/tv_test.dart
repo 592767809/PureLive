@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -7,9 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
+import 'package:live_iptv/live_iptv.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app.dart';
+import 'package:pure_live/app/iptv_library.dart';
+import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/ui_mode.dart';
 import 'package:pure_live/features/home/home_page.dart';
@@ -17,14 +21,19 @@ import 'package:pure_live/features/live_play/logic/predictive_back.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/settings/settings_catalog.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
+import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/room/tv_live_play_page.dart';
+import 'package:pure_live/tv/settings/tv_settings_catalog.dart';
+import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
+import 'package:pure_live/tv/widgets/tv_page_header.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
@@ -120,6 +129,8 @@ Future<AppServices> _pumpApp(
   bool television = false,
   int rooms = 10,
   bool noticeAccepted = true,
+  bool recordingEnabled = false,
+  bool iptvEnabled = false,
   List<int> follows = const [],
   Set<int> offline = const {},
   List<LiveSite> extraSites = const [],
@@ -153,6 +164,8 @@ Future<AppServices> _pumpApp(
       }
     }
   });
+  final iptvDirectory = iptvEnabled ? Directory.systemTemp.createTempSync('pure_live_tv_iptv_') : null;
+  if (iptvDirectory != null) addTearDown(() => iptvDirectory.deleteSync(recursive: true));
   final services = AppServices(
     store: base.store,
     cipher: base.cipher,
@@ -165,6 +178,17 @@ Future<AppServices> _pumpApp(
     dataRoot: base.dataRoot,
     followsReady: base.followsReady,
     mediaOpener: base.mediaOpener,
+    iptvImporter: iptvDirectory == null
+        ? null
+        : IptvImporter(
+            library: StoreIptvLibrary(base.store),
+            http: NoNetworkHttp(),
+            playlistDirectory: iptvDirectory,
+            selectedGuideSourceId: () => base.store.settings.get(Settings.selectedSourceId),
+          ),
+    recording: recordingEnabled
+        ? buildAppRecording(store: base.store, sites: base.sites, proxy: base.proxy, dataRoot: base.dataRoot)
+        : null,
   );
   final strings = (await tester.runAsync(loadStrings))!;
   await tester.pumpWidget(
@@ -210,6 +234,144 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('issue 61: initial focus waits for content that loads after many frames', (tester) async {
+    await tester.runAsync(loadStrings);
+    final ready = ValueNotifier(false);
+    final target = FocusNode();
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      ready.dispose();
+      target.dispose();
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TvSettingsScaffold(
+          title: '设置',
+          child: ValueListenableBuilder<bool>(
+            valueListenable: ready,
+            builder: (context, loaded, child) => loaded
+                ? TextButton(focusNode: target, onPressed: () {}, child: const Text('设置内容'))
+                : const CircularProgressIndicator(),
+          ),
+        ),
+      ),
+    );
+    for (var frame = 0; frame < 20; frame++) {
+      await tester.pump(const Duration(seconds: 1));
+    }
+    ready.value = true;
+    await tester.pump();
+    await tester.pump();
+    expect(target.hasFocus, isTrue, reason: 'async settings content must receive its opening focus when it arrives');
+  });
+
+  testWidgets('issue 62: cold launch paints the selected menu focus ring without a key', (tester) async {
+    await prepareQaFonts(tester);
+    final services = await _pumpApp(tester);
+    addTearDown(() => _close(tester, services));
+    expect(_focused, 'tv menu favorites');
+    final target = find.byKey(const ValueKey('tv-menu-favorites'));
+    final decoration =
+        tester
+                .widget<DecoratedBox>(
+                  find
+                      .descendant(
+                        of: target,
+                        matching: find.byWidgetPredicate(
+                          (w) => w is DecoratedBox && w.position == DecorationPosition.foreground,
+                        ),
+                      )
+                      .first,
+                )
+                .decoration
+            as BoxDecoration;
+    expect(
+      decoration.border,
+      isNotNull,
+      reason: 'a retained focused node must paint after menu expansion rebuilds its target',
+    );
+  });
+
+  testWidgets('issue 59: TV configuration opens one full page rather than the phone overview', (tester) async {
+    final services = await _pumpApp(tester);
+    addTearDown(() => _close(tester, services));
+    openTvSettingsSection(tester.element(find.byType(TvHomePage)), SettingsSection.configPreview);
+    await _settle(tester, rounds: 8);
+    expect(find.byKey(const ValueKey('settings-page-configPreview')), findsOneWidget);
+    expect(
+      find.byType(SettingsPage),
+      findsNothing,
+      reason: 'the TV preview must not open the phone two-pane settings shell',
+    );
+    final viewport = tester
+        .state<ScrollableState>(
+          find
+              .descendant(of: find.byKey(const ValueKey('settings-config-scroll')), matching: find.byType(Scrollable))
+              .first,
+        )
+        .position;
+    expect(_focused, 'settings keyboard scroll');
+    await _press(tester, LogicalKeyboardKey.arrowUp);
+    expect(viewport.pixels, 0, reason: 'Up at the beginning must not wrap to the bottom');
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    expect(viewport.pixels, greaterThan(0), reason: 'the remote must scroll a long read-only configuration');
+  });
+
+  for (final path in [
+    RoutePath.kIptv,
+    RoutePath.kRecordSettings,
+    RoutePath.kLocalInteraction,
+    RoutePath.kBackup,
+    RoutePath.kLogs,
+    RoutePath.kAbout,
+  ]) {
+    testWidgets('issue 61: TV root $path keeps its header, first focus and transparent background', (tester) async {
+      final services = await _pumpApp(
+        tester,
+        recordingEnabled: path == RoutePath.kRecordSettings,
+        iptvEnabled: path == RoutePath.kIptv,
+      );
+      addTearDown(() => _close(tester, services));
+      unawaited(AppNavigator.toNamed<void>(path));
+      await _settle(tester, rounds: 8);
+      final root = find.byKey(ValueKey('tv-settings-root-$path'));
+      expect(root, findsOneWidget);
+      expect(find.byType(BackButton), findsNothing);
+      expect(find.byKey(const ValueKey('tv-page-title')), findsOneWidget);
+      for (final element in find.descendant(of: root, matching: find.byType(Scaffold)).evaluate()) {
+        final scaffold = element.widget as Scaffold;
+        expect(scaffold.backgroundColor ?? Theme.of(element).scaffoldBackgroundColor, Colors.transparent);
+      }
+      final first = FocusManager.instance.primaryFocus!;
+      expect(first, isNot(isA<FocusScopeNode>()));
+      expect(
+        first.context!.findAncestorWidgetOfExactType<TvPageHeader>(),
+        isNull,
+        reason: 'initial focus belongs to the content',
+      );
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      final afterUp = FocusManager.instance.primaryFocus!;
+      if (afterUp != first) {
+        expect(
+          afterUp.context!.findAncestorWidgetOfExactType<TvPageHeader>(),
+          isNotNull,
+          reason: 'Up must not wrap from the first row to the bottom',
+        );
+      }
+      for (var step = 0; step < 12; step++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+        final focused = FocusManager.instance.primaryFocus!;
+        final page = tester.getRect(root);
+        expect(focused.rect.top, greaterThanOrEqualTo(page.top - 1));
+        expect(focused.rect.bottom, lessThanOrEqualTo(page.bottom + 1), reason: 'directional focus remains in view');
+      }
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(find.byType(TvHomePage), findsOneWidget);
+    });
+  }
+
   for (final zoom in [true, false]) {
     testWidgets('issue 46: first menu item paints its complete top focus ring (zoom=$zoom)', (tester) async {
       await prepareQaFonts(tester);

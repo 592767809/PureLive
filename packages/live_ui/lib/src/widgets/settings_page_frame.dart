@@ -9,6 +9,33 @@ import 'package:live_ui/src/widgets/window_layout.dart';
 // (recording settings, backup, WebDAV, device sync; docs/A-界面设计/A10-录制界面/A10.2-录制设置,
 // U.11a–c): the same app bar and reading column as the settings pages.
 
+/// Builds the header of a shared settings page in its enclosing shell.
+typedef SettingsPageHeaderBuilder = PreferredSizeWidget Function(
+  BuildContext context, {
+  required String title,
+  String? subtitle,
+  List<Widget> actions,
+  PreferredSizeWidget? bottom,
+});
+
+/// Lets another shell supply a settings header without replacing the page's
+/// content or losing its actions. The regular phone and desktop header stays
+/// unchanged when no scope is present.
+class SettingsPageHeaderScope extends InheritedWidget {
+  /// Supplies [builder] to the shared settings pages below.
+  const new({required this.builder, required super.child, super.key});
+
+  /// Builds the enclosing shell's header.
+  final SettingsPageHeaderBuilder builder;
+
+  /// The header supplied by the enclosing shell, if any.
+  static SettingsPageHeaderScope? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<SettingsPageHeaderScope>();
+
+  @override
+  bool updateShouldNotify(SettingsPageHeaderScope oldWidget) => builder != oldWidget.builder;
+}
+
 /// The app bar of a settings-like page: the title at the platform's place
 /// (3.x: the start on Android; [centerTitle] centres it), 20 px semi-bold, [subtitle] under it when given (the WebDAV server); a
 /// compact height when the area is short (a phone held sideways or in split
@@ -22,6 +49,10 @@ PreferredSizeWidget settingsPageAppBar(
   bool centerTitle = false,
   VoidCallback? onBack,
 }) {
+  final custom = SettingsPageHeaderScope.maybeOf(context);
+  if (custom != null) {
+    return custom.builder(context, title: title, subtitle: subtitle, actions: actions, bottom: bottom);
+  }
   final heading = Text(title, style: context.textStyles.t20.emphasis);
   return AppBar(
     leading: onBack == null ? null : BackButton(onPressed: onBack),

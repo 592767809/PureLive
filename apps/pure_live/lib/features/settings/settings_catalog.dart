@@ -600,6 +600,30 @@ List<SettingsEntry> _build() {
       keywords: ['多画面', 'multi'],
     )
     ..group = 'settings_nav_group_bar'
+    ..toggle(
+      'navigation_auto_hide',
+      'home_navigation_auto_hide',
+      Settings.homeNavigationAutoHide,
+      AppIcons.homeBottomBarCompact,
+      desc: 'home_navigation_auto_hide_desc',
+      when: _android,
+    )
+    ..toggle(
+      'navigation_mobile_labels',
+      'mobile_navigation_labels',
+      Settings.mobileNavigationLabels,
+      AppIcons.homeBottomBarCompact,
+      desc: 'mobile_navigation_labels_desc',
+      when: _mobile,
+    )
+    ..toggle(
+      'navigation_desktop_labels',
+      'desktop_navigation_labels',
+      Settings.desktopNavigationLabels,
+      AppIcons.homeBottomBarCompact,
+      desc: 'desktop_navigation_labels_desc',
+      when: _desktop,
+    )
     ..add(
       'home_menus',
       'settings_home_menus',

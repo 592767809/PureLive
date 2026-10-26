@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/settings/data_tools.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
@@ -152,7 +153,17 @@ void openTvSettingsSection(BuildContext context, SettingsSection section) {
     return;
   }
   if (section == SettingsSection.configPreview) {
-    unawaited(AppNavigator.toNamed<void>(RoutePath.kSettings, arguments: section.name));
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'tv-settings-configPreview'),
+        builder: (context) => TvSettingsScaffold(
+          title: i18n(section.titleKey),
+          contentHasHeader: true,
+          pageKey: const ValueKey('tv-settings-page-configPreview'),
+          child: const ConfigPreviewPage(),
+        ),
+      ),
+    );
     return;
   }
   Navigator.of(context).push<void>(
