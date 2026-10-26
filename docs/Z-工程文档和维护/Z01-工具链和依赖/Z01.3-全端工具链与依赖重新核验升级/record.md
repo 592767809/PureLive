@@ -39,3 +39,5 @@ Apple 工作流增加官方 setup-python v7.1.0 固定提交，并从 toolchain.
 检查器补入Clang与vendored window_manager的官方发布基线，最终75项全部当前、查询失败0。官方Actions版本核对：checkout7.0.1、upload-artifact7.0.2、setup-python7.1.0、flutter-action2.23.0。原生播放器预构建也重新查询供应方：Darwin0.6.8、Windows202609151348、Android1.3.1、Linux20260810均仍是其最新发布；本项目Android/Linux x64使用自建mpv0.41.0/FFmpeg9.0.2。供应方Windows为FFmpeg master、Apple版本未声明，不能把所有平台运行库都写成相同FFmpeg版本。
 
 45210494b的完整门禁只有应用翻译集合检查失败：新增三个文案已在中英添加，但其余13种语言尚缺。全部修复行为测试及其他13成员通过，早前正则耗时偶发失败本轮未重现。现已补齐15种语言，i18n完整专项通过；不放宽或跳过检查，继续对新固定提交跑完整all/14。
+
+Apple云端实际验证补充：运行40347123328在setup-python阶段失败，actions/python-versions尚无macOS27 ARM64的3.15.2发行包。Python官方已提供universal2安装器，改用其发布页SHA-256固定的官方pkg，安装前验证摘要和签名，安装后验证解释器版本并配置官方证书；仅允许GitHub临时macOS主机执行。没有降级Python，也没有将尚未编译的Apple包算作通过。来源：https://www.python.org/downloads/release/python-3152/ 、https://docs.python.org/3/using/mac.html 。全部Apple工作流使用同一个引导脚本。

@@ -57,11 +57,8 @@ jobs:
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Read Python version
-        run: grep -E '^PYTHON_VERSION=' toolchain.env >> "$GITHUB_ENV"
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install official stable Python
+        run: bash tools/toolchain/macos_python.sh
 
       - name: Toolchain
         id: toolchain
@@ -321,11 +318,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Read Python version
-        run: grep -E '^PYTHON_VERSION=' toolchain.env >> "$GITHUB_ENV"
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install official stable Python
+        run: bash tools/toolchain/macos_python.sh
       - name: Probe toolchain
         run: |
           set -euo pipefail
@@ -368,11 +362,8 @@ jobs:
         replica: [1, 2]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Read Python version
-        run: grep -E '^PYTHON_VERSION=' toolchain.env >> "$GITHUB_ENV"
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install official stable Python
+        run: bash tools/toolchain/macos_python.sh
       - name: Verify stable Apple toolchain
         run: bash tools/toolchain/apple.sh
       - name: Download this run's exact packages
