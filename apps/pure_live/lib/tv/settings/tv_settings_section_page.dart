@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
@@ -103,9 +104,19 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
     final target = primary?.context;
     if (target == null || Scrollable.maybeOf(target) == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && target.mounted) {
-        Scrollable.ensureVisible(target, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd).ignore();
-      }
+      if (!mounted || !target.mounted || !_currentRoute || FocusManager.instance.primaryFocus != primary) return;
+      final scrollable = Scrollable.maybeOf(target);
+      final object = target.findRenderObject();
+      if (scrollable == null || object == null || !object.attached) return;
+      final viewport = RenderAbstractViewport.maybeOf(object);
+      if (viewport == null) return;
+      // A loading page can retain an offset below its new first row. The
+      // end-only policy never scrolls back to a focused row above the clip.
+      final start = viewport.getOffsetToReveal(object, 0, axis: scrollable.position.axis).offset;
+      final policy = start < scrollable.position.pixels
+          ? ScrollPositionAlignmentPolicy.keepVisibleAtStart
+          : ScrollPositionAlignmentPolicy.keepVisibleAtEnd;
+      Scrollable.ensureVisible(target, alignmentPolicy: policy).ignore();
     });
   }
 

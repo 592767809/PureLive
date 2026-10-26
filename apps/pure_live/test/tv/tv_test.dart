@@ -17,6 +17,8 @@ import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/ui_mode.dart';
 import 'package:pure_live/features/home/home_page.dart';
+import 'package:pure_live/features/iptv/iptv_data.dart';
+import 'package:pure_live/features/iptv/iptv_page.dart';
 import 'package:pure_live/features/live_play/logic/predictive_back.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/settings/settings_catalog.dart';
@@ -136,6 +138,7 @@ Future<AppServices> _pumpApp(
   List<LiveSite> extraSites = const [],
   List<LiveRoom> extraFollows = const [],
   bool taggedFollows = false,
+  Stream<IptvOverview>? iptvOverview,
 }) async {
   tester.view
     ..physicalSize = const Size(1920, 1080)
@@ -199,6 +202,7 @@ Future<AppServices> _pumpApp(
     ProviderScope(
       overrides: [
         appServicesProvider.overrideWithValue(services),
+        if (iptvOverview != null) iptvOverviewProvider.overrideWith((ref) => iptvOverview),
         televisionDeviceProvider.overrideWithValue(television),
         danmakuProvider.overrideWithValue(DanmakuRegistry({SiteIds.bilibili: FakeDanmaku.new})),
         playbackSessionFactoryProvider.overrideWithValue(({config}) => fakeSession(FakeEngine())),
@@ -238,6 +242,85 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  for (final size in [const Size(1920, 1080), const Size(869, 400)]) {
+    testWidgets('K90 IPTV first load keeps a visible actionable focus at $size', (tester) async {
+      final overview = StreamController<IptvOverview>.broadcast();
+      final services = await _pumpApp(tester, iptvEnabled: true, iptvOverview: overview.stream);
+      addTearDown(() async {
+        await _close(tester, services);
+        await overview.close();
+      });
+      tester.view.physicalSize = size;
+      await tester.runAsync(() => services.store.meta.set(defaultGuideMetaKey, '1'));
+      unawaited(AppNavigator.toNamed<void>(RoutePath.kIptv));
+      await _settle(tester, rounds: 8);
+      await tester.pump(const Duration(seconds: 1));
+      overview.add(
+        const IptvOverview(
+          playlists: [
+            (
+              playlist: IptvPlaylist(
+                id: 'fixture',
+                name: 'Synthetic playlist',
+                format: IptvPlaylistFormat.m3u,
+                source: 'https://example.invalid/one.m3u',
+              ),
+              channels: 1,
+            ),
+            (
+              playlist: IptvPlaylist(
+                id: IptvPlaylist.hotId,
+                name: 'hot',
+                format: IptvPlaylistFormat.m3u,
+                source: 'https://example.invalid/hot.m3u',
+              ),
+              channels: 149,
+            ),
+          ],
+          guides: [
+            (
+              source: EpgSource(id: 'guide', name: 'Synthetic guide', source: 'https://example.invalid/guide.xml'),
+              channels: 150,
+            ),
+          ],
+        ),
+      );
+      await _settle(tester, rounds: 8);
+      final first = FocusManager.instance.primaryFocus!;
+      var onImport = false;
+      first.context?.visitAncestorElements((element) {
+        onImport |= element.widget.key == const ValueKey('iptv-import-playlist');
+        return !onImport;
+      });
+      expect(
+        onImport,
+        isTrue,
+        reason: 'loaded IPTV must focus its import row, not an old row or invisible scope: $first',
+      );
+      final viewport = tester.getRect(find.byKey(const ValueKey('iptv-scroll')));
+      expect(first.rect.top, greaterThanOrEqualTo(viewport.top));
+      expect(first.rect.bottom, lessThanOrEqualTo(viewport.bottom));
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      final second = FocusManager.instance.primaryFocus!;
+      expect(second, isNot(same(first)), reason: 'Down must advance from the import row');
+      expect(second.rect.top, greaterThanOrEqualTo(viewport.top));
+      expect(second.rect.bottom, lessThanOrEqualTo(viewport.bottom));
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      expect(FocusManager.instance.primaryFocus, same(first));
+      expect(first.rect.top, greaterThanOrEqualTo(viewport.top));
+      expect(first.rect.bottom, lessThanOrEqualTo(viewport.bottom));
+      final position = tester
+          .state<ScrollableState>(
+            find.descendant(of: find.byKey(const ValueKey('iptv-scroll')), matching: find.byType(Scrollable)).first,
+          )
+          .position;
+      final settled = position.pixels;
+      await tester.pump(const Duration(seconds: 1));
+      expect(position.pixels, settled, reason: 'a visible focused row must not keep scrolling after layout settles');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('TV local nickname opens the input presenter and survives leaving the page', (tester) async {
     final services = await _pumpApp(tester);
     addTearDown(() => _close(tester, services));

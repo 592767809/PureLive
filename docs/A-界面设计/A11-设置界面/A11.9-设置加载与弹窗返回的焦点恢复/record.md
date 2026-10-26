@@ -17,3 +17,13 @@
 定向生命周期、七项issue61回归及应用fatal-infos通过。最终Windows包须重新实测；完整all/14与全部最终包按新提交重新验证，前一候选的通过记录不能冒充本次原生验收。
 
 2517adf79原生复验通过：已启用IPTV载入后首行导入播放列表获焦；Up只到页头同步按钮，Down返回首行；打开导入选择后Escape恢复原行。精确便携包与截图哈希保留。继续七页检查发现本地互动旧控件样式遗漏，归A11.8修正；已受控停止7d31b7ef2未完成门禁，源码指纹未变，退出-15不算通过。
+
+## K90窄横屏的焦点可见区域
+
+2026-10-27，e3e51fe5同源v4dev覆盖安装后核对APK哈希，保留12个关注、2个IPTV列表和1份节目单。手机五类设置和六个其他电视页查看及方向移动正常，但第一次进入已启用的IPTV页时，导入行在可视区域上方且看不到焦点框；再次进入正常。应用界面模式和系统旋转已恢复，异常候选保持私有。
+
+使用无网络的真实TV路由，先让IPTV处于loading，再发布2列表/150频道/1节目单的合成overview。1920×1080通过；869×400失败，焦点确实属于导入行，但顶部39.52低于滚动视口顶部131.56，被页头遮住。旧回归只比较整个页面边界，未比较实际滚动视口，所以没有覆盖此缺口。
+
+根因在TvSettingsScaffold._followFocus：固定keepVisibleAtEnd只处理下边界，不能把位于当前滚动偏移上方的焦点行带回。此行为已核对固定Flutter3.47.8源码和[官方策略定义](https://api.flutter.dev/flutter/widgets/ScrollPositionAlignmentPolicy.html)、[ensureVisible实现](https://api.flutter.dev/flutter/widgets/ScrollPosition/ensureVisible.html)。现在按RenderAbstractViewport计算的目标起点与当前pixels选择keepVisibleAtStart或keepVisibleAtEnd；完全可见时不跳动，异步回调再次核对当前路由、挂载状态和同一焦点，避免旧目标继续滚动页面。
+
+两种尺寸的加载后首焦点、Down/Up往返和布局稳定后不继续滚动均通过；完整tv_test.dart40项、焦点生命周期回归和应用fatal-infos通过。新提交仍须同源原生窄横屏检查、完整all/14及全平台重建，e3e包不公开。首次调查缺少iptv_page导入导致的一次测试编译失败单独保留，不计作产品复现；真正失败证据为第二次探针日志。
