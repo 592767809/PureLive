@@ -2,7 +2,7 @@
 
 # 任务清单
 
-共 20 组、109 个子分类、506 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
+共 20 组、109 个子分类、507 个任务。编号规则见 [PROCESS.md](PROCESS.md) 第 1 节，进度见 [STATUS.md](STATUS.md)，旧编号对照见 [MAPPING.md](MAPPING.md)。
 
 ## A 界面设计
 
@@ -1010,7 +1010,7 @@ HTTP 和 WebSocket、请求头、压缩、代理和镜像、原生 HTTP 通道�
 
 Windows、Linux、电视、苹果平台的客户端专属工作（打包、原生、平台差异）；各端的界面在 A16～A18。
 
-`██████████████████░░` 90%
+`████████████████░░░░` 82%
 
 ### [X01 Windows](X-多端客户端/X01-Windows/README.md)
 
@@ -1019,6 +1019,7 @@ Windows、Linux、电视、苹果平台的客户端专属工作（打包、原�
 | X01.1 | 键盘鼠标操作核对 | 功能 | 第三档 | 完成 | — | [设计或说明](X-多端客户端/X01-Windows/X01.1-键盘鼠标操作核对/README.md)、[任务书](X-多端客户端/X01-Windows/X01.1-键盘鼠标操作核对/brief.md) |
 | X01.2 | Windows 专属功能（功能清点第 13 节的 14 项） | 功能 | 第三档 | 完成 | — | [设计或说明](X-多端客户端/X01-Windows/X01.2-Windows专属功能/README.md)、[任务书](X-多端客户端/X01-Windows/X01.2-Windows专属功能/brief.md) |
 | X01.3 | Windows 安装包和自动更新 | 发布 | 第三档 | 完成 | — | [设计或说明](X-多端客户端/X01-Windows/X01.3-Windows安装包和自动更新/README.md)、[任务书](X-多端客户端/X01-Windows/X01.3-Windows安装包和自动更新/brief.md) |
+| X01.4 | 无障碍语义树崩溃与工具链补丁 | 工程 | 第一档 | 开发中 | 0/3：下一阶段“调用栈与上游回归对照” | [设计或说明](X-多端客户端/X01-Windows/X01.4-无障碍语义树崩溃与工具链补丁/README.md)、[任务书](X-多端客户端/X01-Windows/X01.4-无障碍语义树崩溃与工具链补丁/brief.md)、[记录](X-多端客户端/X01-Windows/X01.4-无障碍语义树崩溃与工具链补丁/record.md) |
 
 ### [X02 Linux](X-多端客户端/X02-Linux/README.md)
 
