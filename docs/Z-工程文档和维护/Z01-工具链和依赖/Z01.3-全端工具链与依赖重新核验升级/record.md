@@ -41,3 +41,5 @@ Apple 工作流增加官方 setup-python v7.1.0 固定提交，并从 toolchain.
 45210494b的完整门禁只有应用翻译集合检查失败：新增三个文案已在中英添加，但其余13种语言尚缺。全部修复行为测试及其他13成员通过，早前正则耗时偶发失败本轮未重现。现已补齐15种语言，i18n完整专项通过；不放宽或跳过检查，继续对新固定提交跑完整all/14。
 
 Apple云端实际验证补充：运行40347123328在setup-python阶段失败，actions/python-versions尚无macOS27 ARM64的3.15.2发行包。Python官方已提供universal2安装器，改用其发布页SHA-256固定的官方pkg，安装前验证摘要和签名，安装后验证解释器版本并配置官方证书；仅允许GitHub临时macOS主机执行。没有降级Python，也没有将尚未编译的Apple包算作通过。来源：https://www.python.org/downloads/release/python-3152/ 、https://docs.python.org/3/using/mac.html 。全部Apple工作流使用同一个引导脚本。
+
+Apple运行40355411455已实际通过官方Python3.15.2安装、Xcode27.1/CocoaPods1.17.0核对及macOS、iOS正式包编译。后续iOS模拟器构建、启动、安装和应用launch也完成；截图返回NSPOSIXErrorDomain22，原因是最新iOS27.1的iPhone Duo包含两个显示面板，旧命令未选择面板。日志列出display3为LCD-1、display1为primary LCD，现两处截图都显式指定display1。该次后续原生录制探针和Mac精确包复启作业被跳过，不计作通过；最终新源码需重建重验。主屏截图不外推双屏全部状态验收。

@@ -211,12 +211,14 @@ jobs:
           xcrun simctl launch "$device" com.mystyle.purelive.liu
           sleep 60
           mkdir -p ../../shots
-          xcrun simctl io "$device" screenshot ../../shots/ios-simulator.png
+          # The newest runtime includes iPhone Duo with two displays. Select
+          # its primary LCD explicitly instead of leaving simctl ambiguous.
+          xcrun simctl io "$device" screenshot --display=1 ../../shots/ios-simulator.png
           # A18.1 c8: what the share extension opens (a room link) reaches
           # the app as a share.
           xcrun simctl openurl "$device" 'purelive-share://share?text=https%3A%2F%2Flive.bilibili.com%2F6' || true
           sleep 25
-          xcrun simctl io "$device" screenshot ../../shots/ios-share.png
+          xcrun simctl io "$device" screenshot --display=1 ../../shots/ios-share.png
           xcrun simctl spawn "$device" log show --last 2m --predicate 'process == "Runner" AND eventMessage CONTAINS[c] "flutter"' --style compact | tail -n 80 || true
           data=$(xcrun simctl get_app_container "$device" com.mystyle.purelive.liu data)
           find "$data" -name '*.log' -exec cp {} ../../shots/ \; 2>/dev/null || true
