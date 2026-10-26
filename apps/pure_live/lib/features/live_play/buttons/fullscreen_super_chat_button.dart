@@ -6,6 +6,7 @@ import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/danmaku/super_chat_panel.dart';
+import 'package:pure_live/features/live_play/danmaku/super_chat_unread.dart';
 import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/live_play/player/player_controls.dart';
@@ -22,10 +23,11 @@ class FullscreenSuperChatButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (!watchSetting(ref, Settings.showFullscreenSuperChat)) return const SizedBox.shrink();
-    return ListenableSelector<bool>(
+    return ListenableSelector<(bool, int)>(
       listenable: controller,
-      selector: () => controller.superChats.isNotEmpty,
-      builder: (context, active, _) {
+      selector: () => (controller.superChats.isNotEmpty, controller.unreadSuperChatCount),
+      builder: (context, state, _) {
+        final (active, unread) = state;
         if (!active) return const SizedBox.shrink();
         return Material(
           color: OnVideoColors.scrim,
@@ -33,7 +35,7 @@ class FullscreenSuperChatButton extends ConsumerWidget {
           child: VideoIconButton(
             key: const ValueKey('live-play-fullscreen-super-chat'),
             tooltip: i18n('super_chat'),
-            icon: const Icon(AppIcons.superChatMark),
+            icon: SuperChatUnreadBadge(count: unread, child: const Icon(AppIcons.superChatMark)),
             onPressed: () {
               final panels = RoomPanelScope.maybeOf(context);
               if (panels != null) {

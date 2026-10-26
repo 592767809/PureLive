@@ -404,6 +404,7 @@ final class LiveSuperChatMessage {
     this.priceText = '',
     this.unit = LiveGiftUnit.other,
     this.image = '',
+    this.hasEstimatedStartTime = false,
   });
 
   /// The platform's id for the event, when it has one. Some message-board
@@ -437,6 +438,10 @@ final class LiveSuperChatMessage {
   /// Start of display.
   final DateTime startTime;
 
+  /// The board reconstructed [startTime] from a countdown, rather than an
+  /// event timestamp. Without an ID, overlapping snapshots can be one event.
+  final bool hasEstimatedStartTime;
+
   /// End of display.
   final DateTime endTime;
 
@@ -450,19 +455,42 @@ final class LiveSuperChatMessage {
   /// D07.6); empty for a message of text.
   final String image;
 
-  /// Same [messageId] when either has one; otherwise same sender, text and
-  /// price.
+  bool _samePayload(LiveSuperChatMessage other) =>
+      other.userName == userName &&
+      other.message == message &&
+      other.price == price &&
+      other.unit == unit &&
+      other.priceText == priceText &&
+      other.image == image;
+
+  /// Event matching for bounded histories and replay suppression. IDs are
+  /// authoritative. Estimated board times may drift while the display
+  /// windows overlap; a later window is a new purchase. Overlap is deliberately
+  /// not [operator ==], since it is not a transitive equivalence relation.
+  bool isSameEventAs(LiveSuperChatMessage other) {
+    if (messageId.isNotEmpty || other.messageId.isNotEmpty) return this == other;
+    if (!_samePayload(other)) return false;
+    if (other.startTime == startTime) return true;
+    return (hasEstimatedStartTime || other.hasEstimatedStartTime) &&
+        startTime.isBefore(other.endTime) &&
+        other.startTime.isBefore(endTime);
+  }
+
+  /// Same platform ID, or the same payload and event start time. Two later
+  /// purchases of identical text must not collapse in a set or a history.
   @override
   bool operator ==(Object other) {
     if (other is! LiveSuperChatMessage) return false;
     if (messageId.isNotEmpty || other.messageId.isNotEmpty) {
       return messageId.isNotEmpty && other.messageId == messageId;
     }
-    return other.userName == userName && other.message == message && other.price == price;
+    return _samePayload(other) && other.startTime == startTime;
   }
 
   @override
-  int get hashCode => messageId.isNotEmpty ? messageId.hashCode : Object.hash(userName, message, price);
+  int get hashCode => messageId.isNotEmpty
+      ? messageId.hashCode
+      : Object.hash(userName, message, price, unit, priceText, image, startTime);
 }
 
 /// The words of a super chat's price (D07.2, V03.5 §6.5): the platform's

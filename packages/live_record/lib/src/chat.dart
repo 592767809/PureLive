@@ -126,7 +126,7 @@ final class RecordChatWriter {
   final _pending = StringBuffer();
   final _combos = <String, _GiftCombo>{}; // Insertion ordered: the oldest goes first.
   final _held = <_HeldEntry>[];
-  final _superChats = <LiveSuperChatMessage>{};
+  final _superChats = <LiveSuperChatMessage>[];
   int _end;
   var _count = 0;
   var _paidCount = 0;
@@ -196,8 +196,9 @@ final class RecordChatWriter {
 
   void _addSuperChat(LiveMessage message, DateTime receivedAt) {
     final superChat = message.data;
-    if (superChat is! LiveSuperChatMessage || message.replayed || !_superChats.add(superChat)) return;
-    if (_superChats.length > _maxSuperChats) _superChats.remove(_superChats.first);
+    if (superChat is! LiveSuperChatMessage || message.replayed || _superChats.any(superChat.isSameEventAs)) return;
+    _superChats.add(superChat);
+    if (_superChats.length > _maxSuperChats) _superChats.removeAt(0);
     final at = _offsetMs(receivedAt);
     final shown = superChat.endTime.difference(superChat.startTime).inSeconds;
     final price = superChat.price;

@@ -258,6 +258,12 @@ Future<List<Finding>> collect({
     });
   }
   final androidRepository = http.get('https://dl.google.com/android/repository/repository2-3.xml');
+  if (env['WINDOW_MANAGER_UPSTREAM_VERSION'] case final pinned?) {
+    await check('fork', 'window_manager (published base)', pinned, () async {
+      final data = (await http.json('https://pub.dev/api/packages/window_manager'))! as Map<String, Object?>;
+      return (data['latest']! as Map<String, Object?>)['version']! as String;
+    });
+  }
   await check('toolchain', 'Android NDK', env['ANDROID_NDK_VERSION'] ?? '', () async {
     final xml = await androidRepository;
     return latestAndroidPackage(xml, 'ndk;');
@@ -277,6 +283,10 @@ Future<List<Finding>> collect({
   await check('toolchain', 'Android cmdline-tools', env['ANDROID_CMDLINE_TOOLS'] ?? '', () async {
     final xml = await androidRepository;
     return latestAndroidPackage(xml, 'cmdline-tools;');
+  });
+  await check('toolchain', 'Android CLI', env['ANDROID_CLI_VERSION'] ?? '', () async {
+    final notes = await http.get('https://developer.android.com/tools/agents/android-cli/release-notes');
+    return highestStable(RegExp(r'Version\s+(\d+\.\d+\.\d+)').allMatches(notes).map((match) => match[1]!));
   });
   await check('toolchain', 'Android CMake', env['ANDROID_CMAKE_VERSION'] ?? '', () async {
     final xml = await androidRepository;

@@ -757,6 +757,31 @@ void main() {
       await connection.close();
     });
 
+    test('issue #16: no-ID board snapshots deduplicate until a new display window', () async {
+      var clock = now;
+      final connector = _Connector();
+      final connection = HuyaDanmakuConnection(connector: connector.call, now: () => clock);
+      addTearDown(connection.close);
+      final events = _record(connection);
+      await connection.connect(_args());
+      final notice = _single(
+        HuyaDanmakuProtocol.superChatUri,
+        _panel([(id: 0, nick: 'viewer', text: 'same paid text', cost: 30, total: 60, countdown: 45)]),
+      );
+      connector.channels.single.incoming.add(notice);
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(_superChats(events), hasLength(1));
+      expect(_superChats(events).single.hasEstimatedStartTime, isTrue);
+      clock = now.add(const Duration(seconds: 1));
+      connector.channels.single.incoming.add(notice);
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(_superChats(events), hasLength(1));
+      clock = now.add(const Duration(seconds: 120));
+      connector.channels.single.incoming.add(notice);
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(_superChats(events), hasLength(2));
+    });
+
     test('C-10: S20, the recorded stream ends, end the run (Broadcast ended); not for another streamer', () async {
       final frames = _fixtureFrames('S20-end');
       expect(_s20Uids, hasLength(3));

@@ -48,6 +48,12 @@ jobs:
           path: purelive-config
           persist-credentials: false
 
+      - name: Read Python version
+        run: grep -E '^PYTHON_VERSION=' purelive-config/toolchain.env >> "$GITHUB_ENV"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
       - name: Tools
         run: |
           set -euo pipefail

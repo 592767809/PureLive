@@ -19,6 +19,11 @@ if [[ "$(pod --version)" != "$COCOAPODS_VERSION" ]]; then
   echo "CocoaPods does not match toolchain.env" >&2
   exit 1
 fi
+if [[ "$(python3 --version)" != "Python $PYTHON_VERSION" ]]; then
+  echo "Python does not match toolchain.env" >&2
+  exit 1
+fi
 echo "$xcode_version"
 swift --version
 echo "CocoaPods $(pod --version)"
+python3 --version

@@ -1170,6 +1170,7 @@ abstract final class HuyaApi {
           price: cost > 0 ? cost : (paid > 0 ? max(1, (paid / 100).round()) : cost),
           unit: LiveGiftUnit.yuan,
           startTime: end.subtract(Duration(seconds: total > 0 ? total : remaining)),
+          hasEstimatedStartTime: true,
           endTime: end,
           backgroundColor: '#ffffff',
           backgroundBottomColor: '#246488',

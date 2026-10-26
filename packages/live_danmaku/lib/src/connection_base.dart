@@ -210,6 +210,7 @@ LiveSuperChatMessage _cleanSuperChat(LiveSuperChatMessage chat) {
     message: text,
     price: chat.price,
     startTime: chat.startTime,
+    hasEstimatedStartTime: chat.hasEstimatedStartTime,
     endTime: chat.endTime,
     backgroundColor: chat.backgroundColor,
     backgroundBottomColor: chat.backgroundBottomColor,

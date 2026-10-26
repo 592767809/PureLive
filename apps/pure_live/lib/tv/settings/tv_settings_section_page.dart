@@ -39,18 +39,31 @@ class TvSettingsScaffold extends StatefulWidget {
 class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
   final FocusScopeNode _body = FocusScopeNode(debugLabel: 'tv settings page', skipTraversal: true);
   bool _focusedInitially = false;
+  bool _focusPending = false;
+  bool _currentRoute = true;
 
   @override
   void initState() {
     super.initState();
     FocusManager.instance.addListener(_followFocus);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route visibility, so loading under a dialog does not
+    // permanently abandon initial focus when the dialog is dismissed.
+    _currentRoute = ModalRoute.isCurrentOf(context) ?? true;
     _focusFirst();
   }
 
   void _focusFirst() {
+    if (!mounted || _focusedInitially || _focusPending || !_currentRoute) return;
+    _focusPending = true;
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => scheduleMicrotask(() {
-        if (!mounted || _focusedInitially || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+        _focusPending = false;
+        if (!mounted || _focusedInitially || !_currentRoute) return;
         final primary = FocusManager.instance.primaryFocus;
         if (_body.hasFocus && primary is! FocusScopeNode) {
           _focusedInitially = true;

@@ -396,7 +396,7 @@ final class _HuyaSuperChats {
   final DanmakuRun _run;
   final Future<List<LiveSuperChatMessage>> Function()? _fetch;
   // Insertion ordered, so the oldest entry is forgotten first.
-  final Set<LiveSuperChatMessage> _reported = {};
+  final List<LiveSuperChatMessage> _reported = [];
   Future<void>? _refreshing;
   bool _queued = false;
 
@@ -442,10 +442,11 @@ final class _HuyaSuperChats {
 
   /// Reports [entry] unless this run already did; whether it did now.
   bool report(LiveSuperChatMessage entry) {
-    if (!_run.isActive || !_reported.add(entry)) return false;
+    if (!_run.isActive || _reported.any(entry.isSameEventAs)) return false;
+    _reported.add(entry);
     _run.message(HuyaDanmakuProtocol.superChatMessage(entry));
     while (_reported.length > HuyaDanmakuProtocol.maxRememberedSuperChats) {
-      _reported.remove(_reported.first);
+      _reported.removeAt(0);
     }
     return true;
   }

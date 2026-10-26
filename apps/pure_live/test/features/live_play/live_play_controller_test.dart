@@ -237,6 +237,46 @@ void main() {
     expect(controller.superChatHistory, isEmpty);
   });
 
+  test('issue #16: identical paid text at different server times is not one event', () async {
+    final controller = controllerFor(FakeSite(liveRoom()));
+    addTearDown(controller.dispose);
+    await controller.start();
+    await Future<void>.delayed(const Duration(seconds: 1));
+    LiveSuperChatMessage card(int seconds) => LiveSuperChatMessage(
+      userName: 'viewer',
+      face: '',
+      message: 'same paid text',
+      price: 30,
+      startTime: now.add(Duration(seconds: seconds)),
+      endTime: now.add(Duration(seconds: seconds + 300)),
+      backgroundColor: '',
+      backgroundBottomColor: '',
+    );
+    void emit(LiveSuperChatMessage card) => danmaku.emit(
+      DanmakuReceived(
+        LiveMessage(
+          type: LiveMessageType.superChat,
+          userName: card.userName,
+          message: card.message,
+          color: LiveMessageColor.white,
+          data: card,
+        ),
+      ),
+    );
+    emit(card(0));
+    emit(card(1));
+    emit(card(1));
+    expect(controller.superChatHistory, hasLength(2), reason: 'two purchases, one replay');
+    expect(controller.superChatHistory.map((card) => card.startTime), [now, now.add(const Duration(seconds: 1))]);
+    expect(controller.unreadSuperChatCount, 2);
+    controller.markSuperChatsRead();
+    expect(controller.unreadSuperChatCount, 0);
+    emit(card(1));
+    expect(controller.unreadSuperChatCount, 0, reason: 'a replay cannot make a read event unread');
+    emit(card(2));
+    expect(controller.unreadSuperChatCount, 1);
+  });
+
   test('issue #16: history is capped without saving it to the store', () async {
     final site = FakeSite(liveRoom())
       ..superChats = [
