@@ -14,6 +14,7 @@ import 'package:pure_live/features/live_play/local_interaction/logic/local_catal
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/shared/settings/settings_text_presenter.dart';
 
 /// The local interaction panel (U.2k-d, 3.x `local_interaction_sheet.dart`):
 /// a room panel like the record panel (c2: under the picture in portrait,
@@ -587,6 +588,30 @@ class LocalProfileEditor extends StatefulWidget {
 class _LocalProfileEditorState extends State<LocalProfileEditor> {
   late final TextEditingController _name = TextEditingController(text: widget.interaction.userName);
 
+  Future<void> _editName() async {
+    final prompt = SettingsTextPresenter.maybeOf(context)?.prompt;
+    final name = prompt == null
+        ? await showAppInputDialog(
+            context: context,
+            title: i18n('local_user_name'),
+            confirmLabel: i18n('save'),
+            initial: widget.interaction.userName,
+            maxLength: LocalCatalog.nameLimit,
+          )
+        : await prompt(
+            context,
+            title: i18n('local_user_name'),
+            initial: widget.interaction.userName,
+            maxLength: LocalCatalog.nameLimit,
+          );
+    if (!mounted || name == null) return;
+    widget.interaction.updateName(name);
+    // Keep the retained phone controller in sync, including normalization,
+    // so disposing this shared editor cannot restore the previous name.
+    _name.text = widget.interaction.userName;
+    setState(() {});
+  }
+
   @override
   void dispose() {
     widget.interaction.updateName(_name.text);
@@ -603,26 +628,33 @@ class _LocalProfileEditorState extends State<LocalProfileEditor> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
-          child: TextField(
-            key: const ValueKey('local-name-input'),
-            controller: _name,
-            maxLength: LocalCatalog.nameLimit,
-            textInputAction: TextInputAction.done,
-            onChanged: widget.interaction.updateName,
-            onSubmitted: widget.interaction.updateName,
-            decoration: InputDecoration(
-              labelText: i18n('local_user_name'),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              counterText: '',
-              suffix: ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _name,
-                builder: (context, value, _) => Text(
-                  '${value.text.characters.length} / ${LocalCatalog.nameLimit}',
-                  style: theme.textTheme.bodySmall?.tabular.copyWith(color: scheme.onSurfaceVariant),
+          child: SettingsRowStyle.tvOf(context)
+              ? SettingsLinkRow(
+                  key: const ValueKey('local-name-edit'),
+                  title: i18n('local_user_name'),
+                  value: widget.interaction.userName,
+                  onTap: () => unawaited(_editName()),
+                )
+              : TextField(
+                  key: const ValueKey('local-name-input'),
+                  controller: _name,
+                  maxLength: LocalCatalog.nameLimit,
+                  textInputAction: TextInputAction.done,
+                  onChanged: widget.interaction.updateName,
+                  onSubmitted: widget.interaction.updateName,
+                  decoration: InputDecoration(
+                    labelText: i18n('local_user_name'),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    counterText: '',
+                    suffix: ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _name,
+                      builder: (context, value, _) => Text(
+                        '${value.text.characters.length} / ${LocalCatalog.nameLimit}',
+                        style: theme.textTheme.bodySmall?.tabular.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),

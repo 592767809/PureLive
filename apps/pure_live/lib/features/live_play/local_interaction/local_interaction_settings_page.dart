@@ -494,7 +494,11 @@ class _Tile extends StatelessWidget {
       if (onTap != null) {
         return SettingsLinkRow(key: key, title: title, subtitle: subtitle, icon: icon, value: trailing, onTap: onTap);
       }
-      return SettingsRow(key: key, title: title, subtitle: subtitle, icon: icon);
+      // In directional mode InkWell remains focusable even when onTap is
+      // null. This informational tile has no action or interactive child.
+      return ExcludeFocus(
+        child: SettingsRow(key: key, title: title, subtitle: subtitle, icon: icon),
+      );
     }
     return MergeSemantics(
       child: InkWell(

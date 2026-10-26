@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/settings/settings_dialogs.dart';
+import 'package:pure_live/shared/settings/settings_text_presenter.dart';
 import 'package:pure_live/tv/phone/tv_phone_dialogs.dart';
 import 'package:pure_live/tv/settings/tv_color_grid.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
@@ -23,11 +24,17 @@ class TvSettingsStyle extends StatelessWidget {
       present: presentTvOptions,
       child: SettingsColorPresenter(
         pick: showTvColorGrid,
-        child: TvPhoneBridge(child: child),
+        child: SettingsTextPresenter(
+          prompt: _editText,
+          child: TvPhoneBridge(child: child),
+        ),
       ),
     ),
   );
 }
+
+Future<String?> _editText(BuildContext context, {required String title, required String initial, int? maxLength}) =>
+    TvTextInput.prompt(context, title: title, text: initial, maxLength: maxLength);
 
 /// [AppOptionRequest] as [showTvChoice].
 Future<Object?> presentTvOptions(BuildContext context, AppOptionRequest request) => showTvChoice<Object?>(

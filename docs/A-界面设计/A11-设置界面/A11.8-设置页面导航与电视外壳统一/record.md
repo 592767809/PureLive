@@ -43,3 +43,13 @@ iOS只对UUID格式的旧Documents/PURE_LIVE/RECORDS路径，在当前系统Docu
 本地互动页另发现私有_Tile未接入TvSettingsStyle，原始InkWell和Switch产生多余焦点，纯信息status行也可获焦，且无公共电视焦点框；实际Down/Up仍无白框，排除仅触摸高亮模式差异。补充真实TV路由的可见3px焦点框、单行焦点和信息行跳过断言，修改前失败。电视分支现复用SettingsSwitchRow、SettingsLinkRow和SettingsRow；手机原布局与交互保留。七项TV入口测试、56项原本地互动/成长/历史测试和应用fatal-infos通过。新包本地互动原生复验仍待执行，未将代码测试冒充真机结果。
 
 本轮Windows只用生成的播放列表和节目单，未操作正式安装或删除数据；电视方向键为Windows键盘，不外推Sony实体遥控器。自定义背景图片/颜色未在本轮手动切换，透明内层与公共主题继承由对应测试覆盖。
+
+## 电视昵称方向键与纯信息行
+
+24942728d独立Windows包已确认本地互动首项完整白框及IPTV首行正常，但Down进入原内联昵称TextField后继续按Down停留编辑器。旧测试只检查焦点在视口内，未检查实际向下进展，因而掩盖了此问题。真实路由新增连续Down至少经过三个控件的断言，修改前失败。
+
+结构检查发现跨功能导入后，输入适配器移到shared/settings，结构检查及两项真实TV路由回归和fatal-infos重新通过。电视昵称改为既有设置行显示当前值，按确定后通过SettingsTextPresenter调用现有TvTextInput；Android沿用系统输入，桌面沿用TV输入弹窗，手机仍用原内联输入。确认后同步领域模型和旧控制器的规范化值，防止退出页面时dispose恢复旧昵称；取消不写入。
+
+修正昵称后，完整电视测试首次真正走到纯信息status行，显示前一轮“跳过信息行”仍未成立：Flutter固定SDK的InkWell._canRequestFocus在NavigationMode.directional下无条件为true，不采用onTap为空/canRequestFocus=false。此行为也与官方[实现](https://flutter.googlesource.com/mirrors/flutter.git/+/refs/heads/main/packages/flutter/lib/src/material/ink_well.dart)一致。仅将无动作且无交互子控件的本地信息行包入ExcludeFocus，不改其他设置行的子控件交互。
+
+修改后完整tv_test.dart 38项、原手机本地互动/成长/历史56项和应用fatal-infos通过。覆盖真实方向移动、信息行跳过、白框、输入初值/长度/确认/取消和离页持久化；弹窗适配测试使用现有输入替身，最终原生按键和输入仍须新包验证。此前249候选未执行全量门禁、未发布；新提交先构建Windows实测，再完整all/14及同提交其他平台构建。

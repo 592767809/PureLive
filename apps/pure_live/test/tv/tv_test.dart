@@ -238,6 +238,42 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('TV local nickname opens the input presenter and survives leaving the page', (tester) async {
+    final services = await _pumpApp(tester);
+    addTearDown(() => _close(tester, services));
+    final original = TvTextInput.prompt;
+    addTearDown(() => TvTextInput.prompt = original);
+    String? answer = '  电视昵称  ';
+    final initialValues = <String>[];
+    TvTextInput.prompt =
+        (context, {required title, hint = '', text = '', subtitle, numeric = false, suffix, maxLength}) async {
+          expect(title, '本地昵称');
+          expect(maxLength, 20);
+          initialValues.add(text);
+          return answer;
+        };
+    unawaited(AppNavigator.toNamed<void>(RoutePath.kLocalInteraction));
+    await _settle(tester, rounds: 8);
+    final edit = find.byKey(const ValueKey('local-name-edit'));
+    expect(edit, findsOneWidget);
+    expect(find.byKey(const ValueKey('local-name-input')), findsNothing, reason: 'the TV page has no inline editor');
+    await tester.tap(edit);
+    await _settle(tester);
+    expect(find.text('电视昵称'), findsOneWidget);
+    answer = null;
+    await tester.tap(edit);
+    await _settle(tester);
+    expect(initialValues.last, '电视昵称');
+    expect(find.text('电视昵称'), findsOneWidget, reason: 'cancelling does not change the saved nickname');
+    await tester.binding.handlePopRoute();
+    await _settle(tester);
+    expect(
+      services.store.settings.get(Settings.localInteractionUserName),
+      '电视昵称',
+      reason: 'disposing the old inline controller must not overwrite the confirmed value',
+    );
+  });
+
   testWidgets('issue 61: initial focus waits for content that loads after many frames', (tester) async {
     await tester.runAsync(loadStrings);
     final ready = ValueNotifier(false);
@@ -380,9 +416,11 @@ void main() {
           reason: 'Up must not wrap from the first row to the bottom',
         );
       }
+      final visited = <FocusNode>{};
       for (var step = 0; step < 12; step++) {
         await _press(tester, LogicalKeyboardKey.arrowDown);
         final focused = FocusManager.instance.primaryFocus!;
+        visited.add(focused);
         if (path == RoutePath.kLocalInteraction) {
           var informational = false;
           focused.context!.visitAncestorElements((element) {
@@ -394,6 +432,13 @@ void main() {
         final page = tester.getRect(root);
         expect(focused.rect.top, greaterThanOrEqualTo(page.top - 1));
         expect(focused.rect.bottom, lessThanOrEqualTo(page.bottom + 1), reason: 'directional focus remains in view');
+      }
+      if (path == RoutePath.kLocalInteraction) {
+        expect(
+          visited.length,
+          greaterThanOrEqualTo(3),
+          reason: 'Down must advance through controls, not stay in an editor',
+        );
       }
       await tester.binding.handlePopRoute();
       await _settle(tester);
