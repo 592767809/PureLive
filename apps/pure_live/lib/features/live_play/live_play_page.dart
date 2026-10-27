@@ -244,7 +244,11 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       store: store,
       siteOf: ref.read(sitesProvider).maybeOf,
       maySwitch: () =>
-          mounted && (ModalRoute.isCurrentOf(context) ?? true) && (_controller?.mayAutoStart?.call() ?? true),
+          mounted &&
+          _controller?.sleepDeadline == null &&
+          !(_controller?.sleepTimerFinished ?? false) &&
+          (ModalRoute.isCurrentOf(context) ?? true) &&
+          (_controller?.mayAutoStart?.call() ?? true),
       onSwitch: (next) {
         if (!mounted) return;
         _playlist = RoomPlaylist(_playlist?.rooms ?? const [], current: next);
@@ -311,6 +315,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     LiveSite site, {
     required PlaybackSession session,
     required Object? playerConfig,
+    bool initialAudioOnly = false,
   }) {
     final store = ref.read(storeProvider);
     final danmaku = ref.read(danmakuProvider);
@@ -328,6 +333,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       network: ref.read(networkProbeProvider),
       emotes: ref.read(emoteLibraryProvider),
       now: ref.read(roomClockProvider),
+      initialAudioOnly: initialAudioOnly,
     );
     final background = RoomBackgroundPolicy(
       controller: controller,
@@ -464,7 +470,13 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _autoFullscreen = null;
     _panels.close();
     _detachRoom();
-    final runtime = _newRuntime(room, site, session: old.session, playerConfig: old.playerConfig);
+    final runtime = _newRuntime(
+      room,
+      site,
+      session: old.session,
+      playerConfig: old.playerConfig,
+      initialAudioOnly: automatic && old.controller.audioOnly,
+    );
     setState(() {
       _attachRoom(runtime, automatic: automatic);
       // Everything of the room before is built afresh, the player too.

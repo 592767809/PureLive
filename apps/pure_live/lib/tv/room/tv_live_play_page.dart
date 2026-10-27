@@ -145,7 +145,11 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       store: ref.read(storeProvider),
       siteOf: ref.read(sitesProvider).maybeOf,
       maySwitch: () =>
-          mounted && (ModalRoute.isCurrentOf(context) ?? true) && (_controller?.mayAutoStart?.call() ?? true),
+          mounted &&
+          _controller?.sleepDeadline == null &&
+          !(_controller?.sleepTimerFinished ?? false) &&
+          (ModalRoute.isCurrentOf(context) ?? true) &&
+          (_controller?.mayAutoStart?.call() ?? true),
       onSwitch: (next) {
         if (!mounted) return;
         var index = _playlist.indexWhere(next.hasSameIdentity);
@@ -162,6 +166,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   }
 
   void _open(LiveRoom room, {bool automatic = false}) {
+    final audioOnly = automatic && (_controller?.audioOnly ?? false);
     _autoRoomSwitch?.setRoom(room, automatic: automatic);
     _closeRoom();
     final site = ref.read(sitesProvider).maybeOf(room.platform);
@@ -186,6 +191,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       toast: (message) => AppNavigator.toast(message),
       network: ref.read(networkProbeProvider),
       emotes: ref.read(emoteLibraryProvider),
+      initialAudioOnly: audioOnly,
     );
     _background = RoomBackgroundPolicy(controller: controller, settings: store.settings)..start();
     controller.addListener(_syncAutoRoomSwitch);

@@ -8,3 +8,8 @@
 调研：upstream pure_live 0fa4d23dcde0b245f7abf6fae26333716d756aa3、pure_live_TV 6a1186630b41df36d0ae4ed7bb996d6c1c745897、media_core 607aacb7a7f88afad329496daba8e25bfc226dd2已刷新并搜索自动换台/恢复终态；本次未复制上游代码。本仓库PlaybackSession._publishOffline仍持续探测，因此显式排除networkLostCode；已对照Dart Future.timeout官方说明，超时不取消原future，必须通过代次校验丢弃晚到结果：https://api.dart.dev/dart-async/Future/timeout.html。
 
 原生验证入口test/native/auto_room_switch_smoke.dart只用内存设置/关注和生成视频，回环HTTP，禁用外部平台HTTP与账号；使用正式页面和真实mpv。原生验证未完成前不宣称真机通过；不是正式直播平台故障复现。
+
+
+2026-10-27补查播放意图：真实页面新增两项回归，先复现自动换台会重置睡眠计时及丢失仅音频选择；修正后通过。自动换台保留仅音频；睡眠定时有效或已到时时不自动打开新房间，避免延长用户明确要求的停止时间。定时到期后仍不换台已有65秒虚拟时间覆盖。最终相关145项回归通过，27项设置/存储测试通过，fatal-infos分析无问题。
+
+Windows前一候选caad26b86原生验证实际通过：共享设置默认关→开启，普通和电视页面a下播后进入b，多画面a/busy恢复后改成b/busy且声音焦点保留第二格；真实mpv在本地生成视频上推进位置，六张截图已查看，设置恢复关闭并退出进程。后续睡眠/音频修订将再次构建复验，不把旧截图写成新提交全部验收。
