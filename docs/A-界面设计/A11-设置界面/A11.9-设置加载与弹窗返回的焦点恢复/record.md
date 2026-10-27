@@ -35,3 +35,7 @@ K90同源f4候选完成手机五根设置、导航实际隐藏／恢复和原开
 当前全局FocusFrame仅在highlightMode.traditional时绘制。固定Flutter的Android虚拟键盘保护见[上游180746](https://github.com/flutter/flutter/issues/180746)及本地FocusManager实现：虚拟设备键不切换到传统高亮模式。因此仅凭ADB键事件不能等同物理遥控器，但电视界面仍应像现有设置行一样始终显示真实焦点，混合触摸／虚拟输入不应使部分按钮消失。
 
 修复只在TvSettingsStyle内部覆盖五种Material按钮的side解析，使用电视统一近白边框；未聚焦及禁用时回退原样式，手机与桌面外部主题不改，不强制全局highlightStrategy。10项真实Material绘制回归中，修改前电视5项失败、普通模式5项通过；修改后全部通过，并且取消焦点恢复原外观、全局touch模式保持。加上完整tv_test.dart，50项通过，应用fatal-infos通过。v8原14成员门禁和各端包保留为历史证据，最终版本须按新提交重建及验证，不能沿用旧包哈希。
+
+## 完整IPTV路由的主题覆盖修正
+
+ccc候选再次安装核对哈希并恢复原界面／旋转后，普通按钮仍未通过实际画面验收，未公开。局部Material组件回归不足：TvSettingsScaffold在TvSettingsStyle内层又创建了来自外层context的透明背景Theme，覆盖局部按钮边框主题。将同样的alwaysTouch焦点边框断言加入真实IPTV异步数据路由，两种尺寸修改前均失败，保留红灯日志。现在先应用透明背景，再在其内部应用TvSettingsStyle；两者合并而不互相覆盖。完整50项电视回归和fatal-infos通过。最终新提交仍须同源手机More／Delete按钮边框及上下视口复验，不能把ccc组件测试当作页面已通过。

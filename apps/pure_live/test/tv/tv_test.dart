@@ -244,6 +244,10 @@ String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 void main() {
   for (final size in [const Size(1920, 1080), const Size(869, 400)]) {
     testWidgets('K90 IPTV first load keeps a visible actionable focus at $size', (tester) async {
+      final highlightStrategy = FocusManager.instance.highlightStrategy;
+      FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+      addTearDown(() => FocusManager.instance.highlightStrategy = highlightStrategy);
+
       final overview = StreamController<IptvOverview>.broadcast();
       final services = await _pumpApp(tester, iptvEnabled: true, iptvOverview: overview.stream);
       addTearDown(() async {
@@ -305,6 +309,17 @@ void main() {
       expect(second, isNot(same(first)), reason: 'Down must advance from the import row');
       expect(second.rect.top, greaterThanOrEqualTo(viewport.top));
       expect(second.rect.bottom, lessThanOrEqualTo(viewport.bottom));
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      final more = find.byKey(const ValueKey('iptv-more-fixture'));
+      final material = tester.widget<Material>(find.descendant(of: more, matching: find.byType(Material)).first);
+      expect(
+        (material.shape! as OutlinedBorder).side,
+        const BorderSide(color: TvColors.focusRing, width: 2),
+        reason: 'the actual nested TV route must retain the standard button focus theme',
+      );
+      expect(FocusManager.instance.highlightMode, FocusHighlightMode.touch);
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      expect(FocusManager.instance.primaryFocus, same(second));
       await _press(tester, LogicalKeyboardKey.arrowUp);
       expect(FocusManager.instance.primaryFocus, same(first));
       expect(first.rect.top, greaterThanOrEqualTo(viewport.top));

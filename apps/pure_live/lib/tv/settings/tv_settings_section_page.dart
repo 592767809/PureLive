@@ -145,13 +145,10 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
             Expanded(
               child: FocusScope(
                 node: _body,
-                child: TvSettingsStyle(
-                  child: SettingsPageHeaderScope(
-                    builder: _header,
-                    child: Theme(
-                      data: Theme.of(context).copyWith(scaffoldBackgroundColor: OnVideoColors.clear),
-                      child: widget.child,
-                    ),
+                child: Theme(
+                  data: Theme.of(context).copyWith(scaffoldBackgroundColor: OnVideoColors.clear),
+                  child: TvSettingsStyle(
+                    child: SettingsPageHeaderScope(builder: _header, child: widget.child),
                   ),
                 ),
               ),
