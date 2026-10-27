@@ -19,6 +19,7 @@ import 'package:pure_live/features/version/app_version.dart';
 import 'package:pure_live/features/version/update_download.dart';
 import 'package:pure_live/features/version/update_feed.dart';
 import 'package:pure_live/features/version/update_prompt.dart';
+import 'package:pure_live/features/version/version_page.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -40,23 +41,28 @@ final class _FakeFeed extends UpdateFeed {
   Future<UpdateInfo?> latest({Duration timeout = const Duration(seconds: 10)}) async => info;
 
   @override
-  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15)}) async => history;
+  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15), UpdateInfo? matching}) async =>
+      history;
 }
 
 UpdateInfo _info(String version, {int? build}) => UpdateInfo.fromJson({
   ..._versionJson(),
   'version': version,
-  'build_number': ?build,
+  'build_number': build ?? appBuild + 1,
   'version_desc': '- 斗鱼原画不再每 5 分钟断流\n- **更快**的播放',
   'platforms': const <String, Object?>{},
 }, platform: 'android');
 
-ReleaseFile _apk(String version) => ReleaseFile(
-  name: 'PureLive-$version-android-arm64-v8a-release.apk',
-  size: '3mb',
-  downloads: 1,
-  url: 'https://github.com/wzgrx/pure_live/releases/download/v$version/PureLive-$version-android-arm64-v8a-release.apk',
-);
+ReleaseFile _apk(String version, {int? build}) {
+  final number = build ?? appBuild + 1;
+  return ReleaseFile(
+    name: 'PureLive-$version-$number-android-arm64-v8a-release.apk',
+    size: '3mb',
+    downloads: 1,
+    url:
+        'https://github.com/wzgrx/pure_live/releases/download/v$version/PureLive-$version-$number-android-arm64-v8a-release.apk',
+  );
+}
 
 List<ReleaseInfo> _history(String version) => [
   ReleaseInfo(version: version, date: '2027-01-01', changelog: '-', files: [_apk(version)]),
@@ -97,6 +103,7 @@ Future<_Harness> _pump(
   double width = 393,
   double height = 852,
   bool directional = false,
+  String? nativePackage = 'arch_arm64',
   List<Override> overrides = const [],
   LiveRouteObserver? observer,
 }) async {
@@ -146,7 +153,11 @@ Future<_Harness> _pump(
   addTearDown(() => AppNavigator.router = null);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appServicesProvider.overrideWithValue(services), ...overrides],
+      overrides: [
+        appServicesProvider.overrideWithValue(services),
+        nativePackageTitleProvider.overrideWithValue(nativePackage),
+        ...overrides,
+      ],
       child: LiveUiScope(
         config: LiveUiConfig(strings: strings.ui),
         child: MaterialApp.router(
@@ -202,6 +213,7 @@ void main() {
         final info = UpdateInfo.fromJson({
           ..._versionJson(),
           'version': '9.0.0',
+          'build_number': appBuild + 1,
           'version_desc': longNotes ? [for (var i = 0; i < 45; i++) '- Release note $i'].join('\n') : '- Short note',
           'platforms': const <String, Object?>{},
         }, platform: 'android');
@@ -387,6 +399,7 @@ void main() {
       final long = UpdateInfo.fromJson({
         ..._versionJson(),
         'version': '9.0.0',
+        'build_number': appBuild + 1,
         'version_desc': [for (var i = 0; i < 30; i++) '- 第 $i 条改动'].join('\n'),
         'platforms': const <String, Object?>{},
       }, platform: 'android');
@@ -495,13 +508,89 @@ void main() {
     });
   });
 
+  testWidgets('Y02.2: a queued startup prompt cannot recommend an already superseded snapshot', (tester) async {
+    final observer = LiveRouteObserver();
+    final h = await _pump(tester, observer: observer);
+    final context = tester.element(find.text('home'));
+    final prompts = AppPrompts(listenRoutes: observer.addListener);
+    final feed = _FakeFeed(info: _info('9.0.0'), history: _history('9.0.0'));
+    unawaited(h.router.push<void>('/room'));
+    await tester.pumpAndSettle();
+    unawaited(checkForUpdateOnStartup(context, settings: h.services.store.settings, feed: feed, prompts: prompts));
+    await tester.pumpAndSettle();
+    expect(prompts.waiting, 1);
+    feed.info = const UpdateInfo(version: '10.0.0', buildNumber: 6000);
+    noteCheckedUpdate((await feed.check())!.info);
+    h.router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('new-version-dialog')), findsNothing);
+    expect(foundUpdate.value?.version, '10.0.0');
+  });
+
+  testWidgets('Y02.2: a queued startup prompt is discarded after its source policy changes', (tester) async {
+    final observer = LiveRouteObserver();
+    final h = await _pump(tester, observer: observer);
+    final context = tester.element(find.text('home'));
+    final prompts = AppPrompts(listenRoutes: observer.addListener);
+    final feed = _FakeFeed(info: _info('9.0.0'), history: _history('9.0.0'));
+    unawaited(h.router.push<void>('/room'));
+    await tester.pumpAndSettle();
+    unawaited(checkForUpdateOnStartup(context, settings: h.services.store.settings, feed: feed, prompts: prompts));
+    await tester.pumpAndSettle();
+    expect(prompts.waiting, 1);
+    await tester.runAsync(() => h.services.store.settings.set(Settings.useGitHubOriginForUpdates, true));
+    feed.deactivate();
+    foundUpdate.value = null;
+    h.router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('new-version-dialog')), findsNothing);
+    expect(foundUpdate.value, isNull);
+  });
+
+  testWidgets('Y02.2: missing native ABI opens details instead of offering another APK', (tester) async {
+    final h = await _pump(tester, nativePackage: 'arch_arm32');
+    final context = tester.element(find.text('home'));
+    final feed = _FakeFeed(info: _info('9.0.0'), history: _history('9.0.0'));
+    unawaited(checkForUpdateOnStartup(context, settings: h.services.store.settings, feed: feed, prompts: AppPrompts()));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('new-version-dialog')), findsOneWidget);
+    expect(find.text('下载并安装'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('new-version-update')));
+    await tester.pumpAndSettle();
+    expect(find.text('version page'), findsOneWidget);
+    expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+  });
+
+  testWidgets('Y02.2: the download entry rejects missing, older, current and mismatched update identities', (
+    tester,
+  ) async {
+    final folder = _temp();
+    final http = _GatedHttp(size: 1024);
+    final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
+    final context = tester.element(find.text('home'));
+    for (final info in <UpdateInfo?>[
+      null,
+      const UpdateInfo(version: '1.0.0', buildNumber: 99999),
+      UpdateInfo(version: appVersion, buildNumber: appBuild),
+      const UpdateInfo(version: '9.0.0', buildNumber: 1),
+    ]) {
+      await showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: info);
+    }
+    await showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('8.0.0').url], update: _info('9.0.0'));
+    final lowerBuild = _apk('9.0.0', build: 1);
+    await showUpdateDownload(context, file: lowerBuild, sources: [lowerBuild.url], update: _info('9.0.0', build: 1));
+    expect(http.opens, 0);
+    expect(h.toasts, hasLength(6));
+    expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+  });
+
   group('download (U.3d c7–c10)', () {
     testWidgets('downloading, done, open failed, folder failed: titles, lines and buttons', (tester) async {
       final folder = _temp();
       final http = _GatedHttp(size: 3 * 1024 * 1024);
       final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
       await tester.pump();
       await tester.pump();
       expect(find.text('正在下载 v9.0.0'), findsOneWidget);
@@ -562,7 +651,9 @@ void main() {
       final context = tester.element(find.text('home'));
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       try {
-        unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+        unawaited(
+          showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')),
+        );
         await tester.pump();
         await _until(tester, () => http.opens > 0);
         http.body.add(List.filled(1024, 1));
@@ -587,7 +678,7 @@ void main() {
       final http = _GatedHttp();
       await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
       await _until(tester, () => http.opens > 0);
       http.body.add(List.filled(1024 * 1024, 1));
       await _until(tester, () => find.text('已下载: 1.0 MB').evaluate().isNotEmpty);
@@ -612,7 +703,7 @@ void main() {
       final http = _GatedHttp(size: 3 * 1024 * 1024);
       final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
       await _until(tester, () => http.opens > 0);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
@@ -634,7 +725,7 @@ void main() {
           tester.element(find.text('home')),
           file: _apk('9.0.0'),
           sources: [_apk('9.0.0').url],
-          version: '9.0.0',
+          update: _info('9.0.0'),
         ),
       );
       await _until(tester, () => again.opens > 0);
@@ -667,7 +758,9 @@ void main() {
       settings = h.services.store.settings;
       final context = tester.element(find.text('home'));
       Future<void> start() async {
-        unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], version: '9.0.0'));
+        unawaited(
+          showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')),
+        );
         await _until(tester, () => find.byKey(const ValueKey('download-directory-dialog')).evaluate().isNotEmpty);
       }
 

@@ -108,8 +108,7 @@ class UpdateView extends ConsumerStatefulWidget {
 
 class _UpdateViewState extends ConsumerState<UpdateView> {
   bool _loading = true;
-  UpdateInfo? _info;
-  List<ReleaseFile> _files = const [];
+  UpdateSnapshot? _snapshot;
   int _generation = 0;
 
   @override
@@ -126,39 +125,34 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
       _loading = true;
     });
     final feed = ref.read(updateFeedProvider);
-    UpdateInfo? info;
-    var files = const <ReleaseFile>[];
+    UpdateSnapshot? checked;
     try {
-      info = await feed.latest();
-      if (info != null) {
-        noteCheckedUpdate(info);
-        try {
-          final releases = await feed.releases() ?? const [];
-          final wanted = info.version.replaceFirst(RegExp('^[vV]'), '');
-          files =
-              releases
-                  .where((release) => release.version.replaceFirst(RegExp('^[vV]'), '') == wanted)
-                  .firstOrNull
-                  ?.files ??
-              const [];
-        } on Object {
-          // The packages are optional: the release page still links them.
-        }
-      }
+      checked = await feed.check();
     } on Object {
-      info = null;
+      checked = null;
     }
-    if (!mounted || generation != _generation) return;
+    if (!mounted || generation != _generation || !feed.isActive || !identical(feed, ref.read(updateFeedProvider))) {
+      return;
+    }
+    final snapshot = checked ?? _snapshot?.asLastKnown();
+    if (snapshot != null) noteCheckedUpdate(snapshot.info);
     setState(() {
       _loading = false;
-      _info = info;
-      _files = files;
+      _snapshot = snapshot;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final platform = ref.read(updateFeedProvider).platform;
+    ref.listen(updateFeedProvider, (previous, next) {
+      if (previous == null || identical(previous, next)) return;
+      _generation++;
+      setState(() {
+        _loading = false;
+        _snapshot = _snapshot?.asLastKnown();
+      });
+    });
+    final platform = ref.watch(updateFeedProvider).platform;
     return Scaffold(
       appBar: AppBar(
         toolbarHeight: WindowClassScope.toolbarHeightOf(context),
@@ -177,7 +171,7 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
       ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
-        child: switch ((_loading, _info)) {
+        child: switch ((_loading, _snapshot)) {
           (true, null) => AppStatusView(
             key: const ValueKey('version-checking'),
             type: AppStatusType.loading,
@@ -194,12 +188,18 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
             buttonIcon: AppIcons.retry,
             onButtonPressed: _check,
           ),
-          (_, final UpdateInfo info) => _Details(
-            key: const ValueKey('version-update-scroll'),
-            info: info,
-            platform: _platformName(platform),
-            packages: platformPackages(platform, info, _files),
-            native: ref.watch(nativePackageTitleProvider),
+          (_, final UpdateSnapshot snapshot) => IgnorePointer(
+            ignoring: _loading,
+            child: ExcludeFocus(
+              excluding: _loading,
+              child: _Details(
+                key: const ValueKey('version-update-scroll'),
+                snapshot: snapshot,
+                platform: _platformName(platform),
+                packages: snapshot.info.isNewer ? platformPackages(platform, snapshot.info, snapshot.files) : const [],
+                native: ref.watch(nativePackageTitleProvider),
+              ),
+            ),
           ),
         },
       ),
@@ -208,15 +208,16 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
 }
 
 class _Details extends ConsumerWidget {
-  const new({required this.info, required this.platform, required this.packages, required this.native, super.key});
+  const new({required this.snapshot, required this.platform, required this.packages, required this.native, super.key});
 
-  final UpdateInfo info;
+  final UpdateSnapshot snapshot;
   final String platform;
   final List<(String, ReleaseFile)> packages;
   final String? native;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final info = snapshot.info;
     final githubOrigin = watchSetting(ref, Settings.useGitHubOriginForUpdates);
     final release = updateDownloadUri(info.releaseUrl);
     final colors = Theme.of(context).colorScheme;
@@ -225,7 +226,7 @@ class _Details extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
         for (final child in [
-          _StatusCard(info: info),
+          _StatusCard(snapshot: snapshot),
           if (packages.isNotEmpty)
             SettingsGroup(
               key: const ValueKey('version-packages'),
@@ -248,7 +249,7 @@ class _Details extends ConsumerWidget {
                         native: title == native,
                         sources: downloadSources(file.url, githubOrigin: githubOrigin),
                         githubOrigin: githubOrigin,
-                        version: info.version,
+                        info: info,
                       ),
                     ],
                   ],
@@ -269,7 +270,11 @@ class _Details extends ConsumerWidget {
                         // iPhone and iPad: the IPAs are there, installed
                         // with AltStore, SideStore or TrollStore (A18.1 c13).
                         i18n(
-                          defaultTargetPlatform == TargetPlatform.iOS ? 'version_ios_packages' : 'version_no_packages',
+                          !info.isNewer
+                              ? 'version_current_packages'
+                              : defaultTargetPlatform == TargetPlatform.iOS
+                              ? 'version_ios_packages'
+                              : 'version_no_packages',
                         ),
                         style: context.textStyles.t14.copyWith(color: colors.onSurfaceVariant),
                       ),
@@ -309,19 +314,20 @@ class _Details extends ConsumerWidget {
 /// "发现新版本: v…" or "已在使用最新版本", the installed and the newest
 /// version and "预发布" (c6; 3.x computed it but did not say it).
 class _StatusCard extends StatelessWidget {
-  const new({required this.info});
+  const new({required this.snapshot});
 
-  final UpdateInfo info;
+  final UpdateSnapshot snapshot;
 
   @override
   Widget build(BuildContext context) {
+    final info = snapshot.info;
     final colors = Theme.of(context).colorScheme;
     final styles = context.textStyles;
     final newer = info.isNewer;
     final color = newer ? colors.primary : colors.tertiary;
     final muted = styles.t13.copyWith(color: colors.onSurfaceVariant);
     return Container(
-      key: ValueKey(newer ? 'version-newer' : 'version-latest'),
+      key: ValueKey(snapshot.lastKnown ? 'version-last-known' : (newer ? 'version-newer' : 'version-latest')),
       margin: const EdgeInsets.only(top: 8, bottom: 4),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -338,9 +344,11 @@ class _StatusCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  newer
+                  snapshot.lastKnown
+                      ? i18n('version_last_known')
+                      : newer
                       ? i18n('new_version_info', args: {'version': updateVersionLabel(info)})
-                      : i18n('no_new_version_info'),
+                      : i18n('version_no_newer_observed'),
                   style: styles.t16.emphasis,
                 ),
                 const SizedBox(height: 4),
@@ -350,7 +358,7 @@ class _StatusCard extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(i18n('version_installed', args: {'version': appVersion}), style: muted),
-                    Text(i18n('version_newest', args: {'version': info.version}), style: muted),
+                    Text(i18n('version_source_version', args: {'version': updateVersionLabel(info)}), style: muted),
                     if (info.prerelease)
                       DecoratedBox(
                         decoration: BoxDecoration(
@@ -387,7 +395,7 @@ class _Package extends StatefulWidget {
     required this.native,
     required this.sources,
     required this.githubOrigin,
-    required this.version,
+    required this.info,
   });
 
   final String title;
@@ -395,7 +403,7 @@ class _Package extends StatefulWidget {
   final bool native;
   final List<String> sources;
   final bool githubOrigin;
-  final String version;
+  final UpdateInfo info;
 
   @override
   State<_Package> createState() => _PackageState();
@@ -442,7 +450,7 @@ class _PackageState extends State<_Package> {
       style: FilledButton.styleFrom(minimumSize: const Size(48, 48)),
       onPressed: widget.sources.isEmpty
           ? null
-          : () => unawaited(showUpdateDownload(context, file: file, sources: widget.sources, version: widget.version)),
+          : () => unawaited(showUpdateDownload(context, file: file, sources: widget.sources, update: widget.info)),
       icon: const Icon(AppIcons.downloadPackage, size: 18),
       label: Text(i18n('update_download_install')),
     );
@@ -560,7 +568,7 @@ class _PackageState extends State<_Package> {
               style: wide,
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                unawaited(showUpdateDownload(pageContext, file: file, sources: [url], version: widget.version));
+                unawaited(showUpdateDownload(pageContext, file: file, sources: [url], update: widget.info));
               },
               icon: const Icon(AppIcons.downloadPackage, size: 20),
               label: Text(i18n('update_download_in_app')),

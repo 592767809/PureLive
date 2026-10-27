@@ -72,13 +72,24 @@ final Provider<UpdateDownloadTools> updateDownloadToolsProvider = Provider((ref)
 /// installer, Windows runs the installer) or open its folder. [sources]
 /// are the mirrors in order ([downloadSources]); the fastest is tried
 /// first. [version] names the download in the dialog. Only one download
-/// runs at a time.
+/// runs at a time. [update] must identify a strictly newer, matching package.
+/// Only explicit, confirmed release-history downloads set [historical].
 Future<void> showUpdateDownload(
   BuildContext context, {
   required ReleaseFile file,
   required List<String> sources,
   String? version,
+  UpdateInfo? update,
+  bool historical = false,
 }) {
+  if (!historical &&
+      (update == null ||
+          !update.isInstallableUpdate ||
+          !fileMatchesUpdate(update, file) ||
+          sources.any((source) => !downloadSources(file.url, githubOrigin: false).contains(source)))) {
+    AppNavigator.toast(i18n('version_download_not_update'));
+    return Future.value();
+  }
   final active = _active;
   if (active != null) return active;
   final uris = [for (final source in sources) ?updateDownloadUri(source)];
@@ -86,7 +97,12 @@ Future<void> showUpdateDownload(
     AppNavigator.toast(i18n('download_failed'));
     return Future.value();
   }
-  return _active = _download(context, file: file, sources: uris, version: version).whenComplete(() => _active = null);
+  return _active = _download(
+    context,
+    file: file,
+    sources: uris,
+    version: update?.version ?? version,
+  ).whenComplete(() => _active = null);
 }
 
 Future<void>? _active;

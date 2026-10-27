@@ -56,8 +56,10 @@ final class UpdateInfo {
     final own = platforms is Map ? platforms[platform] : null;
     final data = {...json, if (own is Map) ...own.cast<String, Object?>()};
     final version = data['version']?.toString().trim() ?? '';
-    final build = _int(data['build_number']);
-    if (version.isEmpty || build == null || build <= 0) throw const FormatException('Incomplete release identity');
+    final build = _positiveInt(data['build_number']);
+    if (versionParts(version) == null || build == null || build <= 0) {
+      throw const FormatException('Incomplete release identity');
+    }
     final abis = data['android_abis'];
     return UpdateInfo(
       version: version,
@@ -66,7 +68,7 @@ final class UpdateInfo {
       prerelease: data['prerelease'] == true,
       releaseUrl: data['download_url']?.toString() ?? '',
       androidAbis: abis is List
-          ? {for (final abi in abis) abi.toString()}.intersection(supportedAndroidAbis)
+          ? Set.unmodifiable({for (final abi in abis) abi.toString()}.intersection(supportedAndroidAbis))
           : const {'arm64-v8a'},
       windowsMsixAvailable: data['windows_msix_available'] == true,
     );
@@ -96,11 +98,19 @@ final class UpdateInfo {
   /// Whether it is newer than the installed version.
   bool get isNewer => newerThan(appVersion, appBuild);
 
+  /// A newer identity with a monotonically higher installer build.
+  /// PROCESS section 11 requires both to advance for every new package.
+  bool get isInstallableUpdate => isNewer && buildNumber > appBuild;
+
   /// Whether it is newer than [installed] built as [build]: a newer version,
   /// or the same version with a newer build (Y02.1: 4.0.0 was re-released as
   /// build 5001, which the version alone never offered).
   bool newerThan(String installed, int build) =>
       isNewerVersion(version, installed) || (sameVersion(installed) && buildNumber > build);
+
+  /// Whether this release is older than [installed] built as [build].
+  bool olderThan(String installed, int build) =>
+      isNewerVersion(installed, version) || (sameVersion(installed) && buildNumber < build);
 
   /// Whether [other] names the same version (a `v` and a `+build` aside).
   bool sameVersion(String other) =>
@@ -147,6 +157,57 @@ final class ReleaseFile {
 
   /// Download address.
   final String url;
+}
+
+/// Whether [file] identifies the exact version and build being offered.
+/// Current release packages on every platform include both in their name.
+/// Older ambiguous names remain available in the explicit release history.
+bool fileMatchesUpdate(UpdateInfo info, ReleaseFile file) {
+  final version = info.version.trim().replaceFirst(RegExp('^[vV]'), '');
+  final match = RegExp('^PureLive-${RegExp.escape(version)}-(\\d+)-').firstMatch(file.name);
+  final uri = updateDownloadUri(file.url);
+  return match != null &&
+      int.tryParse(match.group(1)!) == info.buildNumber &&
+      uri != null &&
+      uri.scheme == 'https' &&
+      uri.pathSegments.isNotEmpty &&
+      uri.pathSegments.last == file.name;
+}
+
+/// Only the assets belonging to [info], never an independently raced release.
+List<ReleaseFile> filesForUpdate(UpdateInfo info, Iterable<ReleaseInfo> releases) => List.unmodifiable([
+  for (final release in releases)
+    if (release.version.trim().replaceFirst(RegExp('^[vV]'), '') ==
+        info.version.trim().replaceFirst(RegExp('^[vV]'), ''))
+      ...release.files.where((file) => fileMatchesUpdate(info, file)),
+]);
+
+/// One coherent check result; its package list cannot change under the page.
+final class UpdateSnapshot {
+  /// Captures only files matching [info]. [lastKnown] does not claim freshness.
+  new({required UpdateInfo info, Iterable<ReleaseFile> files = const [], this.lastKnown = false})
+    : info = UpdateInfo(
+        version: info.version,
+        buildNumber: info.buildNumber,
+        log: info.log,
+        prerelease: info.prerelease,
+        releaseUrl: info.releaseUrl,
+        androidAbis: Set.unmodifiable(info.androidAbis),
+        windowsMsixAvailable: info.windowsMsixAvailable,
+      ),
+      files = List.unmodifiable(files.where((file) => fileMatchesUpdate(info, file)));
+
+  /// The version and build observed together.
+  final UpdateInfo info;
+
+  /// Its matching packages, or an empty list when history is unavailable.
+  final List<ReleaseFile> files;
+
+  /// A failed or stale refresh retained this previous valid result.
+  final bool lastKnown;
+
+  /// Retains a usable result without describing it as a fresh check.
+  UpdateSnapshot asLastKnown() => UpdateSnapshot(info: info, files: files, lastKnown: true);
 }
 
 /// One release of `assets/releases.json` (3.x `ReleaseModel`).
@@ -247,13 +308,13 @@ enum PackageKind {
   androidX64('android-x86_64', ['android', 'x86_64'], ['.apk']),
 
   /// Windows x64 installer.
-  windowsSetup('windows-x64-setup.exe', ['windows', 'setup'], ['.exe'], preferred: ['x64']),
+  windowsSetup('windows-x64-setup.exe', ['windows', 'x64', 'setup'], ['.exe']),
 
   /// Windows x64 MSIX.
   windowsMsix('windows-x64.msix', ['windows', 'x64'], ['.msix']),
 
   /// Windows x64 portable ZIP.
-  windowsPortable('windows-x64-portable.zip', ['windows', 'portable'], ['.zip'], preferred: ['x64']),
+  windowsPortable('windows-x64-portable.zip', ['windows', 'x64', 'portable'], ['.zip']),
 
   /// Linux x64 tarball (3.x's name; X02.1).
   linuxTarball('linux-x64.tar.gz', ['linux', 'x64'], ['.tar.gz']),
@@ -264,7 +325,7 @@ enum PackageKind {
   /// macOS universal ZIP.
   macosZip('macos-universal.zip', ['macos', 'universal'], ['.zip']);
 
-  new(this.key, this.required, this.extensions, {this.preferred = const []});
+  new(this.key, this.required, this.extensions);
 
   /// 3.x's key.
   final String key;
@@ -274,9 +335,6 @@ enum PackageKind {
 
   /// Allowed endings of the name or the address.
   final List<String> extensions;
-
-  /// Words that make a file the better match.
-  final List<String> preferred;
 
   /// The best file of [files] for this kind (https only; release builds and
   /// shorter names win), or null.
@@ -290,7 +348,7 @@ enum PackageKind {
       if (name.isEmpty || uri == null || uri.scheme != 'https' || !uri.hasAuthority) continue;
       if (!extensions.any((ending) => name.endsWith(ending) || url.endsWith(ending))) continue;
       if (!required.every(name.contains)) continue;
-      final score = preferred.where(name.contains).length + (name.contains('release') ? 1 : 0);
+      final score = name.contains('release') ? 1 : 0;
       final better =
           best == null ||
           score > bestScore ||
@@ -368,6 +426,22 @@ class UpdateFeed {
   final String platform;
 
   final DateTime Function() _now;
+  UpdateSnapshot? _lastSnapshot;
+  int _generation = 0;
+  bool _active = true;
+  final Set<CancelToken> _requests = {};
+
+  /// Whether this feed still owns the selected source policy.
+  bool get isActive => _active;
+
+  /// Retires a replaced feed without closing the app's shared transport.
+  void deactivate() {
+    _active = false;
+    _generation++;
+    for (final cancel in _requests.toList()) {
+      cancel.cancel();
+    }
+  }
 
   static const Map<String, String> _headers = {
     'user-agent':
@@ -384,30 +458,161 @@ class UpdateFeed {
     ];
   }
 
-  /// The newest version for this platform; null when no source answered
-  /// (3.x gave up after 10 seconds). Throws [FormatException] for an
-  /// incomplete file.
+  /// Best valid version observed before all sources finish or [timeout].
+  /// Validation is inside each request: a fast malformed object cannot cancel
+  /// good answers, and a fast stale mirror cannot defeat a newer response.
+  /// This is not proof that an unreachable origin has no newer publication.
   Future<UpdateInfo?> latest({Duration timeout = const Duration(seconds: 10)}) async {
-    final json = await raceJson(http, 'update', _sources('assets/version.json'), headers: _headers, timeout: timeout);
-    return json == null ? null : UpdateInfo.fromJson(json, platform: platform);
+    if (!isActive) return null;
+    final sources = _sources('assets/version.json');
+    final tokens = [for (final _ in sources) CancelToken()];
+    _requests.addAll(tokens);
+    final finished = Completer<void>();
+    var pending = sources.length;
+    UpdateInfo? best;
+    var accepting = true;
+    for (final (index, source) in sources.indexed) {
+      unawaited(() async {
+        try {
+          final response = await http.send(
+            LiveRequest(site: 'update', url: source, headers: _headers, timeout: timeout, cancel: tokens[index]),
+          );
+          if (!isActive || !accepting || response.status != 200) return;
+          final json = response.json;
+          if (json is! Map<String, Object?>) return;
+          final info = UpdateInfo.fromJson(json, platform: platform);
+          if (info.olderThan(appVersion, appBuild) || (info.isNewer && !info.isInstallableUpdate)) return;
+          final previous = best;
+          if (previous == null || info.newerThan(previous.version, previous.buildNumber)) best = info;
+        } on Object {
+          // Another mirror may still supply valid metadata.
+        } finally {
+          if (--pending == 0 && !finished.isCompleted) finished.complete();
+        }
+      }());
+    }
+    final timer = Timer(timeout, () {
+      if (!finished.isCompleted) finished.complete();
+    });
+    await finished.future;
+    accepting = false;
+    timer.cancel();
+    for (final token in tokens) {
+      token.cancel();
+    }
+    _requests.removeAll(tokens);
+    return isActive ? best : null;
   }
 
-  /// Every release, newest first; null when no source answered.
-  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15)}) =>
-      raceFirst<List<ReleaseInfo>>(_sources('assets/releases.json'), (url, cancel) async {
+  /// Every release, newest first; null when no source answered. A targeted
+  /// [matching] check ignores empty/stale histories until matching assets
+  /// arrive; the unfiltered history browser retains its original behavior.
+  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15), UpdateInfo? matching}) async {
+    if (!isActive) return null;
+    final result = await raceFirst<List<ReleaseInfo>>(_sources('assets/releases.json'), (url, cancel) async {
+      if (!isActive) return null;
+      _requests.add(cancel);
+      try {
         final response = await http.send(
           LiveRequest(site: 'update', url: url, headers: _headers, timeout: timeout, cancel: cancel),
         );
-        if (response.status != 200) return null;
-        return parseReleases(response.json);
-      }, timeout: timeout);
+        if (!isActive || response.status != 200) return null;
+        final releases = parseReleases(response.json);
+        if (matching != null && !_hasPlatformPackages(matching, filesForUpdate(matching, releases))) return null;
+        return releases;
+      } finally {
+        _requests.remove(cancel);
+      }
+    }, timeout: timeout);
+    return isActive ? result : null;
+  }
+
+  bool _hasPlatformPackages(UpdateInfo info, List<ReleaseFile> files) => switch (platform) {
+    'android' =>
+      info.androidAbis.isNotEmpty &&
+          info.androidAbis.every(
+            (abi) => switch (abi) {
+              'arm64-v8a' => PackageKind.androidArm64.pick(files) != null,
+              'armeabi-v7a' => PackageKind.androidArm32.pick(files) != null,
+              'x86_64' => PackageKind.androidX64.pick(files) != null,
+              _ => false,
+            },
+          ),
+    'windows' => PackageKind.windowsSetup.pick(files) != null || PackageKind.windowsPortable.pick(files) != null,
+    'linux' => PackageKind.linuxTarball.pick(files) != null,
+    'macos' => PackageKind.macosDmg.pick(files) != null || PackageKind.macosZip.pick(files) != null,
+    'ios' => files.any((file) => file.name.endsWith('.ipa')),
+    _ => files.isNotEmpty,
+  };
+
+  /// Resolves a version and its exact assets as one immutable result.
+  /// At most the existing 10-second version and 15-second history budgets
+  /// are used. The last valid in-memory result survives offline/stale checks,
+  /// but is explicitly marked last-known rather than newly confirmed.
+  Future<UpdateSnapshot?> check() async {
+    if (!isActive) return null;
+    final generation = ++_generation;
+    UpdateInfo? info;
+    try {
+      info = await latest();
+    } on Object {
+      info = null;
+    }
+    if (!isActive) return null;
+    final previous = _lastSnapshot;
+    if (info == null ||
+        info.olderThan(appVersion, appBuild) ||
+        (info.isNewer && !info.isInstallableUpdate) ||
+        (previous != null && previous.info.newerThan(info.version, info.buildNumber))) {
+      return previous?.asLastKnown();
+    }
+    var files = const <ReleaseFile>[];
+    if (info.isNewer) {
+      try {
+        files = filesForUpdate(info, await releases(matching: info) ?? const []);
+      } on Object {
+        // The release page remains usable when matching packages are absent.
+      }
+    }
+    if (!isActive) return null;
+    final current = _lastSnapshot;
+    if (current != null && current.info.newerThan(info.version, info.buildNumber)) return current.asLastKnown();
+    if (files.isEmpty &&
+        current != null &&
+        current.info.sameVersion(info.version) &&
+        current.info.buildNumber == info.buildNumber &&
+        current.files.isNotEmpty) {
+      return current.asLastKnown();
+    }
+    final snapshot = UpdateSnapshot(info: info, files: files);
+    if (generation == _generation ||
+        current == null ||
+        info.newerThan(current.info.version, current.info.buildNumber)) {
+      _lastSnapshot = snapshot;
+    }
+    return snapshot;
+  }
 }
 
 /// The update feed of the pages (tests replace it).
 final Provider<UpdateFeed> updateFeedProvider = Provider<UpdateFeed>((ref) {
   final services = ref.watch(appServicesProvider);
-  return UpdateFeed(services.http, githubOrigin: services.store.settings.get(Settings.useGitHubOriginForUpdates));
+  final origin = ref.watch(
+    settingProvider(Settings.useGitHubOriginForUpdates).select((value) {
+      final selected = value.value;
+      return selected is bool ? selected : services.store.settings.get(Settings.useGitHubOriginForUpdates);
+    }),
+  );
+  final feed = UpdateFeed(services.http, githubOrigin: origin);
+  ref.onDispose(feed.deactivate);
+  return feed;
 });
+
+int? _positiveInt(Object? value) => switch (value) {
+  final int number when number > 0 => number,
+  final String text => int.tryParse(text.trim()),
+  _ => null,
+};
 
 String _string(Object? value) => value?.toString().trim() ?? '';
 
