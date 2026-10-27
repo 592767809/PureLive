@@ -9,11 +9,11 @@ environment:
 resolution: workspace
 
 dependencies:
-  drift: ^2.35.1
+  drift: ^2.35.3
   live_core: any
   meta: ^1.19.0
   path: ^1.9.1
-  sqlite3: ^3.7.1
+  sqlite3: ^3.8.0
 
 dev_dependencies:
   hive_ce: ^2.22.0

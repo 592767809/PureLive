@@ -33,7 +33,7 @@ defaults:
 jobs:
   apple:
     name: FFmpegKit Apple
-    runs-on: macos-14
+    runs-on: xcode-27
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,13 +42,22 @@ jobs:
           ref: ${{ inputs.builders }}
           persist-credentials: false
 
+      - name: Read this project's toolchain policy
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: purelive-config
+          persist-credentials: false
+
+      - name: Install official stable Python
+        run: bash purelive-config/tools/toolchain/macos_python.sh
+
       - name: Tools
         run: |
           set -euo pipefail
           find scripts FFmpegKit -type f -name '*.sh' -exec chmod +x {} +
           scripts/toolchain/setup-macos-tools.sh
           sudo xcodebuild -license accept
-          xcodebuild -version
+          bash purelive-config/tools/toolchain/apple.sh
 
       - name: Pin FFmpeg
         env:
@@ -86,14 +95,14 @@ jobs:
           done
           (cd dist && shasum -a 256 *.zip | tee SHA256SUMS)
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ffmpeg-kit-apple
           path: dist
           if-no-files-found: error
           compression-level: 0
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: ffmpeg-kit-apple-log

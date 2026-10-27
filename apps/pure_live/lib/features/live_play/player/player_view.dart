@@ -214,6 +214,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   LiveMessage? _tapHit;
   LiveMessage? _secondaryHit;
   bool _secondaryAllowed = false;
+  bool _middleAllowed = false;
 
   /// Where the last tap went down.
   Offset? _tapAt;
@@ -494,6 +495,11 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// press opens the pinned one's actions, which stand everything (the
   /// finger is still on it, so it is the one hit).
   void _onPointerDown(PointerDownEvent event) {
+    if (event.kind == PointerDeviceKind.mouse &&
+        event.buttons == kMiddleMouseButton &&
+        widget.platform.platform == TargetPlatform.windows) {
+      _middleAllowed = _canSecondaryAt(event.position) && _danmakuAt(event.position, longPress: true) == null;
+    }
     if (event.buttons == kSecondaryMouseButton) {
       _secondaryAllowed = _canSecondaryAt(event.position);
       _secondaryHit = _secondaryAllowed ? _danmakuAt(event.position, longPress: true) : null;
@@ -508,6 +514,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// A finger that moves past the touch slop is a drag (volume, brightness,
   /// a swipe), not a press: the danmaku flies on.
   void _onPointerMove(PointerMoveEvent event) {
+    if (event.buttons != kMiddleMouseButton) _middleAllowed = false;
     final from = _pinFrom;
     if (event.pointer == _pinPointer && from != null && (event.position - from).distance > kTouchSlop) _unpin();
   }
@@ -535,6 +542,16 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   void _cancelSecondary() {
     _secondaryAllowed = false;
     _secondaryHit = null;
+  }
+
+  void _cancelMiddle() => _middleAllowed = false;
+
+  void _onMiddleTap(TapUpDetails _) {
+    final allowed = _middleAllowed;
+    _cancelMiddle();
+    if (!allowed || widget.platform.platform != TargetPlatform.windows || widget.pip || _locked) return;
+    if (widget.display != RoomDisplay.inline && widget.display != RoomDisplay.windowFullscreen) return;
+    widget.onWindowFullscreen?.call();
   }
 
   void _onSecondaryTap(TapUpDetails details) {
@@ -842,6 +859,8 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
                     onTap: _onTap,
                     onSecondaryTapUp: widget.platform.desktop ? _onSecondaryTap : null,
                     onSecondaryTapCancel: widget.platform.desktop ? _cancelSecondary : null,
+                    onTertiaryTapUp: widget.platform.platform == TargetPlatform.windows ? _onMiddleTap : null,
+                    onTertiaryTapCancel: widget.platform.platform == TargetPlatform.windows ? _cancelMiddle : null,
                     // F.2b: only with its switch on, so it never holds a drag back.
                     onLongPressStart: longPress
                         ? (details) {

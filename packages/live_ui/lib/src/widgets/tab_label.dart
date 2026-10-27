@@ -11,7 +11,7 @@ import 'package:live_ui/src/widgets/scrollable_tab_bar.dart';
 /// (U.1c c21; the theme only tints the tab).
 class TabLabel extends StatelessWidget {
   /// Creates the content.
-  const new({required this.label, this.count, this.badge, this.countKey, super.key});
+  const new({required this.label, this.count, this.badge, this.countKey, this.leading, super.key});
 
   /// The words.
   final String label;
@@ -25,6 +25,9 @@ class TabLabel extends StatelessWidget {
   /// Key of the number (tests).
   final Key? countKey;
 
+  /// A decorative platform logo before the label; the words name the tab.
+  final Widget? leading;
+
   @override
   Widget build(BuildContext context) {
     final count = this.count;
@@ -34,6 +37,7 @@ class TabLabel extends StatelessWidget {
     final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        if (leading != null) ...[ExcludeSemantics(child: leading), const SizedBox(width: 6)],
         Text(label, maxLines: 1, softWrap: false),
         if (count != null) ...[
           const SizedBox(width: 4),

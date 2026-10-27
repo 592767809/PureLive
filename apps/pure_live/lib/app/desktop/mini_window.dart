@@ -5,7 +5,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 import 'package:live_store/live_store.dart';
-import 'package:screen_retriever/screen_retriever.dart';
+import 'package:pure_live/app/desktop/display_geometry.dart';
 import 'package:window_manager/window_manager.dart';
 
 /// What the room's desktop mini window asks of the window system (U.2j;
@@ -125,23 +125,28 @@ final class WindowManagerMiniHost implements MiniWindowHost {
   @override
   bool get canPin => !desktopRefusesOnTop;
 
-  Rect _area(Display display) => (display.visiblePosition ?? Offset.zero) & (display.visibleSize ?? display.size);
+  Rect _area(DesktopDisplayGeometry display) => display.workArea;
 
-  Display? _displayAt(List<Display> displays, Offset point) {
+  DesktopDisplayGeometry? _displayAt(List<DesktopDisplayGeometry> displays, Offset point) {
     for (final display in displays) {
       if (_area(display).contains(point)) return display;
     }
     return null;
   }
 
-  Rect? _savedBounds(String displayId) {
+  Rect? _savedBounds(DesktopDisplayGeometry display) {
     if (!_settings.get(Settings.rememberPipPosition)) return null;
     final saved = _settings.get(Settings.windowsPipDisplayId);
-    if (saved.isNotEmpty && saved != displayId) return null;
     final width = _settings.get(Settings.windowsPipWidth);
     final height = _settings.get(Settings.windowsPipHeight);
     if (!(width > 0 && height > 0)) return null;
-    return Rect.fromLTWH(_settings.get(Settings.windowsPipX), _settings.get(Settings.windowsPipY), width, height);
+    final bounds = Rect.fromLTWH(
+      _settings.get(Settings.windowsPipX),
+      _settings.get(Settings.windowsPipY),
+      width,
+      height,
+    );
+    return display.acceptsSavedWindow(saved, bounds) ? bounds : null;
   }
 
   @override
@@ -151,16 +156,17 @@ final class WindowManagerMiniHost implements MiniWindowHost {
     if (_maximized) await windowManager.unmaximize();
     final normal = _normal = await windowManager.getBounds();
     _onTop = await windowManager.isAlwaysOnTop();
-    final displays = await screenRetriever.getAllDisplays();
-    final primary = await screenRetriever.getPrimaryDisplay();
-    final current = _displayAt(displays, normal.center) ?? primary;
-    final bounds = resolveMiniWindowBounds(
-      defaultSize: miniWindowSize(aspectRatio),
-      primaryWorkArea: _area(current),
-      workAreas: [for (final display in displays) _area(display)],
-      saved: _savedBounds(current.id),
-    );
     try {
+      final displays = readDesktopDisplays();
+      final primary = displays.where((display) => display.isPrimary).firstOrNull ?? displays.firstOrNull;
+      if (primary == null) throw StateError('No usable display for the mini window');
+      final current = _displayAt(displays, normal.center) ?? primary;
+      final bounds = resolveMiniWindowBounds(
+        defaultSize: miniWindowSize(aspectRatio),
+        primaryWorkArea: _area(current),
+        workAreas: [for (final display in displays) _area(display)],
+        saved: _savedBounds(current),
+      );
       await windowManager.setMinimumSize(miniWindowMinimum);
       if (canPin) await windowManager.setAlwaysOnTop(onTop);
       if (Platform.isMacOS) {
@@ -228,14 +234,18 @@ final class WindowManagerMiniHost implements MiniWindowHost {
     if (!_settings.get(Settings.rememberPipPosition)) return;
     try {
       final bounds = await windowManager.getBounds();
-      final displays = await screenRetriever.getAllDisplays();
-      final display = _displayAt(displays, bounds.topLeft) ?? await screenRetriever.getPrimaryDisplay();
+      final displays = readDesktopDisplays();
+      final display =
+          _displayAt(displays, bounds.center) ??
+          displays.where((display) => display.isPrimary).firstOrNull ??
+          displays.firstOrNull;
+      if (display == null) return;
       await _settings.setAll({
         Settings.windowsPipWidth: bounds.width,
         Settings.windowsPipHeight: bounds.height,
         Settings.windowsPipX: bounds.left,
         Settings.windowsPipY: bounds.top,
-        Settings.windowsPipDisplayId: display.id,
+        Settings.windowsPipDisplayId: display.persistenceKey,
       });
     } on Object catch (error, stack) {
       log('Saving the mini window failed', name: 'Desktop', error: error, stackTrace: stack);

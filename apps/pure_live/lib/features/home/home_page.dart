@@ -18,6 +18,7 @@ import 'package:pure_live/features/version/update_feed.dart';
 import 'package:pure_live/features/version/update_prompt.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
+import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
 
 /// The page of each home destination; the app replaces the placeholders as
@@ -46,12 +47,61 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver, RouteAware {
   HomeMenu? _selected;
   DateTime? _backgroundedAt;
   Timer? _resumeTimer;
   Timer? _updateTimer;
   final Map<HomeMenu, Widget> _pages = {};
+  bool _hideNavigation = false;
+  bool _navigationCanHide = false;
+  double _navigationDistance = 0;
+  Size? _lastLayoutSize;
+  PageRoute<dynamic>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute<dynamic> && route != _route) {
+      liveRouteObserver.unsubscribe(this);
+      _route = route;
+      liveRouteObserver.subscribe(this, route);
+    }
+  }
+
+  void _restoreNavigation() {
+    _navigationDistance = 0;
+    if (mounted && _hideNavigation) setState(() => _hideNavigation = false);
+  }
+
+  @override
+  void didPushNext() => _restoreNavigation();
+
+  @override
+  void didPopNext() => _restoreNavigation();
+
+  bool _navigationScroll(ScrollNotification notification) {
+    if (!_navigationCanHide ||
+        !(_route?.isCurrent ?? true) ||
+        notification.metrics.axis != Axis.vertical ||
+        notification is! ScrollUpdateNotification) {
+      return false;
+    }
+    if (notification.metrics.pixels <= notification.metrics.minScrollExtent + 1) {
+      _restoreNavigation();
+      return false;
+    }
+    if (notification.dragDetails == null) return false;
+    final delta = notification.scrollDelta ?? 0;
+    if (delta == 0) return false;
+    _navigationDistance = _navigationDistance.sign == delta.sign ? _navigationDistance + delta : delta;
+    if (_navigationDistance.abs() < 12) return false;
+    _navigationDistance = 0;
+    final hide = delta > 0;
+    if (hide != _hideNavigation) setState(() => _hideNavigation = hide);
+    return false;
+  }
 
   @override
   void initState() {
@@ -86,6 +136,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
   @override
   void dispose() {
+    liveRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     HomeSignals.select.removeListener(_selectAsked);
     _resumeTimer?.cancel();
@@ -118,7 +169,11 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       HomeSignals.favoritesReselected.value++;
       return;
     }
-    setState(() => _selected = menu);
+    setState(() {
+      _selected = menu;
+      _hideNavigation = false;
+      _navigationDistance = 0;
+    });
   }
 
   Future<void> _onBack(bool didPop, Object? result) async {
@@ -145,6 +200,12 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     final glass = watchSetting(ref, Settings.liquidGlass);
     final compact = watchSetting(ref, Settings.homeBottomBarCompact);
     final frost = watchSetting(ref, Settings.liquidGlassFrost);
+    final autoHide =
+        watchSetting(ref, Settings.homeNavigationAutoHide) && defaultTargetPlatform == TargetPlatform.android;
+    final mobileLabels = watchSetting(ref, Settings.mobileNavigationLabels);
+    final labels =
+        !(defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS) ||
+        mobileLabels;
     // V02.6: a tablet may keep the bottom bar (phones and tablets only).
     final bottomOnWide =
         watchSetting(ref, Settings.homeBottomBarOnWide) &&
@@ -155,11 +216,17 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       child: LayoutBuilder(
         builder: (context, constraints) {
           final rail = isHomeRailWidth(constraints.maxWidth) && !bottomOnWide;
+          _navigationCanHide = autoHide && !rail;
+          if (!_navigationCanHide || _lastLayoutSize != constraints.biggest) _hideNavigation = false;
+          _lastLayoutSize = constraints.biggest;
           final menus = visibleHomeMenus(saved);
           // A removed or hidden destination falls back to the first one (3.x).
           final selected = menus.contains(_selected) ? _selected! : menus.first;
           _selected = selected;
-          final body = HomeLayoutScope(phone: !rail, child: _page(selected));
+          final body = NotificationListener<ScrollNotification>(
+            onNotification: _navigationScroll,
+            child: HomeLayoutScope(phone: !rail, navigationHidden: _hideNavigation, child: _page(selected)),
+          );
           return rail
               ? HomeTabletView(menus: menus, selected: selected, onSelected: _select, body: body)
               : HomeMobileView(
@@ -170,6 +237,8 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                   glass: glass,
                   compact: compact,
                   frost: frost,
+                  hidden: _hideNavigation,
+                  showLabels: labels,
                   glassBlur: liquidGlassBlurs(android: Platform.isAndroid, totalMemoryBytes: deviceMemoryBytes),
                 );
         },

@@ -202,39 +202,43 @@ class _PopularPageState extends ConsumerState<PopularPage> with TickerProviderSt
     final phoneTab = showsHomeBarButtons(context, inHome: widget.route.inHome);
     final tabs = _tabs;
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: centredPageTitle,
-        automaticallyImplyLeading: !widget.route.inHome,
-        leading: phoneTab ? const MenuButton() : null,
-        actions: phoneTab ? const [CommonAppBarActions()] : null,
-        titleSpacing: phoneTab ? 4 : 16,
-        // The platform tabs take the title's place (3.x).
-        title: tabs == null
-            ? null
-            : Row(
-                children: [
-                  Expanded(
-                    child: ScrollableTabBar(
-                      key: const ValueKey('popular-platform-tabs'),
-                      controller: tabs,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.start,
-                      dividerHeight: 0,
-                      physics: const PureLiveBoundedScrollPhysics(),
-                      // A09.12 c1: the tab cut by ⌄ fades.
-                      endFade: tabStripEndFade,
-                      tabs: [for (final id in ids) TabLabel(label: platformName(id, fallback: sites.of(id).name))],
+      appBar: hidesHomeBar(context, inHome: widget.route.inHome)
+          ? null
+          : AppBar(
+              centerTitle: centredPageTitle,
+              automaticallyImplyLeading: !widget.route.inHome,
+              leading: phoneTab ? const MenuButton() : null,
+              actions: phoneTab ? const [CommonAppBarActions()] : null,
+              titleSpacing: phoneTab ? 4 : 16,
+              // The platform tabs take the title's place (3.x).
+              title: tabs == null
+                  ? null
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: ScrollableTabBar(
+                            key: const ValueKey('popular-platform-tabs'),
+                            controller: tabs,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.start,
+                            dividerHeight: 0,
+                            physics: const PureLiveBoundedScrollPhysics(),
+                            // A09.12 c1: the tab cut by ⌄ fades.
+                            endFade: tabStripEndFade,
+                            tabs: [
+                              for (final id in ids) TabLabel(label: platformName(id, fallback: sites.of(id).name)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          key: const ValueKey('popular-all-platforms'),
+                          tooltip: i18n('popular_all_platforms'),
+                          icon: const Icon(AppIcons.dropDown, size: 22),
+                          onPressed: _pickPlatform,
+                        ),
+                      ],
                     ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('popular-all-platforms'),
-                    tooltip: i18n('popular_all_platforms'),
-                    icon: const Icon(AppIcons.dropDown, size: 22),
-                    onPressed: _pickPlatform,
-                  ),
-                ],
-              ),
-      ),
+            ),
       body: tabs == null
           ? AppStatusView(
               type: AppStatusType.empty,

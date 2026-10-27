@@ -11,7 +11,6 @@ import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/features/settings/settings_tiles.dart';
 import 'package:pure_live/i18n/i18n.dart';
-import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/settings_route_pages.dart';
 import 'package:pure_live/shared/settings/settings_content_navigation.dart';
@@ -93,11 +92,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     if (canPop != _contentCanPop && mounted) setState(() => _contentCanPop = canPop);
   }
 
-  void _openSection(SettingsSection section, {required bool twoPane}) {
-    if (section.route case final route? when !twoPane) {
-      unawaited(AppNavigator.toNamed<void>(route));
-      return;
-    }
+  void _openSection(SettingsSection section) {
     FocusScope.of(context).unfocus();
     setState(() {
       _open = section;
@@ -154,11 +149,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget _overviewBody({required bool twoPane, required SettingsSection? selected}) {
     final env = SettingsEnv.current();
     return _query.isEmpty
-        ? _Overview(
-            selected: selected,
-            onOpen: (section) => _openSection(section, twoPane: twoPane),
-            twoPane: twoPane,
-          )
+        ? _Overview(selected: selected, onOpen: _openSection, twoPane: twoPane)
         : SettingsReveal(
             reveal: _reveal,
             child: _SearchResults(query: _query, env: env, twoPane: twoPane),

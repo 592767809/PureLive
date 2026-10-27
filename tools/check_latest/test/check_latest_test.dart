@@ -2,6 +2,37 @@ import 'package:check_latest/check_latest.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('Android stable selection ignores numeric preview package paths', () async {
+    final http = _FixtureFetcher();
+    final findings = await collect(env: const {'MEDIA_KIT_UPSTREAM_REPO': 'owner/fork'}, pub: const {}, fetcher: http);
+    http.close();
+    expect(findings.singleWhere((f) => f.name == 'Android NDK').latest, '30.0.1');
+    expect(findings.singleWhere((f) => f.name == 'Android cmdline-tools').latest, '23.0');
+  });
+
+  test('incomplete official responses fail instead of reporting up to date', () {
+    const unknown = Finding('toolchain', 'Flutter', '3.47.8', '');
+    const behind = Finding('toolchain', 'Gradle', '9.8.1', '9.8.2');
+    expect(findingsExitCode([unknown]), 2);
+    expect(findingsExitCode([behind, unknown]), 2);
+    expect(findingsExitCode([behind]), 1);
+    expect(findingsExitCode([unknown], reportOnly: true), 0);
+    expect(findingsExitCode([const Finding('toolchain', 'Gradle', '9.8.2', '9.8.2')]), 0);
+  });
+
+  test('Xcode stable feed excludes newer RC and beta releases', () {
+    expect(
+      latestStableXcode('''
+<rss><channel>
+<item><title>Xcode 27.2 RC (27B48)</title></item>
+<item><title>Xcode 27.2 beta 3 (27B40)</title></item>
+<item><title>Xcode 27.1 (27A9275)</title></item>
+<item><title>Xcode 27 (27A266a)</title></item>
+</channel></rss>'''),
+      '27.1',
+    );
+  });
+
   test('readEnvFile skips comments and blank lines', () {
     final env = readEnvFile('# pinned\nFLUTTER_VERSION=3.47.5\n\n  GRADLE_VERSION = 9.8.0 \nbroken\n');
     expect(env, {'FLUTTER_VERSION': '3.47.5', 'GRADLE_VERSION': '9.8.0'});
@@ -71,4 +102,50 @@ packages:
       'packages/live_core',
     ]);
   });
+}
+
+class _FixtureFetcher extends Fetcher {
+  @override
+  Future<String> get(String url) async {
+    if (url.endsWith('repository2-3.xml')) {
+      return '''
+<repository>
+<remotePackage path="ndk;30.0.1"><revision><major>30</major><minor>0</minor><micro>1</micro></revision><channelRef ref="channel-0"/></remotePackage>
+<remotePackage path="ndk;31.0.9"><revision><major>31</major><minor>0</minor><micro>9</micro><preview>1</preview></revision><channelRef ref="channel-1"/></remotePackage>
+<remotePackage path="cmdline-tools;23.0"><revision><major>23</major></revision><channelRef ref="channel-0"/></remotePackage>
+<remotePackage path="cmdline-tools;24.0"><revision><major>24</major></revision><channelRef ref="channel-1"/></remotePackage>
+<remotePackage path="platforms;android-37.2"><channelRef ref="channel-0"/></remotePackage>
+<remotePackage path="build-tools;37.0.0"><channelRef ref="channel-0"/></remotePackage>
+<remotePackage path="platform-tools"><revision><major>37</major><minor>0</minor><micro>1</micro></revision><channelRef ref="channel-0"/></remotePackage>
+<remotePackage path="cmake;4.1.2"><channelRef ref="channel-0"/></remotePackage>
+</repository>''';
+    }
+    if (url.endsWith('maven-metadata.xml')) return '<version>9.4.1</version>';
+    throw StateError('Unexpected fixture URL: $url');
+  }
+
+  @override
+  Future<Object?> json(String url) async {
+    if (url.contains('releases_linux.json')) {
+      return {
+        'current_release': {'stable': 'stable'},
+        'releases': [
+          {'hash': 'stable', 'version': '3.47.8', 'dart_sdk_version': '3.13.7'},
+        ],
+      };
+    }
+    if (url.contains('gradle.org')) return {'version': '9.8.2'};
+    if (url.contains('available_releases')) return {'most_recent_feature_release': 27};
+    if (url.contains('/tags?')) {
+      return [
+        {'name': 'n9.0.2'},
+      ];
+    }
+    if (url.contains('/commits?')) {
+      return [
+        {'sha': 'abc'},
+      ];
+    }
+    return {'tag_name': 'v1.0.0'};
+  }
 }

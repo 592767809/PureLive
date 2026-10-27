@@ -143,28 +143,33 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
     final phoneTab = showsHomeBarButtons(context, inHome: widget.route.inHome);
     final tabs = _tabs;
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: centredPageTitle,
-        automaticallyImplyLeading: !widget.route.inHome,
-        leading: phoneTab ? const MenuButton() : null,
-        actions: phoneTab ? const [CommonAppBarActions()] : null,
-        title: tabs == null
-            ? Text(i18n('areas_title'))
-            : ScrollableTabBar(
-                key: const ValueKey('areas-platform-tabs'),
-                controller: tabs,
-                isScrollable: true,
-                tabAlignment: TabAlignment.center,
-                physics: const PureLiveBoundedScrollPhysics(),
-                // The last tab fades (A09.4 v4-phone; the same as popular's,
-                // A09.12 c1).
-                endFade: tabStripEndFade,
-                tabs: [
-                  for (final id in ids)
-                    TabLabel(label: platformName(id, fallback: ref.read(sitesProvider).of(id).name)),
-                ],
-              ),
-      ),
+      appBar: hidesHomeBar(context, inHome: widget.route.inHome)
+          ? null
+          : AppBar(
+              centerTitle: centredPageTitle,
+              automaticallyImplyLeading: !widget.route.inHome,
+              leading: phoneTab ? const MenuButton() : null,
+              actions: phoneTab ? const [CommonAppBarActions()] : null,
+              title: tabs == null
+                  ? Text(i18n('areas_title'))
+                  : ScrollableTabBar(
+                      key: const ValueKey('areas-platform-tabs'),
+                      controller: tabs,
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.center,
+                      physics: const PureLiveBoundedScrollPhysics(),
+                      // The last tab fades (A09.4 v4-phone; the same as popular's,
+                      // A09.12 c1).
+                      endFade: tabStripEndFade,
+                      tabs: [
+                        for (final id in ids)
+                          TabLabel(
+                            leading: PlatformLogo(id, size: 20),
+                            label: platformName(id, fallback: ref.read(sitesProvider).of(id).name),
+                          ),
+                      ],
+                    ),
+            ),
       body: tabs == null
           ? AppStatusView(
               type: AppStatusType.empty,

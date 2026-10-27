@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:live_media/live_media.dart';
+import 'package:live_player/src/buffering_probe.dart';
 import 'package:live_player/src/diagnostics.dart';
 import 'package:live_player/src/engine.dart';
 import 'package:live_player/src/frame_rate.dart';
@@ -93,7 +94,8 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
   final StreamController<EngineEvent> _events = StreamController.broadcast(sync: true);
   final List<StreamSubscription<Object?>> _subscriptions = [];
   VoidCallback? _frameListener;
-  Timer? _bufferingProbe;
+  late final NativeBufferingProbe _bufferingProbe = NativeBufferingProbe(read: _readProperty, report: debugPrint);
+  bool _hasSource = false;
   var _audioOnly = false;
   var _externalAudio = false;
   var _disposed = false;
@@ -162,28 +164,10 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
     }
   }
 
-  /// G02.2's diagnostic (debug and profile builds): a buffering flag still
-  /// set after 3 s logs the two mpv properties that set and clear it (the
-  /// fork's `core-idle` and `paused-for-cache`) and `time-pos`, to tell a
-  /// real wait from a flag that missed its clearing notification.
+  /// A release build must retain the same bounded, non-identifying stall
+  /// evidence as a profile build, without acting on or resetting the decoder.
   void _watchBuffering(bool buffering) {
-    _bufferingProbe?.cancel();
-    _bufferingProbe = null;
-    if (!buffering || kReleaseMode) return;
-    _bufferingProbe = Timer(const Duration(seconds: 3), () async {
-      _bufferingProbe = null;
-      if (_disposed || !player.state.buffering) return;
-      final values = <String>[];
-      final watch = Stopwatch()..start();
-      for (final name in const ['core-idle', 'paused-for-cache', 'time-pos']) {
-        try {
-          values.add('$name=${await _readProperty(name)}');
-        } on Object {
-          values.add('$name=?');
-        }
-      }
-      if (!_disposed) debugPrint('mpv: buffering for 3 s: ${values.join(' ')} (${watch.elapsedMicroseconds} us)');
-    });
+    _bufferingProbe.update(buffering: !_disposed && _hasSource && buffering);
   }
 
   Future<void> _setProperty(String name, String value) async {
@@ -193,6 +177,9 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
 
   @override
   Future<void> open(EngineMedia media) async {
+    _bufferingProbe.reset();
+    _hasSource = true;
+    _watchBuffering(true);
     _gate.beginOpen(decoderStartupWindow: mpvDecoderStartupWindow(media.uri));
     try {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
@@ -204,6 +191,8 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
         open: (input) => player.open(Media(input, httpHeaders: media.headers, start: media.start)),
       );
     } on Object catch (error, stack) {
+      _hasSource = false;
+      _bufferingProbe.reset();
       if (error is PlayerException) rethrow;
       final classification = NativeDiagnostic.classify(error.toString());
       throw PlayerException(
@@ -226,6 +215,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
     final size = displaySizeOf(state.videoParams);
     if (size != null) _add(EngineVideoSize(size.width, size.height));
     _add(EngineBuffering(buffering: state.buffering));
+    _watchBuffering(state.buffering);
     _add(EnginePlaying(playing: state.playing));
     unawaited(_probeFrameRate(++_opens));
   }
@@ -254,7 +244,11 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
   Future<void> pause() => player.pause();
 
   @override
-  Future<void> stop() => player.stop();
+  Future<void> stop() {
+    _hasSource = false;
+    _bufferingProbe.reset();
+    return player.stop();
+  }
 
   @override
   Future<void> seek(Duration position) => player.seek(position);
@@ -315,7 +309,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
     if (_disposed) return;
     _disposed = true;
     _opens++;
-    _bufferingProbe?.cancel();
+    _bufferingProbe.close();
     _gate.close();
     final listener = _frameListener;
     if (listener != null) controller.frameRevision.removeListener(listener);

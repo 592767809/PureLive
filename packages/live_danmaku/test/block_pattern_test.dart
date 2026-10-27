@@ -80,6 +80,37 @@ void main() {
   });
 
   group('DanmakuBlockPattern.check (adding by hand)', () {
+    test('a normal pattern is not rejected by an isolated scheduling delay', () {
+      for (final delays in [
+        const [30, 0],
+        const [3, 3, 0],
+      ]) {
+        var calls = 0;
+        final result = DanmakuBlockPattern.check(
+          '/加.*群/',
+          measure: (pattern, text) {
+            pattern.hasMatch(text);
+            return Duration(milliseconds: calls < delays.length ? delays[calls++] : 0);
+          },
+        );
+        expect(result, isNull, reason: 'normal matches around a delayed sample: $delays');
+      }
+    });
+
+    test('consistently slow pattern samples remain refused at the same budget', () {
+      var calls = 0;
+      final result = DanmakuBlockPattern.check(
+        '/加.*群/',
+        measure: (pattern, text) {
+          calls++;
+          pattern.hasMatch(text);
+          return DanmakuBlockPattern.probeBudget + const Duration(milliseconds: 1);
+        },
+      );
+      expect(result, DanmakuBlockPatternProblem.tooSlow);
+      expect(calls, lessThanOrEqualTo(3), reason: 'confirmation stays bounded');
+    });
+
     test('plain words and good patterns pass', () {
       for (final word in [
         '广告',

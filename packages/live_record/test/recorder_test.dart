@@ -212,6 +212,36 @@ void main() {
 
     LiveRoom room() => LiveRoom(roomId: '1', platform: 'fake', nick: '主播', liveStatus: LiveStatus.live);
 
+    test('issue #42: an unwritable recording root stops without reconnecting', () async {
+      await recorder.dispose();
+      final blocker = File('${root.path}/not-a-directory')..writeAsStringSync('preserve');
+      var selected = '${blocker.path}/records';
+      recorder = Recorder(
+        sites: (id) => id == 'fake' ? site : null,
+        ffmpeg: ffmpeg,
+        storage: RecordStorage(defaultDirectory: () async => selected, configuredPath: () => ''),
+        settings: () => settings,
+        persist: (json) async => persisted.add(json),
+        startGap: Duration.zero,
+      );
+      final task = (await recorder.addTask(room()))!;
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(task.status, RecordStatus.failed);
+      expect(task.lastErrorStage, 'storage');
+      expect(task.nextRetryAt, isNull);
+      expect(task.retryCount, 0);
+      expect(ffmpeg.runs, isEmpty);
+      expect(blocker.readAsStringSync(), 'preserve');
+      expect(recorder.tasks, contains(task), reason: 'the user can change the directory and retry');
+      expect(site.requests.where((request) => request == 'detail'), hasLength(1));
+      selected = root.path;
+      await recorder.startTask(task);
+      await Future<void>.delayed(const Duration(seconds: 1));
+      expect(ffmpeg.runs, hasLength(1), reason: 'the same task can retry after the folder is repaired');
+      expect(recorder.tasks, hasLength(1));
+      expect(blocker.readAsStringSync(), 'preserve');
+    });
+
     test('issue #19: saved room choices resume on boot and disabled rooms stay retained', () async {
       site.status = LiveStatus.offline;
       settings = RecordSettings(enablePolling: true, autoStartOnBoot: true, liveCheckInterval: 10);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/features/settings/settings_model.dart';
+import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_router.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_observer.dart';
@@ -10,7 +12,17 @@ import 'package:pure_live/tv/pages/tv_area_rooms_page.dart';
 import 'package:pure_live/tv/pages/tv_search_page.dart';
 import 'package:pure_live/tv/room/tv_live_play_page.dart';
 import 'package:pure_live/tv/settings/tv_platform_settings_page.dart';
+import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
+
+const Set<String> _tvSettingsRoots = {
+  RoutePath.kIptv,
+  RoutePath.kRecordSettings,
+  RoutePath.kLocalInteraction,
+  RoutePath.kBackup,
+  RoutePath.kLogs,
+  RoutePath.kAbout,
+};
 
 /// The pages the TV interface (M14.1) puts on the phone's paths, so every
 /// `AppNavigator` call (a card, the room switcher, a deep link) lands on the
@@ -54,6 +66,15 @@ GoRouter buildTvRouter({
           child: PureLiveRouteScrollScope(
             child: tvPageRoutes.containsKey(path)
                 ? builder(RouteArgs(path, arguments: state.extra))
+                : _tvSettingsRoots.contains(path)
+                ? TvSettingsScaffold(
+                    title: i18n(
+                      SettingsSection.values.where((section) => section.route == path).firstOrNull?.titleKey ?? 'about',
+                    ),
+                    pageKey: ValueKey('tv-settings-root-$path'),
+                    contentHasHeader: true,
+                    child: builder(RouteArgs(path, arguments: state.extra)),
+                  )
                 : TvSettingsStyle(child: builder(RouteArgs(path, arguments: state.extra))),
           ),
         ),

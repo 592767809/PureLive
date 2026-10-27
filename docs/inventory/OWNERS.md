@@ -6,11 +6,11 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 224 条；设置 285 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
+路径规则 226 条；设置 288 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
-| A01 设计系统 | 4 | 21 |  |  |  |
+| A01 设计系统 | 4 | 24 |  |  |  |
 | A02 组件 | 3 |  |  |  |  |
 | A03 动效和手感 | 3 |  |  |  |  |
 | A04 尺寸和适配 | 1 |  |  |  |  |
@@ -93,7 +93,7 @@
 | X05 macOS | 1 |  |  |  |  |
 | Y01 版本签名和发布 | 2 |  |  |  |  |
 | Y02 更新通道 | 1 | 5 |  |  | 1 |
-| Z01 工具链和依赖 | 1 |  |  |  |  |
+| Z01 工具链和依赖 | 3 |  |  |  |  |
 | Z02 门禁 | 1 |  |  |  |  |
 | Z03 清点和归属 | 1 |  |  |  |  |
 | Z04 构建和装机 | 2 |  |  |  |  |
@@ -103,7 +103,7 @@
 ## A01 设计系统
 
 - 代码：`apps/pure_live/lib/app/fonts.dart`、`packages/live_ui/lib/src/theme/`、`packages/live_ui/lib/src/icons/`、`packages/live_ui/lib/src/widgets/glass.dart`
-- 设置：`themeMode`、`enableDynamicTheme`、`liquidGlass`、`homeBottomBarOnWide`、`homeBottomBarCompact`、`liquidGlassFrost`、`themeColorSwitch`、`pureBlackTheme`、`themeColorMigration`、`crossAxisSpacing`、`mainAxisSpacing`、`loadingStyle`、`loadingStyleColorSwitch`、`textScaleFactor`、`fontSizeBodySmall`、`fontSizeBodyMedium`、`fontSizeBodyLarge`、`fontSizeTitleMedium`、`fontSizeTitleLarge`、`fontFamilyName`、`fontFamilyFileName`
+- 设置：`themeMode`、`enableDynamicTheme`、`liquidGlass`、`homeBottomBarOnWide`、`homeBottomBarCompact`、`homeNavigationAutoHide`、`mobileNavigationLabels`、`desktopNavigationLabels`、`liquidGlassFrost`、`themeColorSwitch`、`pureBlackTheme`、`themeColorMigration`、`crossAxisSpacing`、`mainAxisSpacing`、`loadingStyle`、`loadingStyleColorSwitch`、`textScaleFactor`、`fontSizeBodySmall`、`fontSizeBodyMedium`、`fontSizeBodyLarge`、`fontSizeTitleMedium`、`fontSizeTitleLarge`、`fontFamilyName`、`fontFamilyFileName`
 
 ## A02 组件
 
@@ -493,7 +493,7 @@
 
 ## Z01 工具链和依赖
 
-- 代码：`tools/check_latest/`
+- 代码：`tools/check_latest/`、`tools/flutter_sdk/`、`tools/toolchain/`
 
 ## Z02 门禁
 

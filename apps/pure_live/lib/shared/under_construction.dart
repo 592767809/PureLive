@@ -64,13 +64,15 @@ class UnderConstruction extends StatelessWidget {
     final detail = describe(route.arguments);
     final building = i18nChinese ? '建设中' : 'Under construction';
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: route.inHome && centredPageTitle,
-        automaticallyImplyLeading: !route.inHome,
-        leading: phoneTab ? const MenuButton() : null,
-        actions: phoneTab ? const [CommonAppBarActions()] : null,
-        title: Text(key == null ? route.path : i18n(key)),
-      ),
+      appBar: hidesHomeBar(context, inHome: route.inHome)
+          ? null
+          : AppBar(
+              centerTitle: route.inHome && centredPageTitle,
+              automaticallyImplyLeading: !route.inHome,
+              leading: phoneTab ? const MenuButton() : null,
+              actions: phoneTab ? const [CommonAppBarActions()] : null,
+              title: Text(key == null ? route.path : i18n(key)),
+            ),
       body: AppStatusView(
         type: AppStatusType.empty,
         title: building,

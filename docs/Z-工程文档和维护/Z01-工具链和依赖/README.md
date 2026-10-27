@@ -1,88 +1,25 @@
 # Z01 工具链和依赖
 
-管 4.x 用哪个版本的 Flutter、Dart、Gradle、AGP、Kotlin、JDK、NDK、Android SDK、mpv、FFmpeg 和 pub 依赖，版本写在哪里、怎么查有没有新的、升级时怎么验证。
+`toolchain.env` 是工具版本来源，pub workspace 的 14 个成员共用根锁文件。当前升级和验收见 [Z01.3](Z01.3-全端工具链与依赖重新核验升级/README.md)，历史迁移及保留原因见 [Z01.2](Z01.2-例行依赖升级检查/record.md)。
 
-## 范围
+## 2026-10-26 重新核验
 
-- 包括：
-  - `toolchain.env`：工具链的唯一来源（13 个键，见下面“现状”）。
-  - 根 `pubspec.yaml`：pub workspace 的 13 个成员、共用的 `pubspec.lock`、`dependency_overrides`（只能写在这里）、录制用 FFmpeg 包的 `ffmpeg_kit_extended_config`。
-  - `tools/check_latest/`：对照官方渠道查最新稳定版的命令行工具。
-  - 本机环境脚本 `~/tools/purelive-env.sh`（不在仓库里）和 `toolchain.env` 一致。
-- 不包括（归哪里）：
-  - 自维护的 media_kit 分支 `third_party/media_kit`、`third_party/media_kit_video` 的补丁内容 → G01（引擎）；本子分类只管 `toolchain.env` 里记的上游提交和 `check_latest` 对它的检查。
-  - FFmpeg 原生包的下载和缓存（`tools/ffmpeg_kit/`）→ Z04；版本号 `FFMPEG_VERSION` 在这里。
-  - 门禁本身 → Z02；升级后跑门禁是这里的要求。
-  - Windows 主机上的 Flutter（`C:\Users\123\claude-work\flutter`）→ X01.3。
+Flutter 3.47.8 / Dart 3.13.7；Gradle 9.8.2、AGP 9.4.1、Kotlin 2.4.21；Temurin 27.0.1.0.2+1。Android compile SDK 37.2、build-tools 37.0.0、NDK 30.0.16248370、platform-tools 37.0.1、cmdline-tools 23.0、SDK CMake 4.1.2 保持官方当前稳定版本。mpv 0.41.0、FFmpeg 9.0.2 和自维护播放器上游提交未改变。
 
-## 现状：做到哪、怎么工作的
+Linux 使用官方正式 Clang 23.1.4；桌面登记独立 CMake 4.4.4、Ninja 1.13.2、Visual Studio 18.11.2、Inno Setup 7.1.0；Flutter Windows 实际使用最新 Visual Studio 自带的 CMake 4.3.1-msvc1，而非 PATH 上的独立 CMake。项目脚本使用独立 Python 3.15.2。Apple 工作流选择 `xcode-27` 镜像中固定的正式 Xcode 27.1、CocoaPods 1.17.0，拒绝自动选中较新的 RC。Apple 原生构建仍待本次源码完整门禁后执行。
 
-- 版本（`toolchain.env`，2026-10-08 核对时全部是最新稳定版）：
+官方检查器共 75 项，落后 0、查询失败 0；查询失败现在退出非零，Android 稳定包按 channelRef 与 preview 判定。直接依赖升级 10 项，锁文件调整 48 项；5 个传递依赖受 SDK/依赖自身约束保留，没有用无依据的覆盖强行提高版本。
 
-| 键 | 值 | 用在哪 |
-|---|---|---|
-| `FLUTTER_VERSION`、`DART_VERSION` | 3.47.7、3.13.5 | 全部成员；根 `pubspec.yaml` 的 `sdk: ^3.13.0` |
-| `GRADLE_VERSION`、`AGP_VERSION`、`KOTLIN_VERSION` | 9.8.1、9.4.1、2.4.21 | `apps/pure_live/android/`（AGP 9 自带 Kotlin，`gradle.properties` 的 `android.builtInKotlin=true`；`settings.gradle.kts` 声明 Kotlin Gradle 插件 2.4.21，比 AGP 9.4.1 自带的 2.4.20 新） |
-| `JDK_FEATURE_VERSION` | 27（本机 Temurin 27.0.0+35） | Gradle 运行时；字节码目标 17（`build.gradle.kts` 的 `JavaVersion.VERSION_17`） |
-| `ANDROID_COMPILE_SDK`、`ANDROID_BUILD_TOOLS`、`ANDROID_NDK_VERSION` | 37.2、37.0.0、30.0.16248370 | `android/build.gradle.kts` 读取 `toolchain.env`，给 app 和全部插件模块设 `compileSdk` 37、`compileSdkMinor` 2、`buildToolsVersion`、`ndkVersion`（之前 app 用 Flutter 默认的 NDK 28.2，插件用 AGP 默认的，2026-10-08 统一）；`targetSdk = 37`、`minSdk = 26` |
-| `ANDROID_PLATFORM_TOOLS`、`ANDROID_CMDLINE_TOOLS`、`ANDROID_CMAKE_VERSION` | 37.0.1、23.0、4.1.2 | 本机 Android SDK；CMake 给带 C/C++ 的插件（`jni`、`cnativeapi`、`ffmpeg_kit_extended_flutter`，之前用 AGP 默认的 3.22.1），并加 `-DCMAKE_POLICY_VERSION_MINIMUM=3.5`（CMake 4 不接受要求低于 3.5 的工程） |
-| `MPV_VERSION`、`FFMPEG_VERSION` | 0.41.0、9.0.2 | 播放内核（`third_party/media_kit` 的原生包）、录制的 FFmpeg（`tools/ffmpeg_kit/bundles.txt`） |
-| `MEDIA_KIT_UPSTREAM_REPO`、`MEDIA_KIT_UPSTREAM_COMMIT` | `Predidit/media-kit`、`6b188ae9` | 自维护分支对应的上游提交 |
+## 关键兼容约束
 
-- 依赖：13 个 workspace 成员（`apps/pure_live`、11 个 `packages/live_*`、`tools/check_latest`）直接依赖 63 个包，其中 46 个来自 pub.dev。`dependency_overrides` 7 项：`media_kit`、`media_kit_video`（指向 `third_party/`）、`wakelock_plus 1.8.1`、`xml 7.1.0`、`test_api 0.7.15`、`code_assets 2.1.0`、`nm 0.6.0`、`dbus 0.8.0`（根 `pubspec.yaml:26-64`，每项上面写了为什么、3.x 有没有同样的覆盖）。
-- 检查最新版：`GITHUB_TOKEN=$(gh auth token) dart run tools/check_latest/bin/check_latest.dart`。`collect`（`tools/check_latest/lib/check_latest.dart:159`）依次查 Flutter（官方 releases JSON）、Gradle（`services.gradle.org`）、AGP、Kotlin、JDK（Adoptium）、NDK、compileSdk、build-tools（`dl.google.com` 的 `repository2-3.xml`）、mpv、FFmpeg（GitHub）、media_kit 上游最新提交，再对 workspace 里每个 pub.dev 依赖查 `pub.dev/api/packages/<名>`；输出 Markdown 表（落后的排前面，`renderMarkdown` `:241`），有落后的退出码 1（`--report-only` 改成 0），`--json`、`--skip-pub` 可选（`bin/check_latest.dart:8-12`）。不带令牌时 GitHub 接口会 403。
-- 升级的规矩（ENGINEERING 第 2 节第 4 条、第 3 节）：用最新稳定版；升级时连同本机环境（`~/tools/purelive-env.sh` 里的 Flutter、JDK、SDK 路径）一起改并验证，`toolchain.env` 只在验证过以后改。
-- 完成度：Z01.1（2026-09-28）把以上全部建好，`check_latest` 当天 16 项、落后 0；之后**没有再跑过**（Z01.2 每月一次，未开始）。`toolchain.env` 只在 `c613b73f9` 改过注释里的文档路径，版本没动。
+- Flutter 的已合并语义树修复仍按 [tools/flutter_sdk](../../../tools/flutter_sdk/README.md) 的版本和文件哈希核验，在独立 SDK 应用；共享旧 SDK 保留。
+- screen_retriever 0.3 改为 nativeapi，显示器句柄不能跨启动保存。应用使用即时快照和持久显示器键，旧小窗坐标按当前工作区验证后保留。最新 window_manager 0.5.2 的唯一显示器工具函数随本地 MIT 分支迁移，原生窗口实现保持上游版本；来源和完整补丁范围在 third_party/window_manager/PURELIVE_PATCH.md。
+- 录制 FFmpeg 的 Dart/原生 ABI 配套和原有包哈希不变；不能因包名版本相同假定 ABI 相同。
+- Inno Setup 通过预处理器实际版本校验，缺失或不匹配直接失败；用 `PURELIVE_ISCC` 或打包脚本 `-Iscc` 指定独立安装。旧用户数据不进入包。
 
-## 代码地图
+## 验证和维护
 
-| 文件 | 职责 |
-|---|---|
-| `toolchain.env`（25 行） | 工具链版本，唯一来源；注释写明只在验证过的升级后改 |
-| `pubspec.yaml`（根，72 行） | workspace 成员（`:10-23`）、`dependency_overrides`（`:26-64`）、`ffmpeg_kit_extended_config`（`:66-72`） |
-| `pubspec.lock`（根） | 全部成员共用的锁文件 |
-| `tools/check_latest/lib/check_latest.dart`（255 行） | `Finding`（`:13`，`isBehind` 按版本号比较）、`readEnvFile`（`:64`）、`readWorkspaceDirectDependencies`（`:93`）、`readWorkspaceMembers`（`:108`）、`highestStable`（`:113`，跳过预发布）、`Fetcher`（`:129`，60 秒超时，带 `GITHUB_TOKEN`）、`collect`（`:159`）、`renderMarkdown`（`:241`） |
-| `tools/check_latest/bin/check_latest.dart`（54 行） | 命令行参数、读 `toolchain.env` 和锁文件、退出码 |
-| `apps/pure_live/android/gradle.properties` | Gradle 守护进程、并行、配置缓存、AGP 内置 Kotlin、`skipDependencyChecks=true`（Flutter 3.47 的 Kotlin 版本检查不认 AGP 内置的编译器） |
-| `apps/pure_live/android/gradle/wrapper/gradle-wrapper.properties` | Gradle 版本（要和 `GRADLE_VERSION` 一致） |
-| `~/tools/purelive-env.sh`（仓库外） | 本机的 `FLUTTER_ROOT`、`JAVA_HOME`（temurin27）、`ANDROID_HOME`、`ANDROID_USER_HOME=~/.android-purelive`、`GRADLE_USER_HOME=~/.gradle-purelive-v4`、代理、`FLUTTER_STORAGE_BASE_URL` 镜像 |
-
-测试：
-
-| 测试文件 | 覆盖什么 |
-|---|---|
-| `tools/check_latest/test/check_latest_test.dart`（5 个） | 读 env 跳过注释；只取直接的 hosted 依赖；`highestStable` 跳过预发布和不匹配的前缀；`isBehind` 按版本比较；workspace 成员的直接依赖从各自 pubspec 取、版本从锁文件取 |
-
-## 3.x 基线
-
-- 3.x 是单个包（`git show v3.2.11:pubspec.yaml`，`version: 3.2.11+4134`），Flutter 版本写在 `.fvmrc` 和各工作流的 `FLUTTER_VERSION`（例如 `.github/workflows/build-ios-unsigned.yml` 的 `env.FLUTTER_VERSION: 3.47.5`），依赖更新靠 `.github/dependabot.yml`；本地依赖补丁放在 `plugins/` 和 `third_party/`。
-- 3.x 的依赖覆盖（`code_assets`、`nm`、`dbus`）4.x 照样需要，根 `pubspec.yaml` 的注释写了“3.x shipped the same override”。
-- 要保留的：用最新稳定版；FFmpeg 9.0.2 的原生包 4.x 起自己编（`native-ffmpeg-9.0.2-b2`，按 ffmpeg_kit_extended_flutter 1.0.0 的原生接口 0.11.2；3.x 是 b1，0.11.1）。
-
-## 已知问题和限制
-
-| 问题 | 位置 | 影响 | 处理 |
-|---|---|---|---|
-| 2026-09-28 之后没跑过 `check_latest`，不知道现在落后多少 | `tools/check_latest/` | 安全修复和平台改动可能漏掉 | Z01.2 |
-| `check_latest` 只对照 `toolchain.env`，不查 `gradle-wrapper.properties` 和 `build.gradle.kts` 里写的版本是不是和它一致 | `tools/check_latest/lib/check_latest.dart:159` | 两处不一致时不会被发现 | Z01.2 第 1 次做时顺手核对，长期在 Z01.2 的说明里写成检查项 |
-| `check_deps.py` 的允许表里有不存在的成员 `tools/live_cli` | `tools/gate/check_deps.py:34`、`:41` | 规则表和仓库不一致（不会报错，因为只检查 workspace 里有的成员） | E07.1 取回 `tools/live_cli` 时成立；不取回就删掉这两处 |
-| `gradle.properties` 关掉了依赖检查（`skipDependencyChecks=true`）和依赖验证（`org.gradle.dependency.verification=off`） | `apps/pure_live/android/gradle.properties` | 升级 Flutter 后 Gradle 侧的版本冲突不会在配置阶段报出 | 升级 Flutter 时在 Z01.2 的步骤里专门做一次 release 构建 |
-
-## 相关决定和规范
-
-- D-002：master 清空重来，只借鉴归档 v4 的工程工具（Z01.1 的来源）。
-- D-007：推送前门禁必须通过（升级依赖也一样）。
-- ENGINEERING 第 2 节第 4 条（最新稳定版）、第 3 节（工具链和结构）、第 4 节（核心依赖和分层）。
-
-## 测试和验证
-
-- `dart test tools/check_latest`（门禁 `--all` 里对它跑格式、分析和测试）。
-- 升级后的验证：`bash tools/gate/gate.sh --all` 全部通过；`apps/pure_live` 里 `flutter build apk --release --split-per-abi` 成功；K90 上装同一提交的测试包冒烟（S02 的 CHECKLIST 第 1 节“看直播”）。
-
-## 路线
-
-1. Z01.2（第三档，小）：每月跑一次 `check_latest`，结果写进任务的 `record.md`；有落后的逐个判断要不要升，升级在独立分支上做、门禁和构建通过才合并。第一次做时把“版本写在几处、要一起改”的清单写进本说明。
-2. 以后加 Windows（X01.3）、Linux（X02.1）构建时，把它们需要的版本（Visual Studio、CMake、GTK）也写进 `toolchain.env` 并让 `check_latest` 能查。
+`dart run tools/check_latest/bin/check_latest.dart` 查询官方稳定源；私有 GitHub 令牌仅通过进程环境提供。`--report-only` 只供报告，不作为成功门禁。修改前失败的 Android 预发布选择回归已保留，更新后 8 项检查器测试和 53 项桌面/小窗测试通过；14 个成员静态分析通过。完整 all/14、Android/Windows/Linux/Apple 最终构建与原生操作验证分别记录，不能互相替代。
 
 <!-- docs:生成开始（下面由 tools/docs/docs.py 根据 docs/tasks.toml 生成，不要手改） -->
 
@@ -91,17 +28,23 @@
 属于 [Z 工程文档和维护](../README.md)。
 
 - 代码：`toolchain.env`、`tools/check_latest/`
-- 进度：`█████████████████░░░` 87%
+- 进度：`███████░░░░░░░░░░░░░` 37%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
 |---|---|---|---|---|---|---|
 | Z01.1 | 工程底座：工具链、门禁、代码规范 | 工程 | 完成 | 2026-09-28 | 4aaeb0fda | [设计或说明](Z01.1-工程底座/README.md)、[记录](Z01.1-工程底座/record.md) |
 | Z01.2 | 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁） | 工程 | 开发中 | — | — | [设计或说明](Z01.2-例行依赖升级检查/README.md)、[任务书](Z01.2-例行依赖升级检查/brief.md)、[记录](Z01.2-例行依赖升级检查/record.md) |
+| Z01.3 | 全端工具链与依赖重新核验升级 | 工程 | 开发中 | — | — | [设计或说明](Z01.3-全端工具链与依赖重新核验升级/README.md)、[任务书](Z01.3-全端工具链与依赖重新核验升级/brief.md)、[记录](Z01.3-全端工具链与依赖重新核验升级/record.md) |
 
 ## 还没完成的
 
 - **Z01.2 例行依赖升级检查（每月用 check_latest 查一次，升级后跑门禁）**（开发中，第三档，规模 小）
   - 接着做：2026-10-20 升级了 Gradle 9.8.2、go_router、hive_ce、material_ui、tray_manager 0.8、open_filex 5、ffmpeg_kit 1.0、media_kit 上游；screen_retriever 0.3 等 window_manager 跟上；下次 2026-11 上旬
+- **Z01.3 全端工具链与依赖重新核验升级**（开发中，第一档，规模 大）
+  - 阶段：官方版本与实际环境清点 → 工具链和依赖迁移 → 完整门禁与全平台构建
+  - 接着做：核对完整JDK补丁、Apple和桌面工具版本，审查十项直接依赖升级；原候选暂缓发布。
+  - 分支：ai/A11.8
+  - 来源：用户2026-10-26明确要求先把项目工具链全部升级到最新稳定版本
 
 <!-- docs:生成结束 -->

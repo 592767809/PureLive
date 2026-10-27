@@ -52,6 +52,9 @@ enum RecordNoticeKind {
   /// The stream could not be resolved and the task stopped.
   resolveFailed,
 
+  /// The output directory or segment reservation could not be written.
+  storageFailed,
+
   /// A start was requested while the task is still starting.
   starting,
 
@@ -388,6 +391,7 @@ final class Recorder {
     rt.lifecycle = lifecycle;
     final discovery = LiveQualityDiscoveryScope();
     String? protectedDirectory;
+    var preparingStorage = false;
     token.onCancel = () async {
       discovery.cancel();
       final capture = rt.capture;
@@ -417,6 +421,7 @@ final class Recorder {
             );
       if (token.isCancelled) return;
       final current = settings();
+      preparingStorage = true;
       final root = await storage.recordDirectory();
       final directory = attemptDirectory(
         root.path,
@@ -430,6 +435,7 @@ final class Recorder {
       storage.protect(directory);
       final prefix = task.recordingFilePrefix;
       final reservation = await SegmentReservation.acquire(directory, prefix);
+      preparingStorage = false;
       final MediaInput input;
       try {
         final cuts = stream.line?.lease?.cutsConnection ?? false;
@@ -511,8 +517,13 @@ final class Recorder {
       _completeLifecycle(rt);
     } on Object catch (error) {
       if (!token.isCancelled && _owns(task)) {
-        task.markFailure(stage: 'recorder', error: error, now: clock.now());
-        if (task.autoReconnect) {
+        final storageFailed = preparingStorage && error is FileSystemException;
+        task.markFailure(stage: storageFailed ? 'storage' : 'recorder', error: error, now: clock.now());
+        if (storageFailed) {
+          task.status = RecordStatus.failed;
+          _update(task);
+          _notice(RecordNotice(task, RecordNoticeKind.storageFailed));
+        } else if (task.autoReconnect) {
           final fast = rt.rapidRecovery;
           if (!_scheduleReconnect(task, fast: fast)) {
             await _finalizing(rt, () => _closeSession(task, broadcastEnded: fast));

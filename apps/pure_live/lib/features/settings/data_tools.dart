@@ -421,6 +421,13 @@ typedef _Preview = ({Map<String, Object?> json, int follows, int history, int ta
 
 class _ConfigPreviewPageState extends ConsumerState<ConfigPreviewPage> {
   late Future<_Preview> _load = _read();
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   Future<_Preview> _read() async {
     final store = ref.read(storeProvider);
@@ -466,7 +473,7 @@ class _ConfigPreviewPageState extends ConsumerState<ConfigPreviewPage> {
             buttonIcon: AppIcons.settingsReload,
             onButtonPressed: () => setState(() => _load = _read()),
           ),
-          AsyncSnapshot(data: final data?) => _PreviewBody(data: data, start: embedded),
+          AsyncSnapshot(data: final data?) => _PreviewBody(data: data, start: embedded, controller: _scroll),
           _ => const AppStatusView(key: ValueKey('settings-config-loading'), type: AppStatusType.loading),
         },
       ),
@@ -475,10 +482,11 @@ class _ConfigPreviewPageState extends ConsumerState<ConfigPreviewPage> {
 }
 
 class _PreviewBody extends StatelessWidget {
-  const new({required this.data, required this.start});
+  const new({required this.data, required this.start, required this.controller});
 
   final _Preview data;
   final bool start;
+  final ScrollController controller;
 
   @override
   Widget build(BuildContext context) {
@@ -508,8 +516,9 @@ class _PreviewBody extends StatelessWidget {
           tileWidth / (columns == 4 ? 1.7 : 2.2),
           20 + scaler.scale(22) * 1.4 + scaler.scale(12) * 1.4,
         );
-        return CustomScrollView(
+        final scroll = CustomScrollView(
           key: const ValueKey('settings-config-scroll'),
+          controller: controller,
           physics: const PureLiveScrollPhysics(),
           slivers: [
             SliverPadding(
@@ -598,6 +607,16 @@ class _PreviewBody extends StatelessWidget {
             ),
           ],
         );
+        return SettingsPageHeaderScope.maybeOf(context) == null
+            ? scroll
+            : KeyboardScrollArea(
+                key: const ValueKey('settings-config-keyboard-scroll'),
+                controller: controller,
+                label: i18n('settings_config_all'),
+                autofocus: true,
+                ringColor: colors.onSurface,
+                child: scroll,
+              );
       },
     );
   }

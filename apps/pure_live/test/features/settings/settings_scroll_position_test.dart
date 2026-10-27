@@ -39,6 +39,17 @@ void main() {
   setUpAll(loadStrings);
 
   group('phone (one column)', () {
+    testWidgets('issue 60: standalone settings use the same immediate content navigation', (tester) async {
+      final h = await pumpSettings(tester, height: 800);
+      await _open(tester, 'settings-overview', settingsSection(SettingsSection.backup));
+      expect(h.opened, isEmpty, reason: 'opening a settings root must not push an animated application route');
+      expect(find.byType(BackupPage), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings-overview')), findsNothing);
+      await tester.binding.handlePopRoute();
+      await settleSettings(tester);
+      expect(find.byKey(const ValueKey('settings-overview')), findsOneWidget);
+    });
+
     testWidgets('overview → a page → back (button and system back): the overview is where it was', (tester) async {
       await pumpSettings(tester, height: 800);
       await _scroll(tester, 'settings-overview', 600);
@@ -72,12 +83,12 @@ void main() {
       expect(_position(tester, 'settings-overview').pixels, overview);
     });
 
-    testWidgets('a page opened as a route (backup) → back: the overview is where it was', (tester) async {
+    testWidgets('a shared settings root (backup) → back: the overview is where it was', (tester) async {
       final h = await pumpSettings(tester, height: 800);
       await _scroll(tester, 'settings-overview', 600);
       final before = await _open(tester, 'settings-overview', settingsSection(SettingsSection.backup));
-      expect(h.opened.last, RoutePath.kBackup);
-      AppNavigator.router.pop();
+      expect(h.opened, isEmpty);
+      await tester.binding.handlePopRoute();
       await settleSettings(tester);
       expect(_position(tester, 'settings-overview').pixels, before);
     });

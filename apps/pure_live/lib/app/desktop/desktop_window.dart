@@ -9,6 +9,7 @@ import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
 import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/close_dialog.dart';
+import 'package:pure_live/app/desktop/display_geometry.dart';
 import 'package:pure_live/app/desktop/mini_window.dart';
 import 'package:pure_live/app/desktop/shared_data.dart';
 import 'package:pure_live/app/desktop/startup_entry.dart';
@@ -19,7 +20,6 @@ import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_observer.dart';
-import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
 export 'package:pure_live/app/desktop/mini_window.dart' show MiniWindowHost;
@@ -406,8 +406,9 @@ final class DesktopShell with WindowListener {
   /// The primary display's work area, or null when unknown.
   Future<Size?> _workArea() async {
     try {
-      final display = await screenRetriever.getPrimaryDisplay();
-      return display.visibleSize ?? display.size;
+      final displays = readDesktopDisplays();
+      final display = displays.where((display) => display.isPrimary).firstOrNull ?? displays.firstOrNull;
+      return display?.workArea.size;
     } on Object {
       return null;
     }
@@ -416,11 +417,8 @@ final class DesktopShell with WindowListener {
   /// Whether [position] puts most of the window's title row on a display.
   Future<bool> _onScreen(Offset position, Size size) async {
     try {
-      final displays = await screenRetriever.getAllDisplays();
-      return titleRowOnScreen(position, size, [
-        for (final display in displays)
-          (display.visiblePosition ?? Offset.zero) & (display.visibleSize ?? display.size),
-      ]);
+      final displays = readDesktopDisplays();
+      return titleRowOnScreen(position, size, [for (final display in displays) display.workArea]);
     } on Object {
       return false;
     }

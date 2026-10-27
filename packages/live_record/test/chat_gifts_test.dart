@@ -31,6 +31,8 @@ LiveMessage _superChat({
   String priceText = '',
   String id = '',
   bool replayed = false,
+  int startOffsetSeconds = 0,
+  bool estimated = false,
 }) => LiveMessage(
   type: LiveMessageType.superChat,
   userName: 'SUPER_CHAT_MESSAGE',
@@ -44,8 +46,9 @@ LiveMessage _superChat({
     message: text,
     price: price,
     priceText: priceText,
-    startTime: _start,
-    endTime: _start.add(const Duration(seconds: 60)),
+    startTime: _start.add(Duration(seconds: startOffsetSeconds)),
+    endTime: _start.add(Duration(seconds: startOffsetSeconds + 60)),
+    hasEstimatedStartTime: estimated,
     backgroundColor: '',
     backgroundBottomColor: '',
   ),
@@ -381,6 +384,20 @@ void main() {
       '<sc ts="0.100" user="甲" time="60" value="1000" pricetext="1,000\u00A0虎粮">加油</sc>',
       '<sc ts="0.200" user="乙" time="60"></sc>',
     ]);
+  });
+
+  test('issue #16: recorded paid events keep later purchases but not board replays', () async {
+    final writer = await open();
+    writer
+      ..add(_superChat(price: 30), receivedAt: _at(0))
+      ..add(_superChat(price: 30), receivedAt: _at(0))
+      ..add(_superChat(price: 30, startOffsetSeconds: 1), receivedAt: _at(1000))
+      ..add(_superChat(price: 30, text: 'board', estimated: true), receivedAt: _at(0))
+      ..add(_superChat(price: 30, text: 'board', estimated: true, startOffsetSeconds: 1), receivedAt: _at(1000))
+      ..add(_superChat(price: 30, text: 'board', estimated: true, startOffsetSeconds: 120), receivedAt: _at(120000));
+    await writer.close();
+    expect(writer.paidCount, 4);
+    expect(_entries(await writer.file.readAsString()).where((line) => line.startsWith('<sc ')), hasLength(4));
   });
 
   test('the recorder writes the gifts and super chats the connector delivers, and nothing else', () async {

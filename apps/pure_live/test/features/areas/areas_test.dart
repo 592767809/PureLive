@@ -151,6 +151,15 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('issue 63: platform tabs show the existing platform logo with their name', (tester) async {
+    final services = await _pumpApp(tester, {'huya': _FakeSite('huya', '虎牙', const [])});
+    final tabs = find.byKey(const ValueKey('areas-platform-tabs'));
+    expect(find.descendant(of: tabs, matching: find.byType(PlatformLogo)), findsOneWidget);
+    expect(find.descendant(of: tabs, matching: find.text('虎牙')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(services.close);
+  });
+
   tearDown(() {
     MobileDataNotice.onMobileData.value = false;
     MobileDataNotice.dismissed.value = false;

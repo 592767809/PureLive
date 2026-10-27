@@ -650,6 +650,8 @@ PreferredSizeWidget settingsAppBar(
   Widget? leading,
   bool embedded = false,
 }) {
+  final custom = SettingsPageHeaderScope.maybeOf(context);
+  if (custom != null) return custom.builder(context, title: title, actions: actions);
   return AppBar(
     title: Text(
       title,

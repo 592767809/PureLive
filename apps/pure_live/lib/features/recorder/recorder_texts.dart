@@ -25,6 +25,7 @@ String recordStageText(String? stage) {
     'scheduler' => 'recorder_stage_scheduler',
     'status' => 'recorder_stage_status',
     'background' => 'recorder_stage_background',
+    'storage' => 'recorder_stage_storage',
     _ => 'recorder_stage_unknown',
   });
 }
@@ -79,6 +80,8 @@ String recordStreamErrorText(RecordStreamException error) =>
     meaning = recordFailureKindText(kind);
   } else if (stage == 'background') {
     meaning = i18n(error == 'timeout' ? 'recorder_background_time_limit' : 'recorder_background_unavailable');
+  } else if (stage == 'storage') {
+    meaning = i18n('recorder_storage_failed');
   } else if (stage == 'room') {
     meaning = recordRestrictionText(restriction);
   } else if (stage == 'merge') {
@@ -97,6 +100,10 @@ String? recordNoticeText(RecordNotice notice) {
   final name = notice.task.nick.trim().isNotEmpty ? notice.task.nick.trim() : notice.task.roomId;
   return switch (notice.kind) {
     RecordNoticeKind.starting => i18n('recorder_task_starting'),
+    RecordNoticeKind.storageFailed => i18n(
+      'recorder_exception',
+      args: {'name': name, 'error': i18n('recorder_storage_failed')},
+    ),
     // The player's "平台实际返回" (`quality_limited_to`), once per recording.
     RecordNoticeKind.qualityLimited => switch (notice.quality?.trim()) {
       final quality? when quality.isNotEmpty => i18n('record_quality_limited_to', args: {'quality': quality}),

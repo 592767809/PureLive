@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -15,7 +19,7 @@ import 'package:pure_live/tv/widgets/tv_page_header.dart';
 /// that opened it.
 class TvSettingsScaffold extends StatefulWidget {
   /// Creates the page.
-  const new({required this.title, required this.child, this.pageKey, super.key});
+  const new({required this.title, required this.child, this.pageKey, this.contentHasHeader = false, super.key});
 
   /// The title.
   final String title;
@@ -26,29 +30,99 @@ class TvSettingsScaffold extends StatefulWidget {
   /// The scaffold's key (`tv-settings-page-<name>`).
   final Key? pageKey;
 
+  /// The shared page supplies a header through [SettingsPageHeaderScope].
+  final bool contentHasHeader;
+
   @override
   State<TvSettingsScaffold> createState() => _TvSettingsScaffoldState();
 }
 
 class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
-  final FocusNode _body = FocusNode(debugLabel: 'tv settings page', skipTraversal: true, canRequestFocus: false);
+  final FocusScopeNode _body = FocusScopeNode(debugLabel: 'tv settings page', skipTraversal: true);
+  bool _focusedInitially = false;
+  bool _focusPending = false;
+  bool _currentRoute = true;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      for (final node in _body.traversalDescendants) {
-        if (node.canRequestFocus) {
-          node.requestFocus();
+    FocusManager.instance.addListener(_followFocus);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route visibility, so loading under a dialog does not
+    // permanently abandon initial focus when the dialog is dismissed.
+    _currentRoute = ModalRoute.isCurrentOf(context) ?? true;
+    _focusFirst();
+  }
+
+  void _focusFirst() {
+    if (!mounted || _focusedInitially || _focusPending || !_currentRoute) return;
+    _focusPending = true;
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => scheduleMicrotask(() {
+        _focusPending = false;
+        if (!mounted || _focusedInitially || !_currentRoute) return;
+        final primary = FocusManager.instance.primaryFocus;
+        if (_body.hasFocus && primary is! FocusScopeNode) {
+          _focusedInitially = true;
           return;
         }
-      }
+        for (final node in _body.traversalDescendants) {
+          if (node is! FocusScopeNode &&
+              node.context != null &&
+              node.context!.findAncestorWidgetOfExactType<TvPageHeader>() == null) {
+            _focusedInitially = true;
+            node.requestFocus();
+            return;
+          }
+        }
+        // A shared page may load for many frames before attaching targets.
+        // Wait on its next actual frame; never request frames while idle.
+        _focusFirst();
+      }),
+    );
+  }
+
+  void _followFocus() {
+    final primary = FocusManager.instance.primaryFocus;
+    if (_currentRoute &&
+        _focusedInitially &&
+        primary is FocusScopeNode &&
+        (_body.hasFocus || _body.ancestors.contains(primary))) {
+      // Loading can replace a previously focused row (IPTV inserts its
+      // overview above the settings). A scope is not a usable target.
+      // Recover only after that target disappeared, never from another
+      // control, a header action, or a dialog covering this route.
+      _focusedInitially = false;
+      _focusFirst();
+      WidgetsBinding.instance.ensureVisualUpdate();
+    }
+    if (!_body.hasFocus) return;
+    final target = primary?.context;
+    if (target == null || Scrollable.maybeOf(target) == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !target.mounted || !_currentRoute || FocusManager.instance.primaryFocus != primary) return;
+      final scrollable = Scrollable.maybeOf(target);
+      final object = target.findRenderObject();
+      if (scrollable == null || object == null || !object.attached) return;
+      final viewport = RenderAbstractViewport.maybeOf(object);
+      if (viewport == null) return;
+      // A loading page can retain an offset below its new first row. The
+      // end-only policy never scrolls back to a focused row above the clip.
+      final start = viewport.getOffsetToReveal(object, 0, axis: scrollable.position.axis).offset;
+      final policy = start < scrollable.position.pixels
+          ? ScrollPositionAlignmentPolicy.keepVisibleAtStart
+          : ScrollPositionAlignmentPolicy.keepVisibleAtEnd;
+      Scrollable.ensureVisible(target, alignmentPolicy: policy).ignore();
     });
   }
 
   @override
   void dispose() {
+    FocusManager.instance.removeListener(_followFocus);
     _body.dispose();
     super.dispose();
   }
@@ -64,16 +138,44 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TvPageHeader(title: widget.title, subtitle: i18n('tv_menu_settings')),
-            SizedBox(height: scale.px(16)),
+            if (!widget.contentHasHeader) ...[
+              TvPageHeader(title: widget.title, subtitle: i18n('tv_menu_settings')),
+              SizedBox(height: scale.px(16)),
+            ],
             Expanded(
-              child: Focus(
-                focusNode: _body,
-                child: TvSettingsStyle(child: widget.child),
+              child: FocusScope(
+                node: _body,
+                child: Theme(
+                  data: Theme.of(context).copyWith(scaffoldBackgroundColor: OnVideoColors.clear),
+                  child: TvSettingsStyle(
+                    child: SettingsPageHeaderScope(builder: _header, child: widget.child),
+                  ),
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _header(
+    BuildContext context, {
+    required String title,
+    String? subtitle,
+    List<Widget> actions = const [],
+    PreferredSizeWidget? bottom,
+  }) {
+    final scale = TvScale.of(context);
+    return PreferredSize(
+      preferredSize: Size.fromHeight(scale.pxText(76) + (bottom?.preferredSize.height ?? 0)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TvPageHeader(title: title, subtitle: subtitle ?? i18n('tv_menu_settings'), actions: actions),
+          SizedBox(height: scale.px(16)),
+          ?bottom,
+        ],
       ),
     );
   }

@@ -47,7 +47,7 @@ void main() {
     });
   });
 
-  test('super chats are equal by platform id, else by sender, text and price', () {
+  test('super chats are equal by platform id, else by payload and event time', () {
     LiveSuperChatMessage chat({String id = '', String text = 'hi', int price = 30, DateTime? start}) =>
         LiveSuperChatMessage(
           messageId: id,
@@ -62,13 +62,36 @@ void main() {
         );
     expect(
       chat(start: DateTime(2026)),
-      chat(start: DateTime(2027)),
-      reason: 'polls rebuild start times',
+      isNot(chat(start: DateTime(2027))),
+      reason: 'a later purchase can have the same sender, text and price',
     );
     expect(chat(id: 'a'), chat(id: 'a', text: 'edited'));
     expect(chat(id: 'a'), isNot(chat(id: 'b')));
     expect(chat(id: 'a'), isNot(chat()));
     expect({chat(), chat()}, hasLength(1));
+  });
+
+  test('estimated board windows deduplicate explicitly without breaking equality', () {
+    final now = DateTime.utc(2026, 10, 26);
+    LiveSuperChatMessage chat(int seconds, {bool estimated = true, String id = ''}) => LiveSuperChatMessage(
+      messageId: id,
+      userName: 'viewer',
+      face: '',
+      message: 'same paid text',
+      price: 30,
+      startTime: now.add(Duration(seconds: seconds)),
+      endTime: now.add(Duration(seconds: seconds + 60)),
+      hasEstimatedStartTime: estimated,
+      backgroundColor: '',
+      backgroundBottomColor: '',
+    );
+    expect(chat(0).isSameEventAs(chat(1)), isTrue);
+    expect(chat(1).isSameEventAs(chat(0)), isTrue);
+    expect(chat(0), isNot(chat(1)), reason: 'overlap must not become set equality');
+    expect(chat(0).isSameEventAs(chat(60)), isFalse, reason: 'adjacent windows are distinct events');
+    expect(chat(0, estimated: false).isSameEventAs(chat(1, estimated: false)), isFalse);
+    expect(chat(0, id: 'a').isSameEventAs(chat(1, id: 'b')), isFalse);
+    expect(chat(0, id: 'a').isSameEventAs(chat(120, id: 'a')), isTrue);
   });
 
   test('a super chat can carry the price as the platform shows it', () {
@@ -98,7 +121,7 @@ void main() {
       ).priceText,
       isEmpty,
     );
-    expect(chat(r'$5.00'), chat(r'NT$5'), reason: 'equality is unchanged: sender, text and price');
+    expect(chat(r'$5.00'), isNot(chat(r'NT$5')), reason: 'unknown-unit currencies must not collapse');
   });
 
   test('a message names no pictures unless given; emotes are equal by code and address', () {

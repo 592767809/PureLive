@@ -227,19 +227,22 @@ Future<void> _moveFile(File file, String target) async {
 /// import parked in `legacy_values` (where the store has none yet).
 final class RecordSettingsStore {
   /// Creates the store over the app's [LiveStore].
-  new(this._store);
+  new(this._store, {Future<Directory> Function()? iosDocuments})
+    : _iosDocuments = iosDocuments ?? (Platform.isIOS ? getApplicationDocumentsDirectory : null);
 
   /// The meta key where M13.15 kept the values (one JSON object, 3.x keys);
   /// [load] empties it.
   static const legacyStorageKey = 'recorder.settings';
 
   final LiveStore _store;
+  final Future<Directory> Function()? _iosDocuments;
+  String? _documentsPath;
   Future<void>? _loading;
 
   SettingsStore get _settings => _store.settings;
 
   /// The settings now.
-  RecordSettings get current => of(_settings);
+  RecordSettings get current => of(_settings, iosDocuments: _documentsPath);
 
   /// The settings after every change of a recorder setting (a restore or a
   /// reset included).
@@ -268,19 +271,22 @@ final class RecordSettingsStore {
       await _store.meta.set(legacyStorageKey, null);
     }
     await LegacyMigration.adoptLegacyValues(_store);
+    _documentsPath = await _iosDocuments?.call().then((directory) => directory.path);
   }
 
   /// Stores [value] for one of `Settings.recorder`.
   Future<void> set<T extends Object>(Setting<T> setting, T value) => _settings.set(setting, value);
 
   /// The recorder's settings from [settings].
-  static RecordSettings of(SettingsStore settings) => RecordSettings(
+  static RecordSettings of(SettingsStore settings, {String? iosDocuments}) => RecordSettings(
     segmentTime: settings.get(Settings.recordSegmentTime),
     maxTaskCount: settings.get(Settings.recordMaxTaskCount),
     autoReconnect: settings.get(Settings.recordAutoReconnect),
     maxCacheMB: settings.get(Settings.recordMaxCacheMB),
     enableCacheLimit: settings.get(Settings.recordEnableCacheLimit),
-    savePath: settings.get(Settings.recordSavePath).trim(),
+    savePath: iosDocuments == null
+        ? settings.get(Settings.recordSavePath).trim()
+        : iosRecordingDirectory(settings.get(Settings.recordSavePath).trim(), documentsDirectory: iosDocuments),
     defaultQuality: settings.get(Settings.recordDefaultQuality),
     maxRetryCount: settings.get(Settings.recordMaxRetryCount),
     retryDelay: settings.get(Settings.recordRetryDelay),
@@ -370,6 +376,20 @@ final class RecordSettingsStore {
     // `Settings.recorder` has a value here.
     Settings.recordDanmakuGifts.key: settings.recordDanmakuGifts,
   };
+}
+
+/// Resolves only 3.x's known default recording path in a replaced iOS data
+/// container. A restored absolute container UUID is not a portable address.
+/// The system supplies [documentsDirectory]; custom paths and saved values
+/// stay intact, and no files in the previous container are accessed or moved.
+String iosRecordingDirectory(String configured, {required String documentsDirectory}) {
+  final legacy = RegExp(
+    '^/(?:private/)?var/mobile/Containers/Data/Application/'
+    '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+    r'/Documents/PURE_LIVE/RECORDS/?$',
+  );
+  if (!legacy.hasMatch(configured)) return configured;
+  return p.posix.join(documentsDirectory, 'PURE_LIVE', 'RECORDS');
 }
 
 /// The keep-alive of the platform, with 3.x's rule that a refused or

@@ -216,21 +216,23 @@ class _FavoritePageState extends ConsumerState<FavoritePage> with TickerProvider
         title = _statusTabs(oneRow: oneRow);
       }
       return Scaffold(
-        appBar: AppBar(
-          centerTitle: centredPageTitle && !oneRow,
-          automaticallyImplyLeading: !widget.route.inHome,
-          leading: phoneTab ? const MenuButton() : null,
-          actions: phoneTab ? const [CommonAppBarActions()] : null,
-          // The three tabs need the width more than the gaps around them.
-          titleSpacing: phoneTab ? 4 : (oneRow ? 8 : null),
-          title: title,
-          bottom: hasPlatforms && !oneRow
-              ? PreferredSize(
-                  preferredSize: const Size.fromHeight(kTextTabBarHeight),
-                  child: Align(alignment: AlignmentDirectional.centerStart, child: _platformTabBar()),
-                )
-              : null,
-        ),
+        appBar: hidesHomeBar(context, inHome: widget.route.inHome)
+            ? null
+            : AppBar(
+                centerTitle: centredPageTitle && !oneRow,
+                automaticallyImplyLeading: !widget.route.inHome,
+                leading: phoneTab ? const MenuButton() : null,
+                actions: phoneTab ? const [CommonAppBarActions()] : null,
+                // The three tabs need the width more than the gaps around them.
+                titleSpacing: phoneTab ? 4 : (oneRow ? 8 : null),
+                title: title,
+                bottom: hasPlatforms && !oneRow
+                    ? PreferredSize(
+                        preferredSize: const Size.fromHeight(kTextTabBarHeight),
+                        child: Align(alignment: AlignmentDirectional.centerStart, child: _platformTabBar()),
+                      )
+                    : null,
+              ),
         body: _body(context),
       );
     },

@@ -119,6 +119,7 @@ if [[ " ${selected[*]} " == *" apps/pure_live "* ]]; then
   step "ffmpeg bundles" tools/ffmpeg_kit/fetch.sh linux
 fi
 
+step "flutter sdk semantics patch" python3 tools/flutter_sdk/prepare.py --test
 step "dependency direction" python3 tools/gate/check_deps.py
 step "fixture privacy" python3 tools/gate/check_fixtures.py
 step "ui structure" python3 tools/gate/check_ui_structure.py

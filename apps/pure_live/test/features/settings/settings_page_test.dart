@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/features/backup/backup_page.dart';
+import 'package:pure_live/features/iptv/iptv_page.dart';
+import 'package:pure_live/features/record_settings/record_settings_page.dart';
 import 'package:pure_live/features/settings/settings_catalog.dart';
 import 'package:pure_live/features/settings/settings_editors.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/i18n/i18n.dart';
-import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/rooms/paging.dart';
 
@@ -79,7 +81,7 @@ void main() {
       expect(explanation.maxLines, 3);
     });
 
-    testWidgets('a row opens its page; back returns to the overview; route pages open their route', (tester) async {
+    testWidgets('a row opens its content immediately; system back returns to the overview', (tester) async {
       final h = await pumpSettings(tester);
       await tapSettings(tester, settingsSection(SettingsSection.video));
       expect(find.byKey(const ValueKey('settings-page-video')), findsOneWidget);
@@ -90,15 +92,21 @@ void main() {
       await settleSettings(tester);
       expect(find.byKey(const ValueKey('settings-overview')), findsOneWidget);
 
-      for (final (section, route) in [
-        (SettingsSection.iptv, RoutePath.kIptv),
-        (SettingsSection.recording, RoutePath.kRecordSettings),
-        (SettingsSection.backup, RoutePath.kBackup),
+      for (final (section, pageType) in [
+        (SettingsSection.iptv, IptvPage),
+        (SettingsSection.recording, RecordSettingsPage),
+        (SettingsSection.backup, BackupPage),
       ]) {
-        await tapSettings(tester, settingsSection(section));
-        expect(h.opened.last, route);
-        AppNavigator.router.pop();
-        await settleSettings(tester);
+        await tester.ensureVisible(settingsSection(section));
+        await tester.pumpAndSettle();
+        await tester.tap(settingsSection(section));
+        await tester.pump();
+        expect(h.opened, isEmpty);
+        expect(find.byType(pageType), findsOneWidget);
+        await settleSettingsFiles(tester);
+        await tester.binding.handlePopRoute();
+        await settleSettingsFiles(tester);
+        expect(find.byKey(const ValueKey('settings-overview')), findsOneWidget);
       }
     });
 

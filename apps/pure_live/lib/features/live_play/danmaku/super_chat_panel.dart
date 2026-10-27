@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/features/live_play/danmaku/super_chat_unread.dart';
 import 'package:pure_live/features/live_play/danmaku/super_chats.dart';
 import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
@@ -42,15 +43,18 @@ class RoomSuperChatPanel extends StatelessWidget {
     child: ListenableSelector<(List<LiveSuperChatMessage>, List<LiveSuperChatMessage>)>(
       listenable: controller,
       selector: () => (controller.superChats, controller.superChatHistory),
-      builder: (context, messages, _) => SuperChatList(
-        key: ObjectKey(controller),
-        messages: messages.$1,
-        history: messages.$2,
-        scrollController: scrollController,
-        historyControlBuilder: historyControlBuilder,
-        now: controller.now,
-        platformName: platformName(controller.site.id, fallback: controller.site.name),
-        platformHasSuperChats: controller.site.hasSuperChats,
+      builder: (context, messages, _) => SuperChatReadScope(
+        controller: controller,
+        child: SuperChatList(
+          key: ObjectKey(controller),
+          messages: messages.$1,
+          history: messages.$2,
+          scrollController: scrollController,
+          historyControlBuilder: historyControlBuilder,
+          now: controller.now,
+          platformName: platformName(controller.site.id, fallback: controller.site.name),
+          platformHasSuperChats: controller.site.hasSuperChats,
+        ),
       ),
     ),
   );

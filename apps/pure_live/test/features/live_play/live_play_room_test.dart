@@ -206,12 +206,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
     await _settle(tester);
     expect(entry, findsOneWidget);
+    expect(find.byKey(const ValueKey('super-chat-unread-badge')), findsOneWidget);
+    expect(find.descendant(of: entry, matching: find.text('1')), findsOneWidget);
     await captureQaFrame(tester, 'fullscreen-super-chat-entry');
     final opens = room.engine.opens.length;
     await tester.tap(entry);
     await _settle(tester);
     await tester.pump(const Duration(seconds: 1));
     expect(find.byKey(const ValueKey('panel-super-chats')).hitTestable(), findsOneWidget);
+    expect(find.byKey(const ValueKey('super-chat-unread-badge')), findsNothing);
     expect(find.text('全屏也能查看'), findsOneWidget);
     await captureQaFrame(tester, 'fullscreen-super-chat-panel');
     expect(room.engine.opens, hasLength(opens));
@@ -220,6 +223,38 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.byKey(const ValueKey('panel-super-chats')), findsNothing);
     expect(entry, findsOneWidget, reason: 'Back closes the panel before leaving fullscreen');
+    expect(find.byKey(const ValueKey('super-chat-unread-badge')), findsNothing);
+    final next = LiveSuperChatMessage(
+      messageId: 'new-paid-message',
+      userName: '观众',
+      face: '',
+      message: '新留言',
+      price: 30,
+      startTime: now.add(const Duration(seconds: 1)),
+      endTime: now.add(const Duration(minutes: 5)),
+      backgroundColor: '#EDF5FF',
+      backgroundBottomColor: '#2A60B2',
+    );
+    void emitNew() => room.danmaku.emit(
+      DanmakuReceived(
+        LiveMessage(
+          type: LiveMessageType.superChat,
+          userName: next.userName,
+          message: next.message,
+          color: LiveMessageColor.white,
+          data: next,
+        ),
+      ),
+    );
+    emitNew();
+    await _settle(tester);
+    emitNew();
+    await _settle(tester);
+    expect(
+      find.descendant(of: entry, matching: find.text('1')),
+      findsOneWidget,
+      reason: 'only the new event is unread',
+    );
     const setting = BoolSetting('showFullscreenSuperChat', section: 'danmaku', defaultValue: true);
     await tester.runAsync(() => room.services.store.settings.set(setting, false));
     await _settle(tester);

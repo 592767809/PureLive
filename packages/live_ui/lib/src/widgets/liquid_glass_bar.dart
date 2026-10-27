@@ -71,6 +71,7 @@ class LiquidGlassBar extends StatefulWidget {
     this.refraction = true,
     this.height = GlassMetrics.barHeight,
     this.frost = 0.5,
+    this.showLabels = true,
     super.key,
   });
 
@@ -96,6 +97,9 @@ class LiquidGlassBar extends StatefulWidget {
   /// How frosted the glass is, 0 clear to 1 heavy frost (A01.8, iOS 27's
   /// slider): more tint and more diffusion of the page behind.
   final double frost;
+
+  /// Draws destination labels; the semantic names remain when hidden.
+  final bool showLabels;
 
   @override
   State<LiquidGlassBar> createState() => _LiquidGlassBarState();
@@ -489,17 +493,19 @@ class _LiquidGlassBarState extends State<LiquidGlassBar> with TickerProviderStat
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     icon,
-                    const SizedBox(height: 4),
-                    Text(
-                      item.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurface,
-                        fontWeight: chosen ? FontWeight.w600 : FontWeight.w400,
-                        height: 1.2,
+                    if (widget.showLabels) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: scheme.onSurface,
+                          fontWeight: chosen ? FontWeight.w600 : FontWeight.w400,
+                          height: 1.2,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

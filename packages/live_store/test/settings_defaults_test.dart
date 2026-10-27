@@ -267,6 +267,9 @@ const List<String> _withKick = [
 
 /// Settings v4 added (no 3.x key) and their defaults, with the task.
 const Map<String, Object> newInV4 = {
+  'homeNavigationAutoHide': false,
+  'mobileNavigationLabels': true,
+  'desktopNavigationLabels': true,
   'desktopPauseWhenMinimized': false, // A16.3: desktop occlusion never applies the phone background pause.
   'skippedUpdateVersion': '', // A06.3
   'matchVideoFrameRate': true, // R02.1

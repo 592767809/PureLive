@@ -35,8 +35,9 @@ enum DanmakuBlockPatternProblem {
 ///    message;
 /// 4. when a word is added by hand, [check] also times the pattern on texts
 ///    of growing length made of its own characters and refuses it when one
-///    run takes over [probeBudget] (the polynomial cases such as
-///    `.*.*.*.*x`); the growth in steps keeps the add itself short.
+///    sample stays over [probeBudget] on up to three measurements (the
+///    polynomial cases such as `.*.*.*.*x`); growing in steps keeps the
+///    add short, and confirmation avoids mistaking host pauses for work.
 ///
 /// Rules 1–3 also hold for words that arrive from a backup, an import or
 /// another device; rule 4 runs only where a person adds the word.
@@ -73,7 +74,9 @@ abstract final class DanmakuBlockPattern {
   /// What is wrong with [keyword] as a pattern; null for a plain word or a
   /// pattern the list takes. Runs the timed test of rule 4 (well under a
   /// second even for a pattern it refuses).
-  static DanmakuBlockPatternProblem? check(String keyword) {
+  /// [measure] can supply reproducible match timings for calibration/tests;
+  /// ordinary calls measure the actual match with a stopwatch.
+  static DanmakuBlockPatternProblem? check(String keyword, {Duration Function(RegExp pattern, String text)? measure}) {
     final text = keyword.trim();
     if (!isPattern(text)) return null;
     if (text.length > maxLength) return DanmakuBlockPatternProblem.tooLong;
@@ -85,7 +88,7 @@ abstract final class DanmakuBlockPattern {
       return DanmakuBlockPatternProblem.invalid;
     }
     if (_nestedRepeat(source)) return DanmakuBlockPatternProblem.nestedRepeat;
-    return _slow(pattern, source) ? DanmakuBlockPatternProblem.tooSlow : null;
+    return _slow(pattern, source, measure: measure) ? DanmakuBlockPatternProblem.tooSlow : null;
   }
 
   /// The part of [text] a pattern looks at.
@@ -189,11 +192,11 @@ abstract final class DanmakuBlockPattern {
     return false;
   }
 
-  /// Rule 4: one run on a text made of the pattern's own characters (or a
-  /// few common ones), ending in one that hardly matches anything, takes
-  /// over [probeBudget]; texts grow by half each step up to
-  /// [matchedLength], and the first slow run ends the test.
-  static bool _slow(RegExp pattern, String source) {
+  /// Rule 4: a text made of the pattern's own characters (or common ones),
+  /// ending in one that hardly matches anything, stays over [probeBudget]
+  /// on three runs. Texts grow by half each step up to [matchedLength];
+  /// confirmation happens at the first slow size, never a larger one.
+  static bool _slow(RegExp pattern, String source, {Duration Function(RegExp pattern, String text)? measure}) {
     final fills = <String>{'a', '1', '哈', ' '};
     for (var i = 0; i < source.length && fills.length < 10; i++) {
       final char = source[i];
@@ -207,6 +210,7 @@ abstract final class DanmakuBlockPattern {
     pattern.hasMatch('a');
     final watch = Stopwatch();
     Duration run(String text) {
+      if (measure != null) return measure(pattern, text);
       watch
         ..reset()
         ..start();
@@ -220,9 +224,10 @@ abstract final class DanmakuBlockPattern {
         final text = '${fill * (length - 1)}\u0001';
         final first = run(text);
         if (first <= probeBudget) continue;
-        // Once more before refusing a run just over the budget: a pause of
-        // the collector is not the pattern's.
-        if (first > probeBudget * 10 || run(text) > probeBudget) return true;
+        // Even a large elapsed value can be a descheduling/collector pause.
+        // Confirm it at this same bounded input instead of rejecting normal
+        // patterns after one unlucky wall-clock sample. Keep the 2 ms budget.
+        if (run(text) > probeBudget && run(text) > probeBudget) return true;
       }
     }
     return false;

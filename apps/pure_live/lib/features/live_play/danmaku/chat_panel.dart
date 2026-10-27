@@ -3,6 +3,7 @@ import 'package:live_core/live_core.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/live_play/danmaku/chat_list.dart';
 import 'package:pure_live/features/live_play/danmaku/danmaku_settings_panel.dart';
+import 'package:pure_live/features/live_play/danmaku/super_chat_unread.dart';
 import 'package:pure_live/features/live_play/danmaku/super_chats.dart';
 import 'package:pure_live/features/live_play/layout/room_view_memory.dart';
 import 'package:pure_live/features/live_play/local_interaction/local_composer.dart';
@@ -54,7 +55,10 @@ class _ChatPanelState extends State<ChatPanel> with SingleTickerProviderStateMix
     animationDuration: pureLiveTabTransitionDuration,
   )..addListener(_keepTab);
 
-  void _keepTab() => widget.memory?.chatTab = _tabs.index;
+  void _keepTab() {
+    widget.memory?.chatTab = _tabs.index;
+    if (mounted) setState(() {});
+  }
 
   /// The chat count when the details opened; null when nothing is pending.
   int? _unreadFrom;
@@ -137,16 +141,20 @@ class _ChatPanelState extends State<ChatPanel> with SingleTickerProviderStateMix
             ),
             // Rebuilt only when the super chats change; one clock inside
             // moves the times on (U.2e c6).
-            ListenableSelector<List<LiveSuperChatMessage>>(
-              listenable: widget.controller,
-              selector: () => widget.controller.superChats,
-              builder: (context, messages, _) => SuperChatList(
-                key: ObjectKey(widget.controller),
-                messages: messages,
-                history: widget.controller.superChatHistory,
-                now: widget.controller.now,
-                platformName: platformName(widget.controller.site.id, fallback: widget.controller.site.name),
-                platformHasSuperChats: widget.controller.site.hasSuperChats,
+            SuperChatReadScope(
+              controller: widget.controller,
+              visible: _tabs.index == 1 && !widget.detailsOpen,
+              child: ListenableSelector<List<LiveSuperChatMessage>>(
+                listenable: widget.controller,
+                selector: () => widget.controller.superChats,
+                builder: (context, messages, _) => SuperChatList(
+                  key: ObjectKey(widget.controller),
+                  messages: messages,
+                  history: widget.controller.superChatHistory,
+                  now: widget.controller.now,
+                  platformName: platformName(widget.controller.site.id, fallback: widget.controller.site.name),
+                  platformHasSuperChats: widget.controller.site.hasSuperChats,
+                ),
               ),
             ),
             // U.2e c8: the U.2f component, "改动立即生效" by the first title.

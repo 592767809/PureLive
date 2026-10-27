@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:check_latest/check_latest.dart';
+import 'package:yaml/yaml.dart';
 
 Future<void> main(List<String> arguments) async {
   final parser = ArgParser()
@@ -29,6 +30,13 @@ Future<void> main(List<String> arguments) async {
 
   final root = options.option('root')!;
   final env = readEnvFile(File('$root/toolchain.env').readAsStringSync());
+  // This hosted release is vendored solely for the display API migration.
+  // Its path override must not make the upstream version disappear from checks.
+  final windowManager = File('$root/third_party/window_manager/pubspec.yaml');
+  if (windowManager.existsSync()) {
+    env['WINDOW_MANAGER_UPSTREAM_VERSION'] = (loadYaml(windowManager.readAsStringSync()) as YamlMap)['version']
+        .toString();
+  }
   final lock = File('$root/pubspec.lock');
   final Map<String, String> pub;
   if (options.flag('skip-pub') || !lock.existsSync()) {
@@ -50,5 +58,5 @@ Future<void> main(List<String> arguments) async {
   final behind = findings.where((f) => f.isBehind).length;
   final failed = findings.where((f) => f.latest.isEmpty).length;
   stderr.writeln('check_latest: ${findings.length} items, $behind behind, $failed lookups failed');
-  if (!options.flag('report-only') && behind > 0) exit(1);
+  exitCode = findingsExitCode(findings, reportOnly: options.flag('report-only'));
 }

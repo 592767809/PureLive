@@ -242,6 +242,8 @@ path = [
   # ---- tools ----
   { glob = "tools/brotli/", sub = "Q01" },
   { glob = "tools/check_latest/", sub = "Z01" },
+  { glob = "tools/flutter_sdk/", sub = "Z01" },
+  { glob = "tools/toolchain/", sub = "Z01" },
   { glob = "tools/coverage/", sub = "S01" },
   { glob = "tools/docs/", sub = "Z06" },
   { glob = "tools/device/", sub = "Z04" },

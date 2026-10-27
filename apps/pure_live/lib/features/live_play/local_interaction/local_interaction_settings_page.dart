@@ -39,10 +39,7 @@ class LocalInteractionSettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final interaction = ref.watch(localInteractionProvider);
     return Scaffold(
-      appBar: AppBar(
-        leading: onBack == null ? null : BackButton(onPressed: onBack),
-        title: Text(i18n('local_interaction_settings')),
-      ),
+      appBar: settingsPageAppBar(context, onBack: onBack, title: i18n('local_interaction_settings')),
       body: ListenableBuilder(
         listenable: interaction,
         builder: (context, _) => ListView(
@@ -479,6 +476,30 @@ class _Tile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final value = this.value;
     final tap = value != null && onChanged != null ? () => onChanged!(!value) : onTap;
+    if (SettingsRowStyle.tvOf(context)) {
+      // A TV row is one focus target with the shared visible frame. The
+      // phone's custom tile has a separately focusable switch and allows
+      // informational rows into traversal, neither of which fits a remote.
+      final key = ValueKey('local-settings-$id');
+      if (value != null) {
+        return SettingsSwitchRow(
+          key: key,
+          title: title,
+          subtitle: subtitle,
+          icon: icon,
+          value: value,
+          onChanged: onChanged,
+        );
+      }
+      if (onTap != null) {
+        return SettingsLinkRow(key: key, title: title, subtitle: subtitle, icon: icon, value: trailing, onTap: onTap);
+      }
+      // In directional mode InkWell remains focusable even when onTap is
+      // null. This informational tile has no action or interactive child.
+      return ExcludeFocus(
+        child: SettingsRow(key: key, title: title, subtitle: subtitle, icon: icon),
+      );
+    }
     return MergeSemantics(
       child: InkWell(
         key: ValueKey('local-settings-$id'),

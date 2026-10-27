@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/features/live_play/danmaku/super_chat_unread.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
@@ -298,11 +299,15 @@ class TvRoomControls extends StatelessWidget {
                 if (onSuperChat != null)
                   _gap(
                     scale,
-                    TvButton(
-                      key: const ValueKey('tv-room-super-chat'),
-                      icon: AppIcons.superChatMark,
-                      label: i18n('super_chat'),
-                      onTap: onSuperChat,
+                    SuperChatUnreadBadge(
+                      count: controller.unreadSuperChatCount,
+                      scale: scale.px(1),
+                      child: TvButton(
+                        key: const ValueKey('tv-room-super-chat'),
+                        icon: AppIcons.superChatMark,
+                        label: i18n('super_chat'),
+                        onTap: onSuperChat,
+                      ),
                     ),
                   ),
                 _gap(

@@ -28,6 +28,8 @@ class HomeMobileView extends StatelessWidget {
     this.glassBlur = true,
     this.compact = false,
     this.frost = 0.5,
+    this.hidden = false,
+    this.showLabels = true,
     super.key,
   });
 
@@ -55,6 +57,12 @@ class HomeMobileView extends StatelessWidget {
   /// How frosted the glass is (`Settings.liquidGlassFrost`).
   final double frost;
 
+  /// Hides both plain and glass bottom navigation while reading content.
+  final bool hidden;
+
+  /// Visible destination labels; semantic names always remain available.
+  final bool showLabels;
+
   @override
   Widget build(BuildContext context) {
     final index = selected == null ? 0 : menus.indexOf(selected!);
@@ -66,6 +74,9 @@ class HomeMobileView extends StatelessWidget {
       shadowColor: background,
       selectedIndex: index < 0 ? 0 : index,
       onDestinationSelected: (index) => onSelected(menus[index]),
+      labelBehavior: showLabels
+          ? NavigationDestinationLabelBehavior.alwaysShow
+          : NavigationDestinationLabelBehavior.alwaysHide,
       destinations: [
         for (final menu in menus)
           NavigationDestination(
@@ -76,11 +87,15 @@ class HomeMobileView extends StatelessWidget {
           ),
       ],
     );
-    if (menus.length <= 1) return Scaffold(body: body);
+    // The tab's AppBar normally consumes the status-bar inset. While it is
+    // hidden, the shell owns all system insets instead. Keep this wrapper
+    // mounted so changing visibility does not recreate a tab or its scroll.
+    final content = SafeArea(top: hidden, bottom: hidden, left: hidden, right: hidden, child: body);
+    if (menus.length <= 1) return Scaffold(body: content);
     if (!glass) {
       return Scaffold(
-        bottomNavigationBar: bar(height: compact ? GlassMetrics.plainBarHeightCompact : null),
-        body: body,
+        bottomNavigationBar: hidden ? null : bar(height: compact ? GlassMetrics.plainBarHeightCompact : null),
+        body: content,
       );
     }
     final barHeight = compact ? GlassMetrics.barHeightCompact : GlassMetrics.barHeight;
@@ -90,37 +105,40 @@ class HomeMobileView extends StatelessWidget {
     );
     return Scaffold(
       extendBody: true,
-      bottomNavigationBar: Padding(
-        key: const ValueKey('home-glass-bar'),
-        padding: EdgeInsets.fromLTRB(GlassMetrics.barMargin, 0, GlassMetrics.barMargin, gap),
-        child: Align(
-          heightFactor: 1,
-          child: SizedBox(
-            height: barHeight,
-            width: GlassMetrics.barMaxWidth,
-            // A01.6: refraction and the drop where the shader runs, frosted
-            // glass elsewhere, a plain tint on a phone with little memory.
-            child: LiquidGlassBar(
-              height: barHeight,
-              frost: frost,
-              blur: glassBlur,
-              refraction: glassBlur,
-              selectedIndex: index < 0 ? 0 : index,
-              onSelected: (index) => onSelected(menus[index]),
-              items: [
-                for (final menu in menus)
-                  LiquidGlassBarItem(
-                    key: ValueKey('home-nav-${menu.id}'),
-                    icon: menu.icon,
-                    selectedIcon: menu.selectedIcon,
-                    label: i18n(menu.titleKey),
+      bottomNavigationBar: hidden
+          ? null
+          : Padding(
+              key: const ValueKey('home-glass-bar'),
+              padding: EdgeInsets.fromLTRB(GlassMetrics.barMargin, 0, GlassMetrics.barMargin, gap),
+              child: Align(
+                heightFactor: 1,
+                child: SizedBox(
+                  height: barHeight,
+                  width: GlassMetrics.barMaxWidth,
+                  // A01.6: refraction and the drop where the shader runs, frosted
+                  // glass elsewhere, a plain tint on a phone with little memory.
+                  child: LiquidGlassBar(
+                    height: barHeight,
+                    frost: frost,
+                    blur: glassBlur,
+                    refraction: glassBlur,
+                    showLabels: showLabels,
+                    selectedIndex: index < 0 ? 0 : index,
+                    onSelected: (index) => onSelected(menus[index]),
+                    items: [
+                      for (final menu in menus)
+                        LiquidGlassBarItem(
+                          key: ValueKey('home-nav-${menu.id}'),
+                          icon: menu.icon,
+                          selectedIcon: menu.selectedIcon,
+                          label: i18n(menu.titleKey),
+                        ),
+                    ],
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
-        ),
-      ),
-      body: GlassBarInset(inset: gap + barHeight, child: body),
+      body: GlassBarInset(inset: hidden ? 0 : gap + barHeight, child: content),
     );
   }
 }
@@ -170,6 +188,9 @@ class HomeTabletView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final multiView = watchSetting(ref, Settings.enableMultiView);
+    final desktopLabels = watchSetting(ref, Settings.desktopNavigationLabels);
+    final mobile = defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS;
+    final showLabels = mobile || desktopLabels;
     final scheme = Theme.of(context).colorScheme;
     final top = Column(
       mainAxisSize: MainAxisSize.min,
@@ -181,6 +202,7 @@ class HomeTabletView extends ConsumerWidget {
             icon: action.icon,
             label: i18n(action.labelKey),
             onTap: () => unawaited(action.run()),
+            showLabels: showLabels,
           ),
       ],
     );
@@ -191,6 +213,7 @@ class HomeTabletView extends ConsumerWidget {
           menu: menu,
           selected: menu == selected,
           onTap: () => onSelected(menu),
+          showLabels: showLabels,
         ),
     ];
     final separator = Container(
@@ -235,11 +258,12 @@ typedef _RailState = ({Color? layer, bool focused});
 /// Hover, focus (keyboard only) and press of a rail item, drawn by the item
 /// on its indicator rather than over the whole cell (Material 3's rail).
 class _RailItem extends StatefulWidget {
-  const new({required this.label, required this.onTap, required this.builder, this.selected});
+  const new({required this.label, required this.onTap, required this.builder, this.selected, this.showTooltip = false});
 
   final String label;
   final VoidCallback onTap;
   final bool? selected;
+  final bool showTooltip;
 
   /// Builds the item from its state: the layer to put on the indicator and
   /// whether the keyboard focus is here.
@@ -261,7 +285,7 @@ class _RailItemState extends State<_RailItem> {
     final layer = _pressed || keyboard
         ? scheme.onSurface.withValues(alpha: 0.1)
         : (_hovered ? scheme.onSurface.withValues(alpha: 0.08) : null);
-    return Semantics(
+    final item = Semantics(
       button: true,
       selected: widget.selected,
       label: widget.label,
@@ -276,6 +300,7 @@ class _RailItemState extends State<_RailItem> {
         child: widget.builder(context, (layer: layer, focused: keyboard)),
       ),
     );
+    return widget.showTooltip ? Tooltip(message: widget.label, excludeFromSemantics: true, child: item) : item;
   }
 }
 
@@ -291,11 +316,12 @@ Widget _railLabel(BuildContext context, String label, {required Color color, Fon
 /// A tool button of the rail: a round 48 button with its name under it
 /// (U.3b c2; 3.x showed the name only on hover or a long press).
 class _RailTool extends StatelessWidget {
-  const new({required this.icon, required this.label, required this.onTap, super.key});
+  const new({required this.icon, required this.label, required this.onTap, this.showLabels = true, super.key});
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool showLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +329,7 @@ class _RailTool extends StatelessWidget {
     return _RailItem(
       label: label,
       onTap: onTap,
+      showTooltip: !showLabels,
       builder: (context, state) => ConstrainedBox(
         constraints: const BoxConstraints.tightFor(width: HomeRailMetrics.width),
         child: Padding(
@@ -320,10 +347,11 @@ class _RailTool extends StatelessWidget {
                 ),
                 child: Icon(icon, color: scheme.onSurfaceVariant),
               ),
-              Transform.translate(
-                offset: const Offset(0, -4),
-                child: _railLabel(context, label, color: scheme.onSurfaceVariant),
-              ),
+              if (showLabels)
+                Transform.translate(
+                  offset: const Offset(0, -4),
+                  child: _railLabel(context, label, color: scheme.onSurfaceVariant),
+                ),
             ],
           ),
         ),
@@ -335,11 +363,12 @@ class _RailTool extends StatelessWidget {
 /// A destination of the rail, as Material 3 draws it: the icon in a 56 × 32
 /// indicator (filled when selected) and the name under it.
 class _RailDestination extends StatelessWidget {
-  const new({required this.menu, required this.selected, required this.onTap, super.key});
+  const new({required this.menu, required this.selected, required this.onTap, this.showLabels = true, super.key});
 
   final HomeMenu menu;
   final bool selected;
   final VoidCallback onTap;
+  final bool showLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +377,7 @@ class _RailDestination extends StatelessWidget {
     return _RailItem(
       label: label,
       selected: selected,
+      showTooltip: !showLabels,
       onTap: onTap,
       builder: (context, state) => ConstrainedBox(
         constraints: const BoxConstraints.tightFor(width: HomeRailMetrics.width),
@@ -374,8 +404,15 @@ class _RailDestination extends StatelessWidget {
                   color: selected ? scheme.onSecondaryContainer : scheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 4),
-              _railLabel(context, label, color: scheme.onSurface, weight: selected ? FontWeight.w600 : FontWeight.w400),
+              if (showLabels) ...[
+                const SizedBox(height: 4),
+                _railLabel(
+                  context,
+                  label,
+                  color: scheme.onSurface,
+                  weight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ],
             ],
           ),
         ),

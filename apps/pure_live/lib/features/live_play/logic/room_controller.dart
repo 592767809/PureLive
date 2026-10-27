@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:developer' as developer;
 
 import 'package:flutter/foundation.dart';
@@ -253,6 +254,7 @@ class LiveRoomController extends ChangeNotifier {
   bool _switchingLine = false;
   List<LiveSuperChatMessage> _superChats = const [];
   List<LiveSuperChatMessage> _superChatHistory = const [];
+  final Set<LiveSuperChatMessage> _readSuperChats = HashSet.identity();
   bool _audioOnly = false;
   Timer? _sleepTimer;
   DateTime? _sleepDeadline;
@@ -292,6 +294,16 @@ class LiveRoomController extends ChangeNotifier {
   /// This room session's paid messages, oldest first, including expired ones.
   /// Kept only in memory; a new controller starts with an empty history.
   List<LiveSuperChatMessage> get superChatHistory => _superChatHistory;
+
+  /// Active paid messages not yet viewed in this room session.
+  int get unreadSuperChatCount => _superChats.where((card) => !_readSuperChats.contains(card)).length;
+
+  /// Viewing a super-chat list reads its current messages, without deleting them.
+  void markSuperChatsRead() {
+    if (_disposed || unreadSuperChatCount == 0) return;
+    _readSuperChats.addAll(_superChats);
+    _notify();
+  }
 
   /// Chat messages for the flying layer, as they pass the filters.
   Stream<LiveMessage> get flying => _flying.stream;
@@ -921,6 +933,7 @@ class LiveRoomController extends ChangeNotifier {
     if (_disposed || on || !_superChatHistory.any(isMembershipCard)) return;
     _superChatHistory = List.unmodifiable(_superChatHistory.where((superChat) => !isMembershipCard(superChat)));
     _superChats = List.unmodifiable(_superChats.where((superChat) => !isMembershipCard(superChat)));
+    _readSuperChats.removeWhere(isMembershipCard);
     _scheduleSuperChatExpiry();
     _notify();
   }
@@ -1421,12 +1434,17 @@ class LiveRoomController extends ChangeNotifier {
 
   void _addSuperChats(Iterable<LiveSuperChatMessage> incoming) {
     final now = _now();
-    final next = <LiveSuperChatMessage>{..._superChatHistory, ...incoming}.toList()
-      ..sort((a, b) => a.startTime.compareTo(b.startTime));
+    final next = _superChatHistory.toList();
+    for (final card in incoming) {
+      if (!next.any(card.isSameEventAs)) next.add(card);
+    }
+    next.sort((a, b) => a.startTime.compareTo(b.startTime));
     _superChatHistory = List.unmodifiable(
       next.skip(next.length > superChatHistoryLimit ? next.length - superChatHistoryLimit : 0),
     );
     _superChats = List.unmodifiable(_superChatHistory.where((sc) => sc.endTime.isAfter(now)));
+    final retained = HashSet<LiveSuperChatMessage>.identity()..addAll(_superChatHistory);
+    _readSuperChats.removeWhere((card) => !retained.contains(card));
     _scheduleSuperChatExpiry();
   }
 
@@ -1481,6 +1499,7 @@ class LiveRoomController extends ChangeNotifier {
     _refreshTimer?.cancel();
     _superChatTimer?.cancel();
     _superChatHistory = const [];
+    _readSuperChats.clear();
     _superChats = const [];
     _sleepTimer?.cancel();
     for (final subscription in _subscriptions) {
