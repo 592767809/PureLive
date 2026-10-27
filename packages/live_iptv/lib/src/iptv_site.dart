@@ -110,9 +110,10 @@ final class IptvSite extends LiveSite implements LiveSiteRecordRoomResolver {
     if (hotRemoved()) return const [];
     var channels = await library.channels(IptvPlaylist.hotId);
     if (channels.isEmpty) {
-      await importer.loadHotPlaylist();
+      await importer.loadHotPlaylist(hotRemoved: hotRemoved);
       channels = await library.channels(IptvPlaylist.hotId);
     }
+    if (hotRemoved()) return const [];
     return [for (final channel in channels) _room(channel, nick: '', introduction: channel.name)];
   }
 
