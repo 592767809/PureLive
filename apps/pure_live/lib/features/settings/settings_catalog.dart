@@ -888,6 +888,14 @@ List<SettingsEntry> _build() {
     )
     ..group = 'playback_behavior_settings'
     ..toggle(
+      'auto_switch_live_follows',
+      'auto_switch_live_follows',
+      Settings.autoSwitchLiveFollows,
+      AppIcons.switchRoom,
+      desc: 'auto_switch_live_follows_desc',
+      keywords: ['自动换台', '下播', '播放失败', '关注', '多画面', 'auto', 'next'],
+    )
+    ..toggle(
       'desktop_pause_when_minimized',
       'desktop_pause_when_minimized',
       Settings.desktopPauseWhenMinimized,

@@ -14,6 +14,7 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/system_access.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/danmaku/gift_flights.dart';
+import 'package:pure_live/shared/rooms/auto_room_switch.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
@@ -106,6 +107,13 @@ final class MultiviewCell {
   /// Counts the streams handed to the session (see the live room's).
   int _opens = 0;
   LiveQualityDiscoveryScope? _scope;
+  late final AutoRoomSwitch _autoSwitch;
+  StreamSubscription<PlaybackState>? _autoPlayback;
+
+  void _cancelAutoPlayback() {
+    unawaited(_autoPlayback?.cancel());
+    _autoPlayback = null;
+  }
 
   /// The room (the fetched detail once known).
   LiveRoom? get room => _room;
@@ -220,6 +228,8 @@ class MultiviewController extends ChangeNotifier {
   final DateTime Function() _now;
   late DanmakuMessageFilter _filter;
   final List<MultiviewCell> _cells = [];
+  final AutoRoomSwitchGroup _autoGroup = AutoRoomSwitchGroup();
+  Timer? _autoRefresh;
   final List<StreamSubscription<Object?>> _subscriptions = [];
   final StreamController<LiveMessage> _flying = StreamController.broadcast(sync: true);
   final StreamController<LiveRetraction> _retractions = StreamController.broadcast(sync: true);
@@ -252,7 +262,51 @@ class MultiviewController extends ChangeNotifier {
   /// it (B-7, E06.2 c4).
   final Map<String, StreamSubscription<void>> _refusals = {};
 
-  MultiviewCell _newCell() => MultiviewCell._(_nextCellId++);
+  MultiviewCell _newCell() {
+    final cell = MultiviewCell._(_nextCellId++);
+    cell._autoSwitch = AutoRoomSwitch(
+      store: store,
+      siteOf: siteOf,
+      group: _autoGroup,
+      maySwitch: () => !_disposed && _cells.contains(cell),
+      onSwitch: (next) {
+        final index = _cells.indexOf(cell);
+        if (index >= 0) unawaited(assign(index, next, automatic: true));
+      },
+      onExhausted: () => toast?.call(i18n('auto_room_switch_stopped')),
+    );
+    return cell;
+  }
+
+  void _syncAutoSwitch(MultiviewCell cell) {
+    final room = cell.room;
+    if (_disposed || room == null) return;
+    cell._autoSwitch.update(
+      room: room,
+      playback: cell.playback,
+      resolving: cell.stage == CellStage.resolving || cell.switching,
+      unavailable: cell.stage == CellStage.failed && !room.isLiveStatusPending,
+      replay: cell.playing && room.effectiveLiveStatus == LiveStatus.carousel,
+    );
+  }
+
+  Future<void> _refreshAutoRoom(MultiviewCell cell) async {
+    final room = cell.room;
+    final site = cell._site;
+    final epoch = cell._epoch;
+    if (!store.settings.get(Settings.autoSwitchLiveFollows) || room == null || site == null || !cell.playing) return;
+    if (!cell.playback.isActive || cell.playback.onDemand) return;
+    try {
+      final detail = await site.getRoomDetail(roomId: room.roomId).timeout(const Duration(seconds: 10));
+      if (!_current(cell, epoch) || !store.settings.get(Settings.autoSwitchLiveFollows)) return;
+      if (detail.isExplicitlyOfflineNow) {
+        cell._room = room.mergeFrom(detail);
+        _notify();
+      }
+    } on Object {
+      // Failed status checks are not evidence that a broadcast ended.
+    }
+  }
 
   /// The cells, in grid order.
   List<MultiviewCell> get cells => List.unmodifiable(_cells);
@@ -294,13 +348,21 @@ class MultiviewController extends ChangeNotifier {
   Stream<LiveRetraction> get retractions => _retractions.stream;
 
   void _notify() {
-    if (!_disposed) notifyListeners();
+    if (!_disposed) {
+      _cells.forEach(_syncAutoSwitch);
+      notifyListeners();
+    }
   }
 
   bool _current(MultiviewCell cell, int epoch) => !_disposed && cell._epoch == epoch && _cells.contains(cell);
 
   /// Reads the last arrangement and follows the danmaku filters.
   Future<void> start() async {
+    _autoRefresh = Timer.periodic(const Duration(seconds: 60), (_) {
+      for (final cell in _cells) {
+        unawaited(_refreshAutoRoom(cell));
+      }
+    });
     _subscriptions
       ..add(store.blockLists.watch(BlockKind.keyword).listen((_) => unawaited(_reloadFilter())))
       ..add(store.blockLists.watch(BlockKind.user).listen((_) => unawaited(_reloadFilter())));
@@ -498,9 +560,11 @@ class MultiviewController extends ChangeNotifier {
   /// fetched (a stored offline state may be old), then the qualities and the
   /// stream. The cell's sound plays unless it is a small cell of the focus
   /// layout.
-  Future<void> assign(int index, LiveRoom picked) async {
+  Future<void> assign(int index, LiveRoom picked, {bool automatic = false}) async {
     if (_disposed || index < 0 || index >= _cells.length) return;
     final cell = _cells[index];
+    cell._autoSwitch.setRoom(picked, automatic: automatic);
+    final volume = automatic ? cell._volume : _roomVolume(picked);
     final epoch = ++cell._epoch;
     cell._scope?.cancel();
     cell._scope = null;
@@ -513,7 +577,7 @@ class MultiviewController extends ChangeNotifier {
       .._qualities = const []
       .._qualityIndex = 0
       .._switching = false
-      .._volume = _roomVolume(picked)
+      .._volume = volume
       .._stage = site == null ? CellStage.failed : CellStage.resolving;
     if (site == null) cell._failure = UnsupportedPlatform(picked.platform);
     if (site case final LiveSiteCookieRefusals refusals when !_refusals.containsKey(picked.platform)) {
@@ -550,7 +614,7 @@ class MultiviewController extends ChangeNotifier {
       unawaited(_save());
       return;
     }
-    await _play(cell, epoch, site, room);
+    await _play(cell, epoch, site, room, preserveAudioFocus: automatic);
   }
 
   /// A carousel cell's "播放轮播" (E06.2 c1, as the live room's): the video
@@ -572,7 +636,13 @@ class MultiviewController extends ChangeNotifier {
 
   /// The qualities of [room] and its stream in [cell], then the sound and
   /// the danmaku.
-  Future<void> _play(MultiviewCell cell, int epoch, LiveSite site, LiveRoom room) async {
+  Future<void> _play(
+    MultiviewCell cell,
+    int epoch,
+    LiveSite site,
+    LiveRoom room, {
+    bool preserveAudioFocus = false,
+  }) async {
     final scope = cell._scope = LiveQualityDiscoveryScope();
     final List<LivePlayQuality> found;
     try {
@@ -598,7 +668,7 @@ class MultiviewController extends ChangeNotifier {
     final position = _cells.indexOf(cell);
     // A small cell of the focus layout starts silent (3.x); elsewhere the
     // new cell becomes the sound.
-    if (_layout != MultiviewLayout.focus || position == _focused) {
+    if (!preserveAudioFocus && (_layout != MultiviewLayout.focus || position == _focused)) {
       await setAudioFocus(position);
     } else {
       _applyVolumes();
@@ -680,6 +750,7 @@ class MultiviewController extends ChangeNotifier {
       .._failure = null;
     final opened = ++cell._opens;
     final session = cell._session ??= newSession();
+    cell._autoPlayback ??= session.states.listen((_) => _syncAutoSwitch(cell));
     _notify();
     final quality = cell._qualities[playing];
     session.setPresentationVisible(visible: !cell._offscreen);
@@ -815,6 +886,9 @@ class MultiviewController extends ChangeNotifier {
   /// Pauses every cell that plays (the live room opens on top); returns the
   /// cells to resume with [resumeCells].
   Future<Set<int>> pauseAll() async {
+    for (final cell in _cells) {
+      cell._autoSwitch.suspend(value: true);
+    }
     final paused = <int>{};
     for (final cell in _cells) {
       final session = cell._session;
@@ -828,6 +902,7 @@ class MultiviewController extends ChangeNotifier {
   /// Resumes the cells [pauseAll] paused that still show the same stream.
   Future<void> resumeCells(Set<int> ids) async {
     for (final cell in _cells) {
+      cell._autoSwitch.suspend(value: false);
       final session = cell._session;
       if (session == null || !cell.playing || !ids.contains(cell.id)) continue;
       if (session.state.status == PlaybackStatus.paused) await session.resume();
@@ -848,6 +923,8 @@ class MultiviewController extends ChangeNotifier {
   }
 
   PlaybackSession? _clear(MultiviewCell cell) {
+    cell._autoSwitch.clear();
+    cell._cancelAutoPlayback();
     cell._epoch++;
     cell._scope?.cancel();
     cell._scope = null;
@@ -866,6 +943,7 @@ class MultiviewController extends ChangeNotifier {
 
   Future<void> _release(MultiviewCell cell) async {
     final session = _clear(cell);
+    cell._autoSwitch.dispose();
     if (session != null) await session.dispose();
   }
 
@@ -1051,6 +1129,7 @@ class MultiviewController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _autoRefresh?.cancel();
     _danmakuEpoch++;
     for (final subscription in [..._subscriptions, ..._refusals.values]) {
       unawaited(subscription.cancel());
@@ -1060,6 +1139,7 @@ class MultiviewController extends ChangeNotifier {
     if (danmaku != null) unawaited(_guard(danmaku.close, 'danmaku close'));
     for (final cell in _cells) {
       final session = _clear(cell);
+      cell._autoSwitch.dispose();
       if (session != null) unawaited(session.dispose());
     }
     _giftFlights.dispose();

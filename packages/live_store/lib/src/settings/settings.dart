@@ -78,6 +78,9 @@ abstract final class Settings {
   /// Enter full screen when a room opens.
   static const enableFullScreenDefault = BoolSetting('enableFullScreenDefault', section: 'app', defaultValue: false);
 
+  /// Switch an ended or unrecoverable live room to another online follow.
+  static const autoSwitchLiveFollows = BoolSetting('autoSwitchLiveFollows', section: 'app', defaultValue: false);
+
   /// Show the splash page.
   static const showSplashPage = BoolSetting('showSplashPage', section: 'app', defaultValue: true);
 
@@ -2011,6 +2014,7 @@ abstract final class Settings {
     useGitHubOriginForUpdates,
     skippedUpdateVersion,
     enableFullScreenDefault,
+    autoSwitchLiveFollows,
     showSplashPage,
     refreshRateMode,
     matchVideoFrameRate,

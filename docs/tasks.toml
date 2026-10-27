@@ -6423,10 +6423,37 @@ note = "正则调度暂停确认已发布及回归；不把完整门禁等同于
 id = "V01.11"
 title = "下播或最终失败后自动切换在线关注房间"
 type = "功能"
-status = "设计中"
+status = "开发中"
 size = "大"
-tier = 3
+tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/68"
-branch = "ai/A11.8"
-next = "完成播放恢复终态和多画面去重方案，分阶段实现并验证；本次只登记评估，不声明已修复。"
-note = "2026-10-27已回复并核验：建议默认关闭，只取在线关注，在现有重连和换线路耗尽后触发；每窗口独立、跳过其他窗口房间、有界轮次、无候选停止。热门/分类候选另行评估。"
+branch = "ai/V01.11"
+next = "按已确认范围实现在线关注自动换台、取消和多画面去重，并完成验证。"
+note = "2026-10-27用户明确要求实现#68，并授权自主决定；默认关闭，首阶段仅在线关注，热门与分类来源留待扩展。"
+to = ["G02.9", "A11.10"]
+
+[[task]]
+id = "G02.9"
+title = "下播或恢复耗尽后自动切换在线关注"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/68"
+branch = "ai/V01.11"
+stages = ["有界候选选择和取消", "直播间与多画面接入", "回归与原生验证"]
+done = 0
+next = "完成实现、回归和原生验证。"
+
+[[task]]
+id = "A11.10"
+title = "关注列表自动换台设置"
+type = "界面"
+status = "开发中"
+size = "大"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/68"
+branch = "ai/V01.11"
+stages = ["共享设置和说明", "各布局验证"]
+done = 0
+next = "完成实现、回归和原生验证。"

@@ -242,6 +242,21 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('issue #68: TV automatically leaves an offline room for an online follow', (tester) async {
+    final services = await _pumpApp(tester, follows: [1, 2], offline: {1});
+    await tester.runAsync(() => services.store.settings.set(Settings.autoSwitchLiveFollows, true));
+    unawaited(AppNavigator.toNamed<void>(RoutePath.kLivePlay, arguments: _TvSite(3).room(1)));
+    await _settle(tester);
+    await tester.pump(const Duration(seconds: 1));
+    await _settle(tester);
+    final page = tester.state<TvLivePlayPageState>(find.byType(TvLivePlayPage));
+    expect(page.controller!.room.roomId, '2');
+    expect(page.controller!.stage, RoomStage.playing);
+    expect(find.byKey(const ValueKey('tv-room-banner')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _close(tester, services);
+  });
+
   for (final size in [const Size(1920, 1080), const Size(869, 400)]) {
     testWidgets('K90 IPTV first load keeps a visible actionable focus at $size', (tester) async {
       final highlightStrategy = FocusManager.instance.highlightStrategy;
