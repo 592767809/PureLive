@@ -6463,62 +6463,108 @@ commit = "79acc2e4cd49fef0e9b5ecd7decf4eb02c93046f"
 id = "A17.20"
 title = "接 A17.3：全部平台弹窗首项焦点与完整描边"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/74"
-branch = "ai/A17.20"
-next = "旧实现 6 条回归有效失败，修复后通过；电视 137 条和 live_ui 246 条回归及静态分析通过，待完整门禁与原电视验收。"
-note = "每次打开聚焦第一项；保留独立选中态、三列、放大与外描边，原电视验收独立记录。"
+next = "发布后按 verify.md 完成原电视首项焦点、方向滚动和描边验收。"
+note = "PR #77 已合并；旧代码 6 条有效失败、修正后通过，电视 137 条、live_ui 246 条及完整 14 成员门禁通过；未发布，原电视描边与遥控交互仍待验收。"
+date = "2026-10-27"
+commit = "c2626085805d9e8a8c6a2c75235e46e280298369"
 
 [[task]]
 id = "L01.4"
 title = "内置列表初始化统一"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/72"
 stages = ["共享初始化与删除隔离回归", "管理页直接进入与全仓门禁"]
-done = 0
-branch = "ai/L01.4"
-next = "对最终合并候选运行全量门禁，完成手机、电视、Windows 原机验收及发布验证后再关闭 issue #72。"
-note = "共享初始化及删除快照保护已实现；新增回归 19/19、live_iptv 全包 52/52、相关应用测试 93/93 通过，两个成员静态分析无问题，独立代码与证据审查通过。最终候选全量门禁、原机与发布验证待完成；保留 issue #6 的主动删除语义。"
+done = 2
+next = "发布后核对手机、电视、Windows 原入口；原机验收完成前不关闭 #72。"
+note = "PR #77 已合并；新增 19 条回归、live_iptv 52 条、相关应用 93 条及完整 14 成员门禁通过，保留 #6 主动删除语义；未发布，原机入口与真实下载仍待验收。"
+date = "2026-10-27"
+commit = "c2626085805d9e8a8c6a2c75235e46e280298369"
 
 [[task]]
 id = "V02.57"
 title = "新装直接进入网络电视设置缺少默认列表"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/72"
 to = ["L01.4"]
-branch = "ai/L01.4"
-next = "L01.4 修复与相关回归已通过；待最终候选全量门禁、发布及原入口原机验收，再关闭反馈。"
+next = "发布后完成 L01.4 原入口原机验收，再核对反馈关闭条件。"
+note = "L01.4 随 PR #77 合并，完整 14 成员门禁通过；尚未发布与原机验收，issue #72 保持开放。"
+date = "2026-10-27"
+commit = "c2626085805d9e8a8c6a2c75235e46e280298369"
 
 [[task]]
 id = "Y02.2"
 title = "更新源一致性与防降级"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/70；接 Y02.1"
 stages = ["有界检查与一致快照", "回归审查与门禁", "原设备验收"]
-done = 0
-branch = "ai/Y02.2"
-next = "集成依赖后运行完整门禁；TV样式、字节完整性和原设备验收分别记录。"
-note = "有界版本选择、一致快照、来源切换隔离与安装资格保护已有基线失败及63项更新回归通过证据，分析通过；完整门禁和原Sony验证尚未执行，不记为完整修复。"
+done = 2
+next = "核对原 Sony 更新检查；TV 外壳和下载字节完整性另按相应任务推进，不将 #70 记为完整解决。"
+note = "PR #77 已合并；7 项原 API 行为反证、63 项更新回归和 132 项联合回归通过；清理两个无调用旧语言键后，最终候选完整 14 成员门禁通过。仅完成更新元数据一致性；TV 样式、下载字节完整性、原 Sony 验收及发布仍分别待完成。"
+date = "2026-10-27"
+commit = "c2626085805d9e8a8c6a2c75235e46e280298369"
 
 [[task]]
 id = "A12.8"
 title = "电视备份文件操作（接 A12.4）"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "GitHub issue #71：https://github.com/wzgrx/PureLive/issues/71"
-branch = "ai/A12.8"
-next = "完成完整门禁并集成；按 verify.md 核对真实电视设备。"
-note = "修复文件主体包围更多按钮导致方向键无法进入的问题；旧代码方向键反证失败，备份与电视组件/焦点/样式70项回归通过，保留手机和鼠标操作。完整门禁及真机尚待验证。"
+next = "发布后按 verify.md 核对真实电视遥控器，以及手机和电脑的原操作。"
+note = "PR #77 已合并；旧代码遥控方向键反证失败，备份与电视相关 70 项回归及完整 14 成员门禁通过。未发布，真实遥控器和手机/电脑操作仍待验收。"
+date = "2026-10-27"
+commit = "c2626085805d9e8a8c6a2c75235e46e280298369"
+
+[[task]]
+id = "A07.31"
+title = "鼠标中键系统全屏分离"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/75"
+branch = "ai/A07.31"
+date = "2026-10-27"
+next = "最终直播页33项与fatal-infos分析通过；待组合候选完整门禁及Windows普通、最大化窗口原生验收。"
+note = "修改前10项中8项行为失败；较早候选866项永久广泛回归通过，最终33项含11项专项通过。混合焦点路径仅确认入口一致；不把组件状态当作Windows原生验收。"
+
+[[task]]
+id = "V02.59"
+title = "桌面全屏快捷键区分"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/75"
+to = ["A07.31"]
+branch = "ai/V02.59"
+next = "A07.31 确定性反证、最终页面 33 项回归与静态分析已通过；待组合候选完整门禁、发布和原 Windows 窗口恢复验收。"
+note = "中键切换系统全屏，右键保持窗口内全屏；不改变 F、双击和原控件输入优先级，不以 Dart 状态测试替代原生窗口验收。"
+
+[[task]]
+id = "Y02.3"
+title = "更新包字节完整性"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/70；接 Y02.2"
+stages = ["分片身份与下载校验", "元数据兼容与发布校验", "回归审查和门禁", "原设备验收"]
+done = 0
+branch = "ai/Y02.3"
+next = "完成最终集成审查与全量门禁；实际安装、平台签名及原设备另行验收。"
+note = "已实现精确字节及 SHA-256、分片身份、严格 HTTP 完成判定、替换保护和原始来源保留；旧格式仍可读，无摘要历史仅提供明确浏览器动作。最终组合回归 240/240、发布工具 41/41、静态分析与格式检查通过；全量集成门禁及原设备未验证，不记为已发布或原设备修复。"
