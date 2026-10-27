@@ -80,11 +80,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   currentStrings = await AppStrings.load(AppLanguage.zh, rootBundle);
   const encoded = String.fromEnvironment('PURELIVE_PLAYBACK_FIXTURE');
-  if (encoded.isEmpty) throw StateError('Provide the generated playback.mp4 fixture');
+  const fixturePath = String.fromEnvironment('PURELIVE_PLAYBACK_FIXTURE_PATH');
+  if (encoded.isEmpty && fixturePath.isEmpty) throw StateError('Provide the generated playback.mp4 fixture');
   const output = String.fromEnvironment('PURELIVE_PROOF_DIR');
   final root = Directory(output.isEmpty ? '${Directory.systemTemp.path}/purelive-issue68-native' : output);
   await root.create(recursive: true);
-  final video = base64Decode(encoded);
+  // Windows batch build steps cannot carry a whole video in DART_DEFINES.
+  final video = encoded.isEmpty ? await File(fixturePath).readAsBytes() : base64Decode(encoded);
   final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
   server.listen((request) async {
     final response = request.response;
