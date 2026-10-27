@@ -555,6 +555,7 @@ final class PlaybackSession {
     _source = null;
     _emit(_state.copyWith(status: PlaybackStatus.stopped, clearVideoSize: true, recovery: 0));
     await transport.close();
+    if (!_current(session)) return;
     final engine = _engine;
     if (engine != null) {
       try {
@@ -694,7 +695,8 @@ final class PlaybackSession {
       if (!_current(session) || _fence.generation != generation) return;
       _timing?.engineReadyAt(reused: reused);
       final refresh = request.refresh;
-      await _transport
+      final transport = _transport;
+      await transport
           .open(
             (cancel) => _opener.open(
               source,
@@ -725,7 +727,9 @@ final class PlaybackSession {
           .timeout(
             timings.sourceOpen,
             onTimeout: () {
-              unawaited(_transport.cancelPending());
+              // A later open may reuse this transport. Only this source
+              // transaction's deadline can cancel its pending input.
+              if (_fence.generation == generation) unawaited(transport.cancelPending());
               throw const PlayerException(
                 message: 'The source did not open before the deadline',
                 type: PlayerErrorType.source,
@@ -1322,6 +1326,7 @@ final class PlaybackSession {
       final transport = _transport;
       _transport = PlaybackTransport();
       await transport.close();
+      if (!_current(session)) return;
       await _releaseEngine();
       if (!_current(session)) return;
       await _openSource(source, session, recovering: true);
@@ -1412,12 +1417,14 @@ final class PlaybackSession {
     _recoveries++;
     _emit(_state.copyWith(status: PlaybackStatus.buffering, recovery: _recoveries, recoveryCause: _recoveryCause));
     try {
-      if (await _tryRefresh(session)) return;
-      final source = _source;
-      if (source != null && _current(session)) await _openSource(source, session, recovering: true);
+      if (!await _tryRefresh(session)) {
+        final source = _source;
+        if (source != null && _current(session)) await _openSource(source, session, recovering: true);
+      }
     } finally {
       if (_recoveringSession == session) _recoveringSession = null;
     }
+    if (!_current(session)) return;
     final pending = _pendingError;
     _pendingError = null;
     if (pending != null) _handleError(pending, session, fenced: false);
