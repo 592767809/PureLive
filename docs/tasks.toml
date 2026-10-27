@@ -5744,14 +5744,14 @@ note = "独立精确包对照后采用 Mac-only 官方 Skia 回退；新源全�
 id = "V02.39"
 title = "iOS 自签版录制内核不可用反馈"
 type = "功能"
-status = "待真机"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/42"
 to = ["H02.2"]
-date = "2026-10-24"
+date = "2026-10-27"
 commit = "83ab860fd914cc16ea38552c6fc0b6a76669a532"
-note = "Apple 已附内核但平台能力遗漏已修正；构建清单回归与真实 PCM 转 WAV 通过，原自签 iPhone 实际录制／导出与后台待复测，#42 继续开放。"
+note = "原报告者确认普通录制已正常，#42于2026-10-27按原故障范围关闭；分段时长不是总录制上限，长时间、后台、导出和特殊存储场景不外推通过。"
 
 [[task]]
 id = "H02.2"
@@ -6254,7 +6254,7 @@ stages = ["路径与旧配置对照", "回归和原生核验"]
 done = 2
 date = "2026-10-27"
 commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
-note = "旧容器默认路径保护已发布及回归；原自签iPhone录制待复测，#42保持开放。"
+note = "旧容器默认路径保护已发布及回归；#42普通录制原故障已按报告者确认关闭，容器更新与原自签iPhone路径场景仍待复测。"
 
 [[task]]
 id = "V01.10"
@@ -6435,26 +6435,90 @@ note = "2026-10-27已回复并核验：建议默认关闭，只取在线关注�
 id = "G02.9"
 title = "播放会话过期异步操作隔离"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "issues/33、issues/49相关链路源码审查"
 stages = ["确定性竞态复现与修复", "全仓门禁与独立审查"]
-done = 0
-branch = "ai/G02.9"
-next = "红绿回归与独立审查已通过；待包含J05.2依赖的最终全仓门禁和远端一致性核验，原电视验收保留。"
-note = "已验证会话异步所有权与错误排空回归；不把通用测试当作Windows或电视原设备验收，不据此关闭issues/33、issues/49。"
+done = 2
+note = "PR #76已合并；确定性红绿、独立审查与完整14成员门禁通过，原Sony/Huawei播放问题仍待原设备验收，不据此关闭#33/#49。"
+date = "2026-10-27"
+commit = "79acc2e4cd49fef0e9b5ecd7decf4eb02c93046f"
 
 [[task]]
 id = "J05.2"
 title = "设备发现异步网络错误隔离"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
 from = "G02.9全仓回归发现UDP异步错误未处理"
 stages = ["异步错误复现与降级修复", "回归与完整门禁"]
+done = 2
+note = "PR #76已合并；异步发现错误隔离、43项服务回归与完整14成员门禁通过，局域网原设备互发现及后台仍待真机。"
+date = "2026-10-27"
+commit = "79acc2e4cd49fef0e9b5ecd7decf4eb02c93046f"
+
+[[task]]
+id = "A17.20"
+title = "接 A17.3：全部平台弹窗首项焦点与完整描边"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/74"
+branch = "ai/A17.20"
+next = "旧实现 6 条回归有效失败，修复后通过；电视 137 条和 live_ui 246 条回归及静态分析通过，待完整门禁与原电视验收。"
+note = "每次打开聚焦第一项；保留独立选中态、三列、放大与外描边，原电视验收独立记录。"
+
+[[task]]
+id = "L01.4"
+title = "内置列表初始化统一"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/72"
+stages = ["共享初始化与删除隔离回归", "管理页直接进入与全仓门禁"]
 done = 0
-branch = "ai/J05.2"
-next = "确定性红绿和43项服务回归通过；待组合候选完整门禁及远端核验，随G02.9作为独立依赖提交。"
-note = "不绕过网络限制、不修改路由、不跳过服务测试；原生局域网设备互发现仍需真机验收。"
+branch = "ai/L01.4"
+next = "对最终合并候选运行全量门禁，完成手机、电视、Windows 原机验收及发布验证后再关闭 issue #72。"
+note = "共享初始化及删除快照保护已实现；新增回归 19/19、live_iptv 全包 52/52、相关应用测试 93/93 通过，两个成员静态分析无问题，独立代码与证据审查通过。最终候选全量门禁、原机与发布验证待完成；保留 issue #6 的主动删除语义。"
+
+[[task]]
+id = "V02.57"
+title = "新装直接进入网络电视设置缺少默认列表"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/72"
+to = ["L01.4"]
+branch = "ai/L01.4"
+next = "L01.4 修复与相关回归已通过；待最终候选全量门禁、发布及原入口原机验收，再关闭反馈。"
+
+[[task]]
+id = "Y02.2"
+title = "更新源一致性与防降级"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/70；接 Y02.1"
+stages = ["有界检查与一致快照", "回归审查与门禁", "原设备验收"]
+done = 0
+branch = "ai/Y02.2"
+next = "集成依赖后运行完整门禁；TV样式、字节完整性和原设备验收分别记录。"
+note = "有界版本选择、一致快照、来源切换隔离与安装资格保护已有基线失败及63项更新回归通过证据，分析通过；完整门禁和原Sony验证尚未执行，不记为完整修复。"
+
+[[task]]
+id = "A12.8"
+title = "电视备份文件操作（接 A12.4）"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "GitHub issue #71：https://github.com/wzgrx/PureLive/issues/71"
+branch = "ai/A12.8"
+next = "完成完整门禁并集成；按 verify.md 核对真实电视设备。"
+note = "修复文件主体包围更多按钮导致方向键无法进入的问题；旧代码方向键反证失败，备份与电视组件/焦点/样式70项回归通过，保留手机和鼠标操作。完整门禁及真机尚待验证。"

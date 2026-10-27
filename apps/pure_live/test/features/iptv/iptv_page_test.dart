@@ -51,10 +51,12 @@ final class _FakeHttp implements LiveHttp {
   final bodies = <String, String>{};
   final requests = <String>[];
   Completer<void>? gate;
+  Completer<void>? requested;
 
   @override
   Future<LiveResponse> send(LiveRequest request) async {
     requests.add(request.url.toString());
+    if (!(requested?.isCompleted ?? true)) requested!.complete();
     await gate?.future;
     final body = bodies[request.url.toString()];
     return LiveResponse(status: body == null ? 404 : 200, bytes: utf8.encode(body ?? ''), url: request.url);
@@ -85,6 +87,8 @@ Future<_Harness> _pump(
   WidgetTester tester, {
   Map<String, String> bodies = const {},
   bool defaultGuideDone = true,
+  bool hotRemoved = true,
+  bool tv = false,
   Size size = const Size(900, 3200),
   List<Override> overrides = const [],
   Future<void> Function(_Harness harness)? prepare,
@@ -99,6 +103,9 @@ Future<_Harness> _pump(
     addTearDown(() => directory.deleteSync(recursive: true));
     final http = _FakeHttp()..bodies.addAll(bodies);
     final settings = services.store.settings;
+    // Most tests exercise user-managed sources independently of the
+    // first-install download. Initialization tests opt into the default.
+    await settings.set(Settings.iptvHotRemoved, hotRemoved);
     final importer = IptvImporter(
       library: StoreIptvLibrary(services.store),
       http: http,
@@ -131,7 +138,10 @@ Future<_Harness> _pump(
         config: LiveUiConfig(strings: strings.ui),
         child: MaterialApp(
           theme: const LiveTheme(primaryColor: Colors.blue).light,
-          home: const IptvPage(route: RouteArgs(RoutePath.kIptv)),
+          home: SettingsRowStyle(
+            tv: tv,
+            child: const IptvPage(route: RouteArgs(RoutePath.kIptv)),
+          ),
         ),
       ),
     ),
@@ -174,6 +184,225 @@ ButtonStyleButton _button(WidgetTester tester, String key) => tester.widget<Butt
 );
 
 void main() {
+  for (final (name, size, tv) in [
+    ('phone', const Size(393, 852), false),
+    ('desktop', const Size(1280, 800), false),
+    ('TV style', const Size(960, 540), true),
+  ]) {
+    testWidgets('L01.4: a fresh $name install opens settings directly with the built-in playlist', (tester) async {
+      final h = await _pump(
+        tester,
+        hotRemoved: false,
+        tv: tv,
+        size: size,
+        bodies: {IptvImporter.hotPlaylistUrl: _playlist},
+      );
+      final playlists = await _run(tester, h.library.playlists);
+      expect(playlists, hasLength(1));
+      expect(playlists.single.isHot, isTrue);
+      expect(await _run(tester, () => h.library.channels(IptvPlaylist.hotId)), hasLength(2));
+      expect(h.http.requests, [IptvImporter.hotPlaylistUrl]);
+      expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('L01.4: an offline first visit shows a retry and a successful retry persists', (tester) async {
+    final h = await _pump(tester, hotRemoved: false);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsOneWidget);
+    expect(await _run(tester, h.library.playlists), isEmpty);
+    h.http.bodies[IptvImporter.hotPlaylistUrl] = _playlist;
+    await _tap(tester, find.byKey(const ValueKey('iptv-default-playlist-retry')));
+    expect((await _run(tester, h.library.playlists)).single.isHot, isTrue);
+    expect(h.http.requests, [IptvImporter.hotPlaylistUrl, IptvImporter.hotPlaylistUrl]);
+    final root = tester.widget<ProviderScope>(find.byType(ProviderScope).first);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(root);
+    await _settle(tester);
+    expect(h.http.requests, hasLength(2), reason: 'reopening settings keeps the saved default');
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+  });
+
+  testWidgets('L01.4: a deleted default stays deleted when settings is reopened', (tester) async {
+    final h = await _pump(tester, hotRemoved: false, bodies: {IptvImporter.hotPlaylistUrl: _playlist});
+    await _tap(tester, find.byKey(const ValueKey('iptv-remove-${IptvPlaylist.hotId}')));
+    await _tap(tester, find.byKey(const ValueKey('iptv-delete-confirm')));
+    expect(h.settings.get(Settings.iptvHotRemoved), isTrue);
+    final root = tester.widget<ProviderScope>(find.byType(ProviderScope).first);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(root);
+    await _settle(tester);
+    expect(await _run(tester, h.library.playlists), isEmpty);
+    expect(h.http.requests, [IptvImporter.hotPlaylistUrl]);
+    expect(find.byKey(const ValueKey('iptv-restore-hot')), findsOneWidget);
+  });
+
+  testWidgets('L01.4: explicitly restoring a deleted default exposes download failures and can be retried', (
+    tester,
+  ) async {
+    final h = await _pump(tester);
+    await _tap(tester, find.byKey(const ValueKey('iptv-restore-hot')));
+    expect(h.settings.get(Settings.iptvHotRemoved), isFalse);
+    expect(h.toasts, ['已恢复内置热门频道，正在下载']);
+    expect(await _run(tester, h.library.playlists), isEmpty);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsOneWidget);
+    h.http.bodies[IptvImporter.hotPlaylistUrl] = _playlist;
+    await _tap(tester, find.byKey(const ValueKey('iptv-default-playlist-retry')));
+    expect((await _run(tester, h.library.playlists)).single.isHot, isTrue);
+    expect(h.http.requests, [IptvImporter.hotPlaylistUrl, IptvImporter.hotPlaylistUrl]);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+  });
+
+  for (final (leave, restoreBackup) in [(false, false), (true, false), (false, true)]) {
+    testWidgets('L01.4: restore during an old download (leave: $leave, backup: $restoreBackup)', (tester) async {
+      late Future<List<LiveRoom>> rooms;
+      late IptvPlaylist restored;
+      late List<IptvChannel> restoredChannels;
+      final h = await _pump(
+        tester,
+        hotRemoved: false,
+        bodies: {IptvImporter.hotPlaylistUrl: _playlist},
+        prepare: (h) async {
+          await h.importer.importPlaylist(
+            bytes: utf8.encode(_playlist),
+            format: IptvPlaylistFormat.m3u,
+            name: IptvImporter.hotName,
+            url: IptvImporter.hotPlaylistUrl,
+            isHot: true,
+          );
+          final hot = (await h.library.playlist(IptvPlaylist.hotId))!;
+          restored = hot.copyWith(source: 'https://f/restored.m3u');
+          restoredChannels = [(await h.library.channels(hot.id)).first];
+          await h.library.savePlaylist(hot, const [], expected: hot);
+          h.http
+            ..gate = Completer<void>()
+            ..requested = Completer<void>();
+          rooms = IptvSite(
+            library: h.library,
+            importer: h.importer,
+            selectedGuideSourceId: () => '',
+            hotRemoved: () => h.settings.get(Settings.iptvHotRemoved),
+          ).hotRooms();
+          await h.http.requested!.future;
+        },
+      );
+      await _tap(tester, find.byKey(const ValueKey('iptv-remove-${IptvPlaylist.hotId}')));
+      await _tap(tester, find.byKey(const ValueKey('iptv-delete-confirm')));
+      await _tap(tester, find.byKey(const ValueKey('iptv-restore-hot')));
+      expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsOneWidget);
+      expect(h.http.requests, hasLength(1), reason: 'restoring waits for the shared old download to settle');
+      if (restoreBackup) {
+        // Backup restoration writes storage directly, independently of
+        // the importer's serialized operations and the held download.
+        await _run(tester, () => h.library.savePlaylist(restored, restoredChannels, expected: null));
+      }
+      if (leave) await tester.pumpWidget(const SizedBox());
+      h.http.gate!.complete();
+      await _settle(tester);
+      await _run(tester, () => rooms);
+      expect(h.settings.get(Settings.iptvHotRemoved), isFalse);
+      final hot = (await _run(tester, h.library.playlists)).single;
+      expect(hot.id, IptvPlaylist.hotId);
+      expect(hot.source, restoreBackup ? 'https://f/restored.m3u' : IptvImporter.hotPlaylistUrl);
+      expect(await _run(tester, () => h.library.channels(hot.id)), hasLength(restoreBackup ? 1 : 2));
+      expect(h.http.requests, hasLength(restoreBackup ? 1 : 2), reason: 'only a missing restored default is retried');
+      expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsNothing);
+      expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+    });
+  }
+
+  for (final empty in [false, true]) {
+    testWidgets('L01.4: settings preserves a restored built-in playlist (empty: $empty)', (tester) async {
+      final h = await _pump(
+        tester,
+        hotRemoved: false,
+        prepare: (h) async {
+          await h.importer.importPlaylist(
+            bytes: utf8.encode(_playlist),
+            format: IptvPlaylistFormat.m3u,
+            name: IptvImporter.hotName,
+            url: 'https://f/restored.m3u',
+            isHot: true,
+          );
+          if (empty) {
+            final hot = (await h.library.playlist(IptvPlaylist.hotId))!;
+            await h.library.savePlaylist(hot, const [], expected: hot);
+          }
+        },
+      );
+      final hot = (await _run(tester, () => h.library.playlist(IptvPlaylist.hotId)))!;
+      expect(hot.source, 'https://f/restored.m3u');
+      expect(await _run(tester, () => h.library.channels(hot.id)), hasLength(empty ? 0 : 2));
+      expect(h.http.requests, isEmpty, reason: 'settings initialization is not a sync of restored data');
+    });
+  }
+
+  testWidgets('L01.4: a stale empty overview cannot overwrite a default restored before initialization starts', (
+    tester,
+  ) async {
+    final h = await _pump(
+      tester,
+      hotRemoved: false,
+      bodies: {IptvImporter.hotPlaylistUrl: _playlist},
+      overrides: [
+        iptvOverviewProvider.overrideWith((ref) => Stream.value(const IptvOverview(playlists: [], guides: []))),
+      ],
+      prepare: (h) async {
+        await h.importer.importPlaylist(
+          bytes: utf8.encode('#EXTM3U\n#EXTINF:-1,Restored\nhttps://f/restored.m3u8\n'),
+          format: IptvPlaylistFormat.m3u,
+          name: IptvImporter.hotName,
+          url: 'https://f/restored.m3u',
+          isHot: true,
+        );
+      },
+    );
+    expect((await _run(tester, h.library.playlists)).single.source, 'https://f/restored.m3u');
+    expect((await _run(tester, () => h.library.channels(IptvPlaylist.hotId))).single.name, 'Restored');
+    expect(h.http.requests, isEmpty);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsNothing);
+  });
+
+  testWidgets('L01.4: a deletion preference restored during initialization hides loading without an error', (
+    tester,
+  ) async {
+    final h = await _pump(
+      tester,
+      hotRemoved: false,
+      bodies: {IptvImporter.hotPlaylistUrl: _playlist},
+      prepare: (h) async {
+        h.http.gate = Completer<void>();
+      },
+    );
+    expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsOneWidget);
+    await _run(tester, () => h.settings.set(Settings.iptvHotRemoved, true));
+    h.http.gate!.complete();
+    await _settle(tester);
+    expect(await _run(tester, h.library.playlists), isEmpty);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsNothing);
+    expect(find.byKey(const ValueKey('iptv-default-playlist-failed')), findsNothing);
+    expect(find.byKey(const ValueKey('iptv-restore-hot')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('L01.4: leaving settings while the first download waits still saves the default safely', (tester) async {
+    final h = await _pump(
+      tester,
+      hotRemoved: false,
+      bodies: {IptvImporter.hotPlaylistUrl: _playlist},
+      prepare: (h) async {
+        h.http.gate = Completer<void>();
+      },
+    );
+    expect(find.byKey(const ValueKey('iptv-default-playlist-loading')), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+    h.http.gate!.complete();
+    await _settle(tester);
+    expect((await _run(tester, h.library.playlists)).single.isHot, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('one page: counts, playlists, guides, then sync and playback, in this order', (tester) async {
     late IptvPlaylist playlist;
     late EpgSource guide;
@@ -592,6 +821,7 @@ void main() {
     final h = await _pump(
       tester,
       bodies: {IptvImporter.hotPlaylistUrl: hotBody},
+      hotRemoved: false,
       prepare: (h) async {
         await h.importer.loadHotPlaylist();
         await h.importer.importPlaylistText('#EXTM3U\n#EXTINF:-1,Mine\nhttp://f/mine\n', 'cn_all');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -10,10 +11,15 @@ import 'package:test/test.dart';
 final class _FakeHttp implements LiveHttp {
   final bodies = <String, List<int>>{};
   final requests = <LiveRequest>[];
+  Completer<void>? gate;
+  Completer<void>? requested;
 
   @override
   Future<LiveResponse> send(LiveRequest request) async {
     requests.add(request);
+    final started = requested;
+    if (started != null && !started.isCompleted) started.complete();
+    await gate?.future;
     final body = bodies[request.url.toString()];
     return LiveResponse(status: body == null ? 404 : 200, bytes: body ?? const [], url: request.url);
   }
@@ -205,6 +211,91 @@ void main() {
     expect(rooms.single.introduction, 'Hot');
     expect((await site().getCategories(1, 30)).single.children.single.areaName, 'Mine');
     expect(await site().getRecommendRooms(page: 2), isEmpty);
+  });
+
+  test('L01.4: concurrent default initialization shares one download', () async {
+    http
+      ..bodies[IptvImporter.hotPlaylistUrl] = utf8.encode(_playlist)
+      ..gate = Completer<void>()
+      ..requested = Completer<void>();
+    final rooms = site().hotRooms();
+    await http.requested!.future;
+    final settingsLoad = importer.loadHotPlaylist();
+    http.gate!.complete();
+    await settingsLoad;
+    expect(await rooms, hasLength(2));
+    expect(http.requests, hasLength(1));
+    expect(await library.playlists(), hasLength(1));
+  });
+
+  test('L01.4: deletion preference changed during the first download prevents initialization', () async {
+    var removed = false;
+    final iptv = IptvSite(
+      library: library,
+      importer: importer,
+      selectedGuideSourceId: () => selected,
+      hotRemoved: () => removed,
+    );
+    http
+      ..bodies[IptvImporter.hotPlaylistUrl] = utf8.encode(_playlist)
+      ..gate = Completer<void>()
+      ..requested = Completer<void>();
+    final rooms = iptv.hotRooms();
+    await http.requested!.future;
+    final settingsLoad = importer.loadHotPlaylist();
+    removed = true;
+    http.gate!.complete();
+    await settingsLoad;
+    expect(await rooms, isEmpty);
+    expect(http.requests, hasLength(1), reason: 'the second entry point shares the first live deletion guard');
+    expect(await library.playlists(), isEmpty, reason: 'a restored deletion preference is authoritative');
+  });
+
+  test('L01.4: a late default download cannot restore a playlist deleted while it waited', () async {
+    http.bodies[IptvImporter.hotPlaylistUrl] = utf8.encode(_playlist);
+    await importer.loadHotPlaylist();
+    final hot = (await library.playlist(IptvPlaylist.hotId))!;
+    http
+      ..gate = Completer<void>()
+      ..requested = Completer<void>();
+    final loading = importer.loadHotPlaylist();
+    await http.requested!.future;
+    expect(await importer.deletePlaylist(hot), isTrue);
+    http.gate!.complete();
+    await loading;
+    expect(await library.playlist(IptvPlaylist.hotId), isNull);
+    expect(await library.channels(IptvPlaylist.hotId), isEmpty);
+  });
+
+  test('L01.4: a late first download cannot replace a restored built-in playlist', () async {
+    http
+      ..bodies[IptvImporter.hotPlaylistUrl] = utf8.encode(_playlist)
+      ..gate = Completer<void>()
+      ..requested = Completer<void>();
+    final loading = importer.loadHotPlaylist();
+    await http.requested!.future;
+    await importer.importPlaylist(
+      bytes: utf8.encode('#EXTM3U\n#EXTINF:-1,Restored\nhttps://f/restored.m3u8\n'),
+      format: IptvPlaylistFormat.m3u,
+      name: IptvImporter.hotName,
+      url: 'https://f/restored.m3u',
+      isHot: true,
+    );
+    final restored = await library.playlist(IptvPlaylist.hotId);
+    http.gate!.complete();
+    await loading;
+    expect(await library.playlist(IptvPlaylist.hotId), restored);
+    expect((await library.channels(IptvPlaylist.hotId)).single.name, 'Restored');
+  });
+
+  test('L01.4: recommendations can still refill an existing empty built-in playlist', () async {
+    http.bodies[IptvImporter.hotPlaylistUrl] = utf8.encode(_playlist);
+    await importer.loadHotPlaylist();
+    final hot = (await library.playlist(IptvPlaylist.hotId))!;
+    await library.savePlaylist(hot, const [], expected: hot);
+    expect(await site().hotRooms(), hasLength(2));
+    expect(http.requests, hasLength(2));
+    expect(await library.playlists(), hasLength(1));
   });
 
   test(

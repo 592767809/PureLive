@@ -157,7 +157,7 @@ final class IptvImporter {
   final String Function() newId;
 
   Future<void> _tail = Future.value();
-  Future<void>? _hotLoad;
+  Future<IptvImportResult>? _hotLoad;
   Future<EpgSource?>? _guideLoad;
 
   Future<T> _serial<T>(Future<T> Function() task) {
@@ -180,6 +180,28 @@ final class IptvImporter {
     bool force = false,
     IptvPlaylist? expected,
     IptvReplaceConfirm? confirmReplace,
+  }) => _importPlaylist(
+    bytes: bytes,
+    format: format,
+    name: name,
+    url: url,
+    isHot: isHot,
+    force: force,
+    expected: expected,
+    confirmReplace: confirmReplace,
+  );
+
+  Future<IptvImportResult> _importPlaylist({
+    required List<int> bytes,
+    required IptvPlaylistFormat format,
+    required String name,
+    String url = '',
+    bool isHot = false,
+    bool force = false,
+    IptvPlaylist? expected,
+    IptvReplaceConfirm? confirmReplace,
+    ({IptvPlaylist? value})? hotSnapshot,
+    bool Function()? canCommit,
   }) async {
     final cleanName = name.trim();
     if (cleanName.isEmpty) return IptvImportResult(IptvImportStatus.invalid, error: 'Empty playlist name');
@@ -196,8 +218,12 @@ final class IptvImporter {
       File? staged;
       var committed = false;
       try {
+        if (canCommit != null && !canCommit()) return IptvImportResult(IptvImportStatus.cancelled);
         final IptvPlaylist? existing;
-        if (expected != null) {
+        if (hotSnapshot != null) {
+          existing = await library.playlist(IptvPlaylist.hotId);
+          if (existing != hotSnapshot.value) return IptvImportResult(IptvImportStatus.stale);
+        } else if (expected != null) {
           existing = await library.playlist(expected.id);
           if (existing != expected) return IptvImportResult(IptvImportStatus.stale);
         } else if (isHot) {
@@ -256,6 +282,7 @@ final class IptvImporter {
           guideChannels: sourceId.isEmpty ? const [] : await library.guideChannels(sourceId),
           previous: await library.mappings(id),
         );
+        if (canCommit != null && !canCommit()) return IptvImportResult(IptvImportStatus.cancelled);
         await library.savePlaylist(playlist, channels, expected: existing, mappings: mappings);
         committed = true;
         if (existing != null && existing.source != source) await _deleteOwnedCopy(existing);
@@ -282,6 +309,16 @@ final class IptvImporter {
     bool isHot = false,
     bool force = false,
     IptvReplaceConfirm? confirmReplace,
+  }) => _importPlaylistFromUrl(url, name: name, isHot: isHot, force: force, confirmReplace: confirmReplace);
+
+  Future<IptvImportResult> _importPlaylistFromUrl(
+    String url, {
+    String? name,
+    bool isHot = false,
+    bool force = false,
+    IptvReplaceConfirm? confirmReplace,
+    ({IptvPlaylist? value})? hotSnapshot,
+    bool Function()? canCommit,
   }) async {
     final uri = Uri.tryParse(url.trim());
     if (uri == null || !isHttpUrl(url)) return IptvImportResult(IptvImportStatus.invalid, error: 'Not an http URL');
@@ -299,7 +336,7 @@ final class IptvImporter {
     }
     final format = detectPlaylistFormat(text, path: uri.path);
     if (format == null) return IptvImportResult(IptvImportStatus.unsupportedFormat);
-    return await importPlaylist(
+    return await _importPlaylist(
       bytes: bytes,
       format: format,
       name: baseName(name ?? uri.path),
@@ -307,6 +344,8 @@ final class IptvImporter {
       isHot: isHot,
       force: force,
       confirmReplace: confirmReplace,
+      hotSnapshot: hotSnapshot,
+      canCommit: canCommit,
     );
   }
 
@@ -407,14 +446,36 @@ final class IptvImporter {
     return true;
   });
 
-  /// Imports the built-in hot playlist behind the recommendations; calls
-  /// while one runs share it.
-  Future<void> loadHotPlaylist() => _hotLoad ??= importPlaylistFromUrl(
-    hotPlaylistUrl,
-    name: hotName,
-    isHot: true,
-    force: true,
-  ).then<void>((_) {}).whenComplete(() => _hotLoad = null);
+  /// Imports the built-in playlist for recommendations or first-visit
+  /// settings; calls while one runs share its result. [hotRemoved] is read
+  /// again before saving, so a deletion preference restored during the
+  /// download is respected. A changed or deleted stored snapshot is never
+  /// overwritten by the late result. With [onlyIfMissing], an existing row
+  /// makes initialization stale without downloading, even when the caller
+  /// saw an older empty overview. Recommendations can still refill an
+  /// existing row with no channels by leaving this false.
+  Future<IptvImportResult> loadHotPlaylist({bool Function()? hotRemoved, bool onlyIfMissing = false}) =>
+      _hotLoad ??= _loadHotPlaylist(hotRemoved, onlyIfMissing: onlyIfMissing).whenComplete(() => _hotLoad = null);
+
+  Future<IptvImportResult> _loadHotPlaylist(bool Function()? hotRemoved, {required bool onlyIfMissing}) async {
+    bool canCommit() => !(hotRemoved?.call() ?? false);
+    if (!canCommit()) return IptvImportResult(IptvImportStatus.cancelled);
+    try {
+      final snapshot = (value: await library.playlist(IptvPlaylist.hotId));
+      if (!canCommit()) return IptvImportResult(IptvImportStatus.cancelled);
+      if (onlyIfMissing && snapshot.value != null) return IptvImportResult(IptvImportStatus.stale);
+      return await _importPlaylistFromUrl(
+        hotPlaylistUrl,
+        name: hotName,
+        isHot: true,
+        force: true,
+        hotSnapshot: snapshot,
+        canCommit: canCommit,
+      );
+    } on Object catch (error) {
+      return IptvImportResult(IptvImportStatus.failed, error: error);
+    }
+  }
 
   // Guides ------------------------------------------------------------------
 

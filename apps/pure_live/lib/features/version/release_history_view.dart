@@ -484,6 +484,7 @@ class _FileCard extends ConsumerWidget {
       file: file,
       sources: downloadSources(file.url, githubOrigin: githubOrigin),
       version: version,
+      historical: true,
     );
   }
 

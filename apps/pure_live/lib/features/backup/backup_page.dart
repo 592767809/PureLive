@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
@@ -18,6 +19,7 @@ import 'package:pure_live/shared/backup/backup_files.dart';
 import 'package:pure_live/shared/backup/backup_preview_dialog.dart';
 import 'package:pure_live/shared/qr_scan.dart';
 import 'package:pure_live/shared/settings/settings_content_navigation.dart';
+import 'package:pure_live/tv/widgets/tv_focusable.dart';
 
 /// The page's clock, for file names (tests replace it).
 final Provider<DateTime Function()> backupClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
@@ -75,6 +77,29 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   bool _customFolder = false;
   List<LocalBackupFile>? _files;
   bool _filesFailed = false;
+  final FocusNode _fileTargets = FocusNode(skipTraversal: true, canRequestFocus: false);
+  final FocusNode _folderTarget = FocusNode(skipTraversal: true, canRequestFocus: false);
+
+  @override
+  void dispose() {
+    _fileTargets.dispose();
+    _folderTarget.dispose();
+    super.dispose();
+  }
+
+  void _focusAfterDeletion() {
+    if (!SettingsRowStyle.tvOf(context)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      // The removed row cannot receive focus. Keep the remote in this
+      // section, or on the folder control when the last backup is gone.
+      // Material keeps even a non-actionable empty row focusable in
+      // directional mode; only a real backup can be the file target.
+      final fileTarget = (_files?.isNotEmpty ?? false) ? _fileTargets.traversalDescendants.firstOrNull : null;
+      final target = fileTarget ?? _folderTarget.traversalDescendants.firstOrNull;
+      target?.requestFocus();
+    });
+  }
 
   LiveStore get _store => ref.read(storeProvider);
 
@@ -183,6 +208,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
   }
 
   Future<void> _delete(LocalBackupFile entry) async {
+    if (_busy != null) return;
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: i18n('webdav_confirm_delete'),
@@ -191,7 +217,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
       danger: true,
       confirmKey: const ValueKey('backup-delete-confirm'),
     );
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
     await _run(_Action.file, () async {
       try {
         await entry.file.delete();
@@ -200,6 +226,7 @@ class _BackupPageState extends ConsumerState<BackupPage> {
         AppNavigator.toast(i18n('webdav_delete_failed'));
       }
       await _loadFiles();
+      if (mounted && !(_files?.any((file) => file.file.path == entry.file.path) ?? false)) _focusAfterDeletion();
     });
   }
 
@@ -364,65 +391,70 @@ class _BackupPageState extends ConsumerState<BackupPage> {
                 ),
               ],
             ),
-            SettingsGroup(
-              key: const ValueKey('backup-files'),
-              title: files == null || files.isEmpty
-                  ? i18n('backup_files_title')
-                  : i18n('backup_files_count', args: {'count': '${files.length}'}),
-              children: [
-                if (files == null)
-                  SettingsRow(icon: AppIcons.backupFile, title: i18n('refresh_loading'), busy: true)
-                else if (_filesFailed)
-                  SettingsRow(
-                    key: const ValueKey('backup-files-error'),
-                    leading: Icon(AppIcons.syncFailed, size: 22, color: Theme.of(context).colorScheme.error),
-                    title: i18n('backup_files_error'),
-                    subtitle: i18n('backup_files_hint'),
-                    subtitleMaxLines: null,
-                    below: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        key: const ValueKey('backup-files-retry'),
-                        onPressed: () => unawaited(_loadFiles()),
-                        icon: const Icon(AppIcons.retry, size: 18),
-                        label: Text(i18n('retry')),
+            Focus(
+              focusNode: _fileTargets,
+              child: SettingsGroup(
+                key: const ValueKey('backup-files'),
+                title: files == null || files.isEmpty
+                    ? i18n('backup_files_title')
+                    : i18n('backup_files_count', args: {'count': '${files.length}'}),
+                children: [
+                  if (files == null)
+                    SettingsRow(icon: AppIcons.backupFile, title: i18n('refresh_loading'), busy: true)
+                  else if (_filesFailed)
+                    SettingsRow(
+                      key: const ValueKey('backup-files-error'),
+                      leading: Icon(AppIcons.syncFailed, size: 22, color: Theme.of(context).colorScheme.error),
+                      title: i18n('backup_files_error'),
+                      subtitle: i18n('backup_files_hint'),
+                      subtitleMaxLines: null,
+                      below: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: TextButton.icon(
+                          key: const ValueKey('backup-files-retry'),
+                          onPressed: () => unawaited(_loadFiles()),
+                          icon: const Icon(AppIcons.retry, size: 18),
+                          label: Text(i18n('retry')),
+                        ),
                       ),
-                    ),
-                  )
-                else if (files.isEmpty)
-                  SettingsRow(
-                    key: const ValueKey('backup-files-empty'),
-                    icon: AppIcons.backupEmpty,
-                    title: i18n('backup_files_empty'),
-                    subtitle: i18n('backup_files_hint'),
-                    subtitleMaxLines: null,
-                  )
-                else
-                  for (final entry in files)
-                    _BackupFileRow(
-                      key: ValueKey('backup-file-${entry.name}'),
-                      entry: entry,
-                      enabled: _usable(_Action.file),
-                      onOpen: () =>
-                          unawaited(_restoreFile(entry, entry.followsOnly ? BackupScope.follows : BackupScope.all)),
-                      onRestoreAll: () => unawaited(_restoreFile(entry, BackupScope.all)),
-                      onRestoreFollows: () => unawaited(_restoreFile(entry, BackupScope.follows)),
-                      onDelete: () => unawaited(_delete(entry)),
-                    ),
-              ],
+                    )
+                  else if (files.isEmpty)
+                    SettingsRow(
+                      key: const ValueKey('backup-files-empty'),
+                      icon: AppIcons.backupEmpty,
+                      title: i18n('backup_files_empty'),
+                      subtitle: i18n('backup_files_hint'),
+                      subtitleMaxLines: null,
+                    )
+                  else
+                    for (final entry in files)
+                      _BackupFileRow(
+                        key: ValueKey('backup-file-${entry.name}'),
+                        entry: entry,
+                        enabled: _busy == null,
+                        onOpen: () => _restoreFile(entry, entry.followsOnly ? BackupScope.follows : BackupScope.all),
+                        onRestoreAll: () => _restoreFile(entry, BackupScope.all),
+                        onRestoreFollows: () => _restoreFile(entry, BackupScope.follows),
+                        onDelete: () => _delete(entry),
+                      ),
+                ],
+              ),
             ),
             SettingsGroup(
               title: i18n('backup_directory'),
               children: [
-                SettingsLinkRow(
-                  key: const ValueKey('backup-folder'),
-                  icon: AppIcons.backupFolder,
-                  title: i18n(_customFolder ? 'backup_directory' : 'backup_folder_default'),
-                  subtitle: folder ?? i18n('refresh_loading'),
-                  subtitleMaxLines: null,
-                  enabled: _usable(_Action.folder),
-                  busy: _busy == _Action.folder,
-                  onTap: () => unawaited(_chooseFolder()),
+                Focus(
+                  focusNode: _folderTarget,
+                  child: SettingsLinkRow(
+                    key: const ValueKey('backup-folder'),
+                    icon: AppIcons.backupFolder,
+                    title: i18n(_customFolder ? 'backup_directory' : 'backup_folder_default'),
+                    subtitle: folder ?? i18n('refresh_loading'),
+                    subtitleMaxLines: null,
+                    enabled: _usable(_Action.folder),
+                    busy: _busy == _Action.folder,
+                    onTap: () => unawaited(_chooseFolder()),
+                  ),
                 ),
                 if (_customFolder)
                   SettingsLinkRow(
@@ -484,10 +516,10 @@ class _BackupFileRow extends StatefulWidget {
 
   final LocalBackupFile entry;
   final bool enabled;
-  final VoidCallback onOpen;
-  final VoidCallback onRestoreAll;
-  final VoidCallback onRestoreFollows;
-  final VoidCallback onDelete;
+  final Future<void> Function() onOpen;
+  final Future<void> Function() onRestoreAll;
+  final Future<void> Function() onRestoreFollows;
+  final Future<void> Function() onDelete;
 
   @override
   State<_BackupFileRow> createState() => _BackupFileRowState();
@@ -495,6 +527,39 @@ class _BackupFileRow extends StatefulWidget {
 
 class _BackupFileRowState extends State<_BackupFileRow> {
   final GlobalKey _menuButton = GlobalKey();
+  final FocusNode _fileFocus = FocusNode(debugLabel: 'backup file');
+  final FocusNode _moreFocus = FocusNode(debugLabel: 'backup more');
+  bool _menuOpen = false;
+  final Set<LogicalKeyboardKey> _openingKeys = {};
+
+  @override
+  void dispose() {
+    FocusManager.instance.removeEarlyKeyEventHandler(_finishOpeningHold);
+    _fileFocus.dispose();
+    _moreFocus.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _finishOpeningHold(KeyEvent event) {
+    if (!_openingKeys.contains(event.logicalKey)) return KeyEventResult.ignored;
+    if (event is KeyUpEvent) _openingKeys.remove(event.logicalKey);
+    // Holding OK opens the menu once; its repeats/release must not also
+    // activate the menu's initially focused restore or delete action.
+    return KeyEventResult.handled;
+  }
+
+  void _returnFocus(FocusNode target) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.enabled || !(ModalRoute.of(context)?.isCurrent ?? true)) return;
+      target.requestFocus();
+    });
+  }
+
+  Future<void> _open() async {
+    if (!widget.enabled || _menuOpen) return;
+    await widget.onOpen();
+    if (mounted && SettingsRowStyle.tvOf(context)) _returnFocus(_fileFocus);
+  }
 
   static bool _pointer(BuildContext context) => switch (Theme.of(context).platform) {
     TargetPlatform.windows || TargetPlatform.linux || TargetPlatform.macOS => true,
@@ -503,69 +568,135 @@ class _BackupFileRowState extends State<_BackupFileRow> {
 
   Future<void> _menu() async {
     final anchor = _menuButton.currentContext;
-    if (anchor == null || !widget.enabled) return;
-    final choice = await showAppMenu<_FileChoice>(
-      anchor,
-      entries: [
-        if (!widget.entry.followsOnly)
+    if (anchor == null || !widget.enabled || _menuOpen) return;
+    final tv = SettingsRowStyle.tvOf(context);
+    final returnTo = _moreFocus.hasFocus ? _moreFocus : _fileFocus;
+    _menuOpen = true;
+    if (tv) {
+      _openingKeys.addAll(HardwareKeyboard.instance.logicalKeysPressed.where(isTvConfirmKey));
+      FocusManager.instance.addEarlyKeyEventHandler(_finishOpeningHold);
+    }
+    try {
+      final result = showAppMenu<_FileChoice>(
+        anchor,
+        entries: [
+          if (!widget.entry.followsOnly)
+            AppMenuEntry(
+              key: const ValueKey('backup-menu-restore-all'),
+              value: _FileChoice.restoreAll,
+              icon: AppIcons.backupRestore,
+              label: i18n('webdav_restore_all_settings'),
+            ),
           AppMenuEntry(
-            key: const ValueKey('backup-menu-restore-all'),
-            value: _FileChoice.restoreAll,
-            icon: AppIcons.backupRestore,
-            label: i18n('webdav_restore_all_settings'),
+            key: const ValueKey('backup-menu-restore-follows'),
+            value: _FileChoice.restoreFollows,
+            icon: AppIcons.backupFollows,
+            label: i18n('webdav_restore_favorites'),
           ),
-        AppMenuEntry(
-          key: const ValueKey('backup-menu-restore-follows'),
-          value: _FileChoice.restoreFollows,
-          icon: AppIcons.backupFollows,
-          label: i18n('webdav_restore_favorites'),
-        ),
-        AppMenuEntry(
-          key: const ValueKey('backup-menu-delete'),
-          value: _FileChoice.delete,
-          icon: AppIcons.delete,
-          label: i18n('webdav_delete'),
-          danger: true,
-          divider: true,
-        ),
-      ],
-    );
-    switch (choice) {
-      case _FileChoice.restoreAll:
-        widget.onRestoreAll();
-      case _FileChoice.restoreFollows:
-        widget.onRestoreFollows();
-      case _FileChoice.delete:
-        widget.onDelete();
-      case null:
-        break;
+          AppMenuEntry(
+            key: const ValueKey('backup-menu-delete'),
+            value: _FileChoice.delete,
+            icon: AppIcons.delete,
+            label: i18n('webdav_delete'),
+            danger: true,
+            divider: true,
+          ),
+        ],
+      );
+      if (tv) tvFocusFirstInRoute();
+      final choice = await result;
+      if (!mounted || !widget.enabled) return;
+      switch (choice) {
+        case _FileChoice.restoreAll:
+          await widget.onRestoreAll();
+        case _FileChoice.restoreFollows:
+          await widget.onRestoreFollows();
+        case _FileChoice.delete:
+          await widget.onDelete();
+        case null:
+          break;
+      }
+    } finally {
+      _menuOpen = false;
+      _openingKeys.clear();
+      FocusManager.instance.removeEarlyKeyEventHandler(_finishOpeningHold);
+      if (mounted && tv) _returnFocus(returnTo);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry;
+    final tv = SettingsRowStyle.tvOf(context);
+    Widget row({Widget? trailing}) => SettingsRow(
+      icon: entry.followsOnly ? AppIcons.backupFollows : AppIcons.backupFile,
+      title: entry.name,
+      subtitle: [
+        formatFileTime(entry.modified),
+        formatFileSize(entry.size),
+        i18n(entry.followsOnly ? 'backup_kind_follows' : 'backup_kind_full'),
+      ].join(' · '),
+      tooltip: _pointer(context) ? i18n('backup_file_tooltip') : null,
+      stackTrailing: false,
+      enabled: widget.enabled,
+      onTap: tv ? null : () => unawaited(_open()),
+      trailing: trailing,
+    );
+    if (tv) {
+      // A nested More button lies inside the row's focus rectangle, so
+      // directional traversal cannot reach it. Sibling targets have
+      // separate rectangles and retain the same shared row content.
+      return Row(
+        children: [
+          Expanded(
+            child: TvFocusable(
+              focusNode: _fileFocus,
+              enabled: widget.enabled,
+              zoom: false,
+              onTap: () => unawaited(_open()),
+              onLongPress: () => unawaited(_menu()),
+              builder: (_, _) => Semantics(
+                button: true,
+                enabled: widget.enabled,
+                child: ExcludeFocus(child: row()),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 12),
+            child: TvFocusable(
+              key: _menuButton,
+              focusNode: _moreFocus,
+              enabled: widget.enabled,
+              zoom: false,
+              onTap: () => unawaited(_menu()),
+              onLongPress: () => unawaited(_menu()),
+              builder: (_, _) => Semantics(
+                button: true,
+                enabled: widget.enabled,
+                label: i18n('webdav_more_actions'),
+                child: Tooltip(
+                  message: i18n('webdav_more_actions'),
+                  child: Opacity(
+                    opacity: widget.enabled ? 1 : 0.38,
+                    child: const SizedBox.square(dimension: 48, child: Icon(AppIcons.moreVertical, size: 20)),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return GestureDetector(
       onSecondaryTap: () => unawaited(_menu()),
       onLongPress: () => unawaited(_menu()),
-      child: SettingsRow(
-        icon: entry.followsOnly ? AppIcons.backupFollows : AppIcons.backupFile,
-        title: entry.name,
-        subtitle: [
-          formatFileTime(entry.modified),
-          formatFileSize(entry.size),
-          i18n(entry.followsOnly ? 'backup_kind_follows' : 'backup_kind_full'),
-        ].join(' · '),
-        // Hover hint for the mouse; on touch a long press opens the menu.
-        tooltip: _pointer(context) ? i18n('backup_file_tooltip') : null,
-        stackTrailing: false,
-        enabled: widget.enabled,
-        onTap: widget.onOpen,
+      child: row(
         trailing: IconButton(
           key: _menuButton,
           tooltip: i18n('webdav_more_actions'),
           icon: const Icon(AppIcons.moreVertical, size: 20),
-          onPressed: () => unawaited(_menu()),
+          onPressed: widget.enabled ? () => unawaited(_menu()) : null,
         ),
       ),
     );
