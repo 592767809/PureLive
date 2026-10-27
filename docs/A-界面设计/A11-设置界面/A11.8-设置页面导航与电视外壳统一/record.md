@@ -53,3 +53,10 @@ iOS只对UUID格式的旧Documents/PURE_LIVE/RECORDS路径，在当前系统Docu
 修正昵称后，完整电视测试首次真正走到纯信息status行，显示前一轮“跳过信息行”仍未成立：Flutter固定SDK的InkWell._canRequestFocus在NavigationMode.directional下无条件为true，不采用onTap为空/canRequestFocus=false。此行为也与官方[实现](https://flutter.googlesource.com/mirrors/flutter.git/+/refs/heads/main/packages/flutter/lib/src/material/ink_well.dart)一致。仅将无动作且无交互子控件的本地信息行包入ExcludeFocus，不改其他设置行的子控件交互。
 
 修改后完整tv_test.dart 38项、原手机本地互动/成长/历史56项和应用fatal-infos通过。覆盖真实方向移动、信息行跳过、白框、输入初值/长度/确认/取消和离页持久化；弹窗适配测试使用现有输入替身，最终原生按键和输入仍须新包验证。此前249候选未执行全量门禁、未发布；新提交先构建Windows实测，再完整all/14及同提交其他平台构建。
+
+
+## 5.4.18 最终交付
+
+5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。
+
+[交付与验证范围](../../../Y-发布和运营/Y03-发布说明和README/releases/v5.4.18.md)。此前候选待验状态由本节更新；原始失败证据保留。

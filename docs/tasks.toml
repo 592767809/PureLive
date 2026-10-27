@@ -6117,285 +6117,307 @@ note = "5.4.17同源十包及11项哈希、匿名访问、PR合并和#53/#58回�
 id = "V02.51"
 title = "电视配置预览布局焦点"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/59"
-note = "截图已查看：配置预览在右栏、左侧仍为设置总览。代码确认电视入口将configPreview转到通用SettingsPage，该页按840断点走双栏；需要改为电视全页并覆盖长JSON树遥控滚动、返回及焦点。当前是代码路径与截图吻合的线索，未在Sony原机验证。"
 to = ["A11.8"]
-branch = "ai/A11.8"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V02.52"
 title = "手机设置入口动画统一"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/60"
-note = "窄屏五个独立路由通过AppNavigator打开，普通设置分类则在SettingsPage内部换content；两条导航路径确有不同。需要按手机既有分类体验统一切换，同时保留系统返回、深链和宽屏双栏，不能只关闭全应用动画。未计入5.4.17修复。"
 to = ["A11.8"]
-branch = "ai/A11.8"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V02.53"
 title = "电视独立设置页统一"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/61"
-note = "两张截图已逐张查看：普通分类有自定义背景与白框，IPTV为通用AppBar且背景覆盖。tv_router对独立页只包TvSettingsStyle，未统一使用TvSettingsScaffold；须逐页核对七页的首焦点、首项Up边界/滚动、标题返回和壁纸透明策略，不能将单一页面样式修补当七页验收。"
 to = ["A11.8"]
-branch = "ai/A11.8"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V02.54"
 title = "电视启动初始焦点框"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/62"
-note = "两张对照图已查看，蓝色选中态和白色焦点框须区分。TvHomePage已有启动及提示后requestFocus，因此不能仅凭截图认定未请求焦点；需复现首次/再次启动、无按键状态和弹窗关闭后的节点状态及框绘制。未在Sony原机定位。"
 to = ["A17.19"]
-branch = "ai/A11.8"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V02.55"
 title = "分区平台标签增加图标"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/63"
-note = "手机和Windows共用AreasView，当前TabLabel只传平台名，电视另有平台标签。后续应复用既有平台图标资源，保持中文名、平台顺序、选中态及无障碍语义，并检查窄屏、大字体和横向滚动；无需新下载图标。"
 to = ["A09.14"]
-branch = "ai/A11.8"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "A11.8"
 title = "设置页面导航与电视外壳统一"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "issues/59, issues/60, issues/61"
-branch = "ai/A11.8"
-note = "同一设置内容复用既有页面和电视外壳；手机五个入口与分类同帧切换；电视七页单栏、首焦点、上边界、可滚动和壁纸背景一致。深链与宽屏双栏保留。"
 stages = ["导航一致性回归", "共享电视设置外壳", "真机与发布验收"]
-done = 0
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "A17.19"
 title = "电视首屏焦点状态恢复"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "issues/62"
-branch = "ai/A11.8"
-note = "复现首次进入菜单展开时已聚焦节点保留、焦点控件被重建后内部状态丢失。直接以实际FocusNode状态绘制，保持菜单/页面焦点和手机桌面规则。"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "A09.14"
 title = "分区平台标签补充图标"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "issues/63"
-branch = "ai/A11.8"
-note = "复用既有平台图标资源，保持平台中文名、顺序、选中态、横向滚动及无障碍语义。"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "A06.7"
 title = "导航滚动隐藏和文字开关"
 type = "界面"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "issues/65"
-branch = "ai/A11.8"
-note = "K90实测补出导航隐藏后状态栏遮挡；公共外壳接管隐藏期间四边安全区，16项修改前失败回归和完整42项首页检查通过，同源实际滑动复验继续。"
 stages = ["共享状态与默认值", "导航设置和布局", "交互及多尺寸验证"]
-done = 0
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "A07.30"
 title = "桌面直播画面中键全屏"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "issues/65"
-branch = "ai/A11.8"
-note = "Windows主画面空白处鼠标中键沿用窗口内全屏往返；控件、弹幕、锁定、PiP、多画面和手机原交互优先。按下与释放按钮/目标一致且取消不触发。"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "X04.3"
 title = "iOS录制路径容器更新保护"
 type = "原生"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
 from = "issues/42"
-branch = "ai/A11.8"
-note = "检查iOS旧绝对路径在容器变化后的可写性；仅对确定属于旧应用Documents的路径做可验证的同相对路径修正，不读写其他应用、不搬移或删除旧文件。原报告设备未复测前不关闭#42。"
 stages = ["路径与旧配置对照", "回归和原生核验"]
-done = 0
+done = 2
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "旧容器默认路径保护已发布及回归；原自签iPhone录制待复测，#42保持开放。"
 
 [[task]]
 id = "V01.10"
 title = "导航显示控制与中键操作提议"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "issues/65"
-branch = "ai/A11.8"
-note = "维护者依D-003选择沿用既有导航组件和窗口内全屏；三个新设置保留旧默认视觉。由A06.7和A07.30实现。"
 stages = ["需求与既有组件评估", "默认值和实现验收"]
-done = 0
+done = 2
 to = ["A06.7", "A07.30"]
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V02.56"
 title = "导航栏设置和快捷键反馈"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
 from = "issues/65"
-branch = "ai/A11.8"
-note = "拆为安卓滚动导航显示、导航文字显示以及Windows中键操作；原需求和实现边界逐项验收后再关闭。"
 to = ["A06.7", "A07.30"]
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V03.7"
 title = "5.4.18反馈与上游证据对照"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "用户要求网络与GitHub搜索"
-branch = "ai/A11.8"
-note = "核对Flutter焦点API、Windows引擎尺寸/白屏历史问题和本地固定SDK源码、iOS沙箱路径规则。原#33/#42/#47/#49继续按实际证据跟进，不把相似上游报告或模拟器当原机验收。"
 stages = ["网络和GitHub搜索", "源码回归与原机边界"]
-done = 0
+done = 2
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "Y01.29"
 title = "发布5.4.18"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "用户要求解决问题发布合并关闭"
-branch = "ai/A11.8"
-note = "固定源码、完整all/14、同源十包、各端验证及11项哈希后合并发布；已验证修复附发布链接回复关闭。旧库本版历史门禁例外须精确两JSON验证后单独取得授权，5.4.17授权不复用。"
 stages = ["范围与源码门禁", "十包构建和交互验证", "发布与双库更新"]
-done = 0
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "X01.4"
 title = "无障碍语义树崩溃与工具链补丁"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "5.4.18 Windows隔离正式包实测崩溃"
-branch = "ai/A11.8"
 stages = ["调用栈与上游回归对照", "固定补丁和全平台重建", "最终包交互与发布"]
-done = 0
-note = "原生调用栈与3.47.7相同引擎对照定位后，核对最新稳定3.47.8仍缺少官方193372；升级两端独立SDK到3.47.8／Dart3.13.7并纳入同一校验补丁，官方回归红4绿7。重新完整门禁和全平台重建，保持无障碍和原#47验收边界。"
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "Z01.3"
 title = "全端工具链与依赖重新核验升级"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "大"
 tier = 1
 from = "用户2026-10-26明确要求先把项目工具链全部升级到最新稳定版本"
-branch = "ai/A11.8"
 stages = ["官方版本与实际环境清点", "工具链和依赖迁移", "完整门禁与全平台构建"]
-done = 0
-next = "核对完整JDK补丁、Apple和桌面工具版本，审查十项直接依赖升级；原候选暂缓发布。"
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "V03.8"
 title = "全部历史反馈与修复重新审查"
 type = "工程"
-status = "开发中"
+status = "完成"
 size = "大"
 tier = 1
 from = "用户2026-10-26要求重新审查全部开放和已关闭issue、回复以及历次实现"
-branch = "ai/A11.8"
 stages = ["全部反馈与提交映射", "根因复核与缺口修复", "原场景验证和发布收尾"]
-done = 0
-next = "50条issue、177条评论、558项事件已保存；逐项建立原始诉求、当前实现、回归与原机证据矩阵。"
-note = "手机操作按用户最新指示延后；已关闭不视为自动验收，确认未修复时重新打开并给出证据。发布、合并及已解决项关闭已有用户授权。"
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "D07.8"
 title = "醒目留言事件去重与未读提示"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
-branch = "ai/A11.8"
 from = "issues/16、issues/23 关闭后的未读角标反馈；V03.8重新审查"
-note = "修复无事件ID时同内容的后续付费留言被丢失；统一接收、会话历史和录制去重；保留虎牙倒计时重建时间的去重；全屏手机、桌面和电视显示未读数量，查看后清除。"
 stages = ["复现与根因", "实现与回归", "发布候选验证"]
-done = 0
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "事件去重、会话历史和未读提示已发布，修改前失败的回归通过；真实付费事件现场验收仍待补齐。"
 
 [[task]]
 id = "H01.9"
 title = "录制存储失败停止重连"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "中"
 tier = 1
-branch = "ai/A11.8"
 from = "issues/42；V03.8重新审查"
-note = "真实文件系统拒绝创建录制目录时停止并显示可操作的存储错误；保留任务和已有文件，不把本地存储错误当网络重连。"
 stages = ["复现与根因", "实现与回归", "发布候选验证"]
-done = 0
+done = 3
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "存储错误分类和停止误重连已发布，真实文件系统失败回归通过；原自签iPhone存储场景待复测。"
 
 [[task]]
 id = "A11.9"
 title = "设置加载与弹窗返回的焦点恢复"
 type = "功能"
-status = "开发中"
+status = "完成"
 size = "小"
 tier = 1
-branch = "ai/A11.8"
 from = "V03.8重新审查；issues/59、issues/61、issues/62 的共享焦点生命周期"
-note = "真实IPTV两种尺寸复现透明背景Theme覆盖按钮焦点样式，调整主题层级后完整50项电视回归通过；新同源包须复验标准按钮及上下视口。"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。"
 
 [[task]]
 id = "G02.8"
 title = "正式包缓冲停滞状态诊断"
 type = "工程"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/A11.8"
 from = "V03.8重新审查；issues/33、issues/49 的正式包日志缺少原生缓冲状态"
-note = "移除只在调试包探测的限制；每次缓冲最多一次有界、仅数字及布尔值的原生状态快照；换源、停止及销毁隔离。是诊断补齐，不宣称原电视播放故障已解决。"
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "正式包有界缓冲诊断已发布及回归；原电视日志待采集，#33/#49仍开放。"
 
 [[task]]
 id = "D02.3"
 title = "正则探测调度延迟误判修复"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "小"
 tier = 1
-branch = "ai/A11.8"
 from = "V03.8完整门禁中的正常正则tooSlow失败；PROCESS第12节要求定位随机失败根因"
-note = "正常正则单次wall-clock暂停超过20ms直接误拒；加入可控时间回归，同一输入最多三次确认，2ms预算及静态复杂度限制保持。"
 
+date = "2026-10-27"
+commit = "bf25cffced2050d27bb3db85aa0d62c47fbfd7ee"
+note = "正则调度暂停确认已发布及回归；不把完整门禁等同于全部现场负载验证。"
 
 [[task]]
 id = "V01.11"

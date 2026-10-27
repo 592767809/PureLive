@@ -15,3 +15,10 @@ iOS只对UUID格式的旧Documents/PURE_LIVE/RECORDS路径，在当前系统Docu
 网络与GitHub证据：Flutter固定SDK abaf9c523780a608bd46686fd5e53740a07077f8 的OnEmptyFrameGenerated已使用(width,height)顺序，包含上游187954修复，不据187922推断#47根因或盲升SDK。焦点高亮模式与本应用自绘状态区分，不全局强制traditional。原#33/#49没有新因果证据。上游pure_live b6d57759933029e3086990fcf466088ec256b939、TV 6a1186630b41df36d0ae4ed7bb996d6c1c745897、media_core 1724351675061eea905e0a0a48bf19b0925c0ca7已读最新提交，未借用代码或改变播放内核。
 
 本版尚未取得旧归档库门禁例外；须在精确两JSON与六项历史失败比较完成后单独申请。
+
+
+## 5.4.18 最终交付
+
+5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。
+
+[交付与验证范围](../../../Y-发布和运营/Y03-发布说明和README/releases/v5.4.18.md)。此前候选待验状态由本节更新；原始失败证据保留。

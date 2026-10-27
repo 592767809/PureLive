@@ -22,3 +22,10 @@
 ## 新一轮精确窗口线索
 
 GitHub搜索发现[Flutter194679](https://github.com/flutter/flutter/issues/194679)：快速最大化／还原、迟到帧与旧resize target相互作用，可能造成画面缩在左下角。固定SDK的OnWindowSizeChanged在surface_will_update=false时同样没有清理pending target。此为与#47图片较接近的候选机制，尚未在本应用或原笔记本复现；不复制未经本应用验证的抖动尺寸方案、不更换SDK，不关闭#47。后续需核对触发时是否快速最大化／还原，以及轻微调整窗口尺寸能否恢复。[188270](https://github.com/flutter/flutter/issues/188270)则针对新多窗口API的次级窗口，本应用原报告是主窗口，不混为一谈。
+
+
+## 5.4.18 最终交付
+
+5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。
+
+[交付与验证范围](../../../Y-发布和运营/Y03-发布说明和README/releases/v5.4.18.md)。此前候选待验状态由本节更新；原始失败证据保留。

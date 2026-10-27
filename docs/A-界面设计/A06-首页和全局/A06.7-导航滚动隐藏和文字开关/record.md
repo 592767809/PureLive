@@ -34,3 +34,10 @@ iOS只对UUID格式的旧Documents/PURE_LIVE/RECORDS路径，在当前系统Docu
 四个真实主页、单入口及多入口、普通和玻璃底栏共16项带系统边距的回归，在修改前均失败：内容顶部为0，而状态栏占48逻辑像素。移除AppBar时，它原本负责的系统顶部避让也消失；Scaffold不会替任意body自动避让。现在公共HomeMobileView在隐藏期间接管四边SafeArea，显示时保持原边距处理；包装器始终挂载，页面状态和控制器不重建。依据[Flutter SafeArea文档](https://api.flutter.dev/flutter/widgets/SafeArea-class.html)，已经处理的边距会从后代MediaQuery中移除，避免重复避让。
 
 完整home_test.dart42项及应用fatal-infos通过，包含16项修改前失败的真实主页回归、恢复页头及相同Element断言。同源v4dev实际滑动复核和最终全量、全平台重建继续，不把此前678候选当最终发布包。
+
+
+## 5.4.18 最终交付
+
+5.4.18实现、分层验证及发布收尾见交付记录；未覆盖的原设备场景不外推。
+
+[交付与验证范围](../../../Y-发布和运营/Y03-发布说明和README/releases/v5.4.18.md)。此前候选待验状态由本节更新；原始失败证据保留。
