@@ -83,13 +83,15 @@ typedef RemoteSyncChooseImport = Future<Set<SyncPart>?> Function(String remoteAd
 ///   record, so 3.x and v4 devices find each other); Android holds the Wi-Fi
 ///   multicast lock meanwhile.
 class RemoteSyncService extends ChangeNotifier {
-  /// Creates the service over [store]; [mdns] replaces bonsoir (tests).
+  /// Creates the service over [store]; [mdns] and [_bindDiscoverySocket]
+  /// replace native discovery transports in tests.
   new(
     this.store, {
     List<String>? Function()? localIps,
     this.requestTimeout = const Duration(minutes: 2),
     MdnsPeers? mdns,
     MulticastLock? multicastLock,
+    this._bindDiscoverySocket,
   }) : _listIps = localIps,
        _mdns = mdns ?? BonsoirPeers(),
        _multicast = multicastLock ?? MulticastLock();
@@ -101,6 +103,7 @@ class RemoteSyncService extends ChangeNotifier {
   final Duration requestTimeout;
 
   final List<String>? Function()? _listIps;
+  final Future<RawDatagramSocket> Function()? _bindDiscoverySocket;
   final MdnsPeers _mdns;
   final MulticastLock _multicast;
   bool _mdnsRunning = false;
@@ -496,18 +499,26 @@ class RemoteSyncService extends ChangeNotifier {
   Future<void> _startDiscovery() async {
     if (localIp.isEmpty) return;
     try {
-      final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, RemoteSyncProtocol.discoveryPort);
+      final socket =
+          await (_bindDiscoverySocket?.call() ??
+              RawDatagramSocket.bind(InternetAddress.anyIPv4, RemoteSyncProtocol.discoveryPort));
       if (_disposed || !running) {
         socket.close();
         return;
       }
       socket.broadcastEnabled = true;
       _discovery = socket;
-      socket.listen((event) {
-        if (event != RawSocketEvent.read) return;
-        final datagram = socket.receive();
-        if (datagram != null) _heard(datagram);
-      });
+      socket.listen(
+        (event) {
+          if (event != RawSocketEvent.read) return;
+          final datagram = socket.receive();
+          if (datagram != null) _heard(datagram);
+        },
+        onError: (Object _) {
+          // Local UDP failures can arrive asynchronously, after send returns.
+          // Discovery is optional; HTTP and mDNS must remain usable.
+        },
+      );
       _announce();
       _announceTimer = Timer.periodic(const Duration(seconds: 5), (_) => _announce());
     } on Object {
