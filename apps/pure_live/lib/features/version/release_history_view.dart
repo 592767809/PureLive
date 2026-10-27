@@ -450,17 +450,17 @@ class _ReleaseBody extends StatelessWidget {
         Text(i18n('download_files'), style: context.textStyles.t15.copyWith(fontWeight: FontWeight.w600)),
         const SizedBox(height: 10),
         for (final (index, file) in release.files.indexed)
-          _FileCard(key: ValueKey('release-history-file-$index'), file: file, version: release.version),
+          _FileCard(key: ValueKey('release-history-file-$index'), file: file, release: release),
       ],
     ],
   );
 }
 
 class _FileCard extends ConsumerWidget {
-  const new({required this.file, required this.version, super.key});
+  const new({required this.file, required this.release, super.key});
 
   final ReleaseFile file;
-  final String version;
+  final ReleaseInfo release;
 
   String get _name => file.name.isEmpty ? i18n('version_history_unnamed_file') : file.name;
 
@@ -483,8 +483,8 @@ class _FileCard extends ConsumerWidget {
       context,
       file: file,
       sources: downloadSources(file.url, githubOrigin: githubOrigin),
-      version: version,
       historical: true,
+      historicalRelease: release,
     );
   }
 

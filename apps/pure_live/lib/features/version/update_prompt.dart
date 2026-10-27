@@ -174,6 +174,7 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
   bool get _inApp =>
       widget.info.isInstallableUpdate &&
       widget.package != null &&
+      widget.package!.hasIntegrity &&
       fileMatchesUpdate(widget.info, widget.package!) &&
       widget.sources.isNotEmpty;
 

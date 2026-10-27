@@ -452,7 +452,7 @@ class _PackageState extends State<_Package> {
           ? null
           : () => unawaited(showUpdateDownload(context, file: file, sources: widget.sources, update: widget.info)),
       icon: const Icon(AppIcons.downloadPackage, size: 18),
-      label: Text(i18n('update_download_install')),
+      label: Text(i18n(file.hasIntegrity ? 'update_download_install' : 'update_download_action')),
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
