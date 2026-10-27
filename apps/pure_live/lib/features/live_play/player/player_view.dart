@@ -219,6 +219,14 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// Where the last tap went down.
   Offset? _tapAt;
 
+  /// A press held for [kLongPressTimeout] is not a tap on a danmaku: with
+  /// the long-press gesture off no recognizer competes for the hold, so the
+  /// tap recognizer still calls [_onTap] when the finger lifts; a 2 s hold
+  /// used to open the message's actions through the tap switch.
+  bool _heldPastLongPress = false;
+  int? _holdPointer;
+  Timer? _holdTimer;
+
   /// V01.3 (D03.4, "按住飞行弹幕让它停住"): the pointer pressing a pinned
   /// danmaku and where it went down; the danmaku flies on when it lifts,
   /// is cancelled or moves into a drag.
@@ -318,6 +326,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   void dispose() {
     _hide?.cancel();
     _doubleTapWindow?.cancel();
+    _holdTimer?.cancel();
     unawaited(_playback?.cancel());
     _panels?.removeListener(_scheduleHide);
     super.dispose();
@@ -373,6 +382,9 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// A tap on a flying danmaku (its switch on) opens its actions instead,
   /// but only while the controls show and the stream is not paused (D-038),
   /// and only once a double tap is ruled out (A07.14; 3.x waited too).
+  /// A press held past [kLongPressTimeout] is no tap on a danmaku, even
+  /// with the long-press gesture off (no recognizer takes the hold then):
+  /// it only acts on the picture, so a 2 s hold opens nothing.
   ///
   /// B09 c1 (audit B-8): the tap acts at once (3.x, and 4.0.0, held every
   /// tap back by the double tap's timeout, about 300 ms). A second tap
@@ -380,7 +392,9 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// not while locked): it takes the first tap back and toggles the
   /// fullscreen.
   void _onTap() {
-    final hit = _tapHit;
+    final held = _heldPastLongPress;
+    _heldPastLongPress = false;
+    final hit = held ? null : _tapHit;
     final at = _tapAt;
     _tapHit = null;
     _tapAt = null;
@@ -495,6 +509,12 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   /// press opens the pinned one's actions, which stand everything (the
   /// finger is still on it, so it is the one hit).
   void _onPointerDown(PointerDownEvent event) {
+    if (event.buttons == kPrimaryButton) {
+      _holdPointer = event.pointer;
+      _heldPastLongPress = false;
+      _holdTimer?.cancel();
+      _holdTimer = Timer(kLongPressTimeout, () => _heldPastLongPress = true);
+    }
     if (event.kind == PointerDeviceKind.mouse &&
         event.buttons == kMiddleMouseButton &&
         widget.platform.platform == TargetPlatform.windows) {
@@ -520,6 +540,13 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   }
 
   void _onPointerEnd(PointerEvent event) {
+    if (event.pointer == _holdPointer) {
+      _holdTimer?.cancel();
+      _holdTimer = null;
+      _holdPointer = null;
+      // The flag stays for [_onTap]; a press that ends without a tap is
+      // cleared by the next press.
+    }
     if (event.pointer == _pinPointer) _unpin();
   }
 
