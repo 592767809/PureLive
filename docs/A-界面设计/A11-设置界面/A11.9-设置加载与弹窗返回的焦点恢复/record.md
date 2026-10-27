@@ -27,3 +27,11 @@
 根因在TvSettingsScaffold._followFocus：固定keepVisibleAtEnd只处理下边界，不能把位于当前滚动偏移上方的焦点行带回。此行为已核对固定Flutter3.47.8源码和[官方策略定义](https://api.flutter.dev/flutter/widgets/ScrollPositionAlignmentPolicy.html)、[ensureVisible实现](https://api.flutter.dev/flutter/widgets/ScrollPosition/ensureVisible.html)。现在按RenderAbstractViewport计算的目标起点与当前pixels选择keepVisibleAtStart或keepVisibleAtEnd；完全可见时不跳动，异步回调再次核对当前路由、挂载状态和同一焦点，避免旧目标继续滚动页面。
 
 两种尺寸的加载后首焦点、Down/Up往返和布局稳定后不继续滚动均通过；完整tv_test.dart40项、焦点生命周期回归和应用fatal-infos通过。新提交仍须同源原生窄横屏检查、完整all/14及全平台重建，e3e包不公开。首次调查缺少iptv_page导入导致的一次测试编译失败单独保留，不计作产品复现；真正失败证据为第二次探针日志。
+
+## 2026-10-27 电视共享按钮的实际焦点边框
+
+K90同源f4候选完成手机五根设置、导航实际隐藏／恢复和原开关恢复；电视七页首焦点、六页的方向移动及配置滚动可见。IPTV连续按键的逐步XML确认焦点确实走过热门显示、更多和删除，坐标均在视口内，回到导入项正常；但普通Material更多／删除按钮在Android当前输入模式中没有边框，自定义设置行正常。最初一次探针点到被顶部裁切的入口，未实际进入IPTV，已作为无效测试保留；第二次增加页面身份断言后才采用结果。
+
+当前全局FocusFrame仅在highlightMode.traditional时绘制。固定Flutter的Android虚拟键盘保护见[上游180746](https://github.com/flutter/flutter/issues/180746)及本地FocusManager实现：虚拟设备键不切换到传统高亮模式。因此仅凭ADB键事件不能等同物理遥控器，但电视界面仍应像现有设置行一样始终显示真实焦点，混合触摸／虚拟输入不应使部分按钮消失。
+
+修复只在TvSettingsStyle内部覆盖五种Material按钮的side解析，使用电视统一近白边框；未聚焦及禁用时回退原样式，手机与桌面外部主题不改，不强制全局highlightStrategy。10项真实Material绘制回归中，修改前电视5项失败、普通模式5项通过；修改后全部通过，并且取消焦点恢复原外观、全局touch模式保持。加上完整tv_test.dart，50项通过，应用fatal-infos通过。v8原14成员门禁和各端包保留为历史证据，最终版本须按新提交重建及验证，不能沿用旧包哈希。
