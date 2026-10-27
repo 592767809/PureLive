@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
@@ -223,6 +224,11 @@ void main() {
         [Uri.parse('https://a/pkg.apk'), Uri.parse('https://b/pkg.apk')],
         target,
         onProgress: (received, total) => progress.add(received),
+        integrity: DownloadIntegrity(
+          canonicalUrl: Uri.parse('https://a/pkg.apk'),
+          sizeBytes: bytes.length,
+          sha256: crypto.sha256.convert(bytes).toString(),
+        ),
       );
       expect(file.readAsBytesSync(), bytes);
       expect(FileDownloader.partOf(target).existsSync(), isFalse);
@@ -231,7 +237,7 @@ void main() {
       expect(progress.last, 5000);
     });
 
-    test('a cancel keeps the part and the next download continues it', () async {
+    test('pre-cancel preserves orphan part; generic next download conservatively restarts', () async {
       final bytes = List.generate(4000, (i) => i % 7);
       final http = FileServerHttp({'https://a/x.zip': bytes});
       final target = File(p.join(temp.path, 'x.zip'));
@@ -244,7 +250,7 @@ void main() {
       expect(FileDownloader.partOf(target).lengthSync(), 1500);
       await FileDownloader(http).download([Uri.parse('https://a/x.zip')], target);
       expect(target.readAsBytesSync(), bytes);
-      expect(http.requests.last.headers['range'], 'bytes=1500-');
+      expect(http.requests.last.headers['range'], isNull);
     });
 
     test('every source failing is a network failure; folder and names', () async {

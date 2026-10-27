@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -53,9 +54,15 @@ UpdateInfo _info(String version, {int? build}) => UpdateInfo.fromJson({
   'platforms': const <String, Object?>{},
 }, platform: 'android');
 
-ReleaseFile _apk(String version, {int? build}) {
+final _downloadBytes = [...List<int>.filled(1024 * 1024, 1), ...List<int>.filled(2 * 1024 * 1024, 2)];
+final _downloadDigest = crypto.sha256.convert(_downloadBytes).toString();
+
+ReleaseFile _apk(String version, {int? build, List<int>? bytes}) {
   final number = build ?? appBuild + 1;
+  final content = bytes ?? _downloadBytes;
   return ReleaseFile(
+    sizeBytes: content.length,
+    sha256: bytes == null ? _downloadDigest : crypto.sha256.convert(content).toString(),
     name: 'PureLive-$version-$number-android-arm64-v8a-release.apk',
     size: '3mb',
     downloads: 1,
@@ -87,6 +94,46 @@ final class _GatedHttp implements LiveHttp {
 
   @override
   void close() {}
+}
+
+final class _PayloadHttp implements LiveHttp {
+  new(this.bytes);
+
+  List<int> bytes;
+  int opens = 0;
+
+  @override
+  Future<LiveStreamedResponse> open(LiveRequest request) async {
+    opens++;
+    return LiveStreamedResponse(status: 200, body: Stream.value(bytes), url: request.url, contentLength: bytes.length);
+  }
+
+  @override
+  Future<LiveResponse> send(LiveRequest request) async => await (await open(request)).collect();
+
+  @override
+  void close() {}
+}
+
+final class _HeldFirstWrite extends DownloadFileOperations {
+  final release = Completer<void>();
+  RandomAccessFile? oldHandle;
+  bool oldClosed = false;
+
+  @override
+  Future<void> write(RandomAccessFile file, List<int> bytes) async {
+    if (oldHandle == null) {
+      oldHandle = file;
+      await release.future;
+    }
+    await super.write(file, bytes);
+  }
+
+  @override
+  Future<void> close(RandomAccessFile file) async {
+    await super.close(file);
+    if (identical(file, oldHandle)) oldClosed = true;
+  }
 }
 
 final class _Harness {
@@ -179,9 +226,61 @@ Future<_Harness> _pump(
 /// Lets real file and stream work run until [done] (or 50 rounds).
 Future<void> _until(WidgetTester tester, bool Function() done) async {
   for (var i = 0; i < 50 && !done(); i++) {
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
-    await tester.pump();
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      // A later directory decision can create the download dialog on this frame.
+      await tester.pump();
+    });
   }
+}
+
+final class _DownloadLaunch {
+  Future<void>? closed;
+  bool completed = false;
+}
+
+// Every launched dialog is dismissed through its real Navigator even when an
+// assertion fails; never reset the production singleton to hide leaked routes.
+Future<_DownloadLaunch> _showUpdateDownload(
+  WidgetTester tester,
+  BuildContext context, {
+  required ReleaseFile file,
+  required List<String> sources,
+  String? version,
+  UpdateInfo? update,
+  bool historical = false,
+  ReleaseInfo? historicalRelease,
+}) async {
+  final launch = _DownloadLaunch();
+  addTearDown(() async {
+    final publicClose = launch.closed;
+    if (launch.completed || publicClose == null) return;
+    for (var i = 0; i < 50 && !launch.completed; i++) {
+      for (final navigator in tester.stateList<NavigatorState>(find.byType(Navigator)).toList().reversed) {
+        navigator.popUntil((route) => route.isFirst);
+      }
+      await tester.pumpAndSettle();
+      if (!launch.completed) await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
+    }
+    expect(launch.completed, isTrue, reason: 'the real dialog route must close before test teardown');
+    await publicClose;
+  });
+  // Await setup, not the dialog lifetime. Both the public operation and first
+  // creation frame begin in real I/O; callers cannot overlap runAsync scopes.
+  await tester.runAsync(() async {
+    launch.closed = showUpdateDownload(
+      context,
+      file: file,
+      sources: sources,
+      version: version,
+      update: update,
+      historical: historical,
+      historicalRelease: historicalRelease,
+    ).whenComplete(() => launch.completed = true);
+    await Future<void>.delayed(const Duration(seconds: 1));
+    await tester.pump();
+  });
+  return launch;
 }
 
 UpdateDownloadTools _tools(LiveHttp http, Directory folder, {SettingsStore? settings, Directory? fallback}) =>
@@ -574,14 +673,185 @@ void main() {
       UpdateInfo(version: appVersion, buildNumber: appBuild),
       const UpdateInfo(version: '9.0.0', buildNumber: 1),
     ]) {
-      await showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: info);
+      await _showUpdateDownload(tester, context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: info);
     }
-    await showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('8.0.0').url], update: _info('9.0.0'));
+    await _showUpdateDownload(
+      tester,
+      context,
+      file: _apk('9.0.0'),
+      sources: [_apk('8.0.0').url],
+      update: _info('9.0.0'),
+    );
     final lowerBuild = _apk('9.0.0', build: 1);
-    await showUpdateDownload(context, file: lowerBuild, sources: [lowerBuild.url], update: _info('9.0.0', build: 1));
+    await _showUpdateDownload(
+      tester,
+      context,
+      file: lowerBuild,
+      sources: [lowerBuild.url],
+      update: _info('9.0.0', build: 1),
+    );
     expect(http.opens, 0);
     expect(h.toasts, hasLength(6));
     expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+  });
+
+  group('Y02.3 verified update policy', () {
+    testWidgets('legacy metadata stays readable with explicit browser fallback, not install or retry', (tester) async {
+      final folder = _temp();
+      final http = _PayloadHttp([1, 2, 3]);
+      final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
+      final named = _apk('9.0.0');
+      final legacy = ReleaseFile(name: named.name, size: named.size, downloads: named.downloads, url: named.url);
+      await _showUpdateDownload(
+        tester,
+        tester.element(find.text('home')),
+        file: legacy,
+        sources: downloadSources(legacy.url, githubOrigin: false),
+        update: _info('9.0.0'),
+      );
+      await tester.pumpAndSettle();
+      expect(http.opens, 0);
+      expect(find.text('此版本未提供完整校验信息，无法在应用内下载。可在浏览器中自行下载。'), findsOneWidget);
+      expect(find.byKey(const ValueKey('update-download-install')), findsNothing);
+      expect(find.byKey(const ValueKey('update-download-retry')), findsNothing);
+      expect(find.byKey(const ValueKey('download-directory-dialog')), findsNothing);
+      expect(h.opened, isEmpty, reason: 'browser is a separate user action');
+      await tester.tap(find.byKey(const ValueKey('update-download-browser')));
+      await tester.pumpAndSettle();
+      expect(h.opened, [legacy.url]);
+      await tester.tap(find.byKey(const ValueKey('update-download-close')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('historical confirmation cannot bypass malformed release build metadata', (tester) async {
+      final folder = _temp();
+      final http = _PayloadHttp([1, 2, 3]);
+      await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
+      final file = _apk('9.0.0', bytes: [1, 2, 3]);
+      final release = ReleaseInfo(version: '9.0.0', date: '2027-01-01', buildNumber: 1, files: [file]);
+      await _showUpdateDownload(
+        tester,
+        tester.element(find.text('home')),
+        file: file,
+        sources: [file.url],
+        historical: true,
+        historicalRelease: release,
+      );
+      await tester.pumpAndSettle();
+      expect(http.opens, 0);
+      expect(find.text('安装包校验信息无效，无法在应用内下载。可在浏览器中自行下载。'), findsOneWidget);
+      expect(find.byKey(const ValueKey('update-download-install')), findsNothing);
+      expect(find.byKey(const ValueKey('update-download-retry')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('update-download-close')));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Back then reopen waits for the old target write before offering verified Install', (tester) async {
+      final folder = _temp();
+      final http = _PayloadHttp([3, 2, 1]);
+      final operations = _HeldFirstWrite();
+      var folderCalls = 0;
+      final h = await _pump(
+        tester,
+        overrides: [
+          updateDownloadToolsProvider.overrideWithValue(
+            UpdateDownloadTools(
+              downloader: FileDownloader(http, fileOperations: operations),
+              folder: () async {
+                folderCalls++;
+                return folder;
+              },
+              pickFastest: false,
+            ),
+          ),
+        ],
+      );
+      final file = _apk('9.0.0', bytes: [1, 2, 3]);
+      try {
+        final first = await _showUpdateDownload(
+          tester,
+          tester.element(find.text('home')),
+          file: file,
+          sources: [file.url],
+          update: _info('9.0.0'),
+        );
+        await _until(tester, () => operations.oldHandle != null);
+        expect(operations.oldHandle, isNotNull);
+        await tester.binding.handlePopRoute();
+        await _until(tester, () => first.completed);
+        expect(first.completed, isTrue);
+        expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+        expect(operations.oldClosed, isFalse, reason: 'route closure does not finish the held write');
+        http.bytes = [1, 2, 3];
+        final reopened = await _showUpdateDownload(
+          tester,
+          tester.element(find.text('home')),
+          file: file,
+          sources: [file.url],
+          update: _info('9.0.0'),
+        );
+        await _until(tester, () => folderCalls == 2);
+        expect(folderCalls, 2);
+        expect(find.byKey(const ValueKey('update-download-dialog')), findsOneWidget);
+        // Let unrelated file work finish while the reopened download waits for
+        // its old owner. No extra production lifecycle hooks are needed.
+        await tester.runAsync(() async {
+          await FileDownloader(_PayloadHttp([1, 2, 3]))
+              .download([Uri.parse(file.url)], File('${folder.path}/unrelated'));
+          await tester.pump();
+        });
+        expect(http.opens, 1);
+        expect(find.byKey(const ValueKey('update-download-install')), findsNothing);
+        operations.release.complete();
+        await _until(tester, () => find.byKey(const ValueKey('update-download-install')).evaluate().isNotEmpty);
+        expect(operations.oldClosed, isTrue);
+        expect(http.opens, 2);
+        expect(find.byKey(const ValueKey('update-download-install')), findsOneWidget);
+        expect(File('${folder.path}/${file.name}').readAsBytesSync(), [1, 2, 3]);
+        expect(h.opened, isEmpty, reason: 'neither old cancellation nor verified completion auto-installs');
+        await tester.tap(find.byKey(const ValueKey('update-download-close')));
+        await _until(tester, () => reopened.completed);
+        expect(reopened.completed, isTrue);
+        expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+      } finally {
+        if (!operations.release.isCompleted) operations.release.complete();
+        if (operations.oldHandle != null) await _until(tester, () => operations.oldClosed);
+        for (final navigator in tester.stateList<NavigatorState>(find.byType(Navigator)).toList().reversed) {
+          navigator.popUntil((route) => route.isFirst);
+        }
+        await tester.runAsync(tester.pumpAndSettle);
+      }
+    });
+
+    testWidgets('same-length corruption never enables Install; retry verifies fresh bytes', (tester) async {
+      final folder = _temp();
+      final http = _PayloadHttp([3, 2, 1]);
+      final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
+      final file = _apk('9.0.0', bytes: [1, 2, 3]);
+      await _showUpdateDownload(
+        tester,
+        tester.element(find.text('home')),
+        file: file,
+        sources: [file.url],
+        update: _info('9.0.0'),
+      );
+      await _until(tester, () => find.byKey(const ValueKey('update-download-retry')).evaluate().isNotEmpty);
+      expect(find.text('安装包校验失败，未提供安装。请重试或在浏览器中下载。'), findsOneWidget);
+      expect(find.byKey(const ValueKey('update-download-install')), findsNothing);
+      expect(h.opened, isEmpty);
+      expect(File('${folder.path}/${file.name}').existsSync(), isFalse);
+      expect(http.opens, 2);
+      http.bytes = [1, 2, 3];
+      await tester.runAsync(() => tester.tap(find.byKey(const ValueKey('update-download-retry'))));
+      await _until(tester, () => find.byKey(const ValueKey('update-download-install')).evaluate().isNotEmpty);
+      expect(find.byKey(const ValueKey('update-download-install')), findsOneWidget);
+      expect(File('${folder.path}/${file.name}').readAsBytesSync(), [1, 2, 3]);
+      expect(http.opens, 3, reason: 'retry makes one fresh verified request');
+      expect(h.opened, isEmpty, reason: 'successful verification does not auto-install');
+      await tester.tap(find.byKey(const ValueKey('update-download-close')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
+    });
   });
 
   group('download (U.3d c7–c10)', () {
@@ -590,7 +860,13 @@ void main() {
       final http = _GatedHttp(size: 3 * 1024 * 1024);
       final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
+      await _showUpdateDownload(
+        tester,
+        context,
+        file: _apk('9.0.0'),
+        sources: [_apk('9.0.0').url],
+        update: _info('9.0.0'),
+      );
       await tester.pump();
       await tester.pump();
       expect(find.text('正在下载 v9.0.0'), findsOneWidget);
@@ -651,8 +927,12 @@ void main() {
       final context = tester.element(find.text('home'));
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       try {
-        unawaited(
-          showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')),
+        await _showUpdateDownload(
+          tester,
+          context,
+          file: _apk('9.0.0', bytes: List<int>.filled(1024, 1)),
+          sources: [_apk('9.0.0').url],
+          update: _info('9.0.0'),
         );
         await tester.pump();
         await _until(tester, () => http.opens > 0);
@@ -673,16 +953,22 @@ void main() {
       }
     });
 
-    testWidgets('unknown size, then a failure: the line, retry, browser and close', (tester) async {
+    testWidgets('unknown HTTP size uses exact metadata; failure keeps retry, browser and close', (tester) async {
       final folder = _temp();
       final http = _GatedHttp();
       await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
+      await _showUpdateDownload(
+        tester,
+        context,
+        file: _apk('9.0.0'),
+        sources: [_apk('9.0.0').url],
+        update: _info('9.0.0'),
+      );
       await _until(tester, () => http.opens > 0);
       http.body.add(List.filled(1024 * 1024, 1));
-      await _until(tester, () => find.text('已下载: 1.0 MB').evaluate().isNotEmpty);
-      expect(find.text('…'), findsOneWidget);
+      await _until(tester, () => find.text('1.0 MB / 3.0 MB').evaluate().isNotEmpty);
+      expect(find.text('33%'), findsOneWidget);
       http.body.addError(const TransportFailure('update', TransportReason.connect, 'cut'));
       await _until(tester, () => find.text('下载没有完成').evaluate().isNotEmpty);
       expect(find.text('下载中断，已下载的部分会保留，重试时接着下载'), findsOneWidget);
@@ -703,7 +989,13 @@ void main() {
       final http = _GatedHttp(size: 3 * 1024 * 1024);
       final h = await _pump(tester, overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))]);
       final context = tester.element(find.text('home'));
-      unawaited(showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')));
+      await _showUpdateDownload(
+        tester,
+        context,
+        file: _apk('9.0.0'),
+        sources: [_apk('9.0.0').url],
+        update: _info('9.0.0'),
+      );
       await _until(tester, () => http.opens > 0);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
@@ -720,13 +1012,12 @@ void main() {
         height: 800,
         overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(again, folder2))],
       );
-      unawaited(
-        showUpdateDownload(
-          tester.element(find.text('home')),
-          file: _apk('9.0.0'),
-          sources: [_apk('9.0.0').url],
-          update: _info('9.0.0'),
-        ),
+      await _showUpdateDownload(
+        tester,
+        tester.element(find.text('home')),
+        file: _apk('9.0.0'),
+        sources: [_apk('9.0.0').url],
+        update: _info('9.0.0'),
       );
       await _until(tester, () => again.opens > 0);
       await tester.tapAt(const Offset(10, 10));
@@ -745,7 +1036,7 @@ void main() {
     ) async {
       final folder = _temp();
       final missing = Directory('${folder.path}/missing');
-      final http = _GatedHttp(size: 10);
+      final http = _GatedHttp(size: 3 * 1024 * 1024);
       late SettingsStore settings;
       final h = await _pump(
         tester,
@@ -757,11 +1048,16 @@ void main() {
       );
       settings = h.services.store.settings;
       final context = tester.element(find.text('home'));
-      Future<void> start() async {
-        unawaited(
-          showUpdateDownload(context, file: _apk('9.0.0'), sources: [_apk('9.0.0').url], update: _info('9.0.0')),
+      Future<_DownloadLaunch> start() async {
+        final launch = await _showUpdateDownload(
+          tester,
+          context,
+          file: _apk('9.0.0'),
+          sources: [_apk('9.0.0').url],
+          update: _info('9.0.0'),
         );
         await _until(tester, () => find.byKey(const ValueKey('download-directory-dialog')).evaluate().isNotEmpty);
+        return launch;
       }
 
       await start();
@@ -785,11 +1081,17 @@ void main() {
       expect(h.toasts.last, '未选择下载目录，已取消下载');
 
       // The default folder: remembered, the download starts, no more asking.
-      await start();
+      final launch = await start();
       await tester.tap(find.text('使用默认目录'));
       await _until(tester, () => find.byKey(const ValueKey('update-download-dialog')).evaluate().isNotEmpty);
       expect(settings.get(Settings.downloadDirectoryDecisionMade), isTrue);
       expect(settings.get(Settings.downloadDirectoryPath), '');
+      // Dismiss before the test binding unmounts its Navigator. This observes
+      // the public route lifetime, not completion of every cancelled file op.
+      await tester.tap(find.byKey(const ValueKey('update-download-cancel')));
+      await _until(tester, () => launch.completed);
+      expect(launch.completed, isTrue);
+      expect(find.byKey(const ValueKey('update-download-dialog')), findsNothing);
     });
   });
 }

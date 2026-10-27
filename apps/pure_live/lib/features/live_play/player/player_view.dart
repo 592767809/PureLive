@@ -84,6 +84,7 @@ class RoomPlayer extends ConsumerStatefulWidget {
     this.overlayBottom = 0,
     this.wide,
     this.onWindowFullscreen,
+    this.onSystemFullscreen,
     this.onSwipeUp,
     this.entryHint = false,
     this.onOpenGuide,
@@ -151,6 +152,10 @@ class RoomPlayer extends ConsumerStatefulWidget {
 
   /// Desktops: the in-window fullscreen.
   final VoidCallback? onWindowFullscreen;
+
+  /// Windows: middle click enters or leaves the system fullscreen, including
+  /// from the in-window fullscreen. Other fullscreen inputs stay separate.
+  final VoidCallback? onSystemFullscreen;
 
   /// Enters or leaves fullscreen (the button and double tap).
   final VoidCallback onToggleFullscreen;
@@ -498,7 +503,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
     if (event.kind == PointerDeviceKind.mouse &&
         event.buttons == kMiddleMouseButton &&
         widget.platform.platform == TargetPlatform.windows) {
-      _middleAllowed = _canSecondaryAt(event.position) && _danmakuAt(event.position, longPress: true) == null;
+      _middleAllowed = _canMiddleAt(event.position) && _danmakuAt(event.position, longPress: true) == null;
     }
     if (event.buttons == kSecondaryMouseButton) {
       _secondaryAllowed = _canSecondaryAt(event.position);
@@ -530,8 +535,19 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
   }
 
   bool _canSecondaryAt(Offset global) {
-    if (!widget.platform.desktop || widget.pip || _locked || widget.onWindowFullscreen == null) return false;
+    if (widget.onWindowFullscreen == null) return false;
     if (widget.display != RoomDisplay.inline && widget.display != RoomDisplay.windowFullscreen) return false;
+    return _canFullscreenAt(global);
+  }
+
+  bool _canMiddleAt(Offset global) {
+    if (widget.platform.platform != TargetPlatform.windows || widget.onSystemFullscreen == null) return false;
+    if (widget.display == RoomDisplay.portraitFullscreen) return false;
+    return _canFullscreenAt(global);
+  }
+
+  bool _canFullscreenAt(Offset global) {
+    if (!widget.platform.desktop || widget.pip || _locked) return false;
     final box = context.findRenderObject();
     if (box is! RenderBox || !box.hasSize) return false;
     final local = box.globalToLocal(global);
@@ -550,8 +566,8 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
     final allowed = _middleAllowed;
     _cancelMiddle();
     if (!allowed || widget.platform.platform != TargetPlatform.windows || widget.pip || _locked) return;
-    if (widget.display != RoomDisplay.inline && widget.display != RoomDisplay.windowFullscreen) return;
-    widget.onWindowFullscreen?.call();
+    if (widget.display == RoomDisplay.portraitFullscreen) return;
+    widget.onSystemFullscreen?.call();
   }
 
   void _onSecondaryTap(TapUpDetails details) {

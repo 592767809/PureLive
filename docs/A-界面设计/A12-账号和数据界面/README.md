@@ -160,7 +160,7 @@ WebDAV 和设备同步（`apps/pure_live/lib/features/web_dav/`、`features/remo
 属于 [A 界面设计](../README.md)。
 
 - 代码：`features/account/`、`auth/`、`backup/`、`web_dav/`、`remote_receiver/`
-- 进度：`███████████████████░` 96%
+- 进度：`████████████████████` 99%
 
 
 | 编号 | 任务 | 类型 | 状态 | 日期 | 提交 | 资料 |
@@ -172,14 +172,6 @@ WebDAV 和设备同步（`apps/pure_live/lib/features/web_dav/`、`features/remo
 | A12.5 | WebDAV | 界面 | 完成 | 2026-10-02 | 965d41956 | [设计或说明](A12.5-WebDAV/README.md)、[记录](A12.5-WebDAV/record.md)、[评审页](A12.5-WebDAV/page/01-说明.jpg) |
 | A12.6 | 设备同步 | 界面 | 完成 | 2026-10-02 | 965d41956 | [设计或说明](A12.6-设备同步/README.md)、[记录](A12.6-设备同步/record.md)、[评审页](A12.6-设备同步/page/01-说明.jpg) |
 | A12.7 | WebDAV 自动备份设置（接 A12.5、V01.9） | 界面 | 待真机 | 2026-10-25 | 7974b0338dcb408949c73d7920d0c3a3934f6114 | [设计或说明](A12.7-WebDAV自动备份设置/README.md)、[任务书](A12.7-WebDAV自动备份设置/brief.md)、[记录](A12.7-WebDAV自动备份设置/record.md)、[真机验证](A12.7-WebDAV自动备份设置/verify.md)、[合并审查](A12.7-WebDAV自动备份设置/review.md) |
-| A12.8 | 电视备份文件操作（接 A12.4） | 功能 | 开发中 | — | — | [设计或说明](A12.8-电视备份文件操作/README.md)、[任务书](A12.8-电视备份文件操作/brief.md)、[记录](A12.8-电视备份文件操作/record.md)、[真机验证](A12.8-电视备份文件操作/verify.md) |
-
-## 还没完成的
-
-- **A12.8 电视备份文件操作（接 A12.4）**（开发中，第一档，规模 小）
-  - 接着做：完成完整门禁并集成；按 verify.md 核对真实电视设备。
-  - 分支：ai/A12.8
-  - 说明：修复文件主体包围更多按钮导致方向键无法进入的问题；旧代码方向键反证失败，备份与电视组件/焦点/样式70项回归通过，保留手机和鼠标操作。完整门禁及真机尚待验证。
-  - 来源：GitHub issue #71：https://github.com/wzgrx/PureLive/issues/71
+| A12.8 | 电视备份文件操作（接 A12.4） | 功能 | 待真机 | 2026-10-27 | c2626085805d9e8a8c6a2c75235e46e280298369 | [设计或说明](A12.8-电视备份文件操作/README.md)、[任务书](A12.8-电视备份文件操作/brief.md)、[记录](A12.8-电视备份文件操作/record.md)、[真机验证](A12.8-电视备份文件操作/verify.md) |
 
 <!-- docs:生成结束 -->

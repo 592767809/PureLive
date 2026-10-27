@@ -71,9 +71,13 @@ final Provider<UpdateDownloadTools> updateDownloadToolsProvider = Provider((ref)
 /// cancel, resume, then install (Android hands the APK to the system
 /// installer, Windows runs the installer) or open its folder. [sources]
 /// are the mirrors in order ([downloadSources]); the fastest is tried
-/// first. [version] names the download in the dialog. Only one download
-/// runs at a time. [update] must identify a strictly newer, matching package.
-/// Only explicit, confirmed release-history downloads set [historical].
+/// first. [version] names the download in the dialog. Only one dialog is active
+/// at a time; closing it does not mean cancelled file I/O has settled. Within
+/// one Dart isolate, the downloader serializes each normalized absolute target
+/// through cleanup before reuse; different targets may proceed independently.
+/// [update] must identify a strictly newer, matching package.
+/// Only explicit, confirmed release-history downloads set [historical], with
+/// [historicalRelease] retaining any release-level build constraints.
 Future<void> showUpdateDownload(
   BuildContext context, {
   required ReleaseFile file,
@@ -81,6 +85,7 @@ Future<void> showUpdateDownload(
   String? version,
   UpdateInfo? update,
   bool historical = false,
+  ReleaseInfo? historicalRelease,
 }) {
   if (!historical &&
       (update == null ||
@@ -101,7 +106,9 @@ Future<void> showUpdateDownload(
     context,
     file: file,
     sources: uris,
-    version: update?.version ?? version,
+    version: update?.version ?? historicalRelease?.version ?? version,
+    buildNumber: update?.buildNumber ?? historicalRelease?.buildNumber,
+    releaseIdentityValid: historicalRelease?.matchesFileBuild(file) ?? true,
   ).whenComplete(() => _active = null);
 }
 
@@ -112,7 +119,25 @@ Future<void> _download(
   required ReleaseFile file,
   required List<Uri> sources,
   String? version,
+  int? buildNumber,
+  bool releaseIdentityValid = true,
 }) async {
+  // Browser fallback is explicit and requires neither install permission nor a folder.
+  if (!file.hasIntegrity || !releaseIdentityValid || updateDownloadUri(file.url)?.scheme != 'https') {
+    if (!context.mounted) return;
+    await showAppDialog<void>(
+      context: context,
+      dismissible: false,
+      builder: (_) => UpdateDownloadDialog(
+        file: file,
+        sources: sources,
+        version: version,
+        buildNumber: buildNumber,
+        releaseIdentityValid: releaseIdentityValid,
+      ),
+    );
+    return;
+  }
   final tools = ProviderScope.containerOf(context, listen: false).read(updateDownloadToolsProvider);
   final name = safeDownloadFileName(file.url, suggested: file.name);
   if (Platform.isAndroid && name.toLowerCase().endsWith('.apk')) {
@@ -131,7 +156,13 @@ Future<void> _download(
   await showAppDialog<void>(
     context: context,
     dismissible: false,
-    builder: (_) => UpdateDownloadDialog(file: file, sources: sources, version: version),
+    builder: (_) => UpdateDownloadDialog(
+      file: file,
+      sources: sources,
+      version: version,
+      buildNumber: buildNumber,
+      releaseIdentityValid: releaseIdentityValid,
+    ),
   );
 }
 
@@ -208,7 +239,14 @@ const double updateDownloadStackedScale = 1.5;
 /// (c7).
 class UpdateDownloadDialog extends ConsumerStatefulWidget {
   /// Creates the dialog.
-  const new({required this.file, required this.sources, this.version, super.key});
+  const new({
+    required this.file,
+    required this.sources,
+    this.version,
+    this.buildNumber,
+    this.releaseIdentityValid = true,
+    super.key,
+  });
 
   /// The package.
   final ReleaseFile file;
@@ -218,6 +256,12 @@ class UpdateDownloadDialog extends ConsumerStatefulWidget {
 
   /// The version, for the title; the file name without it.
   final String? version;
+
+  /// The coherent update or release build, when provided.
+  final int? buildNumber;
+
+  /// Explicit malformed or conflicting release metadata blocks in-app transfer.
+  final bool releaseIdentityValid;
 
   @override
   ConsumerState<UpdateDownloadDialog> createState() => _UpdateDownloadDialogState();
@@ -250,13 +294,37 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
     super.dispose();
   }
 
+  bool get _canVerify =>
+      widget.file.hasIntegrity && widget.releaseIdentityValid && updateDownloadUri(widget.file.url)?.scheme == 'https';
+
+  int? get _buildNumber {
+    if (widget.buildNumber case final build?) return build;
+    final version = widget.version?.trim().replaceFirst(RegExp('^[vV]'), '');
+    if (version == null) return null;
+    final match = RegExp('^PureLive-${RegExp.escape(version)}-(\\d+)-').firstMatch(widget.file.name);
+    return match == null ? null : int.tryParse(match.group(1)!);
+  }
+
   Future<void> _start() async {
+    if (!_canVerify) {
+      _fail(
+        i18n(
+          widget.file.hasInvalidIntegrity ||
+                  !widget.releaseIdentityValid ||
+                  updateDownloadUri(widget.file.url)?.scheme != 'https'
+              ? 'update_download_metadata_invalid'
+              : 'update_download_metadata_missing',
+        ),
+      );
+      return;
+    }
     final tools = ref.read(updateDownloadToolsProvider);
     setState(() {
       _phase = UpdateDownloadPhase.downloading;
       _cancel = CancelToken();
       _message = null;
       _messageIsError = false;
+      _file = null;
     });
     final cancel = _cancel;
     try {
@@ -265,23 +333,35 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         _fail(i18n('download_directory_permission_hint'));
         return;
       }
-      var sources = widget.sources;
+      final canonical = updateDownloadUri(widget.file.url);
+      if (canonical == null || canonical.scheme != 'https') {
+        _fail(i18n('update_download_metadata_invalid'));
+        return;
+      }
+      final sources = widget.sources;
+      Uri? fastest;
       if (tools.pickFastest && sources.length > 1) {
         final http = tools.downloader.http;
-        final fastest = await fastestUrl(http, 'update', sources, timeout: const Duration(seconds: 10));
-        if (fastest != null) sources = [fastest, ...sources.where((uri) => uri != fastest)];
+        fastest = await fastestUrl(http, 'update', sources, timeout: const Duration(seconds: 10));
       }
       if (cancel.isCancelled) return;
       final target = File(p.join(folder.path, _name));
       final done = await tools.downloader.download(
-        sources.take(6).toList(),
+        boundedDownloadSources(sources, canonical: canonical, fastest: fastest),
         target,
+        integrity: DownloadIntegrity(
+          canonicalUrl: canonical,
+          sizeBytes: widget.file.sizeBytes!,
+          sha256: widget.file.sha256!,
+          version: widget.version?.trim().replaceFirst(RegExp('^[vV]'), ''),
+          buildNumber: _buildNumber,
+        ),
         cancel: cancel,
         onProgress: (received, total) {
           if (mounted) _progress.value = (received: received, total: total);
         },
       );
-      if (!mounted) return;
+      if (!mounted || cancel.isCancelled) return;
       setState(() {
         _phase = UpdateDownloadPhase.done;
         _file = done;
@@ -290,11 +370,11 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
       });
     } on DownloadException catch (error) {
       if (error.reason == DownloadFailure.cancelled) return;
-      _fail(
-        error.reason == DownloadFailure.disk
-            ? i18n('download_directory_permission_hint')
-            : i18n('update_download_failed_resume'),
-      );
+      _fail(switch (error.reason) {
+        DownloadFailure.disk => i18n('download_directory_permission_hint'),
+        DownloadFailure.integrity => i18n('update_download_integrity_failed'),
+        _ => i18n('update_download_failed_resume'),
+      });
     } on Object {
       _fail(i18n('update_download_failed_resume'));
     }
@@ -313,7 +393,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
   /// Windows: runs the installer; a ZIP or a Linux tarball opens its folder.
   Future<void> _install() async {
     final file = _file;
-    if (file == null || _opening) return;
+    if (file == null || _opening || !_canVerify || _cancel.isCancelled) return;
     if (Platform.isAndroid && file.path.toLowerCase().endsWith('.apk') && !await SystemAccess.canInstallPackages()) {
       AppNavigator.toast(i18n('grant_install_permission'));
       await SystemAccess.openInstallSettings();
@@ -383,7 +463,9 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
   }
 
   Future<void> _openInBrowser() async {
-    final opened = await AppNavigator.openExternal(widget.sources.last);
+    final origin = updateDownloadUri(widget.file.url);
+    if (origin == null) return;
+    final opened = await AppNavigator.openExternal(origin);
     if (!opened) AppNavigator.toast(i18n('external_browser_not_opened'));
   }
 
@@ -404,7 +486,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
       case UpdateDownloadPhase.done:
         unawaited(defaultTargetPlatform == TargetPlatform.macOS ? _revealInFinder() : _install());
       case UpdateDownloadPhase.failed:
-        unawaited(_start());
+        if (_canVerify) unawaited(_start());
       case UpdateDownloadPhase.downloading:
         break;
     }
@@ -558,12 +640,13 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
             onPressed: () => unawaited(_openInBrowser()),
             child: Text(i18n('update_open_in_browser')),
           ),
-          FilledButton.icon(
-            key: const ValueKey('update-download-retry'),
-            onPressed: () => unawaited(_start()),
-            icon: const Icon(AppIcons.retry, size: 18),
-            label: Text(i18n('retry')),
-          ),
+          if (_canVerify)
+            FilledButton.icon(
+              key: const ValueKey('update-download-retry'),
+              onPressed: () => unawaited(_start()),
+              icon: const Icon(AppIcons.retry, size: 18),
+              label: Text(i18n('retry')),
+            ),
         ];
       case UpdateDownloadPhase.done when _opening:
         leading = const [];

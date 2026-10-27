@@ -136,15 +136,31 @@ final class UpdateInfo {
 /// One downloadable file of a release.
 final class ReleaseFile {
   /// Creates the file.
-  const new({required this.name, required this.size, required this.downloads, required this.url});
+  const new({
+    required this.name,
+    required this.size,
+    required this.downloads,
+    required this.url,
+    this.sizeBytes,
+    this.sha256,
+    this.integrityMalformed = false,
+  });
 
   /// Reads one entry of `files` (or GitHub's `assets`).
-  factory fromJson(Map<String, Object?> json) => ReleaseFile(
-    name: _string(json['name']),
-    size: _size(json['size']),
-    downloads: _int(json['downloads'] ?? json['downloadCount']) ?? 0,
-    url: _string(json['url'] ?? json['browser_download_url']),
-  );
+  factory fromJson(Map<String, Object?> json) {
+    final present = json.containsKey('size_bytes') || json.containsKey('sha256');
+    final bytes = _exactPositiveInt(json['size_bytes']);
+    final digest = _sha256(json['sha256']);
+    return ReleaseFile(
+      name: _string(json['name']),
+      size: _size(json['size']),
+      downloads: _int(json['downloads'] ?? json['downloadCount']) ?? 0,
+      url: _string(json['url'] ?? json['browser_download_url']),
+      sizeBytes: bytes,
+      sha256: digest,
+      integrityMalformed: present && (bytes == null || digest == null),
+    );
+  }
 
   /// File name.
   final String name;
@@ -155,8 +171,23 @@ final class ReleaseFile {
   /// Download count.
   final int downloads;
 
-  /// Download address.
+  /// Download address; this is the canonical identity, not a selected mirror.
   final String url;
+
+  /// Exact final artifact bytes, never derived from the rounded display size.
+  final int? sizeBytes;
+
+  /// SHA-256 of the complete final artifact, normalized by the feed parser.
+  final String? sha256;
+
+  /// Explicit but incomplete or malformed metadata must not become legacy mode.
+  final bool integrityMalformed;
+
+  /// Whether metadata declares a complete, strictly valid byte identity.
+  bool get hasIntegrity => !integrityMalformed && _exactPositiveInt(sizeBytes) != null && _sha256(sha256) != null;
+
+  /// Whether fields were supplied but do not form a valid byte identity.
+  bool get hasInvalidIntegrity => integrityMalformed || ((sizeBytes != null || sha256 != null) && !hasIntegrity);
 }
 
 /// Whether [file] identifies the exact version and build being offered.
@@ -166,7 +197,8 @@ bool fileMatchesUpdate(UpdateInfo info, ReleaseFile file) {
   final version = info.version.trim().replaceFirst(RegExp('^[vV]'), '');
   final match = RegExp('^PureLive-${RegExp.escape(version)}-(\\d+)-').firstMatch(file.name);
   final uri = updateDownloadUri(file.url);
-  return match != null &&
+  return !file.hasInvalidIntegrity &&
+      match != null &&
       int.tryParse(match.group(1)!) == info.buildNumber &&
       uri != null &&
       uri.scheme == 'https' &&
@@ -178,7 +210,9 @@ bool fileMatchesUpdate(UpdateInfo info, ReleaseFile file) {
 List<ReleaseFile> filesForUpdate(UpdateInfo info, Iterable<ReleaseInfo> releases) => List.unmodifiable([
   for (final release in releases)
     if (release.version.trim().replaceFirst(RegExp('^[vV]'), '') ==
-        info.version.trim().replaceFirst(RegExp('^[vV]'), ''))
+            info.version.trim().replaceFirst(RegExp('^[vV]'), '') &&
+        !release.buildNumberMalformed &&
+        (release.buildNumber == null || release.buildNumber == info.buildNumber))
       ...release.files.where((file) => fileMatchesUpdate(info, file)),
 ]);
 
@@ -222,13 +256,18 @@ final class ReleaseInfo {
     this.authorAvatar = '',
     this.changelog = '',
     this.files = const [],
+    this.buildNumber,
+    this.buildNumberMalformed = false,
   });
 
   /// Reads one entry; GitHub API names are accepted too (3.x).
   factory fromJson(Map<String, Object?> json) {
     final files = json['files'] ?? json['assets'];
     final author = json['author'] is Map ? (json['author']! as Map).cast<String, Object?>() : const <String, Object?>{};
+    final build = _exactPositiveInt(json['build_number']);
     return ReleaseInfo(
+      buildNumber: build,
+      buildNumberMalformed: json.containsKey('build_number') && build == null,
       version: _string(json['version'] ?? json['tagName']),
       title: _string(json['title'] ?? json['name']),
       date: _string(json['date'] ?? json['publishedAt']),
@@ -266,6 +305,18 @@ final class ReleaseInfo {
 
   /// Downloadable files.
   final List<ReleaseFile> files;
+
+  /// Optional additive build identity; old feed readers ignore this field.
+  final int? buildNumber;
+
+  /// A supplied invalid build cannot fall back to the legacy filename rule.
+  final bool buildNumberMalformed;
+
+  /// Whether [file] agrees with a supplied release-level build identity.
+  /// Historical records without this field retain their original access.
+  bool matchesFileBuild(ReleaseFile file) =>
+      !buildNumberMalformed &&
+      (buildNumber == null || fileMatchesUpdate(UpdateInfo(version: version, buildNumber: buildNumber!), file));
 }
 
 /// The releases of `releases.json` (a list, or `{releases: [...]}`), newest
@@ -342,6 +393,7 @@ enum PackageKind {
     ReleaseFile? best;
     var bestScore = -1;
     for (final file in files) {
+      if (file.hasInvalidIntegrity) continue;
       final name = file.name.trim().toLowerCase();
       final url = file.url.trim().toLowerCase();
       final uri = Uri.tryParse(file.url.trim());
@@ -395,6 +447,21 @@ List<String> downloadSources(String url, {required bool githubOrigin}) {
   final plain = uri.toString();
   if (githubOrigin) return [plain];
   return List.unmodifiable({for (final prefix in downloadMirrorPrefixes) '$prefix$plain', plain});
+}
+
+/// At most [limit] distinct allowed attempts, retaining the canonical origin.
+/// A fastest-source probe changes order only, never the asset's identity.
+List<Uri> boundedDownloadSources(Iterable<Uri> sources, {required Uri canonical, Uri? fastest, int limit = 6}) {
+  if (limit < 1) return const [];
+  final allowed = sources.toSet();
+  final ordered = <Uri>[
+    if (fastest != null && allowed.contains(fastest)) fastest,
+    ...allowed.where((uri) => uri != fastest),
+  ];
+  if (ordered.length <= limit) return List.unmodifiable(ordered);
+  final selected = ordered.take(limit).toList();
+  if (allowed.contains(canonical) && !selected.contains(canonical)) selected[limit - 1] = canonical;
+  return List.unmodifiable(selected);
 }
 
 /// The update platform key of this device (3.x `_currentPlatformKey`).
@@ -607,6 +674,15 @@ final Provider<UpdateFeed> updateFeedProvider = Provider<UpdateFeed>((ref) {
   ref.onDispose(feed.deactivate);
   return feed;
 });
+
+// JSON integers are bounded to the exact range shared by native and web Dart.
+int? _exactPositiveInt(Object? value) => switch (value) {
+  final int number when number > 0 && number <= 9007199254740991 => number,
+  _ => null,
+};
+
+String? _sha256(Object? value) =>
+    value is String && value.length == 64 && RegExp(r'^[0-9a-fA-F]{64}$').hasMatch(value) ? value.toLowerCase() : null;
 
 int? _positiveInt(Object? value) => switch (value) {
   final int number when number > 0 => number,

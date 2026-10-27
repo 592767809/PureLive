@@ -72,6 +72,8 @@ List<ReleaseInfo> _historyWith9() => [
         ReleaseFile(
           name: 'PureLive-9.0.0-${pubspecBuild + 1}-android-$abi-release.apk',
           size: '100mb',
+          sizeBytes: 3000,
+          sha256: '0f378acebd51c8b1fca222ee057b87b8de674e9aaaad845d7ff4a1e177117b36',
           downloads: 1,
           url:
               'https://github.com/wzgrx/pure_live/releases/download/v9.0.0/PureLive-9.0.0-${pubspecBuild + 1}-android-$abi-release.apk',
@@ -293,7 +295,7 @@ void main() {
     // The download writes real files: let the IO run between frames.
     final install = find.byKey(const ValueKey('update-download-install'));
     for (var i = 0; i < 50 && install.evaluate().isEmpty; i++) {
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
       await tester.pump();
     }
     expect(install, findsOneWidget);
