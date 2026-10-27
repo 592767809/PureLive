@@ -61,6 +61,64 @@ Future<AppServices> _pump(
 }
 
 void main() {
+  for (final glass in [true, false]) {
+    for (final menu in HomeMenu.values) {
+      for (final single in [true, false]) {
+        testWidgets('hidden navigation keeps content outside system insets: ${menu.id}, glass=$glass, single=$single', (
+          tester,
+        ) async {
+          final services = await _pump(
+            tester,
+            width: 400,
+            menus: [menu.id, if (!single) ...HomeMenu.values.where((other) => other != menu).map((other) => other.id)],
+          );
+          addTearDown(() => tester.runAsync(services.close));
+          tester.view.padding = const FakeViewPadding(left: 12, top: 48, right: 8, bottom: 24);
+          tester.view.viewPadding = const FakeViewPadding(left: 12, top: 48, right: 8, bottom: 24);
+          await tester.runAsync(() async {
+            await services.store.settings.set(Settings.liquidGlass, glass);
+            await services.store.settings.set(Settings.homeNavigationAutoHide, true);
+          });
+          await tester.pumpAndSettle();
+          final page = find.byType(switch (menu) {
+            HomeMenu.favorites => FavoritePage,
+            HomeMenu.popular => PopularPage,
+            HomeMenu.areas => AreasPage,
+            HomeMenu.record => RecorderPage,
+          });
+          final element = tester.element(page);
+          void scroll(double delta) => ScrollUpdateNotification(
+            metrics: FixedScrollMetrics(
+              minScrollExtent: 0,
+              maxScrollExtent: 2000,
+              pixels: 300,
+              viewportDimension: 700,
+              axisDirection: AxisDirection.down,
+              devicePixelRatio: 1,
+            ),
+            context: element,
+            scrollDelta: delta,
+            dragDetails: DragUpdateDetails(globalPosition: Offset.zero, delta: Offset(0, -delta)),
+          ).dispatch(element);
+          scroll(30);
+          await tester.pumpAndSettle();
+          expect(find.byType(AppBar), findsNothing);
+          final scaffold = tester.widget<Scaffold>(find.descendant(of: page, matching: find.byType(Scaffold)).first);
+          final bounds = tester.getRect(find.byWidget(scaffold.body!));
+          expect(bounds.top, greaterThanOrEqualTo(48), reason: 'content must stay below the status bar');
+          expect(bounds.left, greaterThanOrEqualTo(12), reason: 'content must avoid the left cutout');
+          expect(bounds.right, lessThanOrEqualTo(392), reason: 'content must avoid the right cutout');
+          expect(bounds.bottom, lessThanOrEqualTo(876), reason: 'content must avoid system navigation');
+          scroll(-30);
+          await tester.pumpAndSettle();
+          expect(find.byType(AppBar), findsOneWidget);
+          expect(tester.element(page), same(element), reason: 'inset changes must preserve the live page state');
+          await tester.pumpWidget(const SizedBox.shrink());
+        }, variant: TargetPlatformVariant.only(TargetPlatform.android));
+      }
+    }
+  }
+
   testWidgets('issue 65: hiding navigation removes the followed-platform header too', (tester) async {
     final services = await _pump(tester, width: 400);
     addTearDown(() => tester.runAsync(services.close));

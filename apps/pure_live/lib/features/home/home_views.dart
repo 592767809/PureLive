@@ -87,11 +87,15 @@ class HomeMobileView extends StatelessWidget {
           ),
       ],
     );
-    if (menus.length <= 1) return Scaffold(body: body);
+    // The tab's AppBar normally consumes the status-bar inset. While it is
+    // hidden, the shell owns all system insets instead. Keep this wrapper
+    // mounted so changing visibility does not recreate a tab or its scroll.
+    final content = SafeArea(top: hidden, bottom: hidden, left: hidden, right: hidden, child: body);
+    if (menus.length <= 1) return Scaffold(body: content);
     if (!glass) {
       return Scaffold(
         bottomNavigationBar: hidden ? null : bar(height: compact ? GlassMetrics.plainBarHeightCompact : null),
-        body: body,
+        body: content,
       );
     }
     final barHeight = compact ? GlassMetrics.barHeightCompact : GlassMetrics.barHeight;
@@ -134,7 +138,7 @@ class HomeMobileView extends StatelessWidget {
                 ),
               ),
             ),
-      body: GlassBarInset(inset: hidden ? 0 : gap + barHeight, child: body),
+      body: GlassBarInset(inset: hidden ? 0 : gap + barHeight, child: content),
     );
   }
 }
