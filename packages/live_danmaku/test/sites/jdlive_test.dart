@@ -164,7 +164,10 @@ final class _Http implements LiveHttp {
 }
 
 final class _Channel implements SocketChannel {
-  final StreamController<Object?> incoming = StreamController<Object?>();
+  // Own the cancellation future in the active zone: the SDK's shared empty
+  // future can otherwise leave an isolated fakeAsync reconnect awaiting outside
+  // its virtual clock. Do not rely on earlier tests warming that future.
+  final StreamController<Object?> incoming = StreamController<Object?>(onCancel: () async {});
   final List<Object> sent = [];
   bool closed = false;
 
