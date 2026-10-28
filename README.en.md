@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.20</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.20.md">Release notes (Chinese)</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.21</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.21.md">Release notes (Chinese)</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#supported-platforms">Platforms</a>
   &nbsp;·&nbsp; <a href="#building-from-source">Build</a>
@@ -33,6 +33,8 @@ Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chin
 **5.0 was the first release for every platform.** Since 4.0 the network layer, platform adapters, danmaku, playback, recording, storage and every screen have been rewritten (features are based on 3.x, playback is mpv only). 5.0 ships **Android phones and tablets, Android TV, Windows and Linux** from one codebase and one design. You can install over 3.x and 4.x and keep your follows, settings and history. 5.1 added video (Bilibili VOD), music, wallpapers and TV-style settings to the TV interface, and per-streamer live alerts. 5.2 was about smoothness: no more stutter the first time you open a platform or a room, damped overscroll on every list and pager, spring page transitions, and a liquid-glass bottom bar on the home screen. 5.3 adds official sign-in for Douyu, Huya, Douyin, Kuaishou, YY, NetEase CC, Twitch and SOOP: the platform's own sign-in page opens in the app and the login is saved automatically. 5.4 adds Traditional Chinese and twelve more interface languages (Japanese, Korean, Spanish, French, German, Portuguese, Russian, Italian, Vietnamese, Thai, Indonesian and Turkish) and a volume boost. 5.4.1 fixes the Linux build not starting and is the first 5.x release for macOS, iOS and iPadOS (built on GitHub's macOS runners, not signed by Apple). 5.4.2 rebuilds the mini window: the same window inside the app and over other apps, movable anywhere, tucked into a side, resized steplessly; the Mac gets its own title bar, menu bar and menu bar icon. 5.4.3 lets iPhones and iPads share rooms in from other apps, keeps playing in the background and on the lock screen with Now Playing, and lists the iPad's ⌘ shortcuts when you hold ⌘. 5.4.4 fixes live alerts that could be missed when the background check ran. 5.4.5 reworks the feel of the glass bottom bar: a pill at rest that turns into a glass lens when pressed or dragged, with spring motion throughout; tablets can keep the bottom bar too. 5.4.6 lets Popular → Network switch between the built-in list and your own imported IPTV playlists. 5.4.7 lets a TV remote reach the buttons of every dialog, brings the glass bottom bar down to the iPhone's home indicator with an optional compact bar, and marks followed rooms with a small heart in browse lists.
 
 5.4.8 adds current-room Super Chat history and fixes TV focus, links without a scheme and automatic-recording toggles. 5.4.9 adds multiview mute, TV preferred-platform selection and a fullscreen Super Chat entry, with iPad volume/brightness gestures and screen-wake recovery fixes. Verification on the reported physical devices remains pending; see the release notes.
+
+5.4.21 adds phone QR input to TV link playback, prevents horizontal swipes from changing brightness or volume, and keeps home jump buttons clear of the glass navigation bar. Douyu VIP counts remain separate from real viewer counts and rankings and are cleared when the broadcast ends.
 
 5.4.20 adds opt-in simultaneous multiview audio with independent volumes and probes available Weibo stream qualities. It removes the persistent EPG selection outline and enlarges TV room-list and anchor text. Additional diagnostics support investigation of cross-platform playback stalls on older Android devices; affected-device reports remain open.
 
@@ -428,7 +430,7 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Roadmap
 
-| Client | 5.4.20 (now) | Later |
+| Client | 5.4.21 (now) | Later |
 |---|---|---|
 | **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms, 15 interface languages | Keep up with platform changes |
 | **Android TV** | Stable: Live, Video (Bilibili VOD) and Music modes, wallpapers, TV-style settings, type on your phone via QR code | Verify and tune on more TVs |
