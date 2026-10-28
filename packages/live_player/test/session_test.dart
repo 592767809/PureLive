@@ -220,6 +220,191 @@ void main() {
     });
   });
 
+  test('G02.9: retry rounds drain a failed open after a successful plan refresh', () {
+    fakeAsync((async) {
+      var refreshes = 0;
+      engine = FakeEngine();
+      session = PlaybackSession(
+        engine: () async => engine,
+        opener: MediaOpener(),
+        timings: const SessionTimings(liveRetryDelays: [Duration(seconds: 1), Duration(seconds: 2)]),
+      );
+      unawaited(
+        session.open(
+          PlaybackRequest(
+            site: 'douyu',
+            plan: _plan([_a]),
+            refresh: () async {
+              refreshes++;
+              return _plan([_a]);
+            },
+          ),
+        ),
+      );
+      async.flushMicrotasks();
+      engine
+        ..onOpen = (_) async {
+          throw const PlayerException(
+            message: 'server returned 404',
+            type: PlayerErrorType.source,
+            code: 'source_open',
+          );
+        }
+        ..emit(const EngineError(_network));
+      async.flushMicrotasks();
+      expect(session.state.status, PlaybackStatus.buffering);
+      async.elapse(const Duration(seconds: 4));
+      expect(refreshes, 6, reason: 'both refresh attempts run in the initial and two bounded retry rounds');
+      expect(session.state.status, PlaybackStatus.error);
+      expect(session.state.failure, SourceFailureKind.transient);
+      final opens = engine.opens.length;
+      async.elapse(const Duration(minutes: 1));
+      expect(engine.opens, hasLength(opens), reason: 'exhausted recovery cannot keep reopening');
+    });
+  });
+
+  test('G02.9: an old retry round cannot consume the newer session pending error', () {
+    fakeAsync((async) {
+      final oldRefresh = Completer<PlaybackPlan>();
+      final newRefresh = Completer<PlaybackPlan>();
+      var oldRefreshes = 0;
+      var newRefreshes = 0;
+      engine = FakeEngine();
+      session = PlaybackSession(
+        engine: () async => engine,
+        opener: MediaOpener(),
+        timings: const SessionTimings(liveRetryDelays: [Duration(seconds: 1)]),
+      );
+      unawaited(
+        session.open(
+          PlaybackRequest(
+            site: 'douyu',
+            plan: _plan([_a]),
+            refresh: () async => ++oldRefreshes == 3 ? await oldRefresh.future : _plan([_a]),
+          ),
+        ),
+      );
+      async.flushMicrotasks();
+      engine
+        ..onOpen = (_) async {
+          throw const PlayerException(
+            message: 'server returned 404',
+            type: PlayerErrorType.source,
+            code: 'source_open',
+          );
+        }
+        ..emit(const EngineError(_network));
+      async.elapse(const Duration(seconds: 1));
+      expect(oldRefreshes, 3, reason: 'the old retry round is waiting for its refresher');
+
+      engine.onOpen = null;
+      unawaited(
+        session.open(
+          PlaybackRequest(
+            site: 'douyu',
+            plan: _plan([_b]),
+            refresh: () async => ++newRefreshes == 1 ? await newRefresh.future : _plan([_b]),
+          ),
+        ),
+      );
+      async.flushMicrotasks();
+      engine.emit(const EngineError(_network));
+      async.flushMicrotasks();
+      expect(newRefreshes, 1, reason: 'the newer recovery is waiting for its own refresher');
+      engine.emit(
+        const EngineError(
+          PlayerException(message: 'disconnected again', type: PlayerErrorType.network, code: 'second_transport'),
+        ),
+      );
+      // The new recovery owns this queued error. Completing the old
+      // refresher must neither consume it nor dispatch it as an old error.
+      oldRefresh.complete(_plan([_a]));
+      async.flushMicrotasks();
+      newRefresh.complete(_plan([_b]));
+      async.flushMicrotasks();
+      expect(newRefreshes, 2, reason: 'the newer recovery drains its queued failure');
+      expect(engine.opens.where((media) => media.uri.host == 'b.example'), hasLength(3));
+      expect(session.input?.uri.host, 'b.example');
+      expect(session.state.status, PlaybackStatus.playing);
+    });
+  });
+
+  for (final stopBetweenOpens in [false, true]) {
+    test('G02.9: a stale open timeout cannot cancel a newer open (stop: $stopBetweenOpens)', () {
+      fakeAsync((async) {
+        final first = Completer<void>();
+        final second = Completer<void>();
+        engine = FakeEngine()..onOpen = (media) => media.uri.host == 'a.example' ? first.future : second.future;
+        session = PlaybackSession(
+          engine: () async => engine,
+          opener: MediaOpener(),
+          timings: const SessionTimings(sourceOpen: Duration(seconds: 2)),
+        );
+        unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan([_a]))));
+        async
+          ..flushMicrotasks()
+          ..elapse(const Duration(seconds: 1));
+        if (stopBetweenOpens) unawaited(session.stop());
+        unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan([_b]))));
+        async.flushMicrotasks();
+        expect(engine.opens, hasLength(2));
+        async.elapse(const Duration(seconds: 1));
+        // Only the first open's deadline elapsed. The second still owns
+        // its input, whether it reused or replaced the transport.
+        second.complete();
+        engine.playing();
+        async.flushMicrotasks();
+        expect(engine.opens, hasLength(2), reason: 'the second input must not need recovery');
+        expect(session.input?.isUsable, isTrue);
+        expect(session.input?.uri.host, 'b.example');
+        expect(session.state.status, PlaybackStatus.playing);
+        first.complete();
+        async.flushMicrotasks();
+        expect(session.input?.uri.host, 'b.example');
+        expect(session.state.status, PlaybackStatus.playing);
+      });
+    });
+  }
+
+  test('G02.9: an empty replacement plan still lets the old deadline retire its pending input', () async {
+    final relay = await LoopbackRelay.start();
+    addTearDown(relay.close);
+    fakeAsync((async) {
+      final input = _HeldInput();
+      final opened = Completer<void>();
+      engine = FakeEngine()..onOpen = (_) => opened.future;
+      session = PlaybackSession(
+        engine: () async => engine,
+        opener: MediaOpener(relay: () async => relay, recipes: [_HeldRecipeOpener(input)]),
+        timings: const SessionTimings(sourceOpen: Duration(seconds: 2)),
+      );
+      unawaited(
+        session.open(
+          PlaybackRequest(
+            site: 'test',
+            plan: PlaybackPlan(sources: const [RecipeSource(_HeldRecipe())]),
+          ),
+        ),
+      );
+      async.flushMicrotasks();
+      expect(input.closeStarted, isFalse);
+      unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan(const []))));
+      async.flushMicrotasks();
+      expect(session.state.status, PlaybackStatus.error);
+      final error = session.state.error;
+      expect((error! as PlayerException).code, 'no_source');
+      async.elapse(const Duration(seconds: 2));
+      expect(input.closeStarted, isTrue, reason: 'no newer source transaction owns the pending input');
+      input.released.complete();
+      opened.complete();
+      async.flushMicrotasks();
+      expect(session.input, isNull);
+      expect(engine.opens, hasLength(1));
+      expect(session.state.error, same(error));
+      expect(session.state.status, PlaybackStatus.error);
+    });
+  });
+
   test('buffering that never ends is recovered once its first deadline passes', () {
     fakeAsync((async) {
       start(PlaybackRequest(site: 'douyu', plan: _plan([_a, _b])), async);
@@ -409,8 +594,62 @@ void main() {
       expect(session.state.status, PlaybackStatus.playing);
       expect(engine.opens.last.uri.host, 'b.example');
       expect(engine.disposed, isFalse);
+      expect(engine.calls, isNot(contains('stop')), reason: 'retired cleanup must not stop the new room');
     });
   });
+
+  for (final stop in [true, false]) {
+    test('G02.9: old ${stop ? 'stop' : 'frame-stall'} cleanup cannot change a newer room engine', () async {
+      final relay = await LoopbackRelay.start();
+      addTearDown(relay.close);
+      fakeAsync((async) {
+        final input = _HeldInput();
+        engine = FakeEngine();
+        session = PlaybackSession(
+          engine: () async => engine,
+          opener: MediaOpener(relay: () async => relay, recipes: [_HeldRecipeOpener(input)]),
+        );
+        unawaited(
+          session.open(
+            PlaybackRequest(
+              site: 'test',
+              plan: PlaybackPlan(sources: const [RecipeSource(_HeldRecipe())]),
+            ),
+          ),
+        );
+        async.flushMicrotasks();
+        expect(session.state.status, PlaybackStatus.playing);
+        if (stop) {
+          unawaited(session.stop());
+        } else {
+          engine.emit(
+            const EngineError(
+              PlayerException(
+                message: 'No video frame was presented before the deadline',
+                type: PlayerErrorType.source,
+                code: 'video_frame_stall_timeout',
+              ),
+            ),
+          );
+        }
+        async.flushMicrotasks();
+        expect(input.closeStarted, isTrue, reason: 'the old grant is still being released');
+        unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan([_b]))));
+        async.flushMicrotasks();
+        expect(session.state.status, PlaybackStatus.playing);
+        expect(session.input?.uri.host, 'b.example');
+        input.released.complete();
+        async
+          ..flushMicrotasks()
+          ..elapse(const Duration(seconds: 46));
+        expect(engine.calls, isNot(contains('stop')), reason: 'retired cleanup must not stop the new room');
+        expect(engine.disposed, isFalse, reason: 'retired cleanup must not dispose the new room engine');
+        expect(session.engine, same(engine));
+        expect(session.input?.isUsable, isTrue);
+        expect(session.state.status, PlaybackStatus.playing);
+      });
+    });
+  }
 
   test('disposed while the engine is still being created: dispose waits for it and releases it', () {
     fakeAsync((async) {
@@ -1064,4 +1303,53 @@ void main() {
 final class _Selector implements HlsVariantSelector {
   @override
   HlsMasterSelection selectIn(String text, {required Uri source}) => throw const FormatException('unused');
+}
+
+final class _HeldRecipe implements LiveInputRecipe {
+  const new();
+
+  @override
+  String get identity => 'held-test-input';
+}
+
+final class _HeldRecipeOpener implements RecipeOpener {
+  new(this.input);
+
+  final _HeldInput input;
+
+  @override
+  bool handles(LiveInputRecipe recipe) => recipe is _HeldRecipe;
+
+  @override
+  Future<OwnedInput> open(LiveInputRecipe recipe, LoopbackRelay relay, {CancelToken? cancel}) async => input;
+}
+
+/// A grant whose release is controlled by the test, with no upstream IO.
+final class _HeldInput implements OwnedInput, RelayInput {
+  final released = Completer<void>();
+  bool closeStarted = false;
+
+  @override
+  RelayInput get relay => this;
+
+  @override
+  Uri get uri => Uri.parse('http://127.0.0.1/unused.m3u8');
+
+  @override
+  LivePlayLine get line => _a;
+
+  @override
+  bool get isUsable => !closeStarted;
+
+  @override
+  bool get isClosed => closeStarted;
+
+  @override
+  Future<bool> renewNow() async => false;
+
+  @override
+  Future<void> close() {
+    closeStarted = true;
+    return released.future;
+  }
 }

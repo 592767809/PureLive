@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
+import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_room_grid.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
@@ -140,7 +142,6 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
     final picked = await showTvDialog<String>(
       context,
       builder: (context) {
-        final scale = TvScale.of(context);
         return TvDialog(
           key: const ValueKey('tv-platform-panel'),
           title: i18n('tv_all_platforms'),
@@ -156,32 +157,11 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
             ),
             TvButton(label: i18n('close'), onTap: () => Navigator.pop(context)),
           ],
-          // Scrolls: 34 platforms are a dozen lines, more than a TV's height.
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final width = (constraints.maxWidth - scale.px(36)) / 3;
-              return SingleChildScrollView(
-                padding: EdgeInsets.all(scale.px(6)),
-                child: Wrap(
-                  spacing: scale.px(12),
-                  runSpacing: scale.px(12),
-                  children: [
-                    for (final id in ids)
-                      SizedBox(
-                        width: width,
-                        child: TvButton(
-                          key: ValueKey('tv-platform-panel-$id'),
-                          autofocus: id == _current,
-                          expand: true,
-                          selected: id == _current,
-                          label: platformName(id, fallback: sites.of(id).name),
-                          onTap: () => Navigator.pop(context, id),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
+          child: _TvPlatformGrid(
+            ids: ids,
+            current: _current,
+            labelFor: (id) => platformName(id, fallback: sites.of(id).name),
+            onPick: (id) => Navigator.pop(context, id),
           ),
         );
       },
@@ -250,6 +230,92 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The picker starts at the first visible platform, independently of the
+/// selected fill. Its scroll offset belongs to this opening of the dialog.
+class _TvPlatformGrid extends StatefulWidget {
+  const new({required this.ids, required this.current, required this.labelFor, required this.onPick});
+
+  final List<String> ids;
+  final String? current;
+  final String Function(String id) labelFor;
+  final ValueChanged<String> onPick;
+
+  @override
+  State<_TvPlatformGrid> createState() => _TvPlatformGridState();
+}
+
+class _TvPlatformGridState extends State<_TvPlatformGrid> {
+  final ScrollController _scroll = ScrollController(keepScrollOffset: false);
+  BuildContext? _focused;
+
+  void _focusChanged(BuildContext target, bool focused) {
+    if (!focused) {
+      if (_focused == target) _focused = null;
+      return;
+    }
+    _focused = target;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !target.mounted || _focused != target || !_scroll.hasClients) return;
+      final object = target.findRenderObject();
+      if (object == null || !object.attached) return;
+      // Directional traversal reveals layout bounds, not the zoom and ring.
+      // Centre the button in this viewport only, with edge paint space below.
+      _scroll.position.ensureVisible(object, alignment: 0.5);
+    });
+  }
+
+  @override
+  void dispose() {
+    _focused = null;
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = TvScale.of(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final gap = scale.px(12);
+        final ring = scale.px(tvFocusRingWidth) * tvFocusZoom;
+        // Use the widest possible cell as a conservative bound; the final
+        // button is narrower after padding and gaps. Reserve space even when
+        // zoom is disabled so toggling the setting does not move the grid.
+        final horizontal = math.max(scale.px(6), constraints.maxWidth / 3 * (tvFocusZoom - 1) / 2 + ring);
+        final height = scale.px(40) * math.max(1.0, scale.textScale);
+        final vertical = math.max(scale.px(6), height * (tvFocusZoom - 1) / 2 + ring);
+        final width = (constraints.maxWidth - horizontal * 2 - gap * 2) / 3;
+        return SingleChildScrollView(
+          key: const ValueKey('tv-platform-panel-scroll'),
+          controller: _scroll,
+          padding: EdgeInsets.symmetric(horizontal: horizontal, vertical: vertical),
+          child: Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (final (index, id) in widget.ids.indexed)
+                SizedBox(
+                  width: width,
+                  child: Builder(
+                    builder: (context) => TvButton(
+                      key: ValueKey('tv-platform-panel-$id'),
+                      autofocus: index == 0,
+                      expand: true,
+                      selected: id == widget.current,
+                      label: widget.labelFor(id),
+                      onFocusChange: (focused) => _focusChanged(context, focused),
+                      onTap: () => widget.onPick(id),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

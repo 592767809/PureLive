@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart'
     show PointerDeviceKind, kDoubleTapTimeout, kLongPressTimeout, kMiddleMouseButton, kSecondaryMouseButton;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
@@ -8,6 +9,8 @@ import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/desktop/desktop_window.dart';
+import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/live_play/live_play_page.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
@@ -27,6 +30,7 @@ Future<AppServices> _pump(
   required FakeDanmaku danmaku,
   double width = 400,
   LiveRoom? room,
+  bool desktopFrame = false,
 }) async {
   tester.view
     ..physicalSize = Size(width, 900)
@@ -44,6 +48,7 @@ Future<AppServices> _pump(
       ],
       child: MaterialApp(
         theme: const LiveTheme().light,
+        builder: desktopFrame ? (_, child) => DesktopFrame(enabled: true, child: child!) : null,
         home: LivePlayPage(
           route: RouteArgs(
             RoutePath.kLivePlay,
@@ -73,6 +78,11 @@ Future<void> _close(WidgetTester tester, AppServices services) async {
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
   await tester.pump(const Duration(seconds: 5));
   await tester.runAsync(services.close);
+}
+
+Future<void> _pictureClick(WidgetTester tester, {int buttons = kMiddleMouseButton}) async {
+  await tester.tapAt(tester.getCenter(find.byType(RoomPlayer)), buttons: buttons, kind: PointerDeviceKind.mouse);
+  await _settle(tester);
 }
 
 void main() {
@@ -318,6 +328,33 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await _close(tester, services);
     }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    for (final fullscreen in [false, true]) {
+      testWidgets('issue 75: middle press on a moving message does not toggle (fullscreen=$fullscreen)', (
+        tester,
+      ) async {
+        final danmaku = FakeDanmaku();
+        final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku, width: 1280);
+        await tester.runAsync(() => services.store.settings.set(Settings.holdDanmakuOnPress, false));
+        await _settle(tester);
+        if (fullscreen) {
+          await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+          await _settle(tester);
+        }
+        final (_, at) = await fly(tester, danmaku);
+        final pointer = await tester.startGesture(at, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+        await tester.pump(const Duration(seconds: 2));
+        await pointer.up();
+        await _settle(tester);
+        expect(
+          tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
+          fullscreen ? RoomDisplay.fullscreen : RoomDisplay.inline,
+        );
+        expect(DesktopWindow.fullScreen.value, fullscreen);
+        expect(find.byKey(const ValueKey('live-play-message-sheet')), findsNothing);
+        await _close(tester, services);
+      }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+    }
 
     testWidgets('opens the long-press sheet; the danmaku stand until it closes', (tester) async {
       final danmaku = FakeDanmaku();
@@ -682,44 +719,263 @@ void main() {
     await _close(tester, services);
     expect(applied.last, isFalse, reason: 'released when the room goes');
   });
-  testWidgets('issue 65: Windows middle click toggles only in-window fullscreen', (tester) async {
-    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
-    await tester.tapAt(
-      tester.getCenter(find.byType(RoomPlayer)),
-      buttons: kMiddleMouseButton,
-      kind: PointerDeviceKind.mouse,
-    );
-    await _settle(tester);
-    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.windowFullscreen);
-    await tester.tapAt(
-      tester.getCenter(find.byType(RoomPlayer)),
-      buttons: kMiddleMouseButton,
-      kind: PointerDeviceKind.mouse,
-    );
-    await _settle(tester);
-    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
-    final top = tester.getTopLeft(find.byType(RoomPlayer)) + const Offset(100, 15);
-    await tester.tapAt(top, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
-    await _settle(tester);
-    expect(
-      tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
-      RoomDisplay.inline,
-      reason: 'middle click leaves controls to their own handlers',
-    );
-    final cancelled = await tester.startGesture(
-      tester.getCenter(find.byType(RoomPlayer)),
-      buttons: kMiddleMouseButton,
-      kind: PointerDeviceKind.mouse,
-    );
-    await cancelled.cancel();
-    await _settle(tester);
-    expect(
-      tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
-      RoomDisplay.inline,
-      reason: 'a cancelled middle click does not toggle',
-    );
-    await _close(tester, services);
-  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+  group('issue 75: Windows fullscreen mouse shortcuts', () {
+    setUp(() {
+      DesktopWindow.fullScreen.value = false;
+      DesktopWindow.maximized.value = false;
+    });
+    tearDown(() {
+      DesktopWindow.fullScreen.value = false;
+      DesktopWindow.maximized.value = false;
+    });
+
+    for (final maximized in [false, true]) {
+      testWidgets('middle toggles system fullscreen, preserving the player (maximized=$maximized)', (tester) async {
+        DesktopWindow.maximized.value = maximized;
+        final services = await _pump(
+          tester,
+          site: FakeSite(liveRoom()),
+          danmaku: FakeDanmaku(),
+          width: 1280,
+          desktopFrame: true,
+        );
+        final player = tester.state(find.byType(RoomPlayer));
+        final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
+        expect(find.byType(DesktopTitleBar), findsOneWidget);
+        for (var i = 0; i < 3; i++) {
+          await _pictureClick(tester);
+          expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+          expect(DesktopWindow.fullScreen.value, isTrue);
+          expect(find.byType(DesktopTitleBar), findsNothing);
+          await _pictureClick(tester);
+          expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+          expect(DesktopWindow.fullScreen.value, isFalse);
+          expect(find.byType(DesktopTitleBar), findsOneWidget);
+          expect(tester.state(find.byType(RoomPlayer)), same(player));
+          expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller, same(controller));
+          // This checks Dart state only, not the native window's geometry.
+          expect(DesktopWindow.maximized.value, maximized);
+        }
+        await _close(tester, services);
+      }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+    }
+
+    testWidgets('middle enters system fullscreen from in-window; right remains independent', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.windowFullscreen);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue);
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue, reason: 'right does not change native fullscreen');
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('F, double tap, Esc and native exit keep their existing contracts', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse, reason: 'F leaves in-window fullscreen as before');
+      await _pictureClick(tester, buttons: kSecondaryMouseButton);
+      await tester.tapAt(tester.getCenter(find.byType(RoomPlayer)));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(tester.getCenter(find.byType(RoomPlayer)));
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse, reason: 'double tap leaves in-window fullscreen as before');
+      await _pictureClick(tester);
+      await tester.tap(find.byKey(const ValueKey('live-play-menu')), kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('panel-menu')), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('panel-menu')), findsNothing);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue, reason: 'Esc closes the panel before fullscreen');
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _pictureClick(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _pictureClick(tester);
+      DesktopWindow.fullScreen.value = false;
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await _pictureClick(tester);
+      await _close(tester, services);
+      expect(DesktopWindow.fullScreen.value, isFalse, reason: 'closing the room also leaves native fullscreen');
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('middle leaves visible controls, text input and panels to their handlers', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      final top = tester.getTopLeft(find.byType(RoomPlayer)) + const Offset(100, 15);
+      await tester.tapAt(top, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await _pictureClick(tester);
+      final field = find.byKey(const ValueKey('local-composer-input'));
+      await tester.enterText(field, '保留输入内容');
+      final text = tester.widget<TextField>(field).controller!
+        ..selection = const TextSelection(baseOffset: 0, extentOffset: 2);
+      await tester.pump();
+      await tester.tap(field, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await _settle(tester);
+      expect(text.text, '保留输入内容');
+      expect(text.selection, const TextSelection(baseOffset: 0, extentOffset: 2));
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      await tester.tap(find.byKey(const ValueKey('live-play-menu')));
+      // Build the new panel before advancing its entrance animation.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      final panel = find.byKey(const ValueKey('panel-menu'));
+      expect(panel, findsOneWidget);
+      expect(tester.getRect(panel).right, closeTo(1280, 1), reason: 'the actual panel has finished sliding on screen');
+      final close = find.byKey(const ValueKey('room-panel-close'));
+      expect(close.hitTestable(), findsOneWidget);
+      await tester.tap(close, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await tester.pump(const Duration(seconds: 1));
+      expect(panel, findsOneWidget);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      await tester.tap(close, kind: PointerDeviceKind.mouse);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('panel-menu')), findsNothing);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue, reason: 'the panel control does not toggle fullscreen');
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('cancelled, dragged and combined-button clicks do not toggle', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      final at = tester.getCenter(find.byType(RoomPlayer));
+      final cancelled = await tester.startGesture(at, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await cancelled.cancel();
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      final dragged = await tester.startGesture(at, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await dragged.moveBy(const Offset(80, 0));
+      await dragged.up();
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await _pictureClick(tester, buttons: kMiddleMouseButton | kSecondaryMouseButton);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      final changed = TestPointer(41, PointerDeviceKind.mouse, 0, kMiddleMouseButton);
+      await tester.sendEventToBinding(changed.down(at));
+      await tester.sendEventToBinding(changed.move(at, buttons: kMiddleMouseButton | kSecondaryMouseButton));
+      await tester.sendEventToBinding(changed.up());
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      await tester.tapAt(at, buttons: kMiddleMouseButton);
+      await _settle(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('a modal dialog owns middle clicks until it closes', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+      await _settle(tester);
+      final context = tester.element(find.byType(RoomPlayer));
+      final navigator = Navigator.of(context, rootNavigator: true);
+      showDialog<void>(
+        context: context,
+        builder: (_) => const AlertDialog(content: SizedBox(width: 240, height: 160, child: Text('保留弹窗'))),
+      ).ignore();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.tap(find.byType(AlertDialog), buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue);
+      navigator.pop();
+      await tester.pump(const Duration(seconds: 1));
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('middle cannot exit a locked fullscreen', (tester) async {
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+      await _pictureClick(tester);
+      await tester.tap(find.byKey(const ValueKey('live-play-lock')));
+      await tester.pump(const Duration(seconds: 1));
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+      expect(DesktopWindow.fullScreen.value, isTrue);
+      await tester.tap(find.byKey(const ValueKey('live-play-unlock')));
+      await tester.pump(const Duration(seconds: 1));
+      await _pictureClick(tester);
+      expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.inline);
+      expect(DesktopWindow.fullScreen.value, isFalse);
+      await _close(tester, services);
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+    testWidgets('middle matches the fullscreen button after editing and interacting with a panel', (tester) async {
+      final outcomes = <({RoomDisplay display, bool systemFullscreen, bool panelOpen})>[];
+      for (final middle in [false, true]) {
+        final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+        if (middle) {
+          await _pictureClick(tester);
+        } else {
+          await tester.tap(find.byKey(const ValueKey('live-play-fullscreen')));
+          await _settle(tester);
+        }
+        expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+        final field = find.byKey(const ValueKey('local-composer-input'));
+        await tester.enterText(field, '保留输入内容');
+        final text = tester.widget<TextField>(field).controller!
+          ..selection = const TextSelection(baseOffset: 0, extentOffset: 2);
+        await tester.pump();
+        await tester.tap(field, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+        await _settle(tester);
+        expect(text.text, '保留输入内容');
+        expect(text.selection, const TextSelection(baseOffset: 0, extentOffset: 2));
+        await tester.tap(find.byKey(const ValueKey('live-play-menu')));
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        final panel = find.byKey(const ValueKey('panel-menu'));
+        expect(panel, findsOneWidget);
+        expect(tester.getRect(panel).right, closeTo(1280, 1));
+        await tester.tap(panel, buttons: kMiddleMouseButton, kind: PointerDeviceKind.mouse);
+        await tester.pump(const Duration(seconds: 1));
+        expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display, RoomDisplay.fullscreen);
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        outcomes.add((
+          display: tester.widget<RoomPlayer>(find.byType(RoomPlayer)).display,
+          systemFullscreen: DesktopWindow.fullScreen.value,
+          panelOpen: panel.evaluate().isNotEmpty,
+        ));
+        await _close(tester, services);
+      }
+      // Compare entry paths without prescribing how editing changes focus
+      // or requiring an unrelated Escape policy to stay as it is today.
+      expect(outcomes.last, outcomes.first, reason: 'middle entry preserves the existing fullscreen button behavior');
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+  });
 
   testWidgets('issue 65: middle click remains unmapped outside Windows', (tester) async {
     final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);

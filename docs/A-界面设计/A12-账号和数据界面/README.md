@@ -172,5 +172,6 @@ WebDAV 和设备同步（`apps/pure_live/lib/features/web_dav/`、`features/remo
 | A12.5 | WebDAV | 界面 | 完成 | 2026-10-02 | 965d41956 | [设计或说明](A12.5-WebDAV/README.md)、[记录](A12.5-WebDAV/record.md)、[评审页](A12.5-WebDAV/page/01-说明.jpg) |
 | A12.6 | 设备同步 | 界面 | 完成 | 2026-10-02 | 965d41956 | [设计或说明](A12.6-设备同步/README.md)、[记录](A12.6-设备同步/record.md)、[评审页](A12.6-设备同步/page/01-说明.jpg) |
 | A12.7 | WebDAV 自动备份设置（接 A12.5、V01.9） | 界面 | 待真机 | 2026-10-25 | 7974b0338dcb408949c73d7920d0c3a3934f6114 | [设计或说明](A12.7-WebDAV自动备份设置/README.md)、[任务书](A12.7-WebDAV自动备份设置/brief.md)、[记录](A12.7-WebDAV自动备份设置/record.md)、[真机验证](A12.7-WebDAV自动备份设置/verify.md)、[合并审查](A12.7-WebDAV自动备份设置/review.md) |
+| A12.8 | 电视备份文件操作（接 A12.4） | 功能 | 待真机 | 2026-10-27 | c2626085805d9e8a8c6a2c75235e46e280298369 | [设计或说明](A12.8-电视备份文件操作/README.md)、[任务书](A12.8-电视备份文件操作/brief.md)、[记录](A12.8-电视备份文件操作/record.md)、[真机验证](A12.8-电视备份文件操作/verify.md) |
 
 <!-- docs:生成结束 -->

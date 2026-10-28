@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/version/app_version.dart';
@@ -41,29 +42,19 @@ Future<void> checkForUpdateOnStartup(
 }) async {
   if (!settings.get(Settings.enableAutoCheckUpdate)) return;
   try {
-    final info = await feed.latest();
+    final snapshot = await feed.check();
+    if (snapshot == null || !context.mounted || !_sourceCurrent(settings, feed)) return;
+    final info = snapshot.info;
     // The about page shows "新版本 v…" from this (U.12b c3), also when the
     // version was skipped.
-    if (info != null) noteCheckedUpdate(info);
-    if (info == null || !info.isNewer || !context.mounted || !_wanted(settings, info)) return;
-    // This device's package (U.12b "本机"; else the platform's first: arm64
-    // APK, Windows installer) for the in-app download; without one "update"
-    // opens the version page.
-    ReleaseFile? package;
-    try {
-      final wanted = info.version.replaceFirst(RegExp('^[vV]'), '');
-      final files =
-          (await feed.releases())
-              ?.where((release) => release.version.replaceFirst(RegExp('^[vV]'), '') == wanted)
-              .firstOrNull
-              ?.files ??
-          const <ReleaseFile>[];
-      final packages = platformPackages(feed.platform, info, files);
-      final native = nativePackageTitle();
-      package = (packages.where((entry) => entry.$1 == native).firstOrNull ?? packages.firstOrNull)?.$2;
-    } on Object {
-      package = null;
-    }
+    noteCheckedUpdate(info);
+    if (snapshot.lastKnown || !info.isInstallableUpdate || !_wanted(settings, info)) return;
+    // Only this device's package (U.12b "本机") can be offered directly.
+    // Missing native assets open the version page instead of another ABI.
+    final packages = platformPackages(feed.platform, info, snapshot.files);
+    final native = ProviderScope.containerOf(context, listen: false).read(nativePackageTitleProvider);
+    // Missing this device's ABI is not permission to install another one.
+    final package = packages.where((entry) => entry.$1 == native).firstOrNull?.$2;
     if (!context.mounted) return;
     final route = ModalRoute.of(context);
     await (prompts ?? AppPrompts.instance).show<void>(
@@ -71,7 +62,14 @@ Future<void> checkForUpdateOnStartup(
       ready: () => context.mounted && (route?.isCurrent ?? true),
       () async {
         // The setting or the skip may have changed while it waited.
-        if (!context.mounted || !_wanted(settings, info)) return;
+        if (!context.mounted ||
+            !_sourceCurrent(settings, feed) ||
+            !info.isInstallableUpdate ||
+            !_wanted(settings, info)) {
+          return;
+        }
+        final newer = foundUpdate.value;
+        if (newer != null && newer.newerThan(info.version, info.buildNumber)) return;
         await showAppDialog<void>(
           context: context,
           builder: (_) => NewVersionDialog(
@@ -89,6 +87,9 @@ Future<void> checkForUpdateOnStartup(
     log('Start-up update check skipped', name: 'Update', error: error, stackTrace: stack);
   }
 }
+
+bool _sourceCurrent(SettingsStore settings, UpdateFeed feed) =>
+    feed.isActive && feed.githubOrigin == settings.get(Settings.useGitHubOriginForUpdates);
 
 bool _wanted(SettingsStore settings, UpdateInfo info) =>
     settings.get(Settings.enableAutoCheckUpdate) && !info.skippedAs(settings.get(Settings.skippedUpdateVersion));
@@ -170,7 +171,12 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
 
   late bool _skip = widget.info.skippedAs(widget.settings?.get(Settings.skippedUpdateVersion) ?? '');
 
-  bool get _inApp => widget.package != null && widget.sources.isNotEmpty;
+  bool get _inApp =>
+      widget.info.isInstallableUpdate &&
+      widget.package != null &&
+      widget.package!.hasIntegrity &&
+      fileMatchesUpdate(widget.info, widget.package!) &&
+      widget.sources.isNotEmpty;
 
   // iOS installs the IPA with AltStore, SideStore or TrollStore, not from the
   // app: the main button opens the release page (A18.1 c13).
@@ -197,7 +203,7 @@ class _NewVersionDialogState extends State<NewVersionDialog> {
     if (widget.package case final file? when _inApp) {
       final host = navigator.context;
       navigator.pop();
-      unawaited(showUpdateDownload(host, file: file, sources: widget.sources, version: widget.info.version));
+      unawaited(showUpdateDownload(host, file: file, sources: widget.sources, update: widget.info));
       return;
     }
     navigator.pop();

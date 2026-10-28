@@ -27,6 +27,7 @@ class TvButton extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.onKey,
+    this.onFocusChange,
     this.focusNode,
     this.autofocus = false,
     this.selected = false,
@@ -50,6 +51,9 @@ class TvButton extends StatelessWidget {
 
   /// Keys before the default handling.
   final TvKeyHandler? onKey;
+
+  /// Focus gained or lost.
+  final ValueChanged<bool>? onFocusChange;
 
   /// The node.
   final FocusNode? focusNode;
@@ -91,6 +95,7 @@ class TvButton extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         onKey: onKey,
+        onFocusChange: onFocusChange,
         radius: TvRadius.pill,
         builder: (context, focused) => Container(
           constraints: BoxConstraints(minHeight: scale.px(small ? 36 : 40)),

@@ -615,7 +615,7 @@ class SettingsLinkRow extends StatelessWidget {
     final value = this.value;
     final below = valueBelow && value != null && value.isNotEmpty;
     final trailing = <Widget>[
-      ?valueWidget,
+      if (valueWidget != null) Flexible(child: valueWidget!),
       if (!below && value != null && value.isNotEmpty)
         Flexible(
           child: Text(

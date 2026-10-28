@@ -49,6 +49,10 @@ class _IptvPageState extends ConsumerState<IptvPage> {
   final _busy = <String>{};
   bool _importing = false;
   ({int done, int total})? _syncAll;
+  bool _defaultPlaylistChecked = false;
+  bool _defaultPlaylistLoading = false;
+  bool _defaultPlaylistRestoreRequested = false;
+  IptvImportResult? _defaultPlaylistFailure;
   bool _defaultGuideChecked = false;
   bool _defaultGuideLoading = false;
   bool _defaultGuideFailed = false;
@@ -120,7 +124,52 @@ class _IptvPageState extends ConsumerState<IptvPage> {
     if (chosen != null && mounted && chosen.id != current) await _select(chosen);
   }
 
-  // Default guide -------------------------------------------------------------
+  // Default playlist and guide -----------------------------------------------
+
+  /// Settings and recommendations share the same first-use download. An
+  /// existing row (including one restored from a backup) is left untouched;
+  /// the deletion preference is the only opt-out, not an empty library.
+  Future<void> _maybeLoadDefaultPlaylist(IptvOverview overview) async {
+    if (_defaultPlaylistChecked) return;
+    _defaultPlaylistChecked = true;
+    if (overview.playlists.any((info) => info.playlist.isHot)) return;
+    await _loadDefaultPlaylist();
+  }
+
+  Future<void> _loadDefaultPlaylist() => _runDefaultPlaylistLoad(_importer, _store.settings);
+
+  Future<void> _runDefaultPlaylistLoad(IptvImporter? importer, SettingsStore settings) async {
+    if (importer == null || _defaultPlaylistLoading || settings.get(Settings.iptvHotRemoved)) return;
+    _defaultPlaylistLoading = true;
+    _defaultPlaylistFailure = null;
+    if (mounted) setState(() {});
+    bool hotRemoved() => settings.get(Settings.iptvHotRemoved);
+    var result = await importer.loadHotPlaylist(hotRemoved: hotRemoved, onlyIfMissing: true);
+    final restoreRequested = _defaultPlaylistRestoreRequested;
+    _defaultPlaylistRestoreRequested = false;
+    if (restoreRequested &&
+        !hotRemoved() &&
+        (result.status == IptvImportStatus.stale || result.status == IptvImportStatus.cancelled)) {
+      // Restore may have joined a download whose snapshot predates the
+      // deletion. Once it settles, start one fresh guarded download, but
+      // never overwrite a backup restored in the meantime.
+      try {
+        if (await importer.library.playlist(IptvPlaylist.hotId) == null && !hotRemoved()) {
+          result = await importer.loadHotPlaylist(hotRemoved: hotRemoved, onlyIfMissing: true);
+        }
+      } on Object catch (error) {
+        result = IptvImportResult(IptvImportStatus.failed, error: error);
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _defaultPlaylistLoading = false;
+      _defaultPlaylistFailure = switch (result.status) {
+        IptvImportStatus.imported || IptvImportStatus.cancelled || IptvImportStatus.stale => null,
+        _ => settings.get(Settings.iptvHotRemoved) ? null : result,
+      };
+    });
+  }
 
   /// On the first visit without any guide, imports the default guide (3.x
   /// did it on every visit without one, so a deleted default came back).
@@ -439,9 +488,12 @@ class _IptvPageState extends ConsumerState<IptvPage> {
   /// Brings the deleted hot list back and downloads it.
   Future<void> _restoreHot() async {
     final importer = _importer;
+    final settings = _store.settings;
     if (importer == null) return;
     await _set(Settings.iptvHotRemoved, false, message: i18n('iptv_hot_restored'));
-    await importer.loadHotPlaylist();
+    if (settings.get(Settings.iptvHotRemoved)) return;
+    _defaultPlaylistRestoreRequested = true;
+    await _runDefaultPlaylistLoad(importer, settings);
   }
 
   Future<void> _cardAction(IptvCardAction action, String address) async {
@@ -482,6 +534,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
       final overview = next.value;
       if (overview == null) return;
       _checkSelection(overview);
+      unawaited(_maybeLoadDefaultPlaylist(overview));
       unawaited(_maybeLoadDefaultGuide(overview));
     });
     final importer = ref.watch(iptvImporterProvider);
@@ -598,6 +651,8 @@ class _IptvPageState extends ConsumerState<IptvPage> {
   List<Widget> _playlistSection(IptvOverview overview) {
     final now = ref.watch(iptvClockProvider)();
     final hotRemoved = watchSetting(ref, Settings.iptvHotRemoved);
+    final defaultFailure = _defaultPlaylistFailure;
+    final hasHot = overview.playlists.any((info) => info.playlist.isHot);
     final shown = _popularShown(overview);
     final popularOptions = _popularOptions(overview);
     return [
@@ -633,7 +688,33 @@ class _IptvPageState extends ConsumerState<IptvPage> {
         ],
       ),
       const SizedBox(height: 12),
-      if (overview.playlists.isEmpty)
+      if (_defaultPlaylistLoading && !hotRemoved)
+        IptvStateCard(
+          key: const ValueKey('iptv-default-playlist-loading'),
+          leading: const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2.5)),
+          title: i18n('iptv_default_playlist_loading'),
+          text: i18n('iptv_default_playlist_loading_desc'),
+        )
+      else if (defaultFailure != null && !hotRemoved && !hasHot)
+        IptvStateCard(
+          key: const ValueKey('iptv-default-playlist-failed'),
+          icon: AppIcons.failed,
+          iconColor: Theme.of(context).colorScheme.error,
+          title: i18n('iptv_default_playlist_failed'),
+          text: failureText(defaultFailure, guide: false),
+          actions: [
+            TextButton(
+              key: const ValueKey('iptv-default-playlist-retry'),
+              onPressed: () => unawaited(_loadDefaultPlaylist()),
+              child: Text(i18n('retry')),
+            ),
+            TextButton(
+              onPressed: () => unawaited(_import(IptvImportKind.playlist)),
+              child: Text(i18n('import_playlist')),
+            ),
+          ],
+        )
+      else if (overview.playlists.isEmpty)
         IptvStateCard(
           key: const ValueKey('iptv-no-playlists'),
           centered: true,

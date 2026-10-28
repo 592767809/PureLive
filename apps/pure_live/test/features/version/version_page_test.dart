@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' show Abi;
 import 'dart:io';
@@ -39,20 +40,24 @@ final class _FakeFeed extends UpdateFeed {
   UpdateInfo? info;
   List<ReleaseInfo>? history;
   int checks = 0;
+  Completer<UpdateInfo?>? latestGate;
 
   @override
   Future<UpdateInfo?> latest({Duration timeout = const Duration(seconds: 10)}) async {
     checks++;
-    return info;
+    final gate = latestGate;
+    return gate == null ? info : await gate.future;
   }
 
   @override
-  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15)}) async => history;
+  Future<List<ReleaseInfo>?> releases({Duration timeout = const Duration(seconds: 15), UpdateInfo? matching}) async =>
+      history;
 }
 
 UpdateInfo _newer() => UpdateInfo.fromJson({
   ..._versionJson(),
   'version': '9.0.0',
+  'build_number': appBuild + 1,
   'version_desc': '## 新功能\n- **更快**的播放',
   'platforms': const <String, Object?>{},
 }, platform: 'android');
@@ -65,10 +70,13 @@ List<ReleaseInfo> _historyWith9() => [
     files: [
       for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64'])
         ReleaseFile(
-          name: 'PureLive-9.0.0-android-$abi-release.apk',
+          name: 'PureLive-9.0.0-${pubspecBuild + 1}-android-$abi-release.apk',
           size: '100mb',
+          sizeBytes: 3000,
+          sha256: '0f378acebd51c8b1fca222ee057b87b8de674e9aaaad845d7ff4a1e177117b36',
           downloads: 1,
-          url: 'https://github.com/wzgrx/pure_live/releases/download/v9.0.0/PureLive-9.0.0-android-$abi-release.apk',
+          url:
+              'https://github.com/wzgrx/pure_live/releases/download/v9.0.0/PureLive-9.0.0-${pubspecBuild + 1}-android-$abi-release.apk',
         ),
     ],
   ),
@@ -236,11 +244,20 @@ void main() {
     expect(find.text('当前 v$appVersion'), findsOneWidget);
     expect(find.textContaining('ARM64'), findsOneWidget);
     expect(find.textContaining('更快'), findsOneWidget);
+    final updateScroll = tester.widget<ListView>(
+      find.descendant(of: find.byKey(const ValueKey('version-update-scroll')), matching: find.byType(ListView)),
+    );
+    expect(updateScroll.controller, isNull);
+    expect(find.byType(KeyboardScrollArea), findsNothing);
 
     // The mirrors are folded under "选择下载源" (U.12b c7).
-    final first = find.byKey(const ValueKey('version-source-PureLive-9.0.0-android-arm64-v8a-release.apk-0'));
+    final first = find.byKey(
+      const ValueKey('version-source-PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk-0'),
+    );
     expect(first, findsNothing);
-    final sources = find.byKey(const ValueKey('version-sources-PureLive-9.0.0-android-arm64-v8a-release.apk'));
+    final sources = find.byKey(
+      const ValueKey('version-sources-PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk'),
+    );
     await tester.ensureVisible(sources);
     await tester.tap(sources);
     await tester.pumpAndSettle();
@@ -275,17 +292,19 @@ void main() {
         ),
       ],
     );
-    final download = find.byKey(const ValueKey('version-download-PureLive-9.0.0-android-arm64-v8a-release.apk'));
+    final download = find.byKey(
+      const ValueKey('version-download-PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk'),
+    );
     await tester.ensureVisible(download);
     await tester.tap(download);
     // The download writes real files: let the IO run between frames.
     final install = find.byKey(const ValueKey('update-download-install'));
     for (var i = 0; i < 50 && install.evaluate().isEmpty; i++) {
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
       await tester.pump();
     }
     expect(install, findsOneWidget);
-    final file = File('${temp.path}/PureLive-9.0.0-android-arm64-v8a-release.apk');
+    final file = File('${temp.path}/PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk');
     expect(file.lengthSync(), 3000);
     expect(http.urls.single, startsWith('https://cdn.gh-proxy.org/'));
     await tester.tap(find.byKey(const ValueKey('update-download-install')));
@@ -303,7 +322,70 @@ void main() {
     await tester.pumpAndSettle();
     expect(feed.checks, 2);
     expect(find.byKey(const ValueKey('version-latest')), findsOneWidget);
-    expect(find.text('已在使用最新版本'), findsOneWidget);
+    expect(find.text('本次检查未发现新版本'), findsOneWidget);
+  });
+
+  testWidgets('Y02.2: older metadata is not latest and offers no in-app downgrade', (tester) async {
+    final feed = _FakeFeed(
+      info: const UpdateInfo(version: '1.0.0', buildNumber: 99999),
+      history: _historyWith9(),
+    );
+    await _pump(tester, const VersionPage(route: RouteArgs(RoutePath.kVersionPage)), feed);
+    expect(find.byKey(const ValueKey('version-update-error')), findsOneWidget);
+    expect(find.byKey(const ValueKey('version-latest')), findsNothing);
+    expect(find.byKey(const ValueKey('version-packages')), findsNothing);
+    expect(foundUpdate.value, isNull);
+  });
+
+  testWidgets('Y02.2: the current build is not offered as an upgrade, including offline refresh', (tester) async {
+    final feed = _FakeFeed(
+      info: UpdateInfo(version: appVersion, buildNumber: appBuild),
+      history: _historyWith9(),
+    );
+    await _pump(tester, const VersionPage(route: RouteArgs(RoutePath.kVersionPage)), feed);
+    expect(find.text('本次检查未发现新版本'), findsOneWidget);
+    expect(find.byKey(const ValueKey('version-packages')), findsNothing);
+    feed.info = null;
+    await tester.tap(find.byKey(const ValueKey('version-refresh')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('version-last-known')), findsOneWidget);
+    expect(find.text('暂时无法确认更新，显示上次检查结果'), findsOneWidget);
+    expect(find.text('本次检查未发现新版本'), findsNothing);
+    expect(find.byKey(const ValueKey('version-packages')), findsNothing);
+  });
+
+  testWidgets('Y02.2: refresh disables old actions and a disposed check cannot publish its badge', (tester) async {
+    final feed = _FakeFeed(info: _newer(), history: _historyWith9());
+    await _pump(tester, const VersionPage(route: RouteArgs(RoutePath.kVersionPage)), feed);
+    final pending = Completer<UpdateInfo?>();
+    feed.latestGate = pending;
+    await tester.tap(find.byKey(const ValueKey('version-refresh')));
+    await tester.pump();
+    final scroll = find.byKey(const ValueKey('version-update-scroll'));
+    final blocker = find.ancestor(of: scroll, matching: find.byType(IgnorePointer)).first;
+    expect(tester.widget<IgnorePointer>(blocker).ignoring, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    foundUpdate.value = null;
+    pending.complete(const UpdateInfo(version: '10.0.0', buildNumber: 6000));
+    await tester.pumpAndSettle();
+    expect(foundUpdate.value, isNull);
+  });
+
+  testWidgets('Y02.2: a refresh never displays new metadata with old packages', (tester) async {
+    final feed = _FakeFeed(info: _newer(), history: _historyWith9());
+    await _pump(tester, const VersionPage(route: RouteArgs(RoutePath.kVersionPage)), feed);
+    expect(find.byKey(const ValueKey('version-packages')), findsOneWidget);
+    feed.info = const UpdateInfo(
+      version: '10.0.0',
+      buildNumber: 6000,
+      releaseUrl: 'https://github.com/o/r/releases/tag/v10.0.0',
+    );
+    await tester.tap(find.byKey(const ValueKey('version-refresh')));
+    await tester.pumpAndSettle();
+    expect(find.text('发现新版本: v10.0.0'), findsOneWidget);
+    expect(find.byKey(const ValueKey('version-packages')), findsNothing);
+    expect(find.byKey(const ValueKey('version-open-release')), findsOneWidget);
+    expect(foundUpdate.value?.version, '10.0.0');
   });
 
   testWidgets('the start-up check asks only for a newer version with the setting on', (tester) async {
@@ -424,7 +506,8 @@ void main() {
       feed.info = UpdateInfo.fromJson(_versionJson(), platform: 'android');
       await tester.tap(find.byKey(const ValueKey('version-refresh')));
       await tester.pumpAndSettle();
-      expect(foundUpdate.value, isNull);
+      expect(foundUpdate.value?.version, '9.0.0');
+      expect(find.byKey(const ValueKey('version-last-known')), findsOneWidget);
     });
 
     testWidgets('packages: name · size, "本机", "下载并安装" on the right, sources folded (c7, c8)', (tester) async {
@@ -443,8 +526,8 @@ void main() {
         overrides: [nativePackageTitleProvider.overrideWithValue('arch_arm32')],
       );
       expect(find.text('下载文件 · Android'), findsOneWidget);
-      const arm64 = 'PureLive-9.0.0-android-arm64-v8a-release.apk';
-      const arm32 = 'PureLive-9.0.0-android-armeabi-v7a-release.apk';
+      const arm64 = 'PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk';
+      const arm32 = 'PureLive-9.0.0-${pubspecBuild + 1}-android-armeabi-v7a-release.apk';
       // Three packages in 3.x's order, each with its own button.
       final names = ['ARM64 (64位)', 'ARM32 (通用)', 'x86_64 (Arch)'];
       final tops = [for (final name in names) tester.getTopLeft(find.text(name)).dy];
@@ -531,6 +614,29 @@ void main() {
       expect(find.byKey(const ValueKey('release-history-detail-dialog')), findsNothing);
     });
 
+    for (final width in [420.0, 1280.0]) {
+      testWidgets('ordinary history retains implicit scroll controller at $width', (tester) async {
+        await _pump(
+          tester,
+          const VersionPage(route: RouteArgs(RoutePath.kVersionHistory)),
+          _FakeFeed(history: _historyWith9()),
+          width: width,
+        );
+        if (width == 420) {
+          await tester.tap(find.byKey(const ValueKey('release-history-mobile-9.0.0')));
+          await tester.pumpAndSettle();
+        }
+        final detail = width == 420
+            ? find.byKey(const ValueKey('release-history-detail-dialog'))
+            : find.byKey(const ValueKey('release-history-detail-9.0.0'));
+        final scroll = tester.widget<SingleChildScrollView>(
+          find.descendant(of: detail, matching: find.byType(SingleChildScrollView)),
+        );
+        expect(scroll.controller, isNull, reason: 'ordinary input must retain primary controller inheritance');
+        expect(find.byType(KeyboardScrollArea), findsNothing);
+      });
+    }
+
     testWidgets('history splits by the width of the page at 840 (c10, N3 A)', (tester) async {
       await _pump(
         tester,
@@ -566,7 +672,10 @@ void main() {
       await tester.tap(download);
       await tester.pumpAndSettle();
       expect(find.text('下载安装包'), findsOneWidget);
-      expect(find.text('是否下载“PureLive-9.0.0-android-arm64-v8a-release.apk”（100mb）？下载完成后会打开安装。'), findsOneWidget);
+      expect(
+        find.text('是否下载“PureLive-9.0.0-${pubspecBuild + 1}-android-arm64-v8a-release.apk”（100mb）？下载完成后会打开安装。'),
+        findsOneWidget,
+      );
       final cancel = tester.getRect(find.byKey(const ValueKey('release-download-cancel')));
       final start = tester.getRect(find.byKey(const ValueKey('release-download-start')));
       expect(cancel.right, lessThan(start.left));

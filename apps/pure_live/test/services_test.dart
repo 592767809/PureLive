@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_store/live_store.dart';
@@ -11,6 +12,7 @@ import 'package:pure_live/app/downloads.dart';
 import 'package:pure_live/app/fonts.dart';
 import 'package:pure_live/app/startup.dart';
 import 'package:pure_live/features/remote_receiver/mdns_peers.dart';
+import 'package:pure_live/features/remote_receiver/remote_sync_protocol.dart';
 import 'package:pure_live/features/remote_receiver/remote_sync_service.dart';
 import 'package:pure_live/platform/display_mode.dart';
 import 'package:pure_live/platform/system_access.dart';
@@ -103,6 +105,46 @@ final class FakePeers implements MdnsPeers {
   Future<void> stop() async => stopped = true;
 }
 
+/// A UDP transport whose local send errors arrive on the stream, like dart:io.
+final class ErrorDiscoverySocket extends Stream<RawSocketEvent> implements RawDatagramSocket {
+  new({required this.failSend, this.closeOnError = false});
+
+  final bool failSend;
+  final bool closeOnError;
+  final events = StreamController<RawSocketEvent>();
+  bool closed = false;
+
+  @override
+  bool broadcastEnabled = false;
+
+  @override
+  int send(List<int> buffer, InternetAddress address, int port) {
+    if (failSend) {
+      events.addError(const SocketException('No broadcast route'));
+      if (closeOnError) close();
+    }
+    return buffer.length;
+  }
+
+  @override
+  StreamSubscription<RawSocketEvent> listen(
+    void Function(RawSocketEvent)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) => events.stream.listen(onData, onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+
+  @override
+  void close() {
+    if (closed) return;
+    closed = true;
+    unawaited(events.close());
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   late Directory temp;
   setUp(() => temp = Directory.systemTemp.createTempSync('m12_4_'));
@@ -182,6 +224,11 @@ void main() {
         [Uri.parse('https://a/pkg.apk'), Uri.parse('https://b/pkg.apk')],
         target,
         onProgress: (received, total) => progress.add(received),
+        integrity: DownloadIntegrity(
+          canonicalUrl: Uri.parse('https://a/pkg.apk'),
+          sizeBytes: bytes.length,
+          sha256: crypto.sha256.convert(bytes).toString(),
+        ),
       );
       expect(file.readAsBytesSync(), bytes);
       expect(FileDownloader.partOf(target).existsSync(), isFalse);
@@ -190,7 +237,7 @@ void main() {
       expect(progress.last, 5000);
     });
 
-    test('a cancel keeps the part and the next download continues it', () async {
+    test('pre-cancel preserves orphan part; generic next download conservatively restarts', () async {
       final bytes = List.generate(4000, (i) => i % 7);
       final http = FileServerHttp({'https://a/x.zip': bytes});
       final target = File(p.join(temp.path, 'x.zip'));
@@ -203,7 +250,7 @@ void main() {
       expect(FileDownloader.partOf(target).lengthSync(), 1500);
       await FileDownloader(http).download([Uri.parse('https://a/x.zip')], target);
       expect(target.readAsBytesSync(), bytes);
-      expect(http.requests.last.headers['range'], 'bytes=1500-');
+      expect(http.requests.last.headers['range'], isNull);
     });
 
     test('every source failing is a network failure; folder and names', () async {
@@ -444,6 +491,57 @@ void main() {
     expect(peers.stopped, isTrue);
     service.dispose();
   });
+
+  for (final (failSend, closeOnError) in [(true, false), (false, false), (true, true)]) {
+    test(
+      'J05.2: async discovery errors preserve HTTP and mDNS (send=$failSend${closeOnError ? ', close' : ''})',
+      () async {
+        final store = await LiveStore.memory(cipher: FakeCipher());
+        final peers = FakePeers();
+        final socket = ErrorDiscoverySocket(failSend: failSend, closeOnError: closeOnError);
+        final service = RemoteSyncService(
+          store,
+          localIps: () => ['192.168.1.20'],
+          mdns: peers,
+          bindDiscoverySocket: () async => socket,
+        );
+        addTearDown(() async {
+          await service.stop();
+          service.dispose();
+          await store.close();
+        });
+        await service.start();
+        final pairingCode = service.pairingCode;
+        if (!failSend) {
+          socket.events.addError(const SocketException('Discovery receive failed'));
+          socket.events.addError(const SocketException('Another discovery failure'));
+        }
+        await Future<void>.delayed(const Duration(seconds: 1));
+        expect(service.running, isTrue);
+        expect(socket.closed, closeOnError);
+        expect(service.pairingCode, pairingCode);
+        expect(service.qrData, isNotEmpty);
+        expect(peers.attributes?['id'], service.deviceId);
+        peers.found!((id: 'peer', name: 'Peer', platform: 'android', version: '', ip: '192.168.1.8', port: 0));
+        expect(service.devices.single.address, '192.168.1.8:39888');
+        final client = HttpClient();
+        try {
+          final request = await client.getUrl(
+            Uri.parse('http://127.0.0.1:${service.port}${RemoteSyncProtocol.apiStatus}'),
+          );
+          final response = await request.close();
+          expect(response.statusCode, HttpStatus.ok);
+          expect(await utf8.decoder.bind(response).join(), contains(service.deviceId));
+        } finally {
+          client.close(force: true);
+        }
+        await service.stop();
+        expect(service.running, isFalse);
+        expect(socket.closed, isTrue);
+        expect(peers.stopped, isTrue);
+      },
+    );
+  }
 
   test('the fonts manifest and the WebDAV screenshots are assets', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();

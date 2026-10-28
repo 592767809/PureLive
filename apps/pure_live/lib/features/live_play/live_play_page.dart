@@ -812,6 +812,11 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   /// they leave it (3.x).
   void _toggleFullscreen() => unawaited(_display == RoomDisplay.inline ? _enterFullscreen() : _exitFullscreen());
 
+  /// Windows middle click switches the system fullscreen independently of
+  /// the in-window layout; F and double tap keep their existing behavior.
+  void _toggleSystemFullscreen() =>
+      unawaited(_display == RoomDisplay.fullscreen ? _exitFullscreen() : _enterFullscreen());
+
   /// Desktops: the in-window fullscreen (3.x `toggleWindowFullScreen`).
   void _toggleWindowFullscreen() {
     if (_display == RoomDisplay.windowFullscreen) {
@@ -1012,6 +1017,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     reconnect: _reconnect,
     onToggleFullscreen: _toggleFullscreen,
     onWindowFullscreen: _platform.desktop ? _toggleWindowFullscreen : null,
+    onSystemFullscreen: _platform.platform == TargetPlatform.windows ? _toggleSystemFullscreen : null,
     onBack: onBack ?? () => unawaited(_exitFullscreen()),
     onSwipeUp: _display == RoomDisplay.portraitFullscreen ? () => unawaited(_exitFullscreen()) : null,
     entryHint: _entryHint,

@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
@@ -18,6 +20,9 @@ import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/backup/backup_data.dart';
 import 'package:pure_live/shared/backup/backup_files.dart';
+import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
+import 'package:pure_live/tv/tv_theme.dart';
+import 'package:pure_live/tv/widgets/tv_focusable.dart';
 
 import '../../shared/fake_qr_camera.dart';
 import '../../support.dart';
@@ -138,6 +143,8 @@ void main() {
       String? Function()? pick,
       Size size = const Size(500, 1400),
       bool opensFolder = false,
+      bool tv = false,
+      Future<void> Function()? seed,
     }) async {
       tester.view
         ..physicalSize = size
@@ -148,6 +155,7 @@ void main() {
       folder = (await tester.runAsync(() => Directory.systemTemp.createTemp('backup_page')))!;
       final made = folder;
       addTearDown(() => tester.runAsync(() => made.delete(recursive: true)));
+      if (seed != null) await tester.runAsync(seed);
       final strings = (await tester.runAsync(loadStrings))!;
       final toasts = <String>[];
       final previous = AppNavigator.toast;
@@ -167,7 +175,19 @@ void main() {
             config: LiveUiConfig(strings: strings.ui),
             child: MaterialApp(
               theme: const LiveTheme(primaryColor: Colors.blue).light,
-              home: const BackupPage(route: RouteArgs(RoutePath.kBackup)),
+              builder: (context, child) => tv
+                  ? MediaQuery(
+                      data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
+                      child: TvTheme(palette: TvPalette.of(Theme.of(context).colorScheme), child: child!),
+                    )
+                  : child!,
+              home: tv
+                  ? const TvSettingsScaffold(
+                      title: '备份与恢复',
+                      contentHasHeader: true,
+                      child: BackupPage(route: RouteArgs(RoutePath.kBackup)),
+                    )
+                  : const BackupPage(route: RouteArgs(RoutePath.kBackup)),
             ),
           ),
         ),
@@ -340,6 +360,223 @@ void main() {
       expect(File(p(folder, full)).existsSync(), isFalse);
       expect(find.text(full), findsNothing);
       expect(find.text('目录中的备份 · 1'), findsOneWidget);
+    });
+
+    testWidgets('issue 71: D-pad reaches More; menu, held OK and short OK retain their separate actions', (
+      tester,
+    ) async {
+      final services = await pump(tester, tv: true, size: const Size(960, 540), seed: writeBackups);
+      const full = 'purelive_2026-09-01T10_00_00.txt';
+      final file = find.byKey(const ValueKey('backup-file-$full'));
+      final more = find.descendant(of: file, matching: find.byIcon(AppIcons.moreVertical));
+      await _remoteDownTo(tester, file);
+      final bodyFocus = FocusManager.instance.primaryFocus;
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      expect(Focus.of(tester.element(more)).hasPrimaryFocus, isTrue, reason: 'More is a separate D-pad target');
+      final semantics = tester.ensureSemantics();
+      try {
+        await tester.pump();
+        final moreSemantics = tester.getSemantics(more);
+        expect(moreSemantics.label, '更多操作');
+        expect(moreSemantics.flagsCollection.isButton, isTrue);
+        expect(moreSemantics.flagsCollection.isEnabled, Tristate.isTrue);
+        expect(moreSemantics.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+      } finally {
+        semantics.dispose();
+      }
+      final moreFocus = FocusManager.instance.primaryFocus;
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-menu-restore-all'))), isTrue);
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(FocusManager.instance.primaryFocus, same(moreFocus), reason: 'Back returns to More');
+      await _remoteKey(tester, LogicalKeyboardKey.arrowLeft);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus));
+
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      expect(find.byKey(const ValueKey('backup-menu-delete')), findsOneWidget);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('backup-preview')), findsOneWidget);
+      expect(_greyed(tester, full), isTrue, reason: 'all file actions are disabled while a restore is pending');
+      for (final name in [full, 'purelive_favorites_2026-09-02T10_00_00.txt']) {
+        final targets = tester
+            .widgetList<TvFocusable>(
+              find.descendant(of: find.byKey(ValueKey('backup-file-$name')), matching: find.byType(TvFocusable)),
+            )
+            .toList();
+        expect(targets, hasLength(2), reason: '$name has a body and More target');
+        expect(targets.every((target) => !target.enabled), isTrue, reason: '$name is busy');
+      }
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus), reason: 'canceling preview returns to the file');
+      expect(await tester.runAsync(() => _followIds(services.store)), isEmpty);
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.select);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('backup-menu-delete')), findsOneWidget);
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+      await tester.sendKeyRepeatEvent(LogicalKeyboardKey.select);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('backup-menu-delete')), findsOneWidget);
+      expect(find.byKey(const ValueKey('backup-preview')), findsNothing, reason: 'repeat/release must not restore');
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('backup-preview')), findsOneWidget, reason: 'a fresh menu confirmation works');
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus));
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('backup-preview')), findsOneWidget, reason: 'fresh short OK still previews');
+      await _remoteDownTo(tester, find.byType(DialogCancelButton));
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-restore-confirm'))), isTrue);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(await tester.runAsync(() => _followIds(services.store)), ['2']);
+      expect(_toasts, ['恢复备份成功']);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus), reason: 'successful restore returns to the file');
+    });
+
+    testWidgets('issue 71: remote deletes follows-only backups, cancels safely and focuses the folder after the last', (
+      tester,
+    ) async {
+      const follows = 'purelive_favorites_2026-09-02T10_00_00.txt';
+      await pump(
+        tester,
+        tv: true,
+        size: const Size(960, 540),
+        seed: () async => await File(p(folder, follows)).writeAsString(jsonEncode(_legacyBackup([_room('3')]))),
+      );
+      final file = find.byKey(const ValueKey('backup-file-$follows'));
+      await _remoteDownTo(tester, file);
+      final bodyFocus = FocusManager.instance.primaryFocus;
+      Future<void> deleteMenu() async {
+        await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+        expect(find.byKey(const ValueKey('backup-menu-restore-all')), findsNothing);
+        await _remoteDownTo(tester, find.byKey(const ValueKey('backup-menu-delete')));
+        await _remoteKey(tester, LogicalKeyboardKey.select);
+        expect(find.byKey(const ValueKey('backup-delete-confirm')), findsOneWidget);
+      }
+
+      await deleteMenu();
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(File(p(folder, follows)).existsSync(), isTrue);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus));
+      await deleteMenu();
+      await _remoteDownTo(tester, find.byType(DialogCancelButton));
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-delete-confirm'))), isTrue);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(File(p(folder, follows)).existsSync(), isFalse);
+      expect(find.byKey(const ValueKey('backup-files-empty')), findsOneWidget);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-folder'))), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('issue 71: a failed remote restore returns to More and can reopen the menu', (tester) async {
+      const name = 'purelive_broken.txt';
+      await pump(
+        tester,
+        tv: true,
+        size: const Size(960, 540),
+        seed: () async => await File(p(folder, name)).writeAsString('not a backup'),
+      );
+      final file = find.byKey(const ValueKey('backup-file-$name'));
+      await _remoteDownTo(tester, file);
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      final moreFocus = FocusManager.instance.primaryFocus;
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('backup-preview')), findsNothing);
+      expect(_toasts, ['这不是纯粹直播的备份文件，或文件已损坏']);
+      expect(FocusManager.instance.primaryFocus, same(moreFocus));
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      expect(find.byKey(const ValueKey('backup-menu-delete')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+      expect(FocusManager.instance.primaryFocus, same(moreFocus));
+    });
+
+    testWidgets('issue 71: removing a remote-selected file keeps focus on the remaining backup', (tester) async {
+      await pump(tester, tv: true, size: const Size(960, 540), seed: writeBackups);
+      const follows = 'purelive_favorites_2026-09-02T10_00_00.txt';
+      const full = 'purelive_2026-09-01T10_00_00.txt';
+      await _remoteDownTo(tester, find.byKey(const ValueKey('backup-file-$follows')));
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      await _remoteDownTo(tester, find.byKey(const ValueKey('backup-menu-delete')));
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _remoteDownTo(tester, find.byType(DialogCancelButton));
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(File(p(folder, follows)).existsSync(), isFalse);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-file-$full'))), isTrue);
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      expect(find.byKey(const ValueKey('backup-menu-restore-all')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
+    });
+
+    testWidgets('issue 71: failed deletion of an externally removed backup still leaves a usable remote target', (
+      tester,
+    ) async {
+      const name = 'purelive_removed.txt';
+      await pump(
+        tester,
+        tv: true,
+        size: const Size(960, 540),
+        seed: () async => await File(p(folder, name)).writeAsString(jsonEncode(_legacyBackup([_room('1')]))),
+      );
+      await _remoteDownTo(tester, find.byKey(const ValueKey('backup-file-$name')));
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      await _remoteDownTo(tester, find.byKey(const ValueKey('backup-menu-delete')));
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await tester.runAsync(() => File(p(folder, name)).delete());
+      await _remoteDownTo(tester, find.byType(DialogCancelButton));
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(_toasts, ['文件删除失败']);
+      expect(find.byKey(const ValueKey('backup-files-empty')), findsOneWidget);
+      expect(_focusWithin(find.byKey(const ValueKey('backup-folder'))), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('issue 71: denied deletion keeps the backup and restores its remote focus', (tester) async {
+      const name = 'purelive_retained.txt';
+      await pump(
+        tester,
+        tv: true,
+        size: const Size(960, 540),
+        seed: () async => await File(p(folder, name)).writeAsString(jsonEncode(_legacyBackup([_room('1')]))),
+      );
+      addTearDown(() => tester.runAsync(() => Process.run('chmod', ['755', folder.path])));
+      await tester.runAsync(() => Process.run('chmod', ['555', folder.path]));
+      final file = find.byKey(const ValueKey('backup-file-$name'));
+      await _remoteDownTo(tester, file);
+      final bodyFocus = FocusManager.instance.primaryFocus;
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      await _remoteDownTo(tester, find.byKey(const ValueKey('backup-menu-delete')));
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _remoteDownTo(tester, find.byType(DialogCancelButton));
+      await _remoteKey(tester, LogicalKeyboardKey.arrowRight);
+      await _remoteKey(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(_toasts, ['文件删除失败']);
+      expect(File(p(folder, name)).existsSync(), isTrue);
+      expect(FocusManager.instance.primaryFocus, same(bodyFocus));
+      await _remoteKey(tester, LogicalKeyboardKey.contextMenu);
+      expect(find.byKey(const ValueKey('backup-menu-delete')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await _settle(tester);
     });
 
     testWidgets('a folder that cannot be read says so and retries', (tester) async {
@@ -578,3 +815,29 @@ bool _greyed(WidgetTester tester, String title) => find
     .ancestor(of: find.text(title).first, matching: find.byWidgetPredicate((w) => w is Opacity && w.opacity < 1))
     .evaluate()
     .isNotEmpty;
+
+/// Uses only remote arrows after the scaffold's initial focus.
+Future<void> _remoteDownTo(WidgetTester tester, Finder target) async {
+  for (var step = 0; step < 24 && !_focusWithin(target); step++) {
+    await _remoteKey(tester, LogicalKeyboardKey.arrowDown);
+  }
+  expect(_focusWithin(target), isTrue, reason: 'the D-pad must reach $target');
+}
+
+Future<void> _remoteKey(WidgetTester tester, LogicalKeyboardKey key) async {
+  await tester.sendKeyEvent(key);
+  await tester.pump();
+  await tester.pump(const Duration(seconds: 1));
+}
+
+bool _focusWithin(Finder target) {
+  final context = FocusManager.instance.primaryFocus?.context;
+  if (context == null) return false;
+  final elements = target.evaluate().toSet();
+  var found = elements.contains(context);
+  context.visitAncestorElements((element) {
+    found = found || elements.contains(element);
+    return !found;
+  });
+  return found;
+}

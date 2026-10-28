@@ -29,6 +29,8 @@ dependencies:
   cached_network_image: ^4.0.5
   # Network type: mobile-data notice, offline precheck, mobile-data quality.
   connectivity_plus: ^7.3.1
+  # Streams SHA-256 over final update packages; already locked by the workspace.
+  crypto: 3.0.8
   # The IPTV tables in live_store's database (M12.1).
   drift: ^2.35.3
   # Windows DPAPI and the GBK code page (no plugin needed for either).

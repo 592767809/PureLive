@@ -52,6 +52,33 @@ double _contrast(Color a, Color b) {
 
 void main() {
   group('settings rows (U.6a, U.1c)', () {
+    for (final tv in [false, true]) {
+      testWidgets('custom value badge stays bounded with scaled text (tv=$tv)', (tester) async {
+        await _pump(
+          tester,
+          SettingsLinkRow(
+            title: '在线更新',
+            valueWidget: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Text(
+                '发现新版本 9.0.0+5123',
+                key: ValueKey('update-badge'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            onTap: () {},
+          ),
+          tv: tv,
+          textScale: 1.5,
+          width: 640,
+        );
+        expect(tester.takeException(), isNull);
+        expect(tester.getSize(find.byKey(const ValueKey('update-badge'))).width, lessThan(200));
+        expect(find.byIcon(AppIcons.navigate), findsOneWidget);
+      });
+    }
+
     testWidgets('a group: title, card, rows in order, a divider between them', (tester) async {
       await _pump(
         tester,
