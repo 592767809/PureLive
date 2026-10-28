@@ -137,8 +137,8 @@ void main() {
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 20));
 
-  test('issue #79: VIP count is opt-in but a same-name human chat is retained', () async {
-    final controller = controllerFor(FakeSite(liveRoom()));
+  test('D01.34: the VIP count is an audience figure labelled 贵宾, not a chat line; a human chat is retained', () async {
+    final controller = controllerFor(FakeSite(liveRoom(platform: SiteIds.douyu)));
     await controller.start();
     await settle();
     final notices = DouyuDanmakuProtocol.decode(
@@ -149,6 +149,10 @@ void main() {
     danmaku.emit(DanmakuReceived(vip));
     await settle();
     expect(controller.chat.lines.where((line) => line.text == '17000'), isEmpty);
+    expect(
+      audienceFigures(controller.room).map((figure) => (figure.type, figure.value, figure.label)),
+      contains((AudienceMetricType.onlineViewers, '17000', '贵宾')),
+    );
     danmaku.emit(
       const DanmakuReceived(
         LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: 'human', color: LiveMessageColor.white),
@@ -156,10 +160,6 @@ void main() {
     );
     await settle();
     expect(controller.chat.lines.map((line) => line.text), contains('human'));
-    await store.settings.set(Settings.danmakuShowVipCount, true);
-    danmaku.emit(DanmakuReceived(vip));
-    await settle();
-    expect(controller.chat.lines.map((line) => line.text), contains('17000'));
     controller.dispose();
   });
 

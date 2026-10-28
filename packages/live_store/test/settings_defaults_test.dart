@@ -306,7 +306,6 @@ const Map<String, Object> newInV4 = {
   'danmakuListLineSpacing': 'standard', // A08.15: the gaps as before
   'chatGiftsAboveTier': false, // A08.12 (every gift, as before; D-040)
   'giftValueInYuan': false, // A08.12 (the platform's units, as before)
-  'danmakuShowVipCount': false,
   'danmakuShowGifts': false, // A08.12 (no gift flies, as before)
   'showFullscreenSuperChat': true, // A07.26: active-only fullscreen entry, on by default
   'superChatIncludesMembership': true, // D07.2: on, the exception D-040 names

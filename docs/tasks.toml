@@ -2363,6 +2363,16 @@ date = "2026-10-24"
 commit = "7a823612a836d04a774a575d1e6dee5ff16b18b1"
 
 [[task]]
+id = "D01.34"
+title = "斗鱼贵宾数显示为在线数（接 D01.3）"
+type = "平台"
+status = "开发中"
+size = "小"
+tier = 1
+from = "用户 2026-10-28：贵宾数不再显示在弹幕，改到热度、已开播那一栏；数据从弹幕 ws 取"
+note = "D-070。`oni` 的 `vn` 改报 LiveMessageType.online（onlineViewers），应用已有的观众栏以“贵宾”标签显示；`oun` 仍不上报。同步上游 5.4.19 后移除其 `danmakuShowVipCount` 开关和 `douyu-vip-count` 标记。GitHub Actions 的定向检查和完整门禁全过（run 40696443904）；任务代码、测试和文档合成为一个提交，CI 提交单独；未合并、未真机。"
+
+[[task]]
 id = "D02.1"
 title = "哔哩哔哩打码昵称不能“屏蔽此用户”，清理已存的打码屏蔽"
 type = "功能"
