@@ -107,6 +107,8 @@ class UpdateView extends ConsumerStatefulWidget {
 }
 
 class _UpdateViewState extends ConsumerState<UpdateView> {
+  final _scrollController = ScrollController();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _loading = true;
   UpdateSnapshot? _snapshot;
   int _generation = 0;
@@ -115,6 +117,12 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
   void initState() {
     super.initState();
     unawaited(_check());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   /// Always asks the repository again (3.x answered from a copy kept since
@@ -153,22 +161,29 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
       });
     });
     final platform = ref.watch(updateFeedProvider).platform;
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: WindowClassScope.toolbarHeightOf(context),
-        title: Text(i18n('version_update'), maxLines: 2, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            key: const ValueKey('version-refresh'),
-            tooltip: i18n('refresh'),
-            onPressed: _loading ? null : _check,
-            icon: _loading
-                ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(AppIcons.refresh),
-          ),
-          const SizedBox(width: 4),
-        ],
+    final actions = <Widget>[
+      IconButton(
+        key: const ValueKey('version-refresh'),
+        tooltip: i18n('refresh'),
+        onPressed: _loading ? null : _check,
+        icon: _loading
+            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(AppIcons.refresh),
       ),
+      const SizedBox(width: 4),
+    ];
+    final reading =
+        MediaQuery.navigationModeOf(context) == NavigationMode.directional &&
+        (_snapshot?.info.log.trim().isNotEmpty ?? false);
+    final scaffold = Scaffold(
+      key: _scaffoldKey,
+      appBar:
+          SettingsPageHeaderScope.maybeOf(context)?.builder(context, title: i18n('version_update'), actions: actions) ??
+          AppBar(
+            toolbarHeight: WindowClassScope.toolbarHeightOf(context),
+            title: Text(i18n('version_update'), maxLines: 2, overflow: TextOverflow.ellipsis),
+            actions: actions,
+          ),
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 200),
         child: switch ((_loading, _snapshot)) {
@@ -194,6 +209,7 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
               excluding: _loading,
               child: _Details(
                 key: const ValueKey('version-update-scroll'),
+                controller: reading ? _scrollController : null,
                 snapshot: snapshot,
                 platform: _platformName(platform),
                 packages: snapshot.info.isNewer ? platformPackages(platform, snapshot.info, snapshot.files) : const [],
@@ -204,12 +220,31 @@ class _UpdateViewState extends ConsumerState<UpdateView> {
         },
       ),
     );
+    // Include the header so Right can always reach refresh, including a
+    // read-only response with no release URL or downloadable packages.
+    return reading
+        ? KeyboardScrollArea(
+            key: const ValueKey('version-keyboard-scroll'),
+            controller: _scrollController,
+            label: i18n('update_log'),
+            ringColor: Theme.of(context).colorScheme.onSurface,
+            child: scaffold,
+          )
+        : scaffold;
   }
 }
 
 class _Details extends ConsumerWidget {
-  const new({required this.snapshot, required this.platform, required this.packages, required this.native, super.key});
+  const new({
+    required this.snapshot,
+    required this.platform,
+    required this.packages,
+    required this.native,
+    this.controller,
+    super.key,
+  });
 
+  final ScrollController? controller;
   final UpdateSnapshot snapshot;
   final String platform;
   final List<(String, ReleaseFile)> packages;
@@ -222,6 +257,7 @@ class _Details extends ConsumerWidget {
     final release = updateDownloadUri(info.releaseUrl);
     final colors = Theme.of(context).colorScheme;
     return ListView(
+      controller: controller,
       physics: const PureLiveScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [

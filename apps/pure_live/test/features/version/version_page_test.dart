@@ -244,6 +244,11 @@ void main() {
     expect(find.text('当前 v$appVersion'), findsOneWidget);
     expect(find.textContaining('ARM64'), findsOneWidget);
     expect(find.textContaining('更快'), findsOneWidget);
+    final updateScroll = tester.widget<ListView>(
+      find.descendant(of: find.byKey(const ValueKey('version-update-scroll')), matching: find.byType(ListView)),
+    );
+    expect(updateScroll.controller, isNull);
+    expect(find.byType(KeyboardScrollArea), findsNothing);
 
     // The mirrors are folded under "选择下载源" (U.12b c7).
     final first = find.byKey(
@@ -608,6 +613,29 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('release-history-detail-dialog')), findsNothing);
     });
+
+    for (final width in [420.0, 1280.0]) {
+      testWidgets('ordinary history retains implicit scroll controller at $width', (tester) async {
+        await _pump(
+          tester,
+          const VersionPage(route: RouteArgs(RoutePath.kVersionHistory)),
+          _FakeFeed(history: _historyWith9()),
+          width: width,
+        );
+        if (width == 420) {
+          await tester.tap(find.byKey(const ValueKey('release-history-mobile-9.0.0')));
+          await tester.pumpAndSettle();
+        }
+        final detail = width == 420
+            ? find.byKey(const ValueKey('release-history-detail-dialog'))
+            : find.byKey(const ValueKey('release-history-detail-9.0.0'));
+        final scroll = tester.widget<SingleChildScrollView>(
+          find.descendant(of: detail, matching: find.byType(SingleChildScrollView)),
+        );
+        expect(scroll.controller, isNull, reason: 'ordinary input must retain primary controller inheritance');
+        expect(find.byType(KeyboardScrollArea), findsNothing);
+      });
+    }
 
     testWidgets('history splits by the width of the page at 840 (c10, N3 A)', (tester) async {
       await _pump(

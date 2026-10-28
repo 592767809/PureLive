@@ -18,10 +18,17 @@ class MarkdownText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final blocks = _blocks(data.replaceAll('\r\n', '\n').split('\n'));
-    return SelectionArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [for (final block in blocks) block.build(context)],
+    // The selection region consumes directional keys before the remote
+    // can reach the release actions. Retain rendered text and semantics;
+    // ordinary input keeps selection, while directional input traverses
+    // the page's controls and scroll area.
+    return ExcludeFocus(
+      excluding: MediaQuery.navigationModeOf(context) == NavigationMode.directional,
+      child: SelectionArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [for (final block in blocks) block.build(context)],
+        ),
       ),
     );
   }
