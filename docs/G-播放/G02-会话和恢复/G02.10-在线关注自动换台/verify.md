@@ -18,3 +18,6 @@
 ![native-windows-v3-single](verify/native-windows-v3-single.jpg)
 
 ![native-windows-v3-tv](verify/native-windows-v3-tv.jpg)
+
+
+2026-10-28同源Windows与隔离Android模拟器已完成实际mpv换台验证，设置默认关闭并恢复；全量跨平台证据见[5.4.19验收](../../../Y-发布和运营/Y01-版本签名和发布/Y01.30-发布5.4.19关注列表自动换台/verify.md)。K90、原电视及iPhone真机未补齐，状态保留待真机。
