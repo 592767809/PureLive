@@ -266,7 +266,7 @@ class AudienceStrip extends StatelessWidget {
   List<AudienceFigure> _figures() {
     final room = controller.room;
     final shown = (room.isLiveNow || room.isRecord) && controller.site.id != SiteIds.iptv;
-    return shown ? audienceFigures(room) : const [];
+    return shown ? audienceFigures(room, vipCount: controller.vipCount) : const [];
   }
 
   @override
@@ -343,7 +343,7 @@ class AudienceStrip extends StatelessWidget {
     final parts = [
       for (final index in fit.shown)
         _Figure(
-          icon: audienceIcon(figures[index].type),
+          icon: figures[index].icon ?? audienceIcon(figures[index].type),
           label: figures[index].label ?? audienceLabel(figures[index].type),
           text: figureText(figures[index]),
           style: style,

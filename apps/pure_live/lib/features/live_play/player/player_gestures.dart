@@ -101,7 +101,8 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
 
   /// Where the finger went down, down the screen (A07.15): the drag starts
   /// only after the finger has moved, by then out of the system's edge.
-  double? _downY;
+  Offset? _downPosition;
+  Offset? _pointerPosition;
 
   /// The frame callback that tells the system the level a drag set, or
   /// null (research 2026-10-02 S9: a touch screen sampling at 240 or 480 Hz
@@ -227,6 +228,13 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     _restoring = null;
     _dragging = null;
     _switching = false;
+    final movement = (_pointerPosition ?? details.globalPosition) - (_downPosition ?? details.globalPosition);
+    // Coalesced events can cross both slop thresholds at once. Keep a
+    // mainly horizontal swipe from winning the vertical control path.
+    if (movement.dx.abs() > movement.dy.abs()) {
+      _trace('horizontal');
+      return;
+    }
     if (widget.onSwipeUp != null && details.localPosition.dy >= size.height - portraitRestoreZone) {
       _restoring = 0;
       _trace('restore-panel');
@@ -237,7 +245,7 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     // screen; the portrait fullscreen's restore above goes first.
     final edges = MediaQuery.systemGestureInsetsOf(context);
     if (inSystemGestureArea(
-      globalY: _downY ?? details.globalPosition.dy,
+      globalY: (_downPosition ?? details.globalPosition).dy,
       screenHeight: MediaQuery.sizeOf(context).height,
       insets: (top: edges.top, bottom: edges.bottom),
       bottomFallback: defaultTargetPlatform == TargetPlatform.android ? androidGestureFallback : 0,
@@ -330,10 +338,17 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
     if (widget.enabled && (mobile || widget.onSwipeUp != null || widget.swipe != null)) {
       content = GestureDetector(
         behavior: HitTestBehavior.translucent,
+        // Retain movement before the competing recognizers resolve, including
+        // delayed native baseline reads and the portrait restore edge.
+        dragStartBehavior: DragStartBehavior.down,
         onVerticalDragDown: (details) {
-          _downY = details.globalPosition.dy;
+          _downPosition = details.globalPosition;
+          _pointerPosition = details.globalPosition;
           _trace('down');
         },
+        // Resolve a horizontal gesture before later vertical finger drift
+        // reaches the volume, brightness or portrait-room swipe threshold.
+        onHorizontalDragStart: (_) => _onDragCancel(),
         onVerticalDragStart: _onDragStart,
         onVerticalDragUpdate: _onDragUpdate,
         onVerticalDragEnd: _onDragEnd,
@@ -346,6 +361,9 @@ class PlayerGestureLayerState extends State<PlayerGestureLayer> {
         behavior: HitTestBehavior.translucent,
         // An accepted drag receives onEnd even for PointerCancelEvent.
         onPointerCancel: (_) => _onDragCancel(),
+        // Raw coordinates still include horizontal displacement when a single
+        // event crosses both recognizers' thresholds.
+        onPointerMove: (event) => _pointerPosition = event.position,
         onPointerSignal: (event) {
           if (event is PointerScrollEvent && event.scrollDelta.dy != 0) {
             unawaited(nudgeVolume(event.scrollDelta.dy > 0 ? -0.05 : 0.05));

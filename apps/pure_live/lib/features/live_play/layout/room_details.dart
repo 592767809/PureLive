@@ -152,7 +152,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> with SingleTickerPr
     return Object.hash(
       Object.hash(room.nick, room.avatar, room.area, room.title, room.notice, room.introduction, room.link),
       Object.hash(room.effectiveLiveStatus, room.effectiveRestriction, room.startedAt, room.roomId),
-      Object.hashAll(audienceFigures(room)),
+      Object.hashAll(audienceFigures(room, vipCount: _controller.vipCount)),
     );
   }
 
@@ -501,7 +501,7 @@ class _Figures extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final shown = (room.isLiveNow || room.isRecord) && room.platform != SiteIds.iptv;
-    final figures = shown ? audienceFigures(room) : const <AudienceFigure>[];
+    final figures = shown ? audienceFigures(room, vipCount: controller.vipCount) : const <AudienceFigure>[];
     final startedAt = room.isLiveNow ? room.startedAt : null;
     if (figures.isEmpty && startedAt == null) return const SizedBox(height: 4);
     final value = theme.textTheme.titleLarge?.emphasis.tabular;

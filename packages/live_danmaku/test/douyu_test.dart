@@ -52,7 +52,7 @@ Map<String, Object?> _recordedMessage(Map<String, Object?> message) {
     'type': 'online',
     'userName': '',
     'message': '',
-    'data': {'kind': 'onlineViewers', 'value': int.parse(message['message']! as String)},
+    'data': {'kind': 'vipCount', 'value': int.parse(message['message']! as String)},
   };
 }
 
@@ -85,8 +85,8 @@ Map<String, Object?> _project(LiveMessage message) {
           }
         : data is DouyuGift
         ? {'id': data.id, 'name': data.name, 'count': data.count, 'combo': data.combo, 'receiver': data.receiverName}
-        : data is LiveAudienceUpdate
-        ? {'kind': data.kind.name, 'value': data.value}
+        : data is LiveVipCount
+        ? {'kind': 'vipCount', 'value': data.value}
         : data,
   };
 }
@@ -293,18 +293,20 @@ void main() {
       expect((plain.userLevel, plain.fansName, plain.fansLevel), ('3', '', ''));
     });
 
-    test('oni is the 贵宾 count as an online figure; another room or no count gives nothing', () {
+    test('oni is the 贵宾 count as a separate VIP figure; another room or no count gives nothing', () {
       List<LiveMessage> oni(String fields) => DouyuDanmakuProtocol.decode(
         DouyuDanmakuProtocol.packet('type@=oni/$fields', type: DouyuDanmakuProtocol.serverPacketType),
         roomId: '1',
       );
       final vip = oni('vn@=17000/rid@=1/list@=/').single;
       expect((vip.type, vip.userName, vip.message), (LiveMessageType.online, '', ''));
-      final update = vip.data! as LiveAudienceUpdate;
-      expect((update.kind, update.value), (LiveAudienceMetricKind.onlineViewers, 17000));
+      final update = vip.data! as LiveVipCount;
+      expect(update.value, 17000);
       expect(oni('vn@=17000/rid@=2/list@=/'), isEmpty);
       expect(oni('vn@=/rid@=1/list@=/'), isEmpty);
       expect(oni('vn@=abc/rid@=1/list@=/'), isEmpty);
+      expect(oni('vn@=-1/rid@=1/list@=/'), isEmpty);
+      expect((oni('vn@=0/rid@=1/list@=/').single.data! as LiveVipCount).value, 0);
     });
 
     test('PR 28: a mute from another room is ignored without losing the next message', () {
@@ -682,7 +684,7 @@ void main() {
             'fansLevel': '',
             'fansName': '',
             'isLocal': false,
-            'data': {'kind': 'onlineViewers', 'value': 1},
+            'data': {'kind': 'vipCount', 'value': 1},
           },
         ];
       },

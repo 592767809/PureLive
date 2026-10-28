@@ -220,7 +220,7 @@ class TvRoomControls extends StatelessWidget {
     final playback = controller.session.state;
     final title = room.title.trim();
     final figures = [
-      for (final figure in audienceFigures(room))
+      for (final figure in audienceFigures(room, vipCount: controller.vipCount))
         '${figure.label ?? audienceLabel(figure.type)} ${readableAudience(figure.value)}',
     ];
     return Container(

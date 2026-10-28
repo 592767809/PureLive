@@ -10,7 +10,7 @@
 
 ## 做法
 
-`DouyuDanmakuProtocol` 把 `oni` 的 `vn` 报成 `LiveMessageType.online`，数据 `LiveAudienceUpdate(kind: onlineViewers)`；只收本房间的，空数字或非数字不报。应用（`room_controller.dart` 的 `_applyAudience`）已有这条通路，观众栏和详情页直接显示。斗鱼的在线位在 `room_texts.dart` 里用 `AudienceFigure.label` 覆盖成“贵宾”（翻译键 `audience_nobles`），其他平台仍是“在线”。`oun` 仍不上报。
+`DouyuDanmakuProtocol`仍通过online事件传递，但负载改为独立的`LiveVipCount`，不再使用`LiveAudienceUpdate(onlineViewers)`。控制器只在当前斗鱼直播间会话保留人数；广播结束、重新加载或换房后不沿用旧值。信息栏、详情、电视浮层统一显示“贵宾”，零值也显示；真人同名聊天保留。数据不写入LiveRoom.onlineViewers，不影响房间卡片、排序或持久化快照。`oun`仍不上报；非数字、负值和其他房间数据忽略。见纠正决定D-073。
 
 ## 和 5.4.19 的贵宾开关
 

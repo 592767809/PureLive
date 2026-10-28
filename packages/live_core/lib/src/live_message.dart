@@ -109,6 +109,18 @@ final class LiveAudienceUpdate {
   final int value;
 }
 
+/// The current room's VIP count; not a concurrent-viewer measurement.
+/// Kept separately from [LiveAudienceUpdate] so it cannot affect viewer
+/// rankings or be serialized into a room's online-viewer count.
+@immutable
+final class LiveVipCount {
+  /// Creates a VIP update.
+  const new({required this.value});
+
+  /// The non-negative VIP count supplied by the platform.
+  final int value;
+}
+
 /// Where a locally composed danmaku flies.
 enum LiveMessagePlacement {
   /// Scrolling.
