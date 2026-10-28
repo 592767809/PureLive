@@ -2844,7 +2844,7 @@
     "tv_iptv_empty": "还没有播放列表，可以在“IPTV管理”里导入",
     "tv_iptv_unavailable": "网络电视不可用",
     "tv_line": "线路",
-    "tv_link_desc": "支持各平台的直播间链接、短链接和纯粹直播的分享口令，按 OK 用遥控器输入",
+    "tv_link_desc": "支持直播间链接、短链接和分享口令；按 OK 用遥控器输入，或用手机扫码粘贴",
     "tv_link_hint": "输入或粘贴直播间链接、分享口令",
     "tv_link_parsing": "正在解析链接…",
     "tv_link_play": "播放",

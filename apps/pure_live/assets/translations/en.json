@@ -2845,7 +2845,7 @@
     "tv_iptv_empty": "No playlists yet; import one in IPTV management",
     "tv_iptv_unavailable": "IPTV is not available",
     "tv_line": "Line",
-    "tv_link_desc": "Room links of every platform, short links and PureLive share codes; press OK to type with the remote",
+    "tv_link_desc": "Room links, short links and share codes; press OK to type with the remote, or scan to paste from your phone",
     "tv_link_hint": "Type or paste a room link or share code",
     "tv_link_parsing": "Reading the link…",
     "tv_link_play": "Play",
