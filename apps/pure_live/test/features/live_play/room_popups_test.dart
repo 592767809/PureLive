@@ -512,6 +512,8 @@ void main() {
       // Takes the drag and reads the volume it starts from.
       await gesture.moveBy(const Offset(0, -20));
       await _settle(tester);
+      // Direction arbitration keeps the displacement from pointer down.
+      expect(volume, closeTo(0.5 + 20 / 393 * 1.2, 0.001));
       sets.clear();
       // A 480 Hz touch screen: four moves within one 120 Hz frame.
       for (var i = 0; i < 4; i++) {
@@ -521,8 +523,8 @@ void main() {
       expect(_key('gesture-level-volume'), findsOneWidget);
       await _settle(tester);
       expect(sets, hasLength(1), reason: 'one call a frame, not one a move');
-      // 40 of 393 high, 1.2 a full height.
-      expect(sets.single, closeTo(0.5 + 40 / 393 * 1.2, 0.001));
+      // 20 before arbitration plus 40 after it; 1.2 a full height.
+      expect(sets.single, closeTo(0.5 + 60 / 393 * 1.2, 0.001));
       await gesture.up();
       await _settle(tester);
       expect(sets, hasLength(1));
@@ -722,8 +724,11 @@ void main() {
       await _settle(tester);
       await gesture.up();
       await _settle(tester);
-      expect(system, greaterThan(0.3));
-      expect(system, lessThan(0.6), reason: "moved from 30 %, not from the player's 100 %");
+      expect(
+        system,
+        closeTo(0.3 + 60 / video.height * 1.2, 0.001),
+        reason: "all 60 pixels start from the system's 30 %, not the player's 100 %",
+      );
       final afterDrag = system;
 
       // The panel shows what the drag left.
