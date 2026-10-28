@@ -137,8 +137,8 @@ void main() {
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 20));
 
-  test('issue #79: VIP count is opt-in but a same-name human chat is retained', () async {
-    final controller = controllerFor(FakeSite(liveRoom()));
+  test('D01.34: the VIP count is an audience figure labelled 贵宾, not a chat line; a human chat is retained', () async {
+    final controller = controllerFor(FakeSite(liveRoom(platform: SiteIds.douyu)));
     await controller.start();
     await settle();
     final notices = DouyuDanmakuProtocol.decode(
@@ -149,6 +149,13 @@ void main() {
     danmaku.emit(DanmakuReceived(vip));
     await settle();
     expect(controller.chat.lines.where((line) => line.text == '17000'), isEmpty);
+    expect(
+      audienceFigures(
+        controller.room,
+        vipCount: controller.vipCount,
+      ).map((figure) => (figure.type, figure.value, figure.label)),
+      contains((AudienceMetricType.unknown, '17000', '贵宾')),
+    );
     danmaku.emit(
       const DanmakuReceived(
         LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: 'human', color: LiveMessageColor.white),
@@ -156,12 +163,70 @@ void main() {
     );
     await settle();
     expect(controller.chat.lines.map((line) => line.text), contains('human'));
-    await store.settings.set(Settings.danmakuShowVipCount, true);
-    danmaku.emit(DanmakuReceived(vip));
-    await settle();
-    expect(controller.chat.lines.map((line) => line.text), contains('17000'));
     controller.dispose();
   });
+
+  for (final heat in ['', '0', '12345']) {
+    test('PR94: VIP count never becomes real online viewers or a card rank ($heat)', () async {
+      final detail = liveRoom(platform: SiteIds.douyu).copyWith(popularity: heat, watching: heat);
+      final site = FakeSite(detail)..siteId = SiteIds.douyu;
+      final controller = controllerFor(site, room: detail);
+      await controller.start();
+      await settle();
+      final before = controller.room.audienceRankKey(preferRealOnline: false, platformEnabled: false);
+      final message = DouyuDanmakuProtocol.decode(
+        DouyuDanmakuProtocol.packet('type@=oni/vn@=17000/rid@=6/', type: DouyuDanmakuProtocol.serverPacketType),
+        roomId: '6',
+      ).single;
+      danmaku.emit(DanmakuReceived(message));
+      await settle();
+      expect(controller.vipCount, 17000);
+      expect(controller.room.onlineViewers, isEmpty);
+      expect(controller.room.hasRealOnlineCount, isFalse);
+      expect(controller.room.effectivePopularity, detail.effectivePopularity);
+      final after = controller.room.audienceRankKey(preferRealOnline: false, platformEnabled: false);
+      expect((after.metricPriority, after.value), (before.metricPriority, before.value));
+      expect(controller.chat.lines.where((line) => line.text == '17000'), isEmpty);
+      danmaku.emit(
+        const DanmakuReceived(
+          LiveMessage(
+            type: LiveMessageType.online,
+            userName: '',
+            message: '',
+            color: LiveMessageColor.white,
+            data: LiveVipCount(value: 0),
+          ),
+        ),
+      );
+      await settle();
+      expect(controller.vipCount, 0);
+      expect(audienceFigures(controller.room, vipCount: controller.vipCount).first.value, '0');
+      expect(controller.room.hasRealOnlineCount, isFalse);
+      site.room = detail.copyWith(liveStatus: LiveStatus.offline);
+      await controller.refreshDetail();
+      expect(controller.vipCount, isNull, reason: 'An ended broadcast must not retain the old VIP figure.');
+      danmaku.emit(
+        const DanmakuReceived(
+          LiveMessage(
+            type: LiveMessageType.online,
+            userName: '',
+            message: '',
+            color: LiveMessageColor.white,
+            data: LiveVipCount(value: 222),
+          ),
+        ),
+      );
+      await settle();
+      expect(controller.vipCount, isNull, reason: 'A late packet must not revive an ended broadcast VIP count.');
+      controller.dispose();
+      final next = controllerFor(
+        FakeSite(LiveRoom(platform: SiteIds.douyu, roomId: '7'))..siteId = SiteIds.douyu,
+        room: LiveRoom(platform: SiteIds.douyu, roomId: '7'),
+      );
+      expect(next.vipCount, isNull, reason: 'A different room starts without a VIP figure.');
+      next.dispose();
+    });
+  }
 
   test('issue #78: larger font survives persistence without changing the default', () async {
     expect(store.settings.get(Settings.danmakuFontSize), 16);

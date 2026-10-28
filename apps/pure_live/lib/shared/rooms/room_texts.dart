@@ -1,7 +1,9 @@
+import 'package:flutter/widgets.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_media/live_media.dart';
 import 'package:live_net/live_net.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/network.dart';
 import 'package:pure_live/i18n/i18n.dart';
 
@@ -31,25 +33,37 @@ String readableAudience(String value) {
 
 String _short(double value) => value >= 100 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 
-/// One audience figure of the room, labelled by what it means.
-typedef AudienceFigure = ({AudienceMetricType type, String value});
+/// One audience figure of the room, labelled by what it means; `label`
+/// overrides [audienceLabel] when the platform's number is something else
+/// (Douyu's VIP count is a separate session figure, not online viewers).
+typedef AudienceFigure = ({AudienceMetricType type, String value, String? label, IconData? icon});
 
 /// The room's audience figures, each with its own meaning (audience.dart):
 /// concurrent viewers first, then heat, then cumulative viewers. 3.x showed
 /// one number whose label depended on a setting, so Bilibili's heat and its
 /// new online count (C-1) could not be told apart.
-List<AudienceFigure> audienceFigures(LiveRoom room) => [
-  if (room.hasRealOnlineCount) (type: AudienceMetricType.onlineViewers, value: room.effectiveOnlineViewers),
-  if (hasAudienceValue(room.effectivePopularity))
-    (type: AudienceMetricType.popularity, value: room.effectivePopularity),
-  if (hasAudienceValue(room.effectiveTotalViewers))
-    (type: AudienceMetricType.totalViewers, value: room.effectiveTotalViewers),
-  if (!room.hasRealOnlineCount &&
-      !hasAudienceValue(room.effectivePopularity) &&
-      !hasAudienceValue(room.effectiveTotalViewers) &&
-      room.supportsRealOnlineCount)
-    (type: AudienceMetricType.onlineViewers, value: ''),
-];
+List<AudienceFigure> audienceFigures(LiveRoom room, {int? vipCount}) {
+  AudienceFigure figure(AudienceMetricType type, String value) => (type: type, value: value, label: null, icon: null);
+
+  return [
+    if (room.platform == SiteIds.douyu && vipCount != null && vipCount >= 0)
+      (
+        type: AudienceMetricType.unknown,
+        value: '$vipCount',
+        label: i18n('audience_nobles'),
+        icon: AppIcons.audienceOnline,
+      ),
+    if (room.hasRealOnlineCount) figure(AudienceMetricType.onlineViewers, room.effectiveOnlineViewers),
+    if (hasAudienceValue(room.effectivePopularity)) figure(AudienceMetricType.popularity, room.effectivePopularity),
+    if (hasAudienceValue(room.effectiveTotalViewers))
+      figure(AudienceMetricType.totalViewers, room.effectiveTotalViewers),
+    if (!room.hasRealOnlineCount &&
+        !hasAudienceValue(room.effectivePopularity) &&
+        !hasAudienceValue(room.effectiveTotalViewers) &&
+        room.supportsRealOnlineCount)
+      figure(AudienceMetricType.onlineViewers, ''),
+  ];
+}
 
 /// The label of an audience figure (3.x's keys).
 String audienceLabel(AudienceMetricType type) => i18n(switch (type) {

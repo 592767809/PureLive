@@ -152,7 +152,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> with SingleTickerPr
     return Object.hash(
       Object.hash(room.nick, room.avatar, room.area, room.title, room.notice, room.introduction, room.link),
       Object.hash(room.effectiveLiveStatus, room.effectiveRestriction, room.startedAt, room.roomId),
-      Object.hashAll(audienceFigures(room)),
+      Object.hashAll(audienceFigures(room, vipCount: _controller.vipCount)),
     );
   }
 
@@ -501,7 +501,7 @@ class _Figures extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final shown = (room.isLiveNow || room.isRecord) && room.platform != SiteIds.iptv;
-    final figures = shown ? audienceFigures(room) : const <AudienceFigure>[];
+    final figures = shown ? audienceFigures(room, vipCount: controller.vipCount) : const <AudienceFigure>[];
     final startedAt = room.isLiveNow ? room.startedAt : null;
     if (figures.isEmpty && startedAt == null) return const SizedBox(height: 4);
     final value = theme.textTheme.titleLarge?.emphasis.tabular;
@@ -529,7 +529,10 @@ class _Figures extends StatelessWidget {
           final cellWidth = (constraints.maxWidth - 2 - (count - 1)) / count;
           final cells = [
             for (final figure in figures)
-              cell(Text(figure.value.isEmpty ? '—' : readableAudience(figure.value)), audienceLabel(figure.type)),
+              cell(
+                Text(figure.value.isEmpty ? '—' : readableAudience(figure.value)),
+                figure.label ?? audienceLabel(figure.type),
+              ),
             if (startedAt != null)
               // A07.17 c6: `12:13` where `12 小时 13 分` does not fit the cell.
               cell(

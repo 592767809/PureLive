@@ -1132,7 +1132,6 @@ class MultiviewController extends ChangeNotifier {
   void _onDanmaku(DanmakuEvent event) {
     if (event is! DanmakuReceived) return;
     final message = event.message;
-    if (message.data == 'douyu-vip-count' && !store.settings.get(Settings.danmakuShowVipCount)) return;
     switch (message.type) {
       case LiveMessageType.chat:
         if (_filter.accepts(message)) _flying.add(message);

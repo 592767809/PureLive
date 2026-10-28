@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
+import 'package:pure_live/shared/rooms/share_code.dart';
 import 'package:pure_live/tv/home/tv_home_page.dart';
 import 'package:pure_live/tv/room/tv_live_play_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_catalog.dart';
@@ -36,6 +38,7 @@ import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
 import 'package:pure_live/tv/widgets/tv_page_header.dart';
+import 'package:pure_live/tv/widgets/tv_qr_panel.dart';
 import 'package:pure_live/tv/widgets/tv_room_card.dart';
 import 'package:pure_live/tv/widgets/tv_room_row.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
@@ -44,6 +47,8 @@ import 'package:pure_live/tv/widgets/tv_tabs.dart';
 import '../features/live_play/live_play_support.dart';
 import '../qa_capture.dart';
 import '../support.dart';
+
+final class _LocalHttp extends HttpOverrides;
 
 /// A platform with [count] recommended rooms that all play.
 final class _TvSite extends LiveSite {
@@ -1061,6 +1066,135 @@ void main() {
     await _close(tester, services);
   });
 
+  group('issue 98: phone input on TV link playback', () {
+    Future<void> enter(WidgetTester tester) async {
+      for (var i = 0; i < 4; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-link-phone')), findsOneWidget);
+    }
+
+    Future<Uri> open(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('tv-link-phone')));
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-phone-dialog')), findsOneWidget);
+      expect(find.byType(TvQrPanel), findsOneWidget);
+      final address = Uri.parse(tester.widget<TvQrPanel>(find.byType(TvQrPanel)).data);
+      // Only the application's newly created one-off server is contacted.
+      return address.replace(host: '127.0.0.1');
+    }
+
+    Future<String> request(WidgetTester tester, Uri address, {String? link}) async {
+      String? body;
+      Object? failure;
+      var done = false;
+      await tester.runAsync(() async {
+        unawaited(
+          HttpOverrides.runWithHttpOverrides(() async {
+                final client = HttpClient();
+                try {
+                  final req = await client.openUrl(link == null ? 'GET' : 'POST', address);
+                  if (link != null) {
+                    req.headers.contentType = ContentType('application', 'x-www-form-urlencoded', charset: 'utf-8');
+                    req.write('link=${Uri.encodeQueryComponent(link)}');
+                  }
+                  final response = await req.close();
+                  expect(response.statusCode, HttpStatus.ok);
+                  return await utf8.decoder.bind(response).join();
+                } finally {
+                  client.close(force: true);
+                }
+              }, _LocalHttp())
+              .timeout(const Duration(seconds: 5))
+              .then(
+                (value) {
+                  body = value;
+                  done = true;
+                },
+                onError: (Object error) {
+                  failure = error;
+                  done = true;
+                },
+              ),
+        );
+      });
+      // The app's server futures belong to the widget-test zone. Pump them
+      // while the loopback client runs instead of blocking inside runAsync.
+      for (var i = 0; i < 300 && !done; i++) {
+        await _settle(tester, rounds: 1);
+      }
+      expect(done, isTrue, reason: 'local form completes within the bounded wait');
+      expect(failure, isNull);
+      return body!;
+    }
+
+    testWidgets('a pasted multiline share code opens the TV room through the real local form', (tester) async {
+      final services = await _pumpApp(tester);
+      await enter(tester);
+      final address = await open(tester);
+      final html = await request(tester, address);
+      expect(html, contains('name="link"'));
+      expect(html, contains('<textarea'));
+      expect(html, contains('链接放映'));
+      final code = encodeRoomShareCode(LiveRoom(platform: SiteIds.bilibili, roomId: '1', title: '本地测试'));
+      expect(await request(tester, address, link: '分享直播间\n$code\n'), contains('已发送到电视'));
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-phone-dialog')), findsNothing);
+      expect(find.byType(TvLivePlayPage), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _close(tester, services);
+    });
+
+    testWidgets('invalid input remains editable; cancel and blank submissions preserve it', (tester) async {
+      final services = await _pumpApp(tester);
+      await enter(tester);
+      final first = await open(tester);
+      await request(tester, first, link: '  not-a-room  ');
+      await _settle(tester);
+      expect(tester.widget<TvInputField>(find.byKey(const ValueKey('tv-link-field'))).text, 'not-a-room');
+      expect(tester.widget<Text>(find.byKey(const ValueKey('tv-link-status'))).data, isNot(contains('按 OK')));
+      expect(find.byType(TvLivePlayPage), findsNothing);
+      final second = await open(tester);
+      expect(await request(tester, second), contains('>not-a-room</textarea>'));
+      await tester.tap(find.byKey(const ValueKey('tv-phone-close')));
+      await _settle(tester);
+      expect(tester.widget<TvInputField>(find.byKey(const ValueKey('tv-link-field'))).text, 'not-a-room');
+      final third = await open(tester);
+      await request(tester, third, link: '  \n ');
+      await _settle(tester);
+      expect(tester.widget<TvInputField>(find.byKey(const ValueKey('tv-link-field'))).text, 'not-a-room');
+      expect(find.byType(TvLivePlayPage), findsNothing);
+      expect(tester.takeException(), isNull);
+      await _close(tester, services);
+    });
+
+    testWidgets('the remote reaches phone input and Back cancels without changing the draft', (tester) async {
+      final services = await _pumpApp(tester);
+      await enter(tester);
+      await _press(tester, LogicalKeyboardKey.arrowRight);
+      await _press(tester, LogicalKeyboardKey.arrowDown);
+      await _press(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-phone-dialog')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pump(const Duration(milliseconds: 400));
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-phone-dialog')), findsNothing);
+      expect(tester.widget<TvInputField>(find.byKey(const ValueKey('tv-link-field'))).text, isEmpty);
+      expect(tester.widget<TvButton>(find.byKey(const ValueKey('tv-link-play'))).onTap, isNull);
+      // The original button keeps its focus after the modal closes.
+      await _press(tester, LogicalKeyboardKey.select);
+      await _settle(tester);
+      expect(find.byKey(const ValueKey('tv-phone-dialog')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('tv-phone-close')));
+      await _settle(tester);
+      expect(tester.takeException(), isNull);
+      await _close(tester, services);
+    });
+  });
+
   testWidgets('A17.5 c12: 链接放映 sits between 关注分区 and 搜索; its field types with the remote', (tester) async {
     final services = await _pumpApp(tester);
     for (var i = 0; i < 4; i++) {
@@ -1070,7 +1204,7 @@ void main() {
     await _press(tester, LogicalKeyboardKey.select);
     await _settle(tester);
     expect(find.byKey(const ValueKey('tv-link-field')), findsOneWidget);
-    expect(find.text('支持各平台的直播间链接、短链接和纯粹直播的分享口令，按 OK 用遥控器输入'), findsOneWidget);
+    expect(find.text('支持直播间链接、短链接和分享口令；按 OK 用遥控器输入，或用手机扫码粘贴'), findsOneWidget);
     // Nothing typed: "播放" waits.
     expect(tester.widget<TvButton>(find.byKey(const ValueKey('tv-link-play'))).onTap, isNull);
     await _close(tester, services);

@@ -163,8 +163,9 @@ abstract final class DouyuDanmakuProtocol {
   /// The messages of one server [frame] for room [roomId] (3.x
   /// `decodeMessage`): chat (`chatmsg`), super chats (`comm_chatmsg`,
   /// `voice_trlt`), gifts (`dgb`, M4.D; 3.x ignored them), the 贵宾 count
-  /// (`oni`) and mutes (`newblackres`); other packets are ignored. A packet
-  /// that fails to decode is skipped without losing the others.
+  /// (`oni`, a separate VIP figure) and mutes
+  /// (`newblackres`); other packets are ignored. A packet that fails to
+  /// decode is skipped without losing the others.
   /// [filterSuspectedAutomated] is read for each suspected chat, so a changed
   /// setting applies at once. [gifts] prices and pictures the gifts it knows
   /// ([gift]).
@@ -261,19 +262,21 @@ abstract final class DouyuDanmakuProtocol {
     );
   }
 
-  /// `oni`: the room's 贵宾 count (`vn`), shown as a chat line from 贵宾 as in
-  /// 3.x. Another room's packet and a missing count give nothing.
+  /// `oni`: the room's 贵宾 count (`vn`), reported as a separate VIP figure beside
+  /// the heat and the time on air (2026-10-28), not as a chat line from 贵宾
+  /// as in 3.x. Another room's packet and a missing or non-numeric count give
+  /// nothing.
   static LiveMessage? _vip(Map<String, String> fields, String roomId) {
     final packetRoomId = fields['rid'] ?? '';
     if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
-    final count = (fields['vn'] ?? '').trim();
-    if (count.isEmpty) return null;
+    final count = int.tryParse((fields['vn'] ?? '').trim());
+    if (count == null || count < 0) return null;
     return LiveMessage(
-      type: LiveMessageType.chat,
-      userName: '贵宾',
-      message: count,
+      type: LiveMessageType.online,
+      userName: '',
+      message: '',
       color: LiveMessageColor.white,
-      data: 'douyu-vip-count',
+      data: LiveVipCount(value: count),
     );
   }
 

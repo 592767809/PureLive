@@ -269,6 +269,11 @@ class LiveRoomController extends ChangeNotifier {
   /// The room as known now (the card's data until the detail arrives).
   LiveRoom get room => _room;
 
+  int? _vipCount;
+
+  /// A VIP count received in this room session, separate from real viewers.
+  int? get vipCount => _vipCount;
+
   /// Where the page is.
   RoomStage get stage => _stage;
 
@@ -577,6 +582,7 @@ class LiveRoomController extends ChangeNotifier {
     _sawOffline = false;
     _carousel = false;
     _stage = RoomStage.loading;
+    _vipCount = null;
     _failure = null;
     _catchup = null;
     _notify();
@@ -634,6 +640,7 @@ class LiveRoomController extends ChangeNotifier {
     // As a room entry: "正在进入直播间…" while the qualities and the video
     // are fetched.
     _stage = RoomStage.loading;
+    _vipCount = null;
     _failure = null;
     _notify();
     await _startStream(epoch);
@@ -1126,6 +1133,7 @@ class LiveRoomController extends ChangeNotifier {
     // arguments may have changed, and the old connection may not end
     // (SHOWROOM, Kilakila, TwitCasting keep it open).
     final newBroadcast = playing && !reload && _isNewBroadcast(fetched);
+    if (newBroadcast || !fetched.isLiveNow) _vipCount = null;
     if (playing && !reload) _sawOffline = !fetched.isPlayableNow;
     _room = _room.mergeFrom(fetched).withAudienceFallbackFrom(_room);
     _notify();
@@ -1251,7 +1259,6 @@ class LiveRoomController extends ChangeNotifier {
   /// change [chat], which tells the list itself (B08); the room's listeners
   /// hear of what they show: the super chats and [nameHint].
   void _onMessage(LiveMessage message) {
-    if (message.data == 'douyu-vip-count' && !store.settings.get(Settings.danmakuShowVipCount)) return;
     switch (message.type) {
       case LiveMessageType.chat:
         // B06: the names tell whether this connection is a guest's
@@ -1391,6 +1398,17 @@ class LiveRoomController extends ChangeNotifier {
 
   /// An audience figure from the danmaku (3.x `updateRuntimeAudience`).
   void _applyAudience(Object? data) {
+    if (data is LiveVipCount) {
+      if (_room.platform == SiteIds.douyu &&
+          _room.isLiveNow &&
+          _danmakuStage &&
+          data.value >= 0 &&
+          _vipCount != data.value) {
+        _vipCount = data.value;
+        _notify();
+      }
+      return;
+    }
     final update = switch (data) {
       final LiveAudienceUpdate update => update,
       final num value => LiveAudienceUpdate(

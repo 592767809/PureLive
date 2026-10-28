@@ -132,12 +132,6 @@ class DanmakuSettingsContent extends ConsumerWidget {
                 onSelectionChanged: (selection) => set(Settings.danmakuPausedBehavior, selection.first),
               ),
             ),
-            SettingSwitchRow(
-              settingKey: 'vipCount',
-              title: i18n('danmaku_show_vip_count'),
-              value: watchSetting(ref, Settings.danmakuShowVipCount),
-              onChanged: (value) => set(Settings.danmakuShowVipCount, value),
-            ),
             // A08.12: the platform's valuable gifts over the picture (the
             // room, fullscreen, the mini windows, the multi-view, the TV).
             SettingSwitchRow(
