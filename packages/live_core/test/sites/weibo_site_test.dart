@@ -132,6 +132,45 @@ final class _Failing implements LiveHttp {
 LiveResponse _response(LiveRequest request, Object body, {int status = 200}) =>
     LiveResponse(status: status, bytes: utf8.encode(body is String ? body : jsonEncode(body)), url: request.url);
 
+LiveResponse _profileResponse(LiveRequest request, {int codec = 7}) {
+  final payload = [0x10 | codec, 0, 0, 0, 0, 1, 0x64, 0, 0x1f, 0xff, 0xe1, 0, 1, 0x67];
+  return LiveResponse(
+    status: 200,
+    url: request.url,
+    bytes: [
+      70,
+      76,
+      86,
+      1,
+      5,
+      0,
+      0,
+      0,
+      9,
+      0,
+      0,
+      0,
+      0,
+      9,
+      0,
+      0,
+      payload.length,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      ...payload,
+      0,
+      0,
+      0,
+      payload.length + 11,
+    ],
+  );
+}
+
 typedef _Setup = ({WeiboSite site, ReplayHttp http});
 
 /// The site over [samples]; S03-recommend was recorded with 3.x's
@@ -149,6 +188,151 @@ final Matcher _cancelled = throwsA(
 );
 
 void main() {
+  test('issue #88: discovery offers independently probed public quality variants', () async {
+    final site = WeiboSite(
+      _Scripted((request) {
+        if (request.url.host == 'weibo.com') {
+          return _response(request, _answer(url: 'https://plwb00.live.weibo.com/alicdn/5000000000000000_wb720avc.flv'));
+        }
+        final hevc = request.url.path.endsWith('/5000000000000000.flv');
+        final payload = <int>[if (hevc) 0x1c else 0x17, 0, 0, 0, 0, 1, 0x64, 0, 0x1f, 0xff, 0xe1, 0, 1, 0x67];
+        return LiveResponse(
+          status: 200,
+          url: request.url,
+          bytes: [
+            70,
+            76,
+            86,
+            1,
+            5,
+            0,
+            0,
+            0,
+            9,
+            0,
+            0,
+            0,
+            0,
+            9,
+            0,
+            0,
+            payload.length,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            ...payload,
+            0,
+            0,
+            0,
+            payload.length + 11,
+          ],
+        );
+      }),
+    );
+    final room = await site.getRoomDetail(roomId: _id);
+    final qualities = await site.discoverPlayQualities(detail: room);
+    expect(qualities.map((q) => q.selectionId), ['weibo-source', 'weibo-1080-avc', 'original', 'weibo-480-avc']);
+    expect(qualities.map((q) => q.codec), ['hevc', 'avc', 'avc', 'avc']);
+  });
+
+  test('issue #88: an unavailable optional profile preserves the original choice', () async {
+    final http = _Scripted(
+      (r) => r.url.host == 'weibo.com'
+          ? _response(r, _answer(url: 'https://plwb00.live.weibo.com/alicdn/5000000000000000_wb720avc.flv'))
+          : _response(r, 'not available', status: 404),
+    );
+    final site = WeiboSite(http);
+    final room = await site.getRoomDetail(roomId: _id);
+    expect((await site.discoverPlayQualities(detail: room)).map((q) => q.selectionId), ['original']);
+    final original = await site.resolvePlayUrls(detail: room, quality: WeiboApi.original);
+    expect(original.urls.single, endsWith('_wb720avc.flv'));
+    await expectLater(
+      site.resolvePlayUrls(
+        detail: room,
+        quality: const LivePlayQuality(
+          quality: '蓝光',
+          id: 'weibo-1080-avc',
+          data: 'https://evil.example.test/stream.flv',
+        ),
+      ),
+      throwsA(isA<StreamUnavailable>()),
+    );
+    expect(http.requests.any((r) => r.url.host == 'evil.example.test'), isFalse);
+  });
+
+  test('issue #88: advanced playback rechecks live access before probing a CDN', () async {
+    for (final restricted in [_answer(watchLimit: 10), _answer(status: 3), _answer(playSwitch: 0)]) {
+      final http = _Scripted((r) => _response(r, restricted));
+      final site = WeiboSite(http);
+      final room = WeiboApi.detail(
+        jsonEncode(_answer(url: 'https://plwb00.live.weibo.com/alicdn/5000000000000000_wb720avc.flv')),
+        liveId: _id,
+      );
+      for (final recover in [false, true]) {
+        const requested = LivePlayQuality(quality: '蓝光', id: 'weibo-1080-avc');
+        await expectLater(
+          recover
+              ? site.resolvePlayUrlsForRecovery(detail: room, quality: requested)
+              : site.resolvePlayUrls(detail: room, quality: requested),
+          throwsA(isA<StreamUnavailable>()),
+        );
+      }
+      expect(http.requests.every((r) => r.url.host == 'weibo.com'), isTrue);
+    }
+  });
+
+  test('issue #88: selection and recovery rebuild the chosen profile from fresh room data', () async {
+    var details = 0;
+    final http = _Scripted((r) {
+      if (r.url.host == 'weibo.com') {
+        details++;
+        return _response(
+          r,
+          _answer(url: 'https://plwb00.live.weibo.com/alicdn/500000000000000${details}_wb720avc.flv'),
+        );
+      }
+      return _profileResponse(r);
+    });
+    final site = WeiboSite(http);
+    final room = await site.getRoomDetail(roomId: _id);
+    const selected = LivePlayQuality(quality: '蓝光', id: 'weibo-1080-avc', data: 'https://evil.test/injected.flv');
+    final played = await site.resolvePlayUrls(detail: room, quality: selected);
+    expect(played.urls.single, endsWith('/5000000000000002_wb1080avc.flv'));
+    expect(played.appliedQualityData, 'weibo-1080-avc');
+    final recovered = await site.resolvePlayUrlsForRecovery(detail: room, quality: selected);
+    expect(recovered.urls.single, endsWith('/5000000000000003_wb1080avc.flv'));
+    expect(recovered.lines.single.codec, 'avc');
+    expect(http.requests.every((r) => r.url.host != 'evil.test'), isTrue);
+  });
+
+  test('issue #88: a codec-mismatched transcode is not advertised as AVC', () async {
+    final http = _Scripted(
+      (r) => r.url.host == 'weibo.com'
+          ? _response(r, _answer(url: 'https://plwb00.live.weibo.com/alicdn/5000000000000000_wb720avc.flv'))
+          : _profileResponse(r, codec: 12),
+    );
+    final site = WeiboSite(http);
+    final room = await site.getRoomDetail(roomId: _id);
+    final qualities = await site.discoverPlayQualities(detail: room);
+    expect(qualities.map((q) => q.selectionId), ['weibo-source', 'original']);
+    expect(qualities.first.codec, 'hevc');
+    await expectLater(
+      site.resolvePlayUrls(
+        detail: room,
+        quality: const LivePlayQuality(quality: '蓝光', id: 'weibo-1080-avc'),
+      ),
+      throwsA(isA<StreamUnavailable>()),
+    );
+    final cancelled = CancelToken()..cancel();
+    final before = http.requests.length;
+    await expectLater(site.discoverPlayQualities(detail: room, cancel: cancelled), _cancelled);
+    expect(http.requests, hasLength(before));
+  });
+
   group('requests', () {
     test("3.x's headers on every request, redirects not followed", () async {
       final setup = _setup(['S03-recommend', 'S03-live'], anyCount: true);
@@ -177,7 +361,7 @@ void main() {
       expect(site, isA<LiveSiteLinks>());
       expect(site, isNot(isA<LiveSearchPaginationPolicy>()), reason: '3.x never paged Weibo searches');
       expect(site, isNot(isA<LiveSiteCursorDirectoryPager>()));
-      expect(site, isNot(isA<LiveQualityDiscovery>()));
+      expect(site, isA<LiveQualityDiscovery>());
     });
 
     test('transport failures are NetworkFailure; a cancelled transport stays cancelled; statuses are typed', () async {

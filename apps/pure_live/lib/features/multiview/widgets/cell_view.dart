@@ -24,6 +24,7 @@ class MultiviewCellView extends StatelessWidget {
     required this.onLongPress,
     required this.onRetry,
     this.onPlayCarousel,
+    this.mixAudio = false,
     this.saver = false,
     this.showVideo = true,
     this.keepScreenOn = true,
@@ -41,6 +42,9 @@ class MultiviewCellView extends StatelessWidget {
 
   /// The cell's sound plays: a 2-point outline and the "声音来源" mark.
   final bool audible;
+
+  /// Multiple audio mode changes the audible badge wording.
+  final bool mixAudio;
 
   /// The picker fills this cell: a dashed frame (and "正在为这一格选台" when
   /// it is empty).
@@ -131,7 +135,8 @@ class MultiviewCellView extends StatelessWidget {
                       position: position,
                       room: cell.stage == CellStage.empty ? null : cell.room,
                       audible: audible,
-                      compact: constraints.maxWidth < 160,
+                      mixAudio: mixAudio,
+                      compact: constraints.maxWidth - nameInset - 12 < 160 * MediaQuery.textScalerOf(context).scale(1),
                     ),
                   ),
                   if (saver && video)
@@ -201,11 +206,18 @@ class _Mark extends StatelessWidget {
 
 /// The number, the room and the "声音来源" mark in the top-left corner.
 class _CornerMarks extends StatelessWidget {
-  const new({required this.position, required this.room, required this.audible, required this.compact});
+  const new({
+    required this.position,
+    required this.room,
+    required this.audible,
+    required this.mixAudio,
+    required this.compact,
+  });
 
   final int position;
   final LiveRoom? room;
   final bool audible;
+  final bool mixAudio;
   final bool compact;
 
   @override
@@ -245,7 +257,7 @@ class _CornerMarks extends StatelessWidget {
         if (audible) ...[
           const SizedBox(width: 4),
           Tooltip(
-            message: i18n('multiview_audio_focus_badge'),
+            message: i18n(mixAudio ? 'multiview_sound_playing_badge' : 'multiview_audio_focus_badge'),
             child: _Mark(
               key: const ValueKey('multiview-audio-badge'),
               color: scheme.primary,
@@ -256,7 +268,7 @@ class _CornerMarks extends StatelessWidget {
                   if (!compact) ...[
                     const SizedBox(width: 3),
                     Text(
-                      i18n('multiview_audio_focus_badge'),
+                      i18n(mixAudio ? 'multiview_sound_playing_badge' : 'multiview_audio_focus_badge'),
                       style: _markStyle(context).copyWith(color: scheme.onPrimary),
                     ),
                   ],

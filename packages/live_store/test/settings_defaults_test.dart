@@ -268,6 +268,7 @@ const List<String> _withKick = [
 /// Settings v4 added (no 3.x key) and their defaults, with the task.
 const Map<String, Object> newInV4 = {
   'autoSwitchLiveFollows': false, // G02.9: existing recovery stays opt-in and unchanged.
+  'multiviewMixAudio': false,
   'homeNavigationAutoHide': false,
   'mobileNavigationLabels': true,
   'desktopNavigationLabels': true,

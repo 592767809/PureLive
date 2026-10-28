@@ -47,13 +47,16 @@ MpvPlatform? mpvPlatformOf(TargetPlatform platform) => switch (platform) {
 ///   `vid=no`; Android does not re-send `vid=auto` after an open.
 /// - Windows reports presented frames (the fork's `frameRevision`).
 final class MpvEngine implements PlayerEngine, PlaybackRate {
-  new _(this.player, this.controller, this.config) {
+  new _(this.player, this.controller, this.config, {void Function(String)? onBufferingSnapshot}) {
+    _bufferingProbe = NativeBufferingProbe(read: _readProperty, report: onBufferingSnapshot ?? debugPrint);
     _gate = NativeDiagnosticGate(onError: (error) => _add(EngineError(error)));
     _bind();
   }
 
   /// Creates the player and its video controller. Needs a Flutter binding.
-  static Future<MpvEngine> create({MpvEngineConfig? config}) async {
+  /// [onBufferingSnapshot] receives bounded, non-identifying native state
+  /// before a stall timeout, so applications can retain it at normal log level.
+  static Future<MpvEngine> create({MpvEngineConfig? config, void Function(String)? onBufferingSnapshot}) async {
     final resolved = config ?? MpvEngineConfig(platform: mpvPlatformOf(defaultTargetPlatform) ?? MpvPlatform.linux);
     MediaKit.ensureInitialized();
     final player = Player(configuration: const PlayerConfiguration(title: 'Pure Live'));
@@ -78,7 +81,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
         androidAttachSurfaceAfterVideoParameters: resolved.customOutput || resolved.androidCompatibility ? null : false,
       ),
     );
-    return MpvEngine._(player, controller, resolved);
+    return MpvEngine._(player, controller, resolved, onBufferingSnapshot: onBufferingSnapshot);
   }
 
   /// The media_kit player.
@@ -94,7 +97,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
   final StreamController<EngineEvent> _events = StreamController.broadcast(sync: true);
   final List<StreamSubscription<Object?>> _subscriptions = [];
   VoidCallback? _frameListener;
-  late final NativeBufferingProbe _bufferingProbe = NativeBufferingProbe(read: _readProperty, report: debugPrint);
+  late final NativeBufferingProbe _bufferingProbe;
   bool _hasSource = false;
   var _audioOnly = false;
   var _externalAudio = false;

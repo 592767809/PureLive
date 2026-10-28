@@ -353,6 +353,47 @@ void main() {
     }
   });
 
+  testWidgets('issue #87: four audio badges follow normal and bare mode controls', (tester) async {
+    final (services, _) = await _pump(tester, const Size(1280, 800), rooms: ['1', '2', '3', '4']);
+    for (final room in ['1', '2', '3', '4']) {
+      await _pick(tester, room);
+    }
+    expect(_key('multiview-audio-badge'), findsOneWidget);
+    await tester.tap(_key('multiview-mix-audio'));
+    await _wait(tester);
+    expect(_key('multiview-audio-badge'), findsNWidgets(4));
+    expect(services.store.settings.get(Settings.multiviewMixAudio), isTrue);
+    await tester.tap(_key('multiview-mute-all'));
+    await _wait(tester);
+    expect(_key('multiview-audio-badge'), findsNothing);
+    await tester.tap(_key('multiview-mute-all'));
+    await _wait(tester);
+    expect(_key('multiview-audio-badge'), findsNWidgets(4));
+    for (final mode in ['immersive', 'fullscreen']) {
+      await tester.tap(_key('multiview-$mode'));
+      await _wait(tester);
+      final mix = _key('multiview-bare-mix-audio');
+      expect(tester.getSize(mix), const Size.square(48));
+      expect(tester.getRect(mix).overlaps(tester.getRect(_key('multiview-bare-mute-all'))), isFalse);
+      await tester.tap(mix);
+      await _wait(tester);
+      expect(_key('multiview-audio-badge'), findsOneWidget);
+      await tester.tap(mix);
+      await _wait(tester);
+      expect(_key('multiview-audio-badge'), findsNWidgets(4));
+      await tester.tap(_key('multiview-$mode-exit'));
+      await _wait(tester);
+    }
+    expect(tester.takeException(), isNull);
+    await _close(tester, services);
+  });
+
+  testWidgets('issue #87: multi-audio has an explicit opt-in control', (tester) async {
+    final (services, _) = await _pump(tester, const Size(1280, 800));
+    expect(_key('multiview-mix-audio'), findsOneWidget);
+    await _close(tester, services);
+  });
+
   testWidgets('issue #32: choose vertical, keep sessions on resize and enter fullscreen', (tester) async {
     final (services, _) = await _pump(tester, const Size(1080, 1920));
     await _pick(tester, '1');

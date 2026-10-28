@@ -11,6 +11,7 @@ import 'package:live_net/live_net.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_record/live_record.dart';
 import 'package:live_store/live_store.dart';
+import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/launch_args.dart';
 import 'package:pure_live/app/recording.dart';
 
@@ -77,7 +78,8 @@ final class AppServices {
   /// the live room uses one, multi-view one per cell). [config] carries the
   /// player settings (decoder, output, M9/M13).
   PlaybackSession newPlaybackSession({MpvEngineConfig? config}) => PlaybackSession(
-    engine: () => MpvEngine.create(config: config),
+    engine: () =>
+        MpvEngine.create(config: config, onBufferingSnapshot: (line) => AppLog.instance.info('playback', line)),
     opener: mediaOpener,
   );
 

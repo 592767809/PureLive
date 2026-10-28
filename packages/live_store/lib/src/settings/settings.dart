@@ -81,6 +81,9 @@ abstract final class Settings {
   /// Switch an ended or unrecoverable live room to another online follow.
   static const autoSwitchLiveFollows = BoolSetting('autoSwitchLiveFollows', section: 'app', defaultValue: false);
 
+  /// Opt-in simultaneous audio in multiview; each cell keeps its room volume.
+  static const multiviewMixAudio = BoolSetting('multiviewMixAudio', section: 'app', defaultValue: false);
+
   /// Show the splash page.
   static const showSplashPage = BoolSetting('showSplashPage', section: 'app', defaultValue: true);
 
@@ -2018,6 +2021,7 @@ abstract final class Settings {
     skippedUpdateVersion,
     enableFullScreenDefault,
     autoSwitchLiveFollows,
+    multiviewMixAudio,
     showSplashPage,
     refreshRateMode,
     matchVideoFrameRate,

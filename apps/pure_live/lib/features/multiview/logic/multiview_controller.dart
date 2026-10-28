@@ -183,6 +183,7 @@ class MultiviewController extends ChangeNotifier {
     if (this.maxCells < MultiviewLayout.focus.capacity || this.maxCells > desktopMaxCells) {
       throw ArgumentError.value(this.maxCells, 'maxCells', 'must be between 4 and $desktopMaxCells');
     }
+    _mixAudio = store.settings.get(Settings.multiviewMixAudio);
     _filter = DanmakuMessageFilter(clock: _now);
     _cells.addAll([for (var i = 0; i < _layout.capacity; i++) _newCell()]);
   }
@@ -248,6 +249,7 @@ class MultiviewController extends ChangeNotifier {
   int _focused = 0;
   int _audio = 0;
   bool _allMuted = false;
+  bool _mixAudio = false;
   bool _smallCellsLowQuality = false;
   bool _danmakuEnabled = false;
   bool _disposed = false;
@@ -317,7 +319,7 @@ class MultiviewController extends ChangeNotifier {
   /// The large cell of the focus layout.
   int get focusedIndex => _focused;
 
-  /// The cell whose sound plays (3.x's audio focus).
+  /// The selected audio cell, used alone unless [mixAudio] is enabled.
   int get audioIndex => _audio;
 
   /// The cell the page-level controls act on: the large cell in the focus
@@ -327,6 +329,13 @@ class MultiviewController extends ChangeNotifier {
 
   /// Every cell is silent.
   bool get allMuted => _allMuted;
+
+  /// All filled cells may play their own audio; false preserves one source.
+  bool get mixAudio => _mixAudio;
+
+  /// Whether this cell currently has an enabled, nonzero audio output.
+  bool isCellAudible(int index) =>
+      index >= 0 && index < _cells.length && _cells[index].playing && _audibleVolume(_cells[index]) > 0;
 
   /// Small cells of the focus layout play the lowest quality.
   bool get smallCellsLowQuality => _smallCellsLowQuality;
@@ -369,6 +378,7 @@ class MultiviewController extends ChangeNotifier {
     for (final setting in _filterSettings) {
       _subscriptions.add(store.settings.watch(setting).skip(1).listen((_) => unawaited(_reloadFilter())));
     }
+    _subscriptions.add(store.settings.watch(Settings.multiviewMixAudio).skip(1).listen(_updateMixAudio));
     await _reloadFilter();
     await _load();
   }
@@ -514,7 +524,7 @@ class MultiviewController extends ChangeNotifier {
       _cells.add(_newCell());
     }
     _layout = next;
-    // The large view follows the sound, so no small cell plays aloud.
+    // Keep the selected cell large; the explicit audio mode controls small cells.
     if (next == MultiviewLayout.focus) _focused = _audio.clamp(0, capacity - 1);
     if (_focused >= capacity) _focused = capacity - 1;
     if (_audio >= capacity) _refocus(fallback: 0);
@@ -980,7 +990,24 @@ class MultiviewController extends ChangeNotifier {
     );
   }
 
-  double _audibleVolume(MultiviewCell cell) => !_allMuted && _cells.indexOf(cell) == _audio ? cell._volume : 0;
+  double _audibleVolume(MultiviewCell cell) =>
+      !_allMuted && (_mixAudio || _cells.indexOf(cell) == _audio) ? cell._volume : 0;
+
+  void _updateMixAudio(bool enabled) {
+    if (_disposed || enabled == _mixAudio) return;
+    _mixAudio = enabled;
+    _applyVolumes();
+    _notify();
+  }
+
+  /// Persists the opt-in audio mode without rewriting the last arrangement.
+  Future<void> setMixAudio({required bool enabled}) async {
+    if (_disposed || enabled == _mixAudio) return;
+    await _guard(() async {
+      await store.settings.set(Settings.multiviewMixAudio, enabled);
+      _updateMixAudio(enabled);
+    }, 'multiview audio mode');
+  }
 
   void _applyVolumes() {
     for (final cell in _cells) {
@@ -989,7 +1016,7 @@ class MultiviewController extends ChangeNotifier {
     }
   }
 
-  /// Only cell [index] plays aloud (3.x `setAudioFocus`).
+  /// Selects cell [index]; other cells stay audible only in mixed audio mode.
   Future<void> setAudioFocus(int index) async {
     if (index < 0 || index >= _cells.length) return;
     _audio = index;
@@ -998,7 +1025,7 @@ class MultiviewController extends ChangeNotifier {
     unawaited(_syncDanmaku());
   }
 
-  /// Silences every cell, or brings the audible cell back.
+  /// Silences every cell, or restores the chosen single/multiple audio mode.
   void toggleMuteAll() {
     _allMuted = !_allMuted;
     _applyVolumes();
