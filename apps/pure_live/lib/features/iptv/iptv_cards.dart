@@ -188,7 +188,7 @@ class IptvSourceCard extends StatefulWidget {
         decoration: BoxDecoration(
           color: scheme.surfaceContainerLow,
           borderRadius: BorderRadius.circular(16),
-          border: inUse ? Border.all(color: scheme.primary, width: 1.5) : null,
+          border: !isGuide && inUse ? Border.all(color: scheme.primary, width: 1.5) : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -79,7 +79,7 @@ class TvRoomStatus extends StatelessWidget {
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: scale.style(20, color: OnVideoColors.secondary),
+                  style: scale.font(TvTextSize.small, color: OnVideoColors.secondary),
                 ),
               ],
               if (action != null) ...[
@@ -253,7 +253,7 @@ class TvRoomControls extends StatelessWidget {
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: scale.style(20, color: OnVideoColors.secondary),
+                      style: scale.font(TvTextSize.small, color: OnVideoColors.secondary),
                     ),
                   ],
                 ),
@@ -397,7 +397,7 @@ class _TvRoomListState extends State<TvRoomList> {
     final scale = TvScale.of(context);
     final rooms = widget.rooms;
     final current = widget.current;
-    final extent = scale.text(96);
+    final extent = scale.text(112);
     // The current room is built (and focused) at once.
     final scroll = _scroll ??= ScrollController(initialScrollOffset: (current - 2).clamp(0, rooms.length) * extent);
     final width = scale.text(560);
@@ -412,7 +412,7 @@ class _TvRoomListState extends State<TvRoomList> {
             padding: EdgeInsets.fromLTRB(scale(28), scale(28), scale(28), scale(12)),
             child: Text(
               '${i18n('tv_room_list')} (${rooms.length})',
-              style: scale.style(26, weight: FontWeight.w700, color: palette.text),
+              style: scale.font(TvTextSize.title, weight: FontWeight.w700, color: palette.text),
             ),
           ),
           Expanded(
@@ -459,13 +459,13 @@ class _TvRoomListState extends State<TvRoomList> {
                                     title.isEmpty ? room.displayNick(platformName(room.platform)) : title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: scale.style(21, weight: FontWeight.w600, color: color),
+                                    style: scale.font(TvTextSize.body, weight: FontWeight.w600, color: color),
                                   ),
                                   Text(
                                     room.displayNick(platformName(room.platform)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: scale.style(17, color: color.withValues(alpha: 0.7)),
+                                    style: scale.font(TvTextSize.small, color: color.withValues(alpha: 0.7)),
                                   ),
                                 ],
                               ),
