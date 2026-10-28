@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +20,7 @@ final class _Site extends LiveSite {
   @override
   String get name => '哔哩哔哩';
 
-  final rooms = [
+  final List<LiveRoom> rooms = [
     for (var i = 0; i < 80; i++)
       LiveRoom(platform: SiteIds.bilibili, roomId: '$i', title: '测试直播间 $i', nick: '主播 $i', liveStatus: LiveStatus.live),
   ];
