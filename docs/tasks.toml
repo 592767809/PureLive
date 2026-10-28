@@ -6423,14 +6423,16 @@ note = "正则调度暂停确认已发布及回归；不把完整门禁等同于
 id = "V01.11"
 title = "下播或最终失败后自动切换在线关注房间"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "大"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/68"
 branch = "ai/V01.11"
-next = "按已确认范围实现在线关注自动换台、取消和多画面去重，并完成验证。"
-note = "2026-10-27用户明确要求实现#68，并授权自主决定；默认关闭，首阶段仅在线关注，热门与分类来源留待扩展。"
+next = "已发布5.4.19；Windows与隔离模拟器验证通过，继续原电视和iPhone实际设备复测。"
+note = "同源源码完整门禁和跨平台构建通过；实际覆盖和限制见Y01.30/verify.md。"
 to = ["G02.10", "A11.10"]
+date = "2026-10-28"
+commit = "35131bff5c80ceeef012b29ccc076fa8ad68b777"
 
 [[task]]
 id = "G02.9"
@@ -6586,53 +6588,74 @@ note = "仅处理电视更新和历史页面外壳与交互；不重做 Y02.2、
 id = "G02.10"
 title = "下播或恢复耗尽后自动切换在线关注"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "大"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/68"
 branch = "ai/V01.11"
 stages = ["有界候选选择和取消", "直播间与多画面接入", "回归与原生验证"]
-done = 0
-next = "完成实现、回归和原生验证。"
-
+done = 3
+next = "已发布5.4.19；Windows与隔离模拟器验证通过，继续原电视和iPhone实际设备复测。"
+date = "2026-10-28"
+commit = "35131bff5c80ceeef012b29ccc076fa8ad68b777"
+note = "同源源码完整门禁和跨平台构建通过；实际覆盖和限制见Y01.30/verify.md。"
 
 [[task]]
 id = "A11.10"
 title = "关注列表自动换台设置"
 type = "界面"
-status = "开发中"
+status = "待真机"
 size = "大"
 tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/68"
 branch = "ai/V01.11"
 stages = ["共享设置和说明", "各布局验证"]
-done = 0
-next = "完成实现、回归和原生验证。"
-
+done = 2
+next = "已发布5.4.19；Windows与隔离模拟器验证通过，继续原电视和iPhone实际设备复测。"
+date = "2026-10-28"
+commit = "35131bff5c80ceeef012b29ccc076fa8ad68b777"
+note = "同源源码完整门禁和跨平台构建通过；实际覆盖和限制见Y01.30/verify.md。"
 
 [[task]]
 id = "Y01.30"
 title = "发布5.4.19反馈修复与自动换台"
 type = "发布"
-status = "开发中"
+status = "完成"
 size = "中"
 tier = 1
 from = "用户要求实现#68；延续发布合并及自主决策授权"
 stages = ["源码门禁", "十包构建与原生验证", "发布和双库更新"]
-done = 0
-branch = "ai/V01.11"
-note = "整合#68、新反馈及#76/#77/#80/#81/#83未发布修复；原设备播放和白屏反馈按实际证据保留。"
-
+done = 3
+branch = "ai/Y01.30-closeout"
+note = "十包同源构建、原生验收和匿名下载摘要通过；旧库六项历史失败按本次委托决策例外，同步两文件；原机限制见verify.md。"
+next = "发布收尾合并后继续原设备验收和新报#87评估。"
+date = "2026-10-28"
+commit = "35131bff5c80ceeef012b29ccc076fa8ad68b777"
 
 [[task]]
 id = "V02.60"
 title = "5.4.19新增反馈整合修复"
 type = "功能"
-status = "开发中"
+status = "待真机"
 size = "大"
 tier = 1
 from = "用户2026-10-28要求解决issues并发布；#69、#73、#78、#79、#82、#84及PR#80"
 branch = "ai/V01.11"
 stages = ["证据与修复", "回归和原生验证", "发布与反馈收尾"]
-done = 0
-next = "完成本批反馈与主分支未发布修复的组合验证。"
+done = 3
+next = "已发布5.4.19；Windows与隔离模拟器验证通过，继续原电视和iPhone实际设备复测。"
+date = "2026-10-28"
+commit = "35131bff5c80ceeef012b29ccc076fa8ad68b777"
+note = "同源源码完整门禁和跨平台构建通过；实际覆盖和限制见Y01.30/verify.md。"
+
+
+[[task]]
+id = "V01.12"
+title = "多画面同时出声和独立音量"
+type = "功能"
+status = "未开始"
+size = "中"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/87"
+next = "评估默认单音源之外的可选多路混音，定义独立音量、全部静音、聚焦布局和自动换台的交互，再实现验证。"
+note = "在5.4.19源码冻结后新报；现有每格音量已存在，但_audibleVolume只放行音源格，本次未实现多路混音，不关闭issue。"
