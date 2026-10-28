@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Changes apply at once",
     "danmaku_show_gifts": "Gifts in flying danmaku",
     "danmaku_show_gifts_desc": "Valuable gifts fly over the picture, precious ones stay at the top for 4 s; a combo flies at its start and with its total, at most 3 a second",
+    "danmaku_show_vip_count": "Show Douyu VIP count notices",
     "danmaku_similarity_cache_duration": "Cache Duration",
     "danmaku_similarity_cache_seconds": "{seconds} seconds",
     "danmaku_similarity_filter": "Similar Danmaku Filter",

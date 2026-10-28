@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Le modifiche si applicano subito",
     "danmaku_show_gifts": "Regali nel danmaku in movimento",
     "danmaku_show_gifts_desc": "I regali di valore scorrono sull’immagine, quelli preziosi restano in alto per 4 s; una combo scorre all’inizio e con il totale, al massimo 3 al secondo",
+    "danmaku_show_vip_count": "Mostra il numero di VIP Douyu",
     "danmaku_similarity_cache_duration": "Durata della cache",
     "danmaku_similarity_cache_seconds": "{seconds} secondi",
     "danmaku_similarity_filter": "Filtro danmaku simili",

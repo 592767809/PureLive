@@ -317,6 +317,13 @@ void main() {
         reason: 'loaded IPTV must focus its import row, not an old row or invisible scope: $first',
       );
       final viewport = tester.getRect(find.byKey(const ValueKey('iptv-scroll')));
+      final stats = tester.getRect(find.byKey(const ValueKey('iptv-stats')));
+      expect(
+        stats.bottom,
+        lessThanOrEqualTo(viewport.top),
+        reason: 'issue #69: TV overview stays outside focus-driven scrolling',
+      );
+
       expect(first.rect.top, greaterThanOrEqualTo(viewport.top));
       expect(first.rect.bottom, lessThanOrEqualTo(viewport.bottom));
       await _press(tester, LogicalKeyboardKey.arrowDown);

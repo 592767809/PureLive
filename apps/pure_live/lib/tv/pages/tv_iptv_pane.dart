@@ -60,14 +60,22 @@ class TvIptvPane extends ConsumerStatefulWidget {
   const new({super.key});
 
   @override
-  ConsumerState<TvIptvPane> createState() => _TvIptvPaneState();
+  ConsumerState<TvIptvPane> createState() => TvIptvPaneState();
 }
 
-class _TvIptvPaneState extends ConsumerState<TvIptvPane> {
+/// The IPTV pane state, allowing its parent tabs to refresh and enter the grid.
+class TvIptvPaneState extends ConsumerState<TvIptvPane> {
   final Map<String, GlobalKey<TvRoomGridState>> _grids = {};
   final Map<String, FocusNode> _listNodes = {};
   Future<List<TvPlaylist>>? _playlists;
   String? _current;
+  String? _shown;
+
+  /// Reloads the playlists while preserving the selected list when present.
+  void refresh() => setState(_load);
+
+  /// Moves from the platform tabs to the current channel grid.
+  bool enter() => _grids[_shown]?.currentState?.enter() ?? false;
 
   GlobalKey<TvRoomGridState> _grid(String id) => _grids[id] ??= GlobalKey();
 
@@ -118,6 +126,7 @@ class _TvIptvPaneState extends ConsumerState<TvIptvPane> {
           );
         }
         final current = lists.firstWhere((list) => list.id == _current, orElse: () => lists.first);
+        _shown = current.id;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Thay đổi áp dụng ngay",
     "danmaku_show_gifts": "Quà trong danmaku bay",
     "danmaku_show_gifts_desc": "Quà giá trị bay qua hình, quà quý giá ở phía trên 4 giây; combo bay lúc bắt đầu và kèm tổng, tối đa 3 mỗi giây",
+    "danmaku_show_vip_count": "Hiện thông báo số VIP Douyu",
     "danmaku_similarity_cache_duration": "Thời gian lưu đệm",
     "danmaku_similarity_cache_seconds": "{seconds} giây",
     "danmaku_similarity_filter": "Lọc danmaku tương tự",

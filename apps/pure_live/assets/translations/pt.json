@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "As alterações valem na hora",
     "danmaku_show_gifts": "Presentes no danmaku em movimento",
     "danmaku_show_gifts_desc": "Presentes valiosos passam sobre a imagem e os preciosos ficam no topo por 4 s; um combo passa no início e com o total, no máximo 3 por segundo",
+    "danmaku_show_vip_count": "Mostrar avisos da contagem VIP Douyu",
     "danmaku_similarity_cache_duration": "Duração do cache",
     "danmaku_similarity_cache_seconds": "{seconds} segundos",
     "danmaku_similarity_filter": "Filtro de danmaku semelhantes",

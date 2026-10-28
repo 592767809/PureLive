@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Değişiklikler hemen uygulanır",
     "danmaku_show_gifts": "Uçan danmaku’da hediyeler",
     "danmaku_show_gifts_desc": "Değerli hediyeler görüntü üzerinde uçar, çok değerliler üstte 4 sn kalır; bir kombo başlangıçta ve toplamıyla uçar, saniyede en fazla 3",
+    "danmaku_show_vip_count": "Douyu VIP sayısı bildirimlerini göster",
     "danmaku_similarity_cache_duration": "Önbellek Süresi",
     "danmaku_similarity_cache_seconds": "{seconds} saniye",
     "danmaku_similarity_filter": "Benzer Danmaku Filtresi",

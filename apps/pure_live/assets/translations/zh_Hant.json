@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "改動立即生效",
     "danmaku_show_gifts": "飛行彈幕顯示禮物",
     "danmaku_show_gifts_desc": "值錢的禮物飛過畫面，很值錢的在頂部停 4 秒；連擊只飛開頭和總數，每秒最多 3 條",
+    "danmaku_show_vip_count": "顯示鬥魚貴賓人數通知",
     "danmaku_similarity_cache_duration": "快取時間",
     "danmaku_similarity_cache_seconds": "{seconds} 秒",
     "danmaku_similarity_filter": "相似彈幕過濾",

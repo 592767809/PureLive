@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "변경 사항이 즉시 적용됩니다",
     "danmaku_show_gifts": "흐르는 탄막에 선물 표시",
     "danmaku_show_gifts_desc": "가치 있는 선물은 화면 위를 흐르고, 고가 선물은 위쪽에 4초간 머뭅니다. 콤보는 시작할 때와 합계로 흐르며 초당 최대 3개입니다",
+    "danmaku_show_vip_count": "Douyu VIP 인원 알림 표시",
     "danmaku_similarity_cache_duration": "캐시 유지 시간",
     "danmaku_similarity_cache_seconds": "{seconds}초",
     "danmaku_similarity_filter": "유사 탄막 필터",

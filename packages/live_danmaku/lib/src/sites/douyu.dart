@@ -268,7 +268,13 @@ abstract final class DouyuDanmakuProtocol {
     if (packetRoomId.isNotEmpty && roomId.isNotEmpty && packetRoomId != roomId) return null;
     final count = (fields['vn'] ?? '').trim();
     if (count.isEmpty) return null;
-    return LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: count, color: LiveMessageColor.white);
+    return LiveMessage(
+      type: LiveMessageType.chat,
+      userName: '贵宾',
+      message: count,
+      color: LiveMessageColor.white,
+      data: 'douyu-vip-count',
+    );
   }
 
   /// `newblackres`: a viewer (`dnic`) muted by `snic`, shown as a red chat

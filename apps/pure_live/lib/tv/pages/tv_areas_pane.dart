@@ -10,9 +10,12 @@ import 'package:pure_live/features/areas/area_catalog.dart';
 import 'package:pure_live/features/areas/areas_common.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
+import 'package:pure_live/tv/pages/tv_iptv_pane.dart';
+import 'package:pure_live/tv/pages/tv_popular_pane.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
 import 'package:pure_live/tv/widgets/tv_area_dialog.dart';
+import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_grid.dart';
 import 'package:pure_live/tv/widgets/tv_status.dart';
 import 'package:pure_live/tv/widgets/tv_tabs.dart';
@@ -33,6 +36,7 @@ class TvAreasPane extends ConsumerStatefulWidget {
 }
 
 class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
+  final GlobalKey<TvIptvPaneState> _iptv = GlobalKey();
   final GlobalKey<TvTabBarState> _platformTabs = GlobalKey();
   final GlobalKey<TvTabBarState> _categoryTabs = GlobalKey();
   final Map<String, GlobalKey<TvGridState>> _grids = {};
@@ -56,16 +60,13 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
 
   void _select(String tab) {
     setState(() => _current = tab);
-    unawaited(_catalog(tab).ensureLoaded());
+    if (tab != SiteIds.iptv) unawaited(_catalog(tab).ensureLoaded());
   }
 
   @override
   Widget build(BuildContext context) {
     final sites = ref.read(sitesProvider);
-    final platforms = [
-      for (final id in sites.availableIds(watchSetting(ref, Settings.hotAreasList)))
-        if (id != SiteIds.iptv) id,
-    ];
+    final platforms = sites.availableIds(watchSetting(ref, Settings.hotAreasList));
     final tabs = platforms;
     if (tabs.isEmpty) return TvStatusView(icon: TvIcons.noPlatforms, title: i18n('popular_no_platforms'));
     var current = _current;
@@ -74,35 +75,62 @@ class _TvAreasPaneState extends ConsumerState<TvAreasPane> {
       current = _current = platforms.contains(preferred) ? preferred : platforms.first;
       final first = current;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) unawaited(_catalog(first).ensureLoaded());
+        if (mounted && first != SiteIds.iptv) unawaited(_catalog(first).ensureLoaded());
       });
     }
     final tab = current;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TvTabBar(
-          key: _platformTabs,
-          tabs: [
-            for (final id in tabs)
-              TvTab(
-                id: id,
-                label: platformName(id, fallback: sites.of(id).name),
-                logo: id,
+        Row(
+          children: [
+            Expanded(
+              child: TvTabBar(
+                key: _platformTabs,
+                tabs: [
+                  for (final id in tabs)
+                    TvTab(
+                      id: id,
+                      label: platformName(id, fallback: sites.of(id).name),
+                      logo: id,
+                    ),
+                ],
+                selected: tabs.indexOf(tab),
+                onSelect: (index) => _select(tabs[index]),
+                onRefresh: () {
+                  if (tab == SiteIds.iptv) {
+                    _iptv.currentState?.refresh();
+                  } else {
+                    unawaited(_catalog(tab).refresh());
+                  }
+                },
+                onDown: () {
+                  if (tab == SiteIds.iptv) return _iptv.currentState?.enter() ?? false;
+                  final catalog = _catalog(tab);
+                  if (catalog.categories.length > 1) return _categoryTabs.currentState?.focusSelected() ?? false;
+                  final categories = catalog.categories;
+                  if (categories.isEmpty) return false;
+                  return _grid('$tab/${categories[catalog.selected].id}').currentState?.enter() ?? false;
+                },
               ),
+            ),
+            TvButton(
+              key: const ValueKey('tv-areas-all-platforms'),
+              label: i18n('tv_all_platforms'),
+              small: true,
+              onTap: () async {
+                final picked = await showTvPlatformPicker(
+                  context,
+                  ids: tabs,
+                  current: tab,
+                  labelFor: (id) => platformName(id, fallback: sites.of(id).name),
+                );
+                if (mounted && picked != null) _select(picked);
+              },
+            ),
           ],
-          selected: tabs.indexOf(tab),
-          onSelect: (index) => _select(tabs[index]),
-          onRefresh: () => unawaited(_catalog(tab).refresh()),
-          onDown: () {
-            final catalog = _catalog(tab);
-            if (catalog.categories.length > 1) return _categoryTabs.currentState?.focusSelected() ?? false;
-            final categories = catalog.categories;
-            if (categories.isEmpty) return false;
-            return _grid('$tab/${categories[catalog.selected].id}').currentState?.enter() ?? false;
-          },
         ),
-        Expanded(child: _platformAreas(tab)),
+        Expanded(child: tab == SiteIds.iptv ? TvIptvPane(key: _iptv) : _platformAreas(tab)),
       ],
     );
   }

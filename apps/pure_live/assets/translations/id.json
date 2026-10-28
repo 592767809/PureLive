@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Perubahan langsung berlaku",
     "danmaku_show_gifts": "Hadiah di danmaku melintas",
     "danmaku_show_gifts_desc": "Hadiah bernilai melintas di atas gambar, yang berharga tinggal di atas 4 dtk; kombo melintas di awal dan dengan totalnya, maksimal 3 per detik",
+    "danmaku_show_vip_count": "Tampilkan jumlah VIP Douyu",
     "danmaku_similarity_cache_duration": "Durasi Cache",
     "danmaku_similarity_cache_seconds": "{seconds} detik",
     "danmaku_similarity_filter": "Filter Danmaku Mirip",

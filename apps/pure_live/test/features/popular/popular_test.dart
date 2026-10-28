@@ -168,6 +168,8 @@ final List<String> _toasts = [];
 
 /// Taps the tab [label] and lets the page load it (80 ms after it settles).
 Future<void> _openTab(WidgetTester tester, String label) async {
+  await tester.ensureVisible(find.text(label));
+  await tester.pumpAndSettle();
   await tester.tap(find.text(label));
   await tester.pumpAndSettle();
   await tester.pump(const Duration(milliseconds: 100));
@@ -546,7 +548,12 @@ void main() {
     final huya = _FakeSite(SiteIds.huya, [
       [_room('huya', 2, heat: 3)],
     ]);
-    final services = await _pump(tester, {SiteIds.bilibili: bilibili, SiteIds.huya: huya}, prefer: SiteIds.huya);
+    final services = await _pump(
+      tester,
+      {SiteIds.bilibili: bilibili, SiteIds.huya: huya},
+      prefer: SiteIds.huya,
+      width: 600,
+    );
     // Where the finger goes: the tabs' resting places.
     final rest = {
       for (final name in ['哔哩哔哩', '虎牙']) name: tester.getCenter(find.text(name)),
@@ -994,7 +1001,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(scale('jump-bottom'), 1);
       // At the strip's end nothing lies beyond: no fade.
-      await tester.drag(find.text('斗鱼'), const Offset(-3000, 0));
+      final tabScroll = tester.state<ScrollableState>(
+        find.descendant(of: strip, matching: find.byType(Scrollable)).first,
+      );
+      tabScroll.position.jumpTo(tabScroll.position.maxScrollExtent);
       await tester.pumpAndSettle();
       expect(tester.state<ScrollableTabBarState>(strip).fadesEnd, isFalse);
       await tester.runAsync(services.close);

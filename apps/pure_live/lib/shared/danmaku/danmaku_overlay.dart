@@ -71,7 +71,7 @@ final class DanmakuLook {
 
   /// The height of a lane: [laneHeight], else 3.x's 1.55 × the font size
   /// (24–64) and at least the font size + 10 (`track_manager.dart:14`).
-  double get lane => laneHeight ?? math.max((fontSize * 1.55).clamp(24, 64).toDouble(), fontSize + 10);
+  double get lane => laneHeight ?? math.max(math.max(24, fontSize * 1.55), fontSize + 10);
 
   /// The height of an emoticon (3.x: 1.3 × the font size, 16–48).
   double get emoteSize => (fontSize * 1.3).clamp(16, 48).toDouble();

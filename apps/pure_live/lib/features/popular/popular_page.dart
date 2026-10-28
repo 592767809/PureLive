@@ -226,7 +226,11 @@ class _PopularPageState extends ConsumerState<PopularPage> with TickerProviderSt
                             // A09.12 c1: the tab cut by ⌄ fades.
                             endFade: tabStripEndFade,
                             tabs: [
-                              for (final id in ids) TabLabel(label: platformName(id, fallback: sites.of(id).name)),
+                              for (final id in ids)
+                                TabLabel(
+                                  leading: PlatformLogo(id, size: 20),
+                                  label: platformName(id, fallback: sites.of(id).name),
+                                ),
                             ],
                           ),
                         ),

@@ -133,7 +133,7 @@ final class DanmakuTemplate {
         top: number('top', 0, 300),
         bottom: number('bottom', 0, 300),
         speed: number('speed', 20, 400),
-        fontSize: number('fontSize', 10, 30),
+        fontSize: number('fontSize', 10, 60),
         fontWeight: whole('fontWeight', fallback.fontWeight, 100, 900),
         fontBorder: number('fontBorder', 0, 4),
         opacity: number('opacity', 0, 1),

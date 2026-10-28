@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "การเปลี่ยนแปลงมีผลทันที",
     "danmaku_show_gifts": "ของขวัญใน danmaku ที่ลอย",
     "danmaku_show_gifts_desc": "ของขวัญที่มีมูลค่าจะลอยผ่านภาพ ของล้ำค่าจะอยู่ด้านบน 4 วินาที คอมโบจะลอยตอนเริ่มและพร้อมยอดรวม สูงสุด 3 รายการต่อวินาที",
+    "danmaku_show_vip_count": "แสดงการแจ้งจำนวน VIP ของ Douyu",
     "danmaku_similarity_cache_duration": "ระยะเวลาแคช",
     "danmaku_similarity_cache_seconds": "{seconds} วินาที",
     "danmaku_similarity_filter": "ตัวกรอง danmaku ที่คล้ายกัน",

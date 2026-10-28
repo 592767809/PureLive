@@ -52,6 +52,9 @@ final class _FakeSite extends LiveSite {
   int categoryCalls = 0;
 
   @override
+  Future<List<LiveRoom>> getRecommendRooms({int page = 1, int pageSize = 30}) async => pages[page] ?? const [];
+
+  @override
   Future<List<LiveCategory>> getCategories(int page, int pageSize) async {
     categoryCalls++;
     return categories;
@@ -151,6 +154,28 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('issue #73: areas opens IPTV channels and uses the shared platform picker', (tester) async {
+    final site = _FakeSite(
+      SiteIds.iptv,
+      '网络',
+      [],
+      pages: {
+        1: [_room(SiteIds.iptv, 'cctv')],
+      },
+    );
+    final services = await _pumpApp(tester, {SiteIds.iptv: site}, preferred: SiteIds.iptv);
+    await tester.runAsync(() => services.store.settings.set(Settings.hotAreasList, [SiteIds.iptv]));
+    await _settle(tester);
+    expect(find.text('标题cctv'), findsOneWidget);
+    expect(find.byKey(const ValueKey('areas-all-platforms')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('areas-all-platforms')));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('popular-platform-iptv')), findsOneWidget);
+    expect(site.categoryCalls, 0, reason: 'IPTV uses playlist rooms rather than an empty categories API');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.runAsync(services.close);
+  });
+
   testWidgets('issue 63: platform tabs show the existing platform logo with their name', (tester) async {
     final services = await _pumpApp(tester, {'huya': _FakeSite('huya', '虎牙', const [])});
     final tabs = find.byKey(const ValueKey('areas-platform-tabs'));
@@ -667,6 +692,11 @@ void main() {
       // game areas under "游戏"); the cards name only the area (U.4d c3).
       expect(find.byKey(const ValueKey('area-category-tabs')), findsOneWidget);
       expect(find.text('王者荣耀'), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(AreaArtwork).first).height,
+        72,
+        reason: 'issue #82: compact phone category artwork',
+      );
       expect(find.text('MOBA'), findsNothing);
       await tester.tap(
         find.descendant(of: find.byKey(const ValueKey('area-category-tabs')), matching: find.text('娱乐')),
@@ -674,6 +704,7 @@ void main() {
       await _settle(tester);
       expect(find.text('颜值'), findsOneWidget);
 
+      await tester.ensureVisible(find.text('Picarto'));
       await tester.tap(find.text('Picarto'));
       await _settle(tester);
       expect(find.text('Art'), findsOneWidget);

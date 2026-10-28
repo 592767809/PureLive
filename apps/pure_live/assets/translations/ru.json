@@ -468,6 +468,7 @@
     "danmaku_settings_live_hint": "Изменения применяются сразу",
     "danmaku_show_gifts": "Подарки в летящих danmaku",
     "danmaku_show_gifts_desc": "Ценные подарки летят по изображению, драгоценные остаются сверху 4 с; комбо пролетает в начале и с итогом, не более 3 в секунду",
+    "danmaku_show_vip_count": "Показывать уведомления о числе VIP Douyu",
     "danmaku_similarity_cache_duration": "Время хранения кэша",
     "danmaku_similarity_cache_seconds": "{seconds} с",
     "danmaku_similarity_filter": "Фильтр похожих danmaku",
