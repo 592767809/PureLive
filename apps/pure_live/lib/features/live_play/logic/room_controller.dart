@@ -1399,7 +1399,11 @@ class LiveRoomController extends ChangeNotifier {
   /// An audience figure from the danmaku (3.x `updateRuntimeAudience`).
   void _applyAudience(Object? data) {
     if (data is LiveVipCount) {
-      if (_room.platform == SiteIds.douyu && data.value >= 0 && _vipCount != data.value) {
+      if (_room.platform == SiteIds.douyu &&
+          _room.isLiveNow &&
+          _danmakuStage &&
+          data.value >= 0 &&
+          _vipCount != data.value) {
         _vipCount = data.value;
         _notify();
       }

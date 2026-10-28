@@ -205,6 +205,19 @@ void main() {
       site.room = detail.copyWith(liveStatus: LiveStatus.offline);
       await controller.refreshDetail();
       expect(controller.vipCount, isNull, reason: 'An ended broadcast must not retain the old VIP figure.');
+      danmaku.emit(
+        const DanmakuReceived(
+          LiveMessage(
+            type: LiveMessageType.online,
+            userName: '',
+            message: '',
+            color: LiveMessageColor.white,
+            data: LiveVipCount(value: 222),
+          ),
+        ),
+      );
+      await settle();
+      expect(controller.vipCount, isNull, reason: 'A late packet must not revive an ended broadcast VIP count.');
       controller.dispose();
       final next = controllerFor(
         FakeSite(LiveRoom(platform: SiteIds.douyu, roomId: '7'))..siteId = SiteIds.douyu,
