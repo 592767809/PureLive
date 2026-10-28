@@ -521,6 +521,13 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
               )
             : Text(i18n('multiview_title')),
         actions: [
+          ToolbarToggle(
+            key: const ValueKey('multiview-mix-audio'),
+            tooltip: i18n('multiview_mix_audio'),
+            on: _controller.mixAudio,
+            onPressed: () => unawaited(_controller.setMixAudio(enabled: !_controller.mixAudio)),
+            child: const Icon(AppIcons.mixAudio, size: 22),
+          ),
           IconButton(
             key: const ValueKey('multiview-immersive'),
             tooltip: i18n('multiview_immersive'),
@@ -831,7 +838,8 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     // Keep the corner marks clear of both controls.
     final exit = Rect.fromLTWH(padding.left + 12, padding.top + 12, kMinInteractiveDimension, kMinInteractiveDimension);
     final mute = exit.shift(Offset(exit.width + 8, 0));
-    final controls = exit.expandToInclude(mute);
+    final mix = mute.shift(Offset(mute.width + 8, 0));
+    final controls = exit.expandToInclude(mix);
     final wall = fullscreen
         ? MediaQuery.removePadding(
             context: context,
@@ -866,6 +874,19 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
                 icon: _controller.allMuted ? AppIcons.mutedAll : AppIcons.muteAll,
                 tooltip: i18n(_controller.allMuted ? 'multiview_unmute_all' : 'multiview_mute_all'),
                 onTap: _controller.toggleMuteAll,
+              ),
+            ),
+          ),
+          Positioned.fromRect(
+            rect: mix,
+            child: Semantics(
+              button: true,
+              toggled: _controller.mixAudio,
+              child: _ExitButton(
+                key: const ValueKey('multiview-bare-mix-audio'),
+                icon: AppIcons.mixAudio,
+                tooltip: i18n('multiview_mix_audio'),
+                onTap: () => unawaited(_controller.setMixAudio(enabled: !_controller.mixAudio)),
               ),
             ),
           ),
@@ -925,7 +946,8 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
       key: _cellKeys.putIfAbsent(cell.id, () => GlobalKey(debugLabel: 'multiview_cell_${cell.id}')),
       cell: cell,
       position: index + 1,
-      audible: cell.playing && index == _controller.audioIndex && !_controller.allMuted,
+      audible: _controller.isCellAudible(index),
+      mixAudio: _controller.mixAudio,
       pickTarget: _pickerVisible && index == _targetIndex && cell.assignable,
       saver: focusLayout && _controller.smallCellsLowQuality && !large,
       showVideo: !_exiting,

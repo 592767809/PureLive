@@ -4,8 +4,10 @@ import 'package:live_core/src/links.dart';
 import 'package:live_core/src/live_area.dart';
 import 'package:live_core/src/live_room.dart';
 import 'package:live_core/src/live_site.dart';
+import 'package:live_core/src/play_line.dart';
 import 'package:live_core/src/site_error.dart';
 import 'package:live_core/src/sites/weibo/weibo_api.dart';
+import 'package:live_core/src/sites/weibo/weibo_streams.dart';
 import 'package:live_net/live_net.dart';
 
 const _site = 'weibo';
@@ -39,6 +41,7 @@ final class WeiboSite extends LiveSite
         LiveCancellableSearch,
         LiveSiteRoomRefresher,
         LiveSiteRecordRoomResolver,
+        LiveQualityDiscovery,
         LivePlayUrlResolver,
         LivePlayRecoveryResolver {
   /// Creates the adapter.
@@ -255,6 +258,34 @@ final class WeiboSite extends LiveSite
     return [if (detail.isRecord) WeiboApi.replay else WeiboApi.original];
   }
 
+  /// Discovers additional public profiles by bounded, cancellable FLV probes.
+  /// Legacy callers of [getPlayQualities] keep the original single option.
+  @override
+  Future<List<LivePlayQuality>> discoverPlayQualitiesRaw({required LiveRoom detail, CancelToken? cancel}) async {
+    _checkCancelled(cancel);
+    final baseline = await getPlayQualities(detail: detail);
+    _checkCancelled(cancel);
+    if (detail.isRecord || detail.isExplicitlyOfflineNow) return baseline;
+    final known = detail.data;
+    final current = known is WeiboRoomData ? detail : await _detail(detail.roomId, cancel: cancel);
+    final data = _offered(current.data! as WeiboRoomData, '${WeiboApi.original.selectionId}');
+    final candidates = WeiboStreams.candidates(data.mediaUrls);
+    if (candidates.isEmpty) return baseline;
+    final found = await Future.wait(
+      candidates.map((candidate) async {
+        final codec = await WeiboStreams.probe(http, candidate.url, cancel: cancel);
+        return codec == null || (candidate.avcOnly && codec != 'avc') ? null : candidate.quality(codec);
+      }),
+    );
+    _checkCancelled(cancel);
+    return [
+      ?found[0],
+      ?found[1],
+      const LivePlayQuality(quality: '超清', id: 'original', sort: 2000, codec: 'avc'),
+      ?found[2],
+    ];
+  }
+
   @override
   Future<List<String>> getPlayUrls({required LiveRoom detail, required LivePlayQuality quality}) async =>
       (await resolvePlayUrlsRaw(detail: detail, quality: quality)).urls;
@@ -284,6 +315,7 @@ final class WeiboSite extends LiveSite
 
   Future<LivePlayUrlResolution> _resolve(LiveRoom detail, LivePlayQuality quality) async {
     final asked = '${quality.selectionId}';
+    if (WeiboStreams.knows(asked)) return await _resolveVariant(detail, asked);
     if (asked != '${WeiboApi.original.selectionId}' && asked != '${WeiboApi.replay.selectionId}') {
       throw StreamUnavailable(_site, 'quality $asked is not offered');
     }
@@ -298,6 +330,27 @@ final class WeiboSite extends LiveSite
     final fresh = await _detail(detail.roomId, ownerId: owner != null && owner > 0 ? owner : null);
     final data = _offered(fresh.data! as WeiboRoomData, asked);
     return data.replayUrl != null ? WeiboApi.replayResolution(data.replayUrl!) : WeiboApi.resolution(data.mediaUrls);
+  }
+
+  Future<LivePlayUrlResolution> _resolveVariant(LiveRoom detail, String asked) async {
+    final known = detail.data;
+    if (known is WeiboRoomData) {
+      _offered(known, '${WeiboApi.original.selectionId}');
+    } else {
+      _checkPlayable(detail);
+    }
+    final owner = known is WeiboRoomData ? known.ownerId : int.tryParse(detail.userId?.trim() ?? '');
+    final fresh = await _detail(detail.roomId, ownerId: owner != null && owner > 0 ? owner : null);
+    final data = _offered(fresh.data! as WeiboRoomData, '${WeiboApi.original.selectionId}');
+    final candidate = WeiboStreams.candidates(data.mediaUrls).where((item) => item.id == asked).firstOrNull;
+    if (candidate == null) throw StreamUnavailable(_site, 'quality $asked is not offered by this broadcast');
+    final codec = await WeiboStreams.probe(http, candidate.url);
+    if (codec == null || (candidate.avcOnly && codec != 'avc')) {
+      throw StreamUnavailable(_site, 'quality $asked is unavailable');
+    }
+    return LivePlayUrlResolution.lines([
+      LivePlayLine(candidate.url.toString(), format: StreamFormat.flv, codec: codec, lineId: 'alicdn'),
+    ], appliedQualityData: asked);
   }
 
   /// [data] when it plays quality [asked]; otherwise why not.

@@ -6653,9 +6653,24 @@ note = "同源源码完整门禁和跨平台构建通过；实际覆盖和限制
 id = "V01.12"
 title = "多画面同时出声和独立音量"
 type = "功能"
-status = "未开始"
+status = "开发中"
 size = "中"
-tier = 2
+tier = 1
 from = "https://github.com/wzgrx/PureLive/issues/87"
 next = "评估默认单音源之外的可选多路混音，定义独立音量、全部静音、聚焦布局和自动换台的交互，再实现验证。"
 note = "在5.4.19源码冻结后新报；现有每格音量已存在，但_audibleVolume只放行音源格，本次未实现多路混音，不关闭issue。"
+branch = "ai/V01.12"
+
+
+[[task]]
+id = "V02.61"
+title = "5.4.20剩余反馈与平台巡检修复"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户要求继续解决issues发布；#87多路音频、#88微博画质及#33/#47/#49复核"
+branch = "ai/V01.12"
+stages = ["证据与修复", "回归与原生验收", "同源发布与收尾"]
+done = 0
+next = "实现多路音频，基于匿名媒体探针接入微博真实档位，复核巡检和原设备日志。"

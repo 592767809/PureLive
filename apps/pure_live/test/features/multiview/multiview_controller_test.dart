@@ -18,6 +18,91 @@ Future<void> _settle() => Future<void>.delayed(const Duration(milliseconds: 20))
 void main() {
   setUpAll(loadStrings);
 
+  test('issue #87: mixed audio keeps per-room volumes, selection, mute and layouts', () async {
+    final store = await memoryStore();
+    final controller = multiviewController(store, RoomsSite());
+    await controller.start();
+    expect(controller.mixAudio, isFalse);
+    for (var i = 0; i < 4; i++) {
+      await controller.assign(i, pickRoom('$i'));
+      await controller.setVolume(i, (i + 1) / 5, save: true);
+    }
+    Future<void> settle() => Future<void>.delayed(const Duration(seconds: 1));
+    List<double> volumes() => controller.cells.map((c) => c.playback.volume).toList();
+    await settle();
+    expect(volumes(), [0, 0, 0, 0.8]);
+    final sessions = controller.cells.map((c) => c.session).toList();
+    await controller.setMixAudio(enabled: true);
+    await settle();
+    expect(volumes(), [0.2, 0.4, 0.6, 0.8]);
+    await controller.setAudioFocus(1);
+    await settle();
+    expect(volumes(), [0.2, 0.4, 0.6, 0.8]);
+    expect(controller.selectedIndex, 1);
+    await controller.setVolume(2, 0, save: true);
+    expect(volumes(), [0.2, 0.4, 0, 0.8]);
+    expect(controller.isCellAudible(2), isFalse);
+    controller.toggleMuteAll();
+    await settle();
+    expect(volumes(), [0, 0, 0, 0]);
+    await controller.setMixAudio(enabled: false);
+    await settle();
+    expect(volumes(), [0, 0, 0, 0]);
+    controller.toggleMuteAll();
+    await settle();
+    expect(volumes(), [0, 0.4, 0, 0]);
+    await controller.setMixAudio(enabled: true);
+    await controller.setLayout(MultiviewLayout.vertical);
+    await settle();
+    expect(volumes(), [0.2, 0.4, 0, 0.8]);
+    expect(controller.cells.map((c) => c.session), sessions);
+    await controller.assign(1, pickRoom('replacement'), automatic: true);
+    await settle();
+    expect(volumes(), [0.2, 0.4, 0, 0.8]);
+    expect(controller.cells[0].session, sessions[0]);
+    expect(controller.cells[2].session, sessions[2]);
+    expect(controller.cells[3].session, sessions[3]);
+    expect(controller.selectedIndex, 1);
+    await controller.setLayout(MultiviewLayout.focus);
+    await settle();
+    expect(volumes(), [0.2, 0.4, 0, 0.8]);
+    await controller.setMixAudio(enabled: false);
+    await settle();
+    expect(volumes(), [0, 0.4, 0, 0]);
+    controller.dispose();
+    await store.close();
+  });
+
+  test('issue #87: mode persists separately without losing the last rooms', () async {
+    final store = await memoryStore();
+    final first = multiviewController(store, RoomsSite());
+    await first.start();
+    await first.assign(0, pickRoom('1'));
+    await first.assign(1, pickRoom('2'));
+    await Future<void>.delayed(const Duration(seconds: 1));
+    first.dispose();
+    final second = multiviewController(store, RoomsSite());
+    await second.start();
+    expect(second.savedRooms.whereType<LiveRoom>().map((r) => r.roomId), ['1', '2']);
+    final before = await store.meta.get(MultiviewController.sessionKey);
+    await second.setMixAudio(enabled: true);
+    expect(await store.meta.get(MultiviewController.sessionKey), before);
+    second.dispose();
+    final restored = multiviewController(store, RoomsSite());
+    await restored.start();
+    expect(restored.mixAudio, isTrue);
+    expect(restored.savedRooms.whereType<LiveRoom>().map((r) => r.roomId), ['1', '2']);
+    await restored.restoreLast();
+    await Future<void>.delayed(const Duration(seconds: 1));
+    expect(restored.cells.take(2).map((c) => c.playback.volume), [1, 1]);
+    await store.settings.set(Settings.multiviewMixAudio, false);
+    await Future<void>.delayed(const Duration(seconds: 1));
+    expect(restored.mixAudio, isFalse);
+    expect(restored.cells.where((c) => c.playback.volume > 0 && c.playing), hasLength(1));
+    restored.dispose();
+    await store.close();
+  });
+
   test('issue #32: vertical keeps room sessions, audio choice and persisted layout', () async {
     final store = await memoryStore();
     final controller = multiviewController(store, RoomsSite());

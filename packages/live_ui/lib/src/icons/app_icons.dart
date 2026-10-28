@@ -640,6 +640,9 @@ abstract final class AppIcons {
   /// Every view is silent ("恢复声音").
   static const IconData mutedAll = Remix.volume_mute_line;
 
+  /// Opt-in independent audio from every multiview cell.
+  static const IconData mixAudio = Remix.sound_module_line;
+
   /// Small views play the lowest quality ("小格省流").
   static const IconData smallCellSaver = Remix.speed_mini_line;
 
