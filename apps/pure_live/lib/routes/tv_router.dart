@@ -22,6 +22,8 @@ const Set<String> _tvSettingsRoots = {
   RoutePath.kBackup,
   RoutePath.kLogs,
   RoutePath.kAbout,
+  RoutePath.kVersionPage,
+  RoutePath.kVersionHistory,
 };
 
 /// The pages the TV interface (M14.1) puts on the phone's paths, so every

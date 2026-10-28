@@ -73,22 +73,26 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: WindowClassScope.toolbarHeightOf(context),
-        title: Text(i18n('version_history'), maxLines: 2, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            key: const ValueKey('release-history-refresh'),
-            tooltip: i18n('refresh'),
-            onPressed: _loading ? null : _load,
-            icon: _loading
-                ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(AppIcons.refresh),
-          ),
-          const SizedBox(width: 4),
-        ],
+    final actions = <Widget>[
+      IconButton(
+        key: const ValueKey('release-history-refresh'),
+        tooltip: i18n('refresh'),
+        onPressed: _loading ? null : _load,
+        icon: _loading
+            ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(AppIcons.refresh),
       ),
+      const SizedBox(width: 4),
+    ];
+    return Scaffold(
+      appBar:
+          SettingsPageHeaderScope.maybeOf(context)
+              ?.builder(context, title: i18n('version_history'), actions: actions) ??
+          AppBar(
+            toolbarHeight: WindowClassScope.toolbarHeightOf(context),
+            title: Text(i18n('version_history'), maxLines: 2, overflow: TextOverflow.ellipsis),
+            actions: actions,
+          ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final textScale = MediaQuery.textScalerOf(context).scale(1);
@@ -151,7 +155,7 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
                     side: current ? BorderSide(color: colors.primary, width: 1.5) : BorderSide.none,
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: InkWell(
+                  child: _HistoryInkWell(
                     key: ValueKey('release-history-desktop-${release.version}'),
                     onTap: () => setState(() => _selected = release.version),
                     child: Padding(
@@ -176,25 +180,28 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
               child: Padding(
                 key: ValueKey('release-history-detail-${selected.version}'),
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _ReleaseHeader(release: selected),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: colors.surfaceContainerLow,
-                          borderRadius: const BorderRadius.all(Radius.circular(16)),
-                        ),
-                        child: SingleChildScrollView(
-                          physics: const PureLiveScrollPhysics(),
-                          padding: const EdgeInsets.all(20),
-                          child: _ReleaseBody(release: selected),
+                child: _ReleaseScrollArea(
+                  builder: (controller) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ReleaseHeader(release: selected),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colors.surfaceContainerLow,
+                            borderRadius: const BorderRadius.all(Radius.circular(16)),
+                          ),
+                          child: SingleChildScrollView(
+                            controller: controller,
+                            physics: const PureLiveScrollPhysics(),
+                            padding: const EdgeInsets.all(20),
+                            child: _ReleaseBody(release: selected),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -226,7 +233,7 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
               ),
             ),
             clipBehavior: Clip.antiAlias,
-            child: InkWell(
+            child: _HistoryInkWell(
               key: ValueKey('release-history-mobile-${release.version}'),
               onTap: () => unawaited(_showDetails(release)),
               child: DecoratedBox(
@@ -268,26 +275,93 @@ class _ReleaseHistoryViewState extends ConsumerState<ReleaseHistoryView> {
         child: SizedBox(
           width: math.min(680, media.size.width - 32),
           height: math.max(240, math.min(640, media.size.height - media.padding.vertical - 48)),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
-                child: _ReleaseHeader(release: release, onClose: () => Navigator.of(dialogContext).pop()),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  key: const ValueKey('release-history-detail-scroll'),
-                  physics: const PureLiveScrollPhysics(),
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  child: _ReleaseBody(release: release),
+          child: _ReleaseScrollArea(
+            builder: (controller) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 4),
+                  child: _ReleaseHeader(release: release, onClose: () => Navigator.of(dialogContext).pop()),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: SingleChildScrollView(
+                    controller: controller,
+                    key: const ValueKey('release-history-detail-scroll'),
+                    physics: const PureLiveScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: _ReleaseBody(release: release),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     },
+  );
+}
+
+/// Owns the detail viewport's scroll position, including inside a dialog.
+/// The header remains inside the keyboard area so Right can always leave
+/// reading mode for an action, even when a release has no download files.
+class _ReleaseScrollArea extends StatefulWidget {
+  const new({required this.builder});
+
+  final Widget Function(ScrollController? controller) builder;
+
+  @override
+  State<_ReleaseScrollArea> createState() => _ReleaseScrollAreaState();
+}
+
+class _ReleaseScrollAreaState extends State<_ReleaseScrollArea> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final directional = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
+    final child = widget.builder(directional ? _controller : null);
+    return directional
+        ? KeyboardScrollArea(
+            key: const ValueKey('release-history-keyboard-scroll'),
+            controller: _controller,
+            label: i18n('update_log'),
+            ringColor: Theme.of(context).colorScheme.onSurface,
+            child: child,
+          )
+        : child;
+  }
+}
+
+/// A release row keeps selection separate from the remote's current focus.
+class _HistoryInkWell extends StatefulWidget {
+  const new({required this.onTap, required this.child, super.key});
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  State<_HistoryInkWell> createState() => _HistoryInkWellState();
+}
+
+class _HistoryInkWellState extends State<_HistoryInkWell> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    foregroundPainter: _focused && SettingsRowStyle.tvOf(context)
+        ? const FocusRingPainter(color: TvColors.focusRing, borderRadius: AppRadii.button, gap: -3)
+        : null,
+    child: InkWell(
+      onTap: widget.onTap,
+      onFocusChange: (value) => setState(() => _focused = value),
+      child: widget.child,
+    ),
   );
 }
 
