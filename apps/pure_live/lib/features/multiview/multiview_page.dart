@@ -29,6 +29,7 @@ import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings_content.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/navigation/edge_swipe_back.dart';
 import 'package:pure_live/shared/panels/side_panel.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -476,13 +477,20 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   Widget build(BuildContext context) => PopScope(
     canPop: _exiting,
     onPopInvokedWithResult: (didPop, _) => _onBack(didPop),
-    child: ListenableBuilder(
-      listenable: _controller,
-      builder: (context, _) => LayoutBuilder(
-        builder: (context, constraints) {
-          _arrangement = _arrangementOf(constraints.biggest);
-          return _mode == _DisplayMode.normal ? _normal(context) : _bare(context, constraints.biggest);
-        },
+    child: EdgeSwipeBack(
+      // PopScope intentionally waits for the video textures to leave the tree.
+      // iOS does not dispatch its disabled pop gesture, so use that same safe
+      // exit path from the edge without bypassing panels or fullscreen.
+      enabled: defaultTargetPlatform == TargetPlatform.iOS && !_exiting,
+      onBack: () => _onBack(false),
+      child: ListenableBuilder(
+        listenable: _controller,
+        builder: (context, _) => LayoutBuilder(
+          builder: (context, constraints) {
+            _arrangement = _arrangementOf(constraints.biggest);
+            return _mode == _DisplayMode.normal ? _normal(context) : _bare(context, constraints.biggest);
+          },
+        ),
       ),
     ),
   );

@@ -10,11 +10,13 @@ import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_iptv/live_iptv.dart';
 import 'package:live_net/live_net.dart';
 import 'package:live_player/live_player.dart';
+import 'package:live_record/live_record.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/bootstrap.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/launch_args.dart';
+import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/areas/areas_page.dart';
 import 'package:pure_live/features/iptv/iptv_data.dart';
@@ -25,6 +27,7 @@ import 'package:pure_live/features/multiview/multiview_page.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/platform/recording_platform.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
@@ -181,6 +184,23 @@ Future<void> main() async {
   );
   await DesktopShell.start(store, primary: false, dataRoot: root, instanceId: 'issue68-native');
   final site = _LocalSite(server.port);
+  final localSites = SiteRegistry({SiteIds.bilibili: () => site, SiteIds.iptv: _LocalIptv.new});
+  final recordSettings = RecordSettingsStore(store);
+  await recordSettings.load();
+  final recordStorage = RecordStorage(
+    defaultDirectory: () async => '${root.path}/recordings',
+    configuredPath: () => '',
+  );
+  final recorder = Recorder(
+    sites: localSites.maybeOf,
+    ffmpeg: FfmpegKitRunner(),
+    storage: recordStorage,
+    settings: () => recordSettings.current,
+  );
+  final recording = AppRecording(settings: recordSettings, storage: recordStorage, recorder: recorder);
+  recorder.changes.listen((tasks) {
+    unawaited(File('${root.path}/recording.json').writeAsString(jsonEncode([for (final task in tasks) task.toJson()])));
+  });
   final sessions = <PlaybackSession>[];
   final engines = <PlaybackSession, MpvEngine>{};
   AppNavigator.toast = (message) => debugPrint('issue68-toast: $message');
@@ -188,7 +208,8 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         appServicesProvider.overrideWithValue(services),
-        sitesProvider.overrideWithValue(SiteRegistry({SiteIds.bilibili: () => site, SiteIds.iptv: _LocalIptv.new})),
+        sitesProvider.overrideWithValue(localSites),
+        recordingProvider.overrideWithValue(recording),
         iptvOverviewProvider.overrideWith(
           (ref) => Stream.value(
             const IptvOverview(
