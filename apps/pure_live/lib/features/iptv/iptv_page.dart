@@ -541,6 +541,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
     final state = ref.watch(iptvOverviewProvider);
     final overview = state.value;
     final syncAll = _syncAll;
+    final tv = SettingsRowStyle.tvOf(context);
     return Scaffold(
       appBar: settingsPageAppBar(
         context,
@@ -557,60 +558,77 @@ class _IptvPageState extends ConsumerState<IptvPage> {
           ),
         ],
       ),
-      body: importer == null
-          ? AppStatusView(type: AppStatusType.error, title: i18n('iptv_unavailable'))
-          : ListView(
-              key: const ValueKey('iptv-scroll'),
-              physics: const PureLiveScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              children: [
-                for (final child in [
-                  ..._enableNotice(),
-                  if (overview == null && state.hasError)
-                    IptvStateCard(
-                      key: const ValueKey('iptv-load-failed'),
-                      icon: AppIcons.failed,
-                      iconColor: Theme.of(context).colorScheme.error,
-                      title: i18n('iptv_load_failed_title'),
-                      text: i18n('iptv_initial_load_failed'),
-                      actions: [
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(48, 40),
-                            alignment: AlignmentDirectional.centerStart,
-                          ),
-                          onPressed: () => ref.invalidate(iptvOverviewProvider),
-                          icon: const Icon(AppIcons.retry, size: 18),
-                          label: Text(i18n('retry')),
-                        ),
-                      ],
-                    )
-                  else if (overview == null)
-                    const IptvSkeleton(),
-                  if (overview != null) ...[
-                    if (syncAll != null)
-                      IptvSyncProgress(done: syncAll.done, total: syncAll.total)
-                    else
-                      IptvStats(
-                        playlists: groupDigits(overview.playlists.length),
-                        channels: groupDigits(overview.channelCount),
-                        guides: groupDigits(overview.guides.length),
-                      ),
-                    const SizedBox(height: 20),
-                    ..._playlistSection(overview),
-                    const SizedBox(height: 8),
-                    ..._guideSection(overview),
-                    const SizedBox(height: 8),
-                  ] else
-                    const SizedBox(height: 20),
-                  ..._settingsSection(),
-                ])
-                  ReadableContent(
-                    child: SizedBox(width: double.infinity, child: child),
-                  ),
-              ],
+      body: Column(
+        children: [
+          if (tv && overview != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: ReadableContent(
+                child: IptvStats(
+                  playlists: groupDigits(overview.playlists.length),
+                  channels: groupDigits(overview.channelCount),
+                  guides: groupDigits(overview.guides.length),
+                ),
+              ),
             ),
+          Expanded(
+            child: importer == null
+                ? AppStatusView(type: AppStatusType.error, title: i18n('iptv_unavailable'))
+                : ListView(
+                    key: const ValueKey('iptv-scroll'),
+                    physics: const PureLiveScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    children: [
+                      for (final child in [
+                        ..._enableNotice(),
+                        if (overview == null && state.hasError)
+                          IptvStateCard(
+                            key: const ValueKey('iptv-load-failed'),
+                            icon: AppIcons.failed,
+                            iconColor: Theme.of(context).colorScheme.error,
+                            title: i18n('iptv_load_failed_title'),
+                            text: i18n('iptv_initial_load_failed'),
+                            actions: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(48, 40),
+                                  alignment: AlignmentDirectional.centerStart,
+                                ),
+                                onPressed: () => ref.invalidate(iptvOverviewProvider),
+                                icon: const Icon(AppIcons.retry, size: 18),
+                                label: Text(i18n('retry')),
+                              ),
+                            ],
+                          )
+                        else if (overview == null)
+                          const IptvSkeleton(),
+                        if (overview != null) ...[
+                          if (syncAll != null)
+                            IptvSyncProgress(done: syncAll.done, total: syncAll.total)
+                          else if (!tv)
+                            IptvStats(
+                              playlists: groupDigits(overview.playlists.length),
+                              channels: groupDigits(overview.channelCount),
+                              guides: groupDigits(overview.guides.length),
+                            ),
+                          const SizedBox(height: 20),
+                          ..._playlistSection(overview),
+                          const SizedBox(height: 8),
+                          ..._guideSection(overview),
+                          const SizedBox(height: 8),
+                        ] else
+                          const SizedBox(height: 20),
+                        ..._settingsSection(),
+                      ])
+                        ReadableContent(
+                          child: SizedBox(width: double.infinity, child: child),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

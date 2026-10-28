@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:live_core/live_core.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
@@ -15,7 +16,9 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/shared/rooms/iptv_room_feed.dart';
 import 'package:pure_live/shared/rooms/paging.dart';
+import 'package:pure_live/shared/rooms/platform_picker.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// Areas and followed areas (3.x `lib/modules/areas`).
@@ -63,6 +66,7 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
   void dispose() {
     HomeSignals.resumedAfterBackground.removeListener(_onResumed);
     _warm?.cancel();
+
     _tabs?.removeListener(_onTab);
     _tabs?.dispose();
     // The catalogues stay in the app (I03.2 c2, [areaCatalogsProvider]).
@@ -114,6 +118,7 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
   void _loadCurrent() {
     final id = _currentId;
     if (id == null) return;
+    if (id == SiteIds.iptv) return;
     _warm?.cancel();
     final catalog = _catalog(id);
     catalog.ensureLoaded().then((_) {
@@ -126,14 +131,14 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
     if (!mounted || _currentId != id || _ids.length < 2) return;
     final index = _ids.indexOf(id);
     final next = index + 1 < _ids.length ? index + 1 : index - 1;
-    if (next >= 0) _catalog(_ids[next]).ensureLoaded().ignore();
+    if (next >= 0 && _ids[next] != SiteIds.iptv) _catalog(_ids[next]).ensureLoaded().ignore();
   }
 
   void _onResumed() {
     final signal = HomeSignals.resumedAfterBackground.value;
     if (!widget.route.inHome || signal?.$1 != HomeMenu.areas) return;
     final id = _currentId;
-    if (id != null) _catalog(id).refresh().ignore();
+    if (id != null && id != SiteIds.iptv) _catalog(id).refresh().ignore();
   }
 
   @override
@@ -152,21 +157,40 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
               actions: phoneTab ? const [CommonAppBarActions()] : null,
               title: tabs == null
                   ? Text(i18n('areas_title'))
-                  : ScrollableTabBar(
-                      key: const ValueKey('areas-platform-tabs'),
-                      controller: tabs,
-                      isScrollable: true,
-                      tabAlignment: TabAlignment.center,
-                      physics: const PureLiveBoundedScrollPhysics(),
-                      // The last tab fades (A09.4 v4-phone; the same as popular's,
-                      // A09.12 c1).
-                      endFade: tabStripEndFade,
-                      tabs: [
-                        for (final id in ids)
-                          TabLabel(
-                            leading: PlatformLogo(id, size: 20),
-                            label: platformName(id, fallback: ref.read(sitesProvider).of(id).name),
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: ScrollableTabBar(
+                            key: const ValueKey('areas-platform-tabs'),
+                            controller: tabs,
+                            isScrollable: true,
+                            tabAlignment: TabAlignment.center,
+                            physics: const PureLiveBoundedScrollPhysics(),
+                            // The last tab fades (A09.4 v4-phone; the same as popular's,
+                            // A09.12 c1).
+                            endFade: tabStripEndFade,
+                            tabs: [
+                              for (final id in ids)
+                                TabLabel(
+                                  leading: PlatformLogo(id, size: 20),
+                                  label: platformName(id, fallback: ref.read(sitesProvider).of(id).name),
+                                ),
+                            ],
                           ),
+                        ),
+                        IconButton(
+                          key: const ValueKey('areas-all-platforms'),
+                          tooltip: i18n('popular_all_platforms'),
+                          icon: const Icon(AppIcons.dropDown, size: 22),
+                          onPressed: () async {
+                            final picked = await showAdaptivePanel<int>(
+                              context,
+                              side: MediaQuery.sizeOf(context).width >= 600,
+                              builder: (_) => PlatformPicker(ids: ids, current: tabs.index),
+                            );
+                            if (mounted && picked != null && identical(tabs, _tabs)) tabs.animateTo(picked);
+                          },
+                        ),
                       ],
                     ),
             ),
@@ -186,7 +210,13 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
               // tabs switch by tap only, so two horizontal drags never fight
               // (3.x).
               physics: const NeverScrollableScrollPhysics(),
-              children: [for (final id in ids) PlatformAreasView(key: ValueKey('areas-$id'), catalog: _catalog(id))],
+              children: [
+                for (final id in ids)
+                  if (id == SiteIds.iptv)
+                    IptvRoomsView(key: ValueKey('areas-$id'))
+                  else
+                    PlatformAreasView(key: ValueKey('areas-$id'), catalog: _catalog(id)),
+              ],
             ),
       floatingActionButton: tabs == null ? null : const _FollowedAreasButton(),
     );

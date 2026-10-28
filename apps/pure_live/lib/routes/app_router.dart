@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:live_ui/live_ui.dart';
@@ -129,13 +131,15 @@ GoRouter buildAppRouter({
 /// a Material one is not followed by the page under it
 /// (`MaterialRouteTransitionMixin.canTransitionTo`).
 Page<Object?> liveRoomPage({required LocalKey key, required Widget child, Object? arguments}) =>
-    CustomTransitionPage<Object?>(
-      key: key,
-      name: RoutePath.kLivePlay,
-      arguments: arguments,
-      transitionDuration: SpringPageTransitionsBuilder.duration,
-      reverseTransitionDuration: SpringPageTransitionsBuilder.reverseDuration,
-      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-          SpringPageTransition(animation: animation, secondaryAnimation: secondaryAnimation, child: child),
-      child: child,
-    );
+    defaultTargetPlatform == TargetPlatform.iOS
+    ? CupertinoPage<Object?>(key: key, name: RoutePath.kLivePlay, arguments: arguments, child: child)
+    : CustomTransitionPage<Object?>(
+        key: key,
+        name: RoutePath.kLivePlay,
+        arguments: arguments,
+        transitionDuration: SpringPageTransitionsBuilder.duration,
+        reverseTransitionDuration: SpringPageTransitionsBuilder.reverseDuration,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+            SpringPageTransition(animation: animation, secondaryAnimation: secondaryAnimation, child: child),
+        child: child,
+      );

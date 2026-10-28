@@ -12,6 +12,7 @@ import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/network.dart';
 import 'package:pure_live/features/live_play/danmaku/chat_feed.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
+import 'package:pure_live/shared/danmaku/danmaku_templates.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -135,6 +136,42 @@ void main() {
   );
 
   Future<void> settle() => Future<void>.delayed(const Duration(milliseconds: 20));
+
+  test('issue #79: VIP count is opt-in but a same-name human chat is retained', () async {
+    final controller = controllerFor(FakeSite(liveRoom()));
+    await controller.start();
+    await settle();
+    final notices = DouyuDanmakuProtocol.decode(
+      DouyuDanmakuProtocol.packet('type@=oni/vn@=17000/rid@=1/', type: DouyuDanmakuProtocol.serverPacketType),
+      roomId: '1',
+    );
+    final vip = notices.single;
+    danmaku.emit(DanmakuReceived(vip));
+    await settle();
+    expect(controller.chat.lines.where((line) => line.text == '17000'), isEmpty);
+    danmaku.emit(
+      const DanmakuReceived(
+        LiveMessage(type: LiveMessageType.chat, userName: '贵宾', message: 'human', color: LiveMessageColor.white),
+      ),
+    );
+    await settle();
+    expect(controller.chat.lines.map((line) => line.text), contains('human'));
+    await store.settings.set(Settings.danmakuShowVipCount, true);
+    danmaku.emit(DanmakuReceived(vip));
+    await settle();
+    expect(controller.chat.lines.map((line) => line.text), contains('17000'));
+    controller.dispose();
+  });
+
+  test('issue #78: larger font survives persistence without changing the default', () async {
+    expect(store.settings.get(Settings.danmakuFontSize), 16);
+    await store.settings.set(Settings.danmakuFontSize, 60);
+    expect(store.settings.get(Settings.danmakuFontSize), 60);
+    final template = DanmakuTemplate.of(store.settings);
+    expect(DanmakuTemplate.tryDecode(template.encode(), template)!.fontSize, 60);
+    await store.settings.set(Settings.danmakuFontSize, 600);
+    expect(store.settings.get(Settings.danmakuFontSize), 60);
+  });
 
   test('a live room plays the preferred quality, records history and joins the danmaku', () async {
     await store.settings.set(Settings.preferResolution, '超清');

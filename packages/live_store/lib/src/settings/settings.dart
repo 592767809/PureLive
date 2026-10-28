@@ -78,6 +78,9 @@ abstract final class Settings {
   /// Enter full screen when a room opens.
   static const enableFullScreenDefault = BoolSetting('enableFullScreenDefault', section: 'app', defaultValue: false);
 
+  /// Switch an ended or unrecoverable live room to another online follow.
+  static const autoSwitchLiveFollows = BoolSetting('autoSwitchLiveFollows', section: 'app', defaultValue: false);
+
   /// Show the splash page.
   static const showSplashPage = BoolSetting('showSplashPage', section: 'app', defaultValue: true);
 
@@ -570,13 +573,13 @@ abstract final class Settings {
   /// imported value, danmaku_settings_controller.dart:118, J01.2).
   static const danmakuSpeed = DoubleSetting('danmakuSpeed', section: 'danmaku', defaultValue: 120, min: 20, max: 400);
 
-  /// Font size (10..30, danmaku_settings_controller.dart:119).
+  /// Font size (10..60); the existing default stays 16.
   static const danmakuFontSize = DoubleSetting(
     'danmakuFontSize',
     section: 'danmaku',
     defaultValue: 16,
     min: 10,
-    max: 30,
+    max: 60,
   );
 
   /// Font weight (100..900 in hundreds: 550 reads 600,
@@ -661,6 +664,9 @@ abstract final class Settings {
   /// diamonds, 10 Douyin coins are 1 yuan); other units stay the platform's.
   /// Off by default (D-040).
   static const giftValueInYuan = BoolSetting('giftValueInYuan', section: 'danmaku', defaultValue: false);
+
+  /// Whether Douyu's periodic VIP-count notifications appear as messages.
+  static const danmakuShowVipCount = BoolSetting('danmakuShowVipCount', section: 'danmaku', defaultValue: false);
 
   /// New (A08.12): the platform's gifts worth a mark fly over the picture
   /// as danmaku of their own look ("飞行弹幕显示礼物"; the room, fullscreen,
@@ -2011,6 +2017,7 @@ abstract final class Settings {
     useGitHubOriginForUpdates,
     skippedUpdateVersion,
     enableFullScreenDefault,
+    autoSwitchLiveFollows,
     showSplashPage,
     refreshRateMode,
     matchVideoFrameRate,
@@ -2106,6 +2113,7 @@ abstract final class Settings {
     showChatGifts,
     chatGiftsAboveTier,
     giftValueInYuan,
+    danmakuShowVipCount,
     danmakuShowGifts,
     superChatIncludesMembership,
     showFullscreenSuperChat,

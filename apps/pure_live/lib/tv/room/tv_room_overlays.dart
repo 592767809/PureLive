@@ -456,13 +456,13 @@ class _TvRoomListState extends State<TvRoomList> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    room.displayNick(platformName(room.platform)),
+                                    title.isEmpty ? room.displayNick(platformName(room.platform)) : title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: scale.style(21, weight: FontWeight.w600, color: color),
                                   ),
                                   Text(
-                                    title.isEmpty ? i18n('untitled_room') : title,
+                                    room.displayNick(platformName(room.platform)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: scale.style(17, color: color.withValues(alpha: 0.7)),

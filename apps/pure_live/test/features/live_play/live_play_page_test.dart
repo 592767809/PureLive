@@ -389,6 +389,25 @@ void main() {
       await _close(tester, services);
     });
 
+    testWidgets('long press off: a held press is not a tap and opens nothing', (tester) async {
+      final danmaku = FakeDanmaku();
+      final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku);
+      AppNavigator.toast = (_) {};
+      await tester.runAsync(() => services.store.settings.set(Settings.enableDanmakuLongPressInteraction, false));
+      await _settle(tester);
+      final (_, at) = await fly(tester, danmaku);
+      // No long-press recognizer competes: the tap recognizer still calls
+      // onTap when the finger lifts, so a 2 s hold used to open the sheet
+      // through the tap switch.
+      final press = await tester.startGesture(at);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(seconds: 1));
+      await press.up();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('live-play-message-sheet')), findsNothing);
+      await _close(tester, services);
+    });
+
     testWidgets('A07.14: a tap opens the actions once a double tap is ruled out; a double tap only toggles', (
       tester,
     ) async {

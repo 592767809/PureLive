@@ -84,10 +84,11 @@ String areaDisplayName(LiveArea area) {
 /// text scale.
 double areaCardExtent(BuildContext context, double itemWidth, {required bool twoLines}) {
   final scaler = MediaQuery.textScalerOf(context);
+  final pictureWidth = MediaQuery.sizeOf(context).width < 600 ? math.min(itemWidth, 72) : itemWidth;
   final titleHeight = scaler.scale(12) * 1.3;
-  if (!twoLines) return itemWidth + math.max(40, titleHeight + 22);
+  if (!twoLines) return pictureWidth + math.max(40, titleHeight + 22);
   final subtitleHeight = scaler.scale(12) * 1.3;
-  return itemWidth + math.max(72, titleHeight + subtitleHeight + 32);
+  return pictureWidth + math.max(72, titleHeight + subtitleHeight + 32);
 }
 
 /// "platform · category" under an area's name (U.4d, U.4f).

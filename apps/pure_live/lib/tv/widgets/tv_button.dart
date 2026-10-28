@@ -24,6 +24,7 @@ class TvButton extends StatelessWidget {
   const new({
     required this.label,
     this.icon,
+    this.leading,
     this.onTap,
     this.onLongPress,
     this.onKey,
@@ -42,6 +43,9 @@ class TvButton extends StatelessWidget {
 
   /// The icon before the words.
   final IconData? icon;
+
+  /// A custom mark before the words, used for platform logos.
+  final Widget? leading;
 
   /// OK; null disables the button.
   final VoidCallback? onTap;
@@ -108,7 +112,13 @@ class TvButton extends StatelessWidget {
             mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (icon != null) ...[Icon(icon, size: scale.px(20), color: foreground), SizedBox(width: scale.px(8))],
+              if (leading != null) ...[
+                leading!,
+                SizedBox(width: scale.px(8)),
+              ] else if (icon != null) ...[
+                Icon(icon, size: scale.px(20), color: foreground),
+                SizedBox(width: scale.px(8)),
+              ],
               Flexible(
                 child: Text(
                   label,

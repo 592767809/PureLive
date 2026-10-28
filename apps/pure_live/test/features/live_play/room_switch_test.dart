@@ -225,6 +225,87 @@ int _whole(double height, double card, int columns) {
 }
 
 void main() {
+  testWidgets('issue #68: automatic switching does not reset an active sleep timer', (tester) async {
+    final room = await _pump(
+      tester,
+      arguments: _room('6'),
+      follows: [_room('6'), _room('7')],
+      rooms: {
+        '6': _room('6', status: LiveStatus.offline),
+        '7': _room('7'),
+      },
+      settings: {
+        Settings.autoSwitchLiveFollows: true,
+        Settings.enableAsmrSleepMode: true,
+        Settings.asmrSleepMinutes: 1,
+      },
+    );
+    try {
+      final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
+      final deadline = controller.sleepDeadline;
+      expect(deadline, isNotNull);
+      await tester.pump(const Duration(seconds: 1));
+      await _settle(tester);
+      expect(_shown(tester), '6', reason: 'the explicitly timed room keeps its original timer');
+      expect(controller.sleepDeadline, deadline);
+      await tester.pump(const Duration(seconds: 65));
+      await _settle(tester);
+      expect(controller.sleepTimerFinished, isTrue);
+      expect(_shown(tester), '6', reason: 'the expired timer must not wake another room');
+    } finally {
+      await _close(tester, room);
+    }
+  });
+
+  testWidgets('issue #68: automatic switching preserves audio-only selection', (tester) async {
+    final room = await _pump(
+      tester,
+      arguments: _room('6'),
+      follows: [_room('6'), _room('7')],
+      rooms: {
+        '6': _room('6', status: LiveStatus.offline),
+        '7': _room('7'),
+      },
+      settings: {Settings.autoSwitchLiveFollows: true},
+    );
+    try {
+      await tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller.setAudioOnly(enabled: true);
+      await tester.pump(const Duration(seconds: 1));
+      await _settle(tester);
+      final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
+      expect(controller.room.roomId, '7');
+      expect(controller.audioOnly, isTrue);
+      expect(controller.session.state.audioOnly, isTrue);
+    } finally {
+      await _close(tester, room);
+    }
+  });
+
+  for (final width in [393.0, 1280.0]) {
+    testWidgets('issue #68: ended room switches to a fresh online follow at width $width', (tester) async {
+      final room = await _pump(
+        tester,
+        width: width,
+        arguments: _room('6'),
+        follows: [_room('6'), _room('7'), _room('8')],
+        rooms: {
+          '6': _room('6', status: LiveStatus.offline),
+          '7': _room('7'),
+          '8': _room('8'),
+        },
+        settings: {Settings.autoSwitchLiveFollows: true},
+      );
+      await tester.pump(const Duration(seconds: 1));
+      await _settle(tester);
+      expect(_shown(tester), '7');
+      expect(room.sessions, hasLength(1), reason: 'automatic switches reuse the existing player');
+      expect(room.engine.opens.last.uri.path, '/7/index.m3u8');
+      expect(room.toasts, contains('已自动切换到 主播7'));
+      expect(tester.takeException(), isNull);
+      await _close(tester, room);
+    });
+  }
+
   group('B05 logic', () {
     test("c3: the columns are 3.x's at every phone width; wider grids get more", () {
       for (final width in [280.0, 300.0, 352.0, 353.0, 360.0, 393.0, 418.0, 430.0, 480.0, 525.0]) {

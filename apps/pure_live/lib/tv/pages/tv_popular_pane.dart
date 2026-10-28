@@ -139,32 +139,11 @@ class _TvPopularPaneState extends ConsumerState<TvPopularPane> {
   /// right edits the list.
   Future<void> _platformPanel(List<String> ids) async {
     final sites = ref.read(sitesProvider);
-    final picked = await showTvDialog<String>(
+    final picked = await showTvPlatformPicker(
       context,
-      builder: (context) {
-        return TvDialog(
-          key: const ValueKey('tv-platform-panel'),
-          title: i18n('tv_all_platforms'),
-          width: 1200,
-          actions: [
-            TvButton(
-              key: const ValueKey('tv-platform-panel-display'),
-              label: i18n('platform_display'),
-              onTap: () {
-                Navigator.pop(context);
-                unawaited(AppNavigator.toNamed<void>(RoutePath.kSettingsHotAreas));
-              },
-            ),
-            TvButton(label: i18n('close'), onTap: () => Navigator.pop(context)),
-          ],
-          child: _TvPlatformGrid(
-            ids: ids,
-            current: _current,
-            labelFor: (id) => platformName(id, fallback: sites.of(id).name),
-            onPick: (id) => Navigator.pop(context, id),
-          ),
-        );
-      },
+      ids: ids,
+      current: _current,
+      labelFor: (id) => platformName(id, fallback: sites.of(id).name),
     );
     if (picked != null && mounted) _select(picked);
   }
@@ -307,6 +286,7 @@ class _TvPlatformGridState extends State<_TvPlatformGrid> {
                       expand: true,
                       selected: id == widget.current,
                       label: widget.labelFor(id),
+                      leading: PlatformLogo(id, size: scale.pxText(20)),
                       onFocusChange: (focused) => _focusChanged(context, focused),
                       onTap: () => widget.onPick(id),
                     ),
@@ -319,3 +299,37 @@ class _TvPlatformGridState extends State<_TvPlatformGrid> {
     );
   }
 }
+
+/// The shared platform chooser for TV popular and area pages.
+Future<String?> showTvPlatformPicker(
+  BuildContext context, {
+  required List<String> ids,
+  required String? current,
+  required String Function(String) labelFor,
+}) => showTvDialog<String>(
+  context,
+  builder: (context) {
+    return TvDialog(
+      key: const ValueKey('tv-platform-panel'),
+      title: i18n('tv_all_platforms'),
+      width: 1200,
+      actions: [
+        TvButton(
+          key: const ValueKey('tv-platform-panel-display'),
+          label: i18n('platform_display'),
+          onTap: () {
+            Navigator.pop(context);
+            unawaited(AppNavigator.toNamed<void>(RoutePath.kSettingsHotAreas));
+          },
+        ),
+        TvButton(label: i18n('close'), onTap: () => Navigator.pop(context)),
+      ],
+      child: _TvPlatformGrid(
+        ids: ids,
+        current: current,
+        labelFor: labelFor,
+        onPick: (id) => Navigator.pop(context, id),
+      ),
+    );
+  },
+);

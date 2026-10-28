@@ -76,39 +76,44 @@ class _AreaCardState extends ConsumerState<AreaCard> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: ColoredBox(
-                        color: scheme.surfaceContainerLowest,
-                        child: AreaArtwork(url: pictures.pictureFor(area)),
-                      ),
-                    ),
-                    if (followed)
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: scheme.surface.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              AppIcons.areaFollowedMark,
-                              key: const ValueKey('area-card-followed'),
-                              size: 14,
-                              color: scheme.primary,
-                            ),
+              SizedBox(
+                height: MediaQuery.sizeOf(context).width < 600 ? 72 : null,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: ColoredBox(
+                            color: scheme.surfaceContainerLowest,
+                            child: AreaArtwork(url: pictures.pictureFor(area)),
                           ),
                         ),
-                      ),
-                  ],
+                        if (followed)
+                          Positioned(
+                            right: 6,
+                            top: 6,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: scheme.surface.withValues(alpha: 0.9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Icon(
+                                  AppIcons.areaFollowedMark,
+                                  key: const ValueKey('area-card-followed'),
+                                  size: 14,
+                                  color: scheme.primary,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               Expanded(
@@ -191,10 +196,15 @@ class AreaGridSkeleton extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AspectRatio(
-                    aspectRatio: 1,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(color: block, borderRadius: BorderRadius.circular(15)),
+                  SizedBox(
+                    height: MediaQuery.sizeOf(context).width < 600 ? 72 : null,
+                    child: Center(
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(color: block, borderRadius: BorderRadius.circular(15)),
+                        ),
+                      ),
                     ),
                   ),
                   Expanded(

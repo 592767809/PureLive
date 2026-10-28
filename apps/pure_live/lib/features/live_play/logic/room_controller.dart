@@ -109,7 +109,9 @@ class LiveRoomController extends ChangeNotifier {
     DateTime Function()? now,
     this.refreshInterval = const Duration(seconds: 60),
     this.danmakuStartTimeout = const Duration(seconds: 30),
+    bool initialAudioOnly = false,
   }) : _now = now ?? DateTime.now {
+    _audioOnly = initialAudioOnly;
     _filter = DanmakuMessageFilter(clock: _now)..shapeOf = chatTextShaper(emotes, _room.platform);
     _statusLines = DanmakuNoticeThrottle(clock: _now);
   }
@@ -258,6 +260,7 @@ class LiveRoomController extends ChangeNotifier {
   bool _audioOnly = false;
   Timer? _sleepTimer;
   DateTime? _sleepDeadline;
+  bool _sleepTimerFinished = false;
   int _sleepMinutes = 60;
   bool _sleepSession = false;
   EpgProgramme? _catchup;
@@ -331,6 +334,10 @@ class LiveRoomController extends ChangeNotifier {
 
   /// When the sleep timer stops the room, or null when it is off.
   DateTime? get sleepDeadline => _sleepDeadline;
+
+  /// The explicitly requested stop has fired; automatic room changes must
+  /// not restart playback. A new timer choice or room clears this state.
+  bool get sleepTimerFinished => _sleepTimerFinished;
 
   /// The sleep timer's last length in minutes (3.x `closeTimes`, 60).
   int get sleepMinutes => _sleepMinutes;
@@ -941,6 +948,7 @@ class LiveRoomController extends ChangeNotifier {
   /// Starts (or restarts) the sleep timer for [minutes], or stops it (3.x
   /// `applyRoomPlaybackTimer`): when it ends the room pauses.
   void setSleepTimer({required bool enabled, required int minutes}) {
+    _sleepTimerFinished = false;
     _sleepMinutes = minutes.clamp(1, 525600);
     _sleepTimer?.cancel();
     _sleepTimer = null;
@@ -956,6 +964,7 @@ class LiveRoomController extends ChangeNotifier {
   }
 
   void _sleepEnded() {
+    _sleepTimerFinished = true;
     _sleepTimer = null;
     _sleepDeadline = null;
     _sleepSession = false;
@@ -1242,6 +1251,7 @@ class LiveRoomController extends ChangeNotifier {
   /// change [chat], which tells the list itself (B08); the room's listeners
   /// hear of what they show: the super chats and [nameHint].
   void _onMessage(LiveMessage message) {
+    if (message.data == 'douyu-vip-count' && !store.settings.get(Settings.danmakuShowVipCount)) return;
     switch (message.type) {
       case LiveMessageType.chat:
         // B06: the names tell whether this connection is a guest's

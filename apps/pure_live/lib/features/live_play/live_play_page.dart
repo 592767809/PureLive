@@ -62,6 +62,7 @@ import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/rooms/auto_room_switch.dart';
 
 /// The room's clock: the danmaku filter, the gift lines' limit and combo
 /// window go by it (tests replace it with their simulated time).
@@ -141,6 +142,8 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   bool _closingOnPurpose = false;
   late final SettingsStore _settings;
   LiveRoomController? _controller;
+  AutoRoomSwitch? _autoRoomSwitch;
+  StreamSubscription<PlaybackState>? _autoRoomStates;
   RoomOrientationChoice? _orientation;
   late ReconnectWatch _reconnect;
   StreamSubscription<PlaybackState>? _autoFullscreen;
@@ -237,6 +240,24 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     }
     final store = ref.read(storeProvider);
     _settings = store.settings;
+    _autoRoomSwitch = AutoRoomSwitch(
+      store: store,
+      siteOf: ref.read(sitesProvider).maybeOf,
+      maySwitch: () =>
+          mounted &&
+          _controller?.sleepDeadline == null &&
+          !(_controller?.sleepTimerFinished ?? false) &&
+          (ModalRoute.isCurrentOf(context) ?? true) &&
+          (_controller?.mayAutoStart?.call() ?? true),
+      onSwitch: (next) {
+        if (!mounted) return;
+        _playlist = RoomPlaylist(_playlist?.rooms ?? const [], current: next);
+        _switchRoom(next, automatic: true);
+        AppNavigator.toast(i18n('auto_room_switched', args: {'name': next.nick}));
+      },
+      onExhausted: () => AppNavigator.toast(i18n('auto_room_switch_stopped')),
+    );
+    liveRouteObserver.currentRoute.addListener(_syncAutoRoomSwitch);
     final standby = ref.read(playerStandbyProvider);
     _standby = standby;
     if (playlist.isNotEmpty) _playlist = RoomPlaylist(playlist, current: room);
@@ -294,6 +315,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     LiveSite site, {
     required PlaybackSession session,
     required Object? playerConfig,
+    bool initialAudioOnly = false,
   }) {
     final store = ref.read(storeProvider);
     final danmaku = ref.read(danmakuProvider);
@@ -311,6 +333,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       network: ref.read(networkProbeProvider),
       emotes: ref.read(emoteLibraryProvider),
       now: ref.read(roomClockProvider),
+      initialAudioOnly: initialAudioOnly,
     );
     final background = RoomBackgroundPolicy(
       controller: controller,
@@ -356,9 +379,13 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   /// Makes [runtime] the page's room, with this visit's local interaction
   /// (U.2k: it holds no subscription, so the room it talks to may be one the
   /// floating window hands back, U.2j) and mini window (U.2j).
-  void _attachRoom(RoomRuntime runtime) {
+  void _attachRoom(RoomRuntime runtime, {bool automatic = false}) {
     _runtime = runtime;
     final controller = _controller = runtime.controller;
+    _autoRoomSwitch?.setRoom(controller.room, automatic: automatic);
+    controller.addListener(_syncAutoRoomSwitch);
+    _autoRoomStates = runtime.session.states.listen((_) => _syncAutoRoomSwitch());
+    _syncAutoRoomSwitch();
     _orientation = runtime.orientation;
     _reconnect = runtime.reconnect;
     final store = ref.read(storeProvider);
@@ -385,10 +412,25 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
 
   /// Lets go of the parts [_attachRoom] made.
   void _detachRoom() {
+    _controller?.removeListener(_syncAutoRoomSwitch);
+    unawaited(_autoRoomStates?.cancel());
+    _autoRoomStates = null;
     _local?.dispose();
     _mini
       ?..removeListener(_onMini)
       ..dispose();
+  }
+
+  void _syncAutoRoomSwitch() {
+    final controller = _controller;
+    if (controller == null) return;
+    _autoRoomSwitch?.update(
+      room: controller.room,
+      playback: controller.session.state,
+      resolving: controller.stage == RoomStage.loading || controller.switching || controller.switchingLine,
+      unavailable: controller.stage == RoomStage.unplayable,
+      replay: controller.playingCarousel,
+    );
   }
 
   /// The portrait fullscreen's swipe let go past the switch (U.2b2): the
@@ -420,7 +462,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   /// page too): the room before stops and lets the player go, then [room]
   /// starts on it. Swipes meanwhile wait their turn, and only the last room
   /// starts.
-  void _switchRoom(LiveRoom room) {
+  void _switchRoom(LiveRoom room, {bool automatic = false}) {
     final old = _runtime;
     final site = ref.read(sitesProvider).maybeOf(room.platform);
     if (old == null || site == null) return;
@@ -428,9 +470,15 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _autoFullscreen = null;
     _panels.close();
     _detachRoom();
-    final runtime = _newRuntime(room, site, session: old.session, playerConfig: old.playerConfig);
+    final runtime = _newRuntime(
+      room,
+      site,
+      session: old.session,
+      playerConfig: old.playerConfig,
+      initialAudioOnly: automatic && old.controller.audioOnly,
+    );
     setState(() {
-      _attachRoom(runtime);
+      _attachRoom(runtime, automatic: automatic);
       // Everything of the room before is built afresh, the player too.
       _roomEpoch++;
       _memory = RoomViewMemory(panelStop: _memory.panelStop);
@@ -513,6 +561,10 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
 
   @override
   void dispose() {
+    _autoRoomSwitch?.dispose();
+    liveRouteObserver.currentRoute.removeListener(_syncAutoRoomSwitch);
+    _controller?.removeListener(_syncAutoRoomSwitch);
+    unawaited(_autoRoomStates?.cancel());
     if (identical(RoomCommands.current.value, _commands)) RoomCommands.current.value = null;
     DesktopWindow.fullScreen.removeListener(_windowFullScreenChanged);
     OverlayWindow.active.removeListener(_overlayShown);

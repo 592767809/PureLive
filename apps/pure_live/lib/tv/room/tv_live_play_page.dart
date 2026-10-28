@@ -18,9 +18,11 @@ import 'package:pure_live/features/live_play/player/player_view.dart' show video
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
+import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/rooms/auto_room_switch.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/room/tv_room_settings_panel.dart';
@@ -82,6 +84,8 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   List<LiveRoom> _playlist = const [];
   int _index = 0;
   LiveRoomController? _controller;
+  AutoRoomSwitch? _autoRoomSwitch;
+  StreamSubscription<PlaybackState>? _autoRoomStates;
   PlaybackSession? _session;
   RoomBackgroundPolicy? _background;
   String? _problem;
@@ -137,10 +141,33 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     final at = list.indexWhere(room.hasSameIdentity);
     _playlist = at < 0 ? [room, ...list] : list;
     _index = at < 0 ? 0 : at;
+    _autoRoomSwitch = AutoRoomSwitch(
+      store: ref.read(storeProvider),
+      siteOf: ref.read(sitesProvider).maybeOf,
+      maySwitch: () =>
+          mounted &&
+          _controller?.sleepDeadline == null &&
+          !(_controller?.sleepTimerFinished ?? false) &&
+          (ModalRoute.isCurrentOf(context) ?? true) &&
+          (_controller?.mayAutoStart?.call() ?? true),
+      onSwitch: (next) {
+        if (!mounted) return;
+        var index = _playlist.indexWhere(next.hasSameIdentity);
+        if (index < 0) {
+          index = _playlist.length;
+          _playlist = [..._playlist, next];
+        }
+        switchTo(index, automatic: true);
+      },
+      onExhausted: () => AppNavigator.toast(i18n('auto_room_switch_stopped')),
+    );
+    liveRouteObserver.currentRoute.addListener(_syncAutoRoomSwitch);
     _open(_playlist[_index]);
   }
 
-  void _open(LiveRoom room) {
+  void _open(LiveRoom room, {bool automatic = false}) {
+    final audioOnly = automatic && (_controller?.audioOnly ?? false);
+    _autoRoomSwitch?.setRoom(room, automatic: automatic);
     _closeRoom();
     final site = ref.read(sitesProvider).maybeOf(room.platform);
     if (site == null) {
@@ -164,12 +191,30 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       toast: (message) => AppNavigator.toast(message),
       network: ref.read(networkProbeProvider),
       emotes: ref.read(emoteLibraryProvider),
+      initialAudioOnly: audioOnly,
     );
     _background = RoomBackgroundPolicy(controller: controller, settings: store.settings)..start();
+    controller.addListener(_syncAutoRoomSwitch);
+    _autoRoomStates = session.states.listen((_) => _syncAutoRoomSwitch());
     unawaited(controller.start());
   }
 
+  void _syncAutoRoomSwitch() {
+    final controller = _controller;
+    if (controller == null) return;
+    _autoRoomSwitch?.update(
+      room: controller.room,
+      playback: controller.session.state,
+      resolving: controller.stage == RoomStage.loading || controller.switching || controller.switchingLine,
+      unavailable: controller.stage == RoomStage.unplayable,
+      replay: controller.playingCarousel,
+    );
+  }
+
   void _closeRoom() {
+    _controller?.removeListener(_syncAutoRoomSwitch);
+    unawaited(_autoRoomStates?.cancel());
+    _autoRoomStates = null;
     _background?.dispose();
     _background = null;
     _controller?.dispose();
@@ -181,6 +226,8 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
 
   @override
   void dispose() {
+    _autoRoomSwitch?.dispose();
+    liveRouteObserver.currentRoute.removeListener(_syncAutoRoomSwitch);
     _hideControls?.cancel();
     _hideBanner?.cancel();
     _debounce?.cancel();
@@ -252,21 +299,23 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       return;
     }
     _pendingDelta += delta;
+    _autoRoomSwitch?.suspend(value: true);
     _debounce?.cancel();
     _debounce = Timer(switchWindow, () {
       final total = _pendingDelta;
       _pendingDelta = 0;
       if (total != 0 && mounted) switchTo((_index + total) % _playlist.length);
+      _autoRoomSwitch?.suspend(value: false);
     });
   }
 
   /// Shows room [index] of the list.
-  void switchTo(int index) {
+  void switchTo(int index, {bool automatic = false}) {
     if (index < 0 || index >= _playlist.length) return;
     final wasPanel = _panel;
     setState(() {
       _index = index;
-      _open(_playlist[index]);
+      _open(_playlist[index], automatic: automatic);
       _panel = false;
       _superChatPanel = false;
       _banner = true;

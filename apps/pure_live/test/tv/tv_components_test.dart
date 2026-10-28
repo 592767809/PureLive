@@ -9,6 +9,7 @@ import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/tv/phone/tv_phone_dialogs.dart';
+import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_area_card.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
@@ -152,6 +153,31 @@ final LiveRoom _room = LiveRoom(
 );
 
 void main() {
+  testWidgets('issue #84: TV room chooser puts the channel title first and falls back when empty', (tester) async {
+    await tester.runAsync(loadStrings);
+    await _pump(
+      tester,
+      TvRoomList(
+        rooms: [
+          LiveRoom(platform: SiteIds.iptv, roomId: '1', title: 'CCTV1', nick: 'National channels'),
+          LiveRoom(platform: SiteIds.bilibili, roomId: '2', nick: 'Fallback streamer'),
+        ],
+        current: 0,
+        onPick: (_) {},
+      ),
+    );
+    await tester.pumpAndSettle();
+    final first = find.byKey(const ValueKey('tv-room-list-0'));
+    final title = find.descendant(of: first, matching: find.text('CCTV1'));
+    final author = find.descendant(of: first, matching: find.text('National channels'));
+    expect(tester.getTopLeft(title).dy, lessThan(tester.getTopLeft(author).dy));
+    expect(tester.widget<Text>(title).style!.fontSize, greaterThan(tester.widget<Text>(author).style!.fontSize!));
+    final second = find.byKey(const ValueKey('tv-room-list-1'));
+    expect(find.descendant(of: second, matching: find.text('Fallback streamer')), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   final toasts = <String>[];
   setUpAll(loadStrings);
   setUp(() {

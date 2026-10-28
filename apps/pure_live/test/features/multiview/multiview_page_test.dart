@@ -15,11 +15,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:live_player/live_player.dart';
+import 'package:live_record/live_record.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/live_play/record/record_panel.dart';
 import 'package:pure_live/features/multiview/logic/multiview_controller.dart';
 import 'package:pure_live/features/multiview/multiview_page.dart';
+import 'package:pure_live/features/multiview/widgets/cell_controls.dart';
 import 'package:pure_live/features/multiview/widgets/cell_view.dart';
 import 'package:pure_live/features/multiview/widgets/toolbar.dart';
 import 'package:pure_live/platform/display_mode.dart';
@@ -34,6 +38,13 @@ import '../../support.dart';
 import '../live_play/live_play_support.dart';
 import 'multiview_support.dart';
 
+final _recorders = <AppServices, (AppRecording, io.Directory)>{};
+
+final class _NoRecordProcess implements FfmpegRunner {
+  @override
+  Future<FfmpegExecution> start(List<String> arguments) => throw UnsupportedError('no native recording in widgets');
+}
+
 Finder _key(String key) => find.byKey(ValueKey(key));
 
 Future<(AppServices, RoomsSite)> _pump(
@@ -41,6 +52,8 @@ Future<(AppServices, RoomsSite)> _pump(
   Size size, {
   List<String> rooms = const ['1', '2', '3'],
   ThemeMode theme = ThemeMode.light,
+  bool routed = false,
+  bool withRecorder = false,
   List<Override> overrides = const [],
   LiveFontSizes fontSizes = const LiveFontSizes(),
 }) async {
@@ -66,6 +79,20 @@ Future<(AppServices, RoomsSite)> _pump(
     }
   });
   final site = RoomsSite();
+  if (withRecorder) {
+    await tester.runAsync(() async {
+      final folder = await io.Directory.systemTemp.createTemp('purelive-multiview-record-');
+      final recording = buildAppRecording(
+        store: services.store,
+        sites: services.sites,
+        proxy: services.proxy,
+        dataRoot: folder,
+        ffmpeg: _NoRecordProcess(),
+      );
+      await recording.loadSettings();
+      _recorders[services] = (recording, folder);
+    });
+  }
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -73,6 +100,7 @@ Future<(AppServices, RoomsSite)> _pump(
         sitesProvider.overrideWithValue(SiteRegistry({SiteIds.bilibili: () => site})),
         danmakuProvider.overrideWithValue(DanmakuRegistry({SiteIds.bilibili: FakeDanmaku.new})),
         playbackSessionFactoryProvider.overrideWithValue(({config}) => fakeSession(FakeEngine())),
+        if (_recorders[services] case final pair?) recordingProvider.overrideWithValue(pair.$1),
         ...overrides,
       ],
       child: MaterialApp(
@@ -80,10 +108,27 @@ Future<(AppServices, RoomsSite)> _pump(
         theme: LiveTheme(fontSizes: fontSizes, fontFamily: reviewFamily).light,
         darkTheme: LiveTheme(fontSizes: fontSizes, fontFamily: reviewFamily).dark,
         themeMode: theme,
-        home: const MultiviewPage(route: RouteArgs(RoutePath.kMultiview)),
+        home: routed
+            ? Builder(
+                builder: (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const MultiviewPage(route: RouteArgs(RoutePath.kMultiview)),
+                      ),
+                    ),
+                    child: const Text('open-multi'),
+                  ),
+                ),
+              )
+            : const MultiviewPage(route: RouteArgs(RoutePath.kMultiview)),
       ),
     ),
   );
+  if (routed) {
+    await tester.tap(find.text('open-multi'));
+    await tester.pumpAndSettle();
+  }
   await _wait(tester);
   return (services, site);
 }
@@ -105,6 +150,12 @@ Future<void> _close(WidgetTester tester, AppServices services) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
   await tester.pump(const Duration(seconds: 5));
+  if (_recorders.remove(services) case final pair?) {
+    await tester.runAsync(() async {
+      await pair.$1.dispose();
+      await pair.$2.delete(recursive: true);
+    });
+  }
   await tester.runAsync(services.close);
 }
 
@@ -121,6 +172,62 @@ void _expectLeftToRight(WidgetTester tester, List<String> keys) {
 }
 
 void main() {
+  testWidgets('issue #85: an open recording panel stays bound when its cell switches rooms', (tester) async {
+    final (services, _) = await _pump(tester, const Size(393, 852), withRecorder: true);
+    await _pick(tester, '1');
+    final controls = tester.widget<MultiviewCellControls>(find.byType(MultiviewCellControls));
+    await tester.tap(_key('multiview-control-record'));
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => controls.controller.assign(controls.index, pickRoom('3')));
+    await _wait(tester);
+    final panel = tester.widget<RoomRecordPanel>(find.byType(RoomRecordPanel));
+    expect(panel.room().roomId, '1', reason: 'record the room the user selected, not an automatic replacement');
+    expect(controls.controller.cells[controls.index].room?.roomId, '3');
+    panel.onClose();
+    await tester.pumpAndSettle();
+    await _close(tester, services);
+  });
+
+  for (final size in [const Size(393, 852), const Size(740, 360), const Size(1280, 800)]) {
+    testWidgets('issue #85: selected cell opens its own shared recorder at $size', (tester) async {
+      final (services, _) = await _pump(tester, size, withRecorder: true);
+      await _pick(tester, '1');
+      await _pick(tester, '2');
+      final sessions = [_cellView(tester, 1).cell.session, _cellView(tester, 2).cell.session];
+      for (final position in [1, 2]) {
+        await tester.tap(_key('multiview-cell-$position'));
+        await _wait(tester);
+        await tester.ensureVisible(_key('multiview-control-record'));
+        await tester.tap(_key('multiview-control-record'));
+        await tester.pumpAndSettle();
+        final panel = tester.widget<RoomRecordPanel>(find.byType(RoomRecordPanel));
+        expect(panel.room().roomId, '$position');
+        expect(find.text('开始录制'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        panel.onClose();
+        await tester.pumpAndSettle();
+        expect(_cellView(tester, 1).cell.session, same(sessions[0]));
+        expect(_cellView(tester, 2).cell.session, same(sessions[1]));
+      }
+      await _close(tester, services);
+    });
+  }
+  testWidgets('issue #85: iOS edge back safely exits multiview after removing video', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final (services, _) = await _pump(tester, const Size(393, 852), routed: true);
+    await _pick(tester, '1');
+    await tester.dragFrom(const Offset(6, 300), const Offset(150, 0));
+    await tester.pump();
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.byType(MultiviewPage), findsNothing);
+    expect(find.text('open-multi'), findsOneWidget);
+    debugDefaultTargetPlatformOverride = null;
+    expect(tester.takeException(), isNull);
+    await _close(tester, services);
+  });
+
   for (final mode in ['immersive', 'fullscreen']) {
     for (final theme in [ThemeMode.light, ThemeMode.dark]) {
       testWidgets('issue #43: direct picker targets the right-clicked cell in $mode, ${theme.name}', (tester) async {

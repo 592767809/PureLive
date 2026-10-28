@@ -9,7 +9,6 @@
     "favorite -> home/menu_button.dart",
     "home -> version/update_feed.dart",
     "home -> version/update_prompt.dart",
-    "live_play -> recorder/recorder_texts.dart",
     "popular -> home/home_menu.dart",
     "popular -> home/menu_button.dart",
     "recorder -> home/home_menu.dart",

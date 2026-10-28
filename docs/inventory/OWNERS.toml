@@ -146,6 +146,7 @@ path = [
   { glob = "apps/pure_live/lib/shared/images.dart", sub = "R03" },
   { glob = "apps/pure_live/lib/shared/in_app_web.dart", sub = "I05", note = "网页搜索和哔哩哔哩网页登录共用" },
   { glob = "apps/pure_live/lib/shared/links/", sub = "A15" },
+  { glob = "apps/pure_live/lib/shared/navigation/", sub = "A18" },
   { glob = "apps/pure_live/lib/shared/panels/", sub = "A02" },
   { glob = "apps/pure_live/lib/shared/permission_prompts.dart", sub = "O04" },
   { glob = "apps/pure_live/lib/shared/qr_scan.dart", sub = "A12" },

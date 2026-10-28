@@ -132,6 +132,12 @@ class DanmakuSettingsContent extends ConsumerWidget {
                 onSelectionChanged: (selection) => set(Settings.danmakuPausedBehavior, selection.first),
               ),
             ),
+            SettingSwitchRow(
+              settingKey: 'vipCount',
+              title: i18n('danmaku_show_vip_count'),
+              value: watchSetting(ref, Settings.danmakuShowVipCount),
+              onChanged: (value) => set(Settings.danmakuShowVipCount, value),
+            ),
             // A08.12: the platform's valuable gifts over the picture (the
             // room, fullscreen, the mini windows, the multi-view, the TV).
             SettingSwitchRow(
@@ -167,9 +173,9 @@ class DanmakuSettingsContent extends ConsumerWidget {
             SettingSliderRow(
               settingKey: 'fontSize',
               title: i18n('font_size'),
-              value: fontSize.clamp(10, 30).toDouble(),
+              value: fontSize.clamp(10, 60).toDouble(),
               min: 10,
-              max: 30,
+              max: 60,
               display: '${fontSize.toStringAsFixed(1)} px',
               onChanged: (value) => set(Settings.danmakuFontSize, value),
             ),

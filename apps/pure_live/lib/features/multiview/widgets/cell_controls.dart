@@ -1,11 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_core/live_core.dart';
 import 'package:live_player/live_player.dart';
 import 'package:live_ui/live_ui.dart';
+import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/multiview/logic/multiview_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/record/record_button.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -21,9 +24,6 @@ const double _buttonSize = 40;
 /// side (UI_PLAN 5.4): the padding next to the buttons is shorter by this
 /// much so the circles keep their places.
 const double _buttonInset = (kMinInteractiveDimension - _buttonSize) / 2;
-
-/// The five buttons side by side.
-const double _buttonsWidth = 5 * kMinInteractiveDimension;
 
 /// The controls' padding at the start: the room, the menus and the volume
 /// start 12 in, the first button's circle too.
@@ -45,7 +45,7 @@ const double _minInlineSlider = 64;
 /// the fullscreen panel each on a row of its own ([compact]). The buttons
 /// are 40 in 48-point tap targets (UI_PLAN 5.4).
 /// Rebuilds only when this cell changes.
-class MultiviewCellControls extends StatelessWidget {
+class MultiviewCellControls extends ConsumerWidget {
   /// Creates the controls of cell [index].
   const new({
     required this.controller,
@@ -76,107 +76,111 @@ class MultiviewCellControls extends StatelessWidget {
   final ValueChanged<bool>? onMenu;
 
   @override
-  Widget build(BuildContext context) => ListenableSelector<Object>(
-    listenable: controller,
-    selector: () {
-      final cells = controller.cells;
-      if (index >= cells.length) return const [];
-      final cell = cells[index];
-      return Object.hash(
-        cell.id,
-        cell.stage,
-        cell.room?.identityKey,
-        cell.room?.nick,
-        cell.room?.title,
-        cell.room?.avatar,
-        cell.qualityIndex,
-        cell.switching,
-        cell.volume,
-        Object.hashAll([for (final quality in cell.qualities) qualityLabel(quality)]),
-        cell.session,
-      );
-    },
-    builder: (context, _, _) {
-      final cells = controller.cells;
-      if (index >= cells.length) return const SizedBox.shrink();
-      final cell = cells[index];
-      final room = cell.room;
-      if (cell.stage == CellStage.empty || room == null) return const SizedBox.shrink();
-      final header = _RoomRow(room: room, position: index + 1);
-      final streams = _StreamButtons(controller: controller, index: index, cell: cell, onMenu: onMenu);
-      final buttons = _Buttons(
-        controller: controller,
-        index: index,
-        cell: cell,
-        onChangeRoom: onChangeRoom,
-        onEnterRoom: () => onEnterRoom(room),
-      );
-      _VolumeRow volume({required double lead}) => _VolumeRow(
-        key: ValueKey('multiview-volume-${cell.id}'),
-        lead: lead,
-        valueWidth: compact ? _VolumeRow.measuredValueWidth(context) : _VolumeRow._valueWidth,
-        value: cell.volume,
-        onChanged: (value) => unawaited(controller.setVolume(index, value)),
-        onChangeEnd: (value) => unawaited(controller.setVolume(index, value, save: true)),
-      );
-      // On a row of its own the volume's icon lines up with the room's
-      // avatar, as before.
-      final volumeRow = volume(lead: 20 - _start);
-      const indent = EdgeInsetsDirectional.only(start: _buttonInset);
-      return Padding(
-        key: ValueKey('multiview-cell-controls-${index + 1}'),
-        padding: const EdgeInsetsDirectional.fromSTEB(_start, 6, 8, 6),
-        child: compact
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(padding: indent, child: header),
-                  Padding(
-                    padding: indent,
-                    child: Align(alignment: AlignmentDirectional.centerStart, child: streams),
-                  ),
-                  Align(alignment: AlignmentDirectional.centerStart, child: buttons),
-                  volumeRow,
-                ],
-              )
-            : LayoutBuilder(
-                builder: (context, box) {
-                  // The volume after the buttons while its slider keeps a
-                  // usable track (8 between the last circle and its icon).
-                  final inline =
-                      box.maxWidth - _buttonsWidth - _VolumeRow.chrome(lead: 8 - _buttonInset) >= _minInlineSlider;
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Padding(
-                        padding: indent,
-                        child: Row(
-                          children: [
-                            Expanded(child: header),
-                            streams,
-                          ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canRecord = ref.watch(recordingProvider)?.available ?? false;
+    final buttonsWidth = (canRecord ? 6 : 5) * kMinInteractiveDimension;
+    return ListenableSelector<Object>(
+      listenable: controller,
+      selector: () {
+        final cells = controller.cells;
+        if (index >= cells.length) return const [];
+        final cell = cells[index];
+        return Object.hash(
+          cell.id,
+          cell.stage,
+          cell.room?.identityKey,
+          cell.room?.nick,
+          cell.room?.title,
+          cell.room?.avatar,
+          cell.qualityIndex,
+          cell.switching,
+          cell.volume,
+          Object.hashAll([for (final quality in cell.qualities) qualityLabel(quality)]),
+          cell.session,
+        );
+      },
+      builder: (context, _, _) {
+        final cells = controller.cells;
+        if (index >= cells.length) return const SizedBox.shrink();
+        final cell = cells[index];
+        final room = cell.room;
+        if (cell.stage == CellStage.empty || room == null) return const SizedBox.shrink();
+        final header = _RoomRow(room: room, position: index + 1);
+        final streams = _StreamButtons(controller: controller, index: index, cell: cell, onMenu: onMenu);
+        final buttons = _Buttons(
+          controller: controller,
+          index: index,
+          cell: cell,
+          onChangeRoom: onChangeRoom,
+          onEnterRoom: () => onEnterRoom(room),
+        );
+        _VolumeRow volume({required double lead}) => _VolumeRow(
+          key: ValueKey('multiview-volume-${cell.id}'),
+          lead: lead,
+          valueWidth: compact ? _VolumeRow.measuredValueWidth(context) : _VolumeRow._valueWidth,
+          value: cell.volume,
+          onChanged: (value) => unawaited(controller.setVolume(index, value)),
+          onChangeEnd: (value) => unawaited(controller.setVolume(index, value, save: true)),
+        );
+        // On a row of its own the volume's icon lines up with the room's
+        // avatar, as before.
+        final volumeRow = volume(lead: 20 - _start);
+        const indent = EdgeInsetsDirectional.only(start: _buttonInset);
+        return Padding(
+          key: ValueKey('multiview-cell-controls-${index + 1}'),
+          padding: const EdgeInsetsDirectional.fromSTEB(_start, 6, 8, 6),
+          child: compact
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(padding: indent, child: header),
+                    Padding(
+                      padding: indent,
+                      child: Align(alignment: AlignmentDirectional.centerStart, child: streams),
+                    ),
+                    Align(alignment: AlignmentDirectional.centerStart, child: buttons),
+                    volumeRow,
+                  ],
+                )
+              : LayoutBuilder(
+                  builder: (context, box) {
+                    // The volume after the buttons while its slider keeps a
+                    // usable track (8 between the last circle and its icon).
+                    final inline =
+                        box.maxWidth - buttonsWidth - _VolumeRow.chrome(lead: 8 - _buttonInset) >= _minInlineSlider;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: indent,
+                          child: Row(
+                            children: [
+                              Expanded(child: header),
+                              streams,
+                            ],
+                          ),
                         ),
-                      ),
-                      if (inline)
-                        Row(
-                          children: [
-                            buttons,
-                            Expanded(child: volume(lead: 8 - _buttonInset)),
-                          ],
-                        )
-                      else ...[
-                        Align(alignment: AlignmentDirectional.centerStart, child: buttons),
-                        volumeRow,
+                        if (inline)
+                          Row(
+                            children: [
+                              buttons,
+                              Expanded(child: volume(lead: 8 - _buttonInset)),
+                            ],
+                          )
+                        else ...[
+                          Align(alignment: AlignmentDirectional.centerStart, child: buttons),
+                          volumeRow,
+                        ],
                       ],
-                    ],
-                  );
-                },
-              ),
-      );
-    },
-  );
+                    );
+                  },
+                ),
+        );
+      },
+    );
+  }
 }
 
 /// The avatar, the cell's number, the streamer, the platform and title.
@@ -358,7 +362,7 @@ class _Buttons extends StatelessWidget {
             },
           );
     // Side by side: the targets leave 8 between the circles. A column too
-    // narrow for five wraps rather than overflows.
+    // narrow for six wraps rather than overflows.
     return Wrap(
       children: [
         play,
@@ -370,6 +374,7 @@ class _Buttons extends StatelessWidget {
         ),
         button('change', AppIcons.changeRoom, i18n('multiview_change_room'), onChangeRoom),
         button('room', AppIcons.enterRoom, i18n('multiview_open_room'), onEnterRoom),
+        RecordButton(key: const ValueKey('multiview-control-record'), room: cell.room!, compact: true),
         button(
           'close',
           AppIcons.closeCell,

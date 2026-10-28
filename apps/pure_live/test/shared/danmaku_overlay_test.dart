@@ -132,6 +132,7 @@ void main() {
   testWidgets('c1: 3.x lanes of 26 for 16 px, the text in the middle of its lane', (tester) async {
     expect(const DanmakuLook().lane, 26);
     expect(const DanmakuLook(fontSize: 30).lane, 46.5);
+    expect(const DanmakuLook(fontSize: 60).lane, 93);
     expect(const DanmakuLook(laneHeight: 20, fontSize: 10).lane, 20, reason: "the mini windows' own lanes (U.2j)");
     final layer = _Layer(tester);
     await layer.pump();

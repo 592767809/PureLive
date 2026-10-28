@@ -888,6 +888,14 @@ List<SettingsEntry> _build() {
     )
     ..group = 'playback_behavior_settings'
     ..toggle(
+      'auto_switch_live_follows',
+      'auto_switch_live_follows',
+      Settings.autoSwitchLiveFollows,
+      AppIcons.switchRoom,
+      desc: 'auto_switch_live_follows_desc',
+      keywords: ['自动换台', '下播', '播放失败', '关注', '多画面', 'auto', 'next'],
+    )
+    ..toggle(
       'desktop_pause_when_minimized',
       'desktop_pause_when_minimized',
       Settings.desktopPauseWhenMinimized,
@@ -1859,13 +1867,14 @@ List<SettingsEntry> _build() {
       desc: 'settings_danmaku_speed_desc',
       keywords: ['速度', 'speed', '弹幕'],
     )
+    ..toggle('danmaku_show_vip_count', 'danmaku_show_vip_count', Settings.danmakuShowVipCount, null)
     ..slider(
       'danmaku_font_size',
       'font_size',
       Settings.danmakuFontSize,
       null,
       min: 10,
-      max: 30,
+      max: 60,
       step: 0.5,
       format: (value) => '${value.toStringAsFixed(1)} px',
       keywords: ['字号', 'size', '弹幕'],

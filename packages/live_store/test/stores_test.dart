@@ -173,7 +173,7 @@ void main() {
     test("J01.2: danmaku and PiP window values out of 3.x's ranges are clamped as 3.x did", () async {
       final out = <Setting<Object>, (Object, Object)>{
         Settings.danmakuSpeed: (0.0, 20.0),
-        Settings.danmakuFontSize: (64.0, 30.0),
+        Settings.danmakuFontSize: (64.0, 60.0),
         Settings.danmakuFontWeight: (1000, 900),
         Settings.repeatedDanmakuWindowSeconds: (99, 30),
         Settings.pipDanmakuFontSize: (2.0, 8.0),
