@@ -665,9 +665,6 @@ abstract final class Settings {
   /// Off by default (D-040).
   static const giftValueInYuan = BoolSetting('giftValueInYuan', section: 'danmaku', defaultValue: false);
 
-  /// Whether Douyu's periodic VIP-count notifications appear as messages.
-  static const danmakuShowVipCount = BoolSetting('danmakuShowVipCount', section: 'danmaku', defaultValue: false);
-
   /// New (A08.12): the platform's gifts worth a mark fly over the picture
   /// as danmaku of their own look ("飞行弹幕显示礼物"; the room, fullscreen,
   /// the mini windows, the multi-view and the TV): a precious one stands at
@@ -2113,7 +2110,6 @@ abstract final class Settings {
     showChatGifts,
     chatGiftsAboveTier,
     giftValueInYuan,
-    danmakuShowVipCount,
     danmakuShowGifts,
     superChatIncludesMembership,
     showFullscreenSuperChat,

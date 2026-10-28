@@ -529,7 +529,10 @@ class _Figures extends StatelessWidget {
           final cellWidth = (constraints.maxWidth - 2 - (count - 1)) / count;
           final cells = [
             for (final figure in figures)
-              cell(Text(figure.value.isEmpty ? '—' : readableAudience(figure.value)), audienceLabel(figure.type)),
+              cell(
+                Text(figure.value.isEmpty ? '—' : readableAudience(figure.value)),
+                figure.label ?? audienceLabel(figure.type),
+              ),
             if (startedAt != null)
               // A07.17 c6: `12:13` where `12 小时 13 分` does not fit the cell.
               cell(

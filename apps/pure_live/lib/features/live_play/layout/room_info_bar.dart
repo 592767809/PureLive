@@ -344,7 +344,7 @@ class AudienceStrip extends StatelessWidget {
       for (final index in fit.shown)
         _Figure(
           icon: audienceIcon(figures[index].type),
-          label: audienceLabel(figures[index].type),
+          label: figures[index].label ?? audienceLabel(figures[index].type),
           text: figureText(figures[index]),
           style: style,
           color: color,

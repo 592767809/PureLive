@@ -1251,7 +1251,6 @@ class LiveRoomController extends ChangeNotifier {
   /// change [chat], which tells the list itself (B08); the room's listeners
   /// hear of what they show: the super chats and [nameHint].
   void _onMessage(LiveMessage message) {
-    if (message.data == 'douyu-vip-count' && !store.settings.get(Settings.danmakuShowVipCount)) return;
     switch (message.type) {
       case LiveMessageType.chat:
         // B06: the names tell whether this connection is a guest's

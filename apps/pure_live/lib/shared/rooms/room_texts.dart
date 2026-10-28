@@ -31,25 +31,35 @@ String readableAudience(String value) {
 
 String _short(double value) => value >= 100 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
 
-/// One audience figure of the room, labelled by what it means.
-typedef AudienceFigure = ({AudienceMetricType type, String value});
+/// One audience figure of the room, labelled by what it means; `label`
+/// overrides [audienceLabel] when the platform's number is something else
+/// (Douyu's 贵宾 count fills the online slot, 2026-10-28).
+typedef AudienceFigure = ({AudienceMetricType type, String value, String? label});
 
 /// The room's audience figures, each with its own meaning (audience.dart):
 /// concurrent viewers first, then heat, then cumulative viewers. 3.x showed
 /// one number whose label depended on a setting, so Bilibili's heat and its
 /// new online count (C-1) could not be told apart.
-List<AudienceFigure> audienceFigures(LiveRoom room) => [
-  if (room.hasRealOnlineCount) (type: AudienceMetricType.onlineViewers, value: room.effectiveOnlineViewers),
-  if (hasAudienceValue(room.effectivePopularity))
-    (type: AudienceMetricType.popularity, value: room.effectivePopularity),
-  if (hasAudienceValue(room.effectiveTotalViewers))
-    (type: AudienceMetricType.totalViewers, value: room.effectiveTotalViewers),
-  if (!room.hasRealOnlineCount &&
-      !hasAudienceValue(room.effectivePopularity) &&
-      !hasAudienceValue(room.effectiveTotalViewers) &&
-      room.supportsRealOnlineCount)
-    (type: AudienceMetricType.onlineViewers, value: ''),
-];
+List<AudienceFigure> audienceFigures(LiveRoom room) {
+  AudienceFigure figure(AudienceMetricType type, String value) {
+    final label = type == AudienceMetricType.onlineViewers && room.platform == SiteIds.douyu
+        ? i18n('audience_nobles')
+        : null;
+    return (type: type, value: value, label: label);
+  }
+
+  return [
+    if (room.hasRealOnlineCount) figure(AudienceMetricType.onlineViewers, room.effectiveOnlineViewers),
+    if (hasAudienceValue(room.effectivePopularity)) figure(AudienceMetricType.popularity, room.effectivePopularity),
+    if (hasAudienceValue(room.effectiveTotalViewers))
+      figure(AudienceMetricType.totalViewers, room.effectiveTotalViewers),
+    if (!room.hasRealOnlineCount &&
+        !hasAudienceValue(room.effectivePopularity) &&
+        !hasAudienceValue(room.effectiveTotalViewers) &&
+        room.supportsRealOnlineCount)
+      figure(AudienceMetricType.onlineViewers, ''),
+  ];
+}
 
 /// The label of an audience figure (3.x's keys).
 String audienceLabel(AudienceMetricType type) => i18n(switch (type) {

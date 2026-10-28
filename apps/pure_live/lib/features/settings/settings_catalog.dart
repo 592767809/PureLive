@@ -1867,7 +1867,6 @@ List<SettingsEntry> _build() {
       desc: 'settings_danmaku_speed_desc',
       keywords: ['速度', 'speed', '弹幕'],
     )
-    ..toggle('danmaku_show_vip_count', 'danmaku_show_vip_count', Settings.danmakuShowVipCount, null)
     ..slider(
       'danmaku_font_size',
       'font_size',
