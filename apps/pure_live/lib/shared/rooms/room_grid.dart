@@ -279,11 +279,15 @@ class JumpButtons extends StatelessWidget {
   final String heroTag;
 
   @override
-  Widget build(BuildContext context) => ScrollJumpButtons(
-    controller: controller,
-    heroTag: heroTag,
-    topTooltip: i18n('popular_to_top'),
-    bottomTooltip: i18n('popular_to_bottom'),
+  Widget build(BuildContext context) => Padding(
+    // Lists scroll behind the floating home bar; their controls must stay above it.
+    padding: EdgeInsets.only(bottom: GlassBarInset.of(context)),
+    child: ScrollJumpButtons(
+      controller: controller,
+      heroTag: heroTag,
+      topTooltip: i18n('popular_to_top'),
+      bottomTooltip: i18n('popular_to_bottom'),
+    ),
   );
 }
 
