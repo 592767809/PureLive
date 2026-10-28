@@ -824,7 +824,7 @@ void main() {
     final speed = tester.widget<Slider>(find.byKey(const ValueKey('danmaku-slider-speed')));
     expect((speed.min, speed.max), (20, 400));
     final size = tester.widget<Slider>(find.byKey(const ValueKey('danmaku-slider-fontSize')));
-    expect((size.min, size.max), (10, 30));
+    expect((size.min, size.max), (10, 60));
     expect(
       tester.widget<Slider>(find.byKey(const ValueKey('danmaku-slider-fps'))).onChanged,
       isNull,

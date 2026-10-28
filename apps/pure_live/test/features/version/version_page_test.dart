@@ -317,7 +317,7 @@ void main() {
     final feed = _FakeFeed();
     await _pump(tester, const VersionPage(route: RouteArgs(RoutePath.kVersionPage)), feed);
     expect(find.text('更新信息获取失败'), findsOneWidget);
-    feed.info = UpdateInfo.fromJson(_versionJson(), platform: 'android');
+    feed.info = const UpdateInfo(version: appVersion, buildNumber: pubspecBuild);
     await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
     expect(feed.checks, 2);

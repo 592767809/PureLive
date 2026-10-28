@@ -12,14 +12,13 @@ import 'package:pure_live/features/areas/favorite_areas_view.dart';
 import 'package:pure_live/features/areas/platform_areas_view.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/features/home/menu_button.dart';
-import 'package:pure_live/features/popular/popular_catalog.dart';
-import 'package:pure_live/features/popular/popular_grid.dart';
-import 'package:pure_live/features/popular/popular_page.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
+import 'package:pure_live/shared/rooms/iptv_room_feed.dart';
 import 'package:pure_live/shared/rooms/paging.dart';
+import 'package:pure_live/shared/rooms/platform_picker.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// Areas and followed areas (3.x `lib/modules/areas`).
@@ -56,30 +55,18 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
   List<String> _ids = const [];
   TabController? _tabs;
   Timer? _warm;
-  final List<StreamSubscription<Object?>> _iptvSettings = [];
 
   @override
   void initState() {
     super.initState();
     HomeSignals.resumedAfterBackground.addListener(_onResumed);
-    for (final setting in <Setting<Object>>[Settings.iptvPopularPlaylist, Settings.iptvHotRemoved]) {
-      _iptvSettings.add(
-        ref.read(storeProvider).settings.watch(setting).skip(1).listen((_) {
-          if (mounted && _currentId == SiteIds.iptv) {
-            ref.read(popularCatalogProvider).feedOf(SiteIds.iptv).refresh(count: phonePageSize).ignore();
-          }
-        }),
-      );
-    }
   }
 
   @override
   void dispose() {
     HomeSignals.resumedAfterBackground.removeListener(_onResumed);
     _warm?.cancel();
-    for (final subscription in _iptvSettings) {
-      unawaited(subscription.cancel());
-    }
+
     _tabs?.removeListener(_onTab);
     _tabs?.dispose();
     // The catalogues stay in the app (I03.2 c2, [areaCatalogsProvider]).
@@ -131,10 +118,7 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
   void _loadCurrent() {
     final id = _currentId;
     if (id == null) return;
-    if (id == SiteIds.iptv) {
-      ref.read(popularCatalogProvider).feedOf(id).open(count: phonePageSize).ignore();
-      return;
-    }
+    if (id == SiteIds.iptv) return;
     _warm?.cancel();
     final catalog = _catalog(id);
     catalog.ensureLoaded().then((_) {
@@ -154,11 +138,7 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
     final signal = HomeSignals.resumedAfterBackground.value;
     if (!widget.route.inHome || signal?.$1 != HomeMenu.areas) return;
     final id = _currentId;
-    if (id == SiteIds.iptv) {
-      ref.read(popularCatalogProvider).feedOf(id!).refresh(count: phonePageSize).ignore();
-    } else if (id != null) {
-      _catalog(id).refresh().ignore();
-    }
+    if (id != null && id != SiteIds.iptv) _catalog(id).refresh().ignore();
   }
 
   @override
@@ -233,7 +213,7 @@ class _AreasViewState extends ConsumerState<AreasView> with TickerProviderStateM
               children: [
                 for (final id in ids)
                   if (id == SiteIds.iptv)
-                    PopularPlatformView(key: ValueKey('areas-$id'), platform: id)
+                    IptvRoomsView(key: ValueKey('areas-$id'))
                   else
                     PlatformAreasView(key: ValueKey('areas-$id'), catalog: _catalog(id)),
               ],

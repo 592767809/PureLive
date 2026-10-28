@@ -75,6 +75,10 @@ Map<String, Object?> _project(LiveMessage message) {
           }
         : data is DouyuGift
         ? {'id': data.id, 'name': data.name, 'count': data.count, 'combo': data.combo, 'receiver': data.receiverName}
+        // The new origin tag is not part of the legacy message projection.
+        // Its presence is asserted separately in the oni protocol test.
+        : data == 'douyu-vip-count'
+        ? null
         : data,
   };
 }
@@ -287,6 +291,7 @@ void main() {
         roomId: '1',
       );
       final vip = oni('vn@=17000/rid@=1/list@=/').single;
+      expect(vip.data, 'douyu-vip-count');
       expect(
         (vip.type, vip.userName, vip.message, vip.color),
         (LiveMessageType.chat, '贵宾', '17000', LiveMessageColor.white),
