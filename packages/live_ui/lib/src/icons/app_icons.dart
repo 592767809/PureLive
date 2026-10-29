@@ -61,6 +61,9 @@ abstract final class AppIcons {
   /// About the app.
   static const IconData about = Remix.information_line;
 
+  /// Playback information (A07.33).
+  static const IconData playbackInfo = Icons.analytics_outlined;
+
   /// Backup and restore.
   static const IconData backup = Remix.cloud_line;
 

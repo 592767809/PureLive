@@ -423,7 +423,7 @@ void main() {
       );
       expect(landscape, [
         [RoomMenuEntry.timer, RoomMenuEntry.volume],
-        [RoomMenuEntry.streamLink, RoomMenuEntry.share, RoomMenuEntry.external],
+        [RoomMenuEntry.streamLink, RoomMenuEntry.playbackInfo, RoomMenuEntry.share, RoomMenuEntry.external],
         <RoomMenuEntry>[],
       ]);
       expect(roomMenuGroups(iptv: false, newWindow: false, cast: true).first.first, RoomMenuEntry.switchRoom);
@@ -785,7 +785,15 @@ void main() {
       final room = await _pump(tester, width: 852, height: 393);
       await _tap(tester, 'live-play-fullscreen');
       await _tap(tester, 'live-play-menu');
-      expect(_menuEntries(), ['timer', 'volume', 'streamLink', 'share', 'external', 'localInteraction']);
+      expect(_menuEntries(), [
+        'timer',
+        'volume',
+        'streamLink',
+        'playbackInfo',
+        'share',
+        'external',
+        'localInteraction',
+      ]);
       await _close(tester, room);
 
       final upright = await _pump(tester, portraitStream: true);
@@ -796,7 +804,16 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await _tap(tester, 'live-play-fullscreen');
       await _tap(tester, 'live-play-menu');
-      expect(_menuEntries(), ['timer', 'volume', 'videoFit', 'streamLink', 'share', 'external', 'localInteraction']);
+      expect(_menuEntries(), [
+        'timer',
+        'volume',
+        'videoFit',
+        'streamLink',
+        'playbackInfo',
+        'share',
+        'external',
+        'localInteraction',
+      ]);
       await _close(tester, upright);
     });
   });

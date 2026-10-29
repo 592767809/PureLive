@@ -8,6 +8,7 @@ import 'package:live_player/src/engine.dart';
 import 'package:live_player/src/frame_rate.dart';
 import 'package:live_player/src/mpv_input.dart';
 import 'package:live_player/src/mpv_options.dart';
+import 'package:live_player/src/playback_stats.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
@@ -46,7 +47,7 @@ MpvPlatform? mpvPlatformOf(TargetPlatform platform) => switch (platform) {
 ///   output off (the fork's `setVideoOutputEnabled`), desktop selects
 ///   `vid=no`; Android does not re-send `vid=auto` after an open.
 /// - Windows reports presented frames (the fork's `frameRevision`).
-final class MpvEngine implements PlayerEngine, PlaybackRate {
+final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource {
   new _(this.player, this.controller, this.config, {void Function(String)? onBufferingSnapshot}) {
     _bufferingProbe = NativeBufferingProbe(read: _readProperty, report: onBufferingSnapshot ?? debugPrint);
     _gate = NativeDiagnosticGate(onError: (error) => _add(EngineError(error)));
@@ -239,6 +240,9 @@ final class MpvEngine implements PlayerEngine, PlaybackRate {
     if (_disposed || native is! NativePlayer) return '';
     return await native.getProperty(name);
   }
+
+  @override
+  Future<PlaybackStats> readStats() => readPlaybackStats(_readProperty);
 
   @override
   Future<void> play() => player.play();
