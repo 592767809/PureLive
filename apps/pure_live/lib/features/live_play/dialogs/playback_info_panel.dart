@@ -108,9 +108,9 @@ class _PlaybackInfoPanelState extends State<PlaybackInfoPanel> with WidgetsBindi
       setState(() {
         _stats = stats;
         final download = stats?.downloadBytesPerSecond;
-        if (stats == null) {
+        if (download == null || !download.isFinite || download <= 0) {
           _downloads.clear();
-        } else if (download != null && download > 0) {
+        } else {
           _downloads.add(download);
           if (_downloads.length > 3) _downloads.removeAt(0);
         }

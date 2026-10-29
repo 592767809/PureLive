@@ -202,7 +202,7 @@ class _TvConfirmState extends State<_TvConfirm> {
 @immutable
 final class TvChoice<T> {
   /// Creates the choice.
-  const new({required this.value, required this.label, this.description, this.icon});
+  const new({required this.value, required this.label, this.description, this.icon, this.leading});
 
   /// What is chosen.
   final T value;
@@ -215,6 +215,9 @@ final class TvChoice<T> {
 
   /// An icon before the words.
   final IconData? icon;
+
+  /// An image before the words, preferred over [icon].
+  final Widget? leading;
 }
 
 /// Picks one of [options] (U.15a, dialog 41–43): the current one is in the
@@ -251,6 +254,7 @@ Future<T?> showTvChoice<T>(
                   label: option.label,
                   description: option.description,
                   icon: option.icon,
+                  leading: option.leading,
                   current: index == selected,
                   autofocus: index == (selected < 0 ? 0 : selected),
                   onTap: () => Navigator.pop(context, option.value),

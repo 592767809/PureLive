@@ -187,6 +187,13 @@ class ChatListSettings extends ConsumerWidget {
           value: watchSetting(ref, Settings.giftValueInYuan),
           onChanged: gifts ? (value) => set(Settings.giftValueInYuan, value) : null,
         ),
+        SettingSwitchRow(
+          settingKey: 'fullscreenSuperChat',
+          title: i18n('super_chat_fullscreen_entry'),
+          subtitle: i18n('super_chat_fullscreen_entry_desc'),
+          value: watchSetting(ref, Settings.showFullscreenSuperChat),
+          onChanged: (value) => set(Settings.showFullscreenSuperChat, value),
+        ),
         // D07.2: memberships among the super chats, after the gift lines'
         // own rows: it does not depend on them, the list keeps its lines.
         SettingSwitchRow(

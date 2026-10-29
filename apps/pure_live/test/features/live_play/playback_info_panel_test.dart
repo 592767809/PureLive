@@ -137,6 +137,21 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('a stalled stream clears the previous positive download speed', (tester) async {
+    final controller = controllerFor();
+    addTearDown(controller.dispose);
+    var current = stats;
+    await pumpPanel(tester, controller, () async => current);
+    expect(find.text('3.0 Mbps'), findsOneWidget);
+    for (final missing in [false, true]) {
+      current = missing ? const PlaybackStats() : const PlaybackStats(downloadBytesPerSecond: 0);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(find.text('3.0 Mbps'), findsNothing);
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('closing the panel stops the polling', (tester) async {
     final controller = controllerFor();
     addTearDown(controller.dispose);

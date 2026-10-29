@@ -68,6 +68,11 @@ Future<Object?> presentTvOptions(BuildContext context, AppOptionRequest request)
   current: request.selected,
   options: [
     for (final option in request.options)
-      TvChoice<Object?>(value: option.value, label: option.label, description: option.description),
+      TvChoice<Object?>(
+        value: option.value,
+        label: option.label,
+        description: option.description,
+        leading: option.leading,
+      ),
   ],
 );

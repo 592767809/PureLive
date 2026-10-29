@@ -376,6 +376,21 @@ class _AutoSyncRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final change = onChanged;
+    if (SettingsRowStyle.tvOf(context)) {
+      return SettingsRow(
+        key: ValueKey('iptv-auto-row-$id'),
+        stackTrailing: false,
+        title: i18n('auto_sync'),
+        icon: AppIcons.autoSync,
+        onTap: change == null ? null : () => change(!value),
+        enabled: change != null,
+        trailing: ExcludeFocus(
+          child: IgnorePointer(
+            child: Switch(key: ValueKey('iptv-auto-$id'), value: value, onChanged: change),
+          ),
+        ),
+      );
+    }
     return Material(
       color: scheme.primary.withValues(alpha: 0.06),
       borderRadius: BorderRadius.circular(12),

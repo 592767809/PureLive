@@ -495,28 +495,42 @@ class _GroupBar extends StatelessWidget {
       return group == RoomSwitchGroup.history || count == 0 ? name : '$name $count';
     }
 
+    final chips = [
+      for (final group in lists.groups)
+        ChoiceChip(
+          key: ValueKey('switch-group-${group.name}'),
+          label: Text(label(group)),
+          selected: group == selected,
+          showCheckmark: false,
+          shape: const StadiumBorder(),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          onSelected: (_) => onSelected(group),
+        ),
+    ];
+    // Mouse wheels scroll vertically. Do not hide a desktop category behind
+    // an unmarked horizontal strip that requires touch dragging to discover.
+    final desktop = switch (Theme.of(context).platform) {
+      TargetPlatform.windows || TargetPlatform.linux || TargetPlatform.macOS => true,
+      _ => false,
+    };
+    if (desktop) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Wrap(key: const ValueKey('switch-groups'), spacing: 8, runSpacing: 6, children: chips),
+      );
+    }
     return SizedBox(
-      height: 40,
+      height: math.max(40, MediaQuery.textScalerOf(context).scale(14) * 1.4 + 16),
       child: ListView(
         key: const ValueKey('switch-groups'),
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          for (final group in lists.groups)
+          for (final chip in chips)
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: ChoiceChip(
-                  key: ValueKey('switch-group-${group.name}'),
-                  label: Text(label(group)),
-                  selected: group == selected,
-                  showCheckmark: false,
-                  shape: const StadiumBorder(),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  visualDensity: VisualDensity.compact,
-                  onSelected: (_) => onSelected(group),
-                ),
-              ),
+              child: Center(child: chip),
             ),
         ],
       ),

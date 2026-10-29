@@ -604,7 +604,13 @@ Future<T?> showAppOptionDialog<T>({
             selected: selected,
             options: [
               for (final option in options)
-                (value: option.value, label: option.label, description: option.description, key: option.key),
+                (
+                  value: option.value,
+                  label: option.label,
+                  description: option.description,
+                  key: option.key,
+                  leading: option.leading,
+                ),
             ],
           ),
         )
@@ -896,7 +902,7 @@ final class AppOptionRequest {
   final Object? selected;
 
   /// The options, in order.
-  final List<({Object? value, String label, String? description, Key? key})> options;
+  final List<({Object? value, String label, String? description, Key? key, Widget? leading})> options;
 }
 
 /// Shows the option dialogs ([showAppOptionDialog]) below it another way:
