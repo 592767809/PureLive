@@ -1212,7 +1212,7 @@ void main() {
     // opens windows (A16.2: the Windows shell sets the launcher).
     const group1 = ['room-menu-switchRoom', 'room-menu-timer', 'room-menu-volume', 'room-menu-videoFit'];
     const local = ['room-menu-localInteraction'];
-    const passOn = ['room-menu-streamLink', 'room-menu-share', 'room-menu-external'];
+    const passOn = ['room-menu-streamLink', 'room-menu-playbackInfo', 'room-menu-share', 'room-menu-external'];
     const cases = <(TargetPlatform, Size, List<String>)>[
       (TargetPlatform.android, Size(393, 852), [...group1, 'room-menu-cast', ...passOn, ...local]),
       (TargetPlatform.iOS, Size(393, 852), [...group1, ...passOn, ...local]),

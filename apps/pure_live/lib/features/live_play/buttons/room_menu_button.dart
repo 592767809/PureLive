@@ -9,6 +9,7 @@ import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/live_play/dialogs/playback_info_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/player_dialogs.dart';
 import 'package:pure_live/features/live_play/dialogs/room_dialogs.dart';
 import 'package:pure_live/features/live_play/dialogs/stream_dialogs.dart';
@@ -157,6 +158,9 @@ enum RoomMenuEntry {
   /// Copy a stream address.
   streamLink,
 
+  /// The stream information panel (A07.33).
+  playbackInfo,
+
   /// Share the room.
   share,
 
@@ -198,6 +202,7 @@ List<List<RoomMenuEntry>> roomMenuGroups({
     [
       if (cast) RoomMenuEntry.cast,
       RoomMenuEntry.streamLink,
+      RoomMenuEntry.playbackInfo,
       // An IPTV channel has no page to share or open (as before).
       if (!iptv) RoomMenuEntry.share,
       if (!iptv) RoomMenuEntry.external,
@@ -233,6 +238,7 @@ bool roomMenuOpensPanel(RoomMenuEntry entry) => switch (entry) {
   RoomMenuEntry.volume ||
   RoomMenuEntry.cast ||
   RoomMenuEntry.streamLink ||
+  RoomMenuEntry.playbackInfo ||
   RoomMenuEntry.localInteraction => true,
   RoomMenuEntry.videoFit || RoomMenuEntry.share || RoomMenuEntry.external || RoomMenuEntry.newWindow => false,
 };
@@ -267,6 +273,7 @@ List<List<RoomMenuItem>> roomMenuItems(
       ),
       RoomMenuEntry.cast => (AppIcons.cast, i18n('cast_screen'), null),
       RoomMenuEntry.streamLink => (AppIcons.streamLink, i18n('toolbox_get_direct_link'), null),
+      RoomMenuEntry.playbackInfo => (AppIcons.playbackInfo, i18n('playback_info'), null),
       RoomMenuEntry.share => (AppIcons.share, i18n('share'), null),
       RoomMenuEntry.external => (
         AppIcons.openExternal,
@@ -351,6 +358,8 @@ class RoomMenuButton extends ConsumerWidget {
         showRoomVolume(context, controller);
       case RoomMenuEntry.streamLink:
         showStreamPanel(context, controller, StreamUse.copy);
+      case RoomMenuEntry.playbackInfo:
+        showPlaybackInfo(context, controller);
       case RoomMenuEntry.share:
         // An iPad's sheet points at the menu button (A18.1 c7).
         await shareRoom(room, origin: shareOrigin(context));

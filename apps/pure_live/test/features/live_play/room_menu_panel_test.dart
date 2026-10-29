@@ -140,6 +140,7 @@ const _all = [
   'videoFit',
   'cast',
   'streamLink',
+  'playbackInfo',
   'share',
   'external',
   'newWindow',
@@ -189,24 +190,45 @@ void main() {
       expect(panel, const Rect.fromLTWH(869 - 360.0, 0, 360, 400), reason: 'where every landscape panel is');
       // The same groups as the small menu, less what the bars show; those
       // are on the bars, so every 3.x entry is one tap away.
-      expect(_groups(tester), [
-        ['timer', 'volume'],
-        ['streamLink', 'share', 'external'],
-        ['localInteraction'],
-      ]);
+      expect(
+        roomMenuGroups(
+          iptv: false,
+          newWindow: false,
+          cast: true,
+          local: true,
+          onBars: menuEntriesOnBars(landscape: true, cast: true),
+        ),
+        [
+          [RoomMenuEntry.timer, RoomMenuEntry.volume],
+          [RoomMenuEntry.streamLink, RoomMenuEntry.playbackInfo, RoomMenuEntry.share, RoomMenuEntry.external],
+          [RoomMenuEntry.localInteraction],
+        ],
+      );
       expect(_key('live-play-switch-room'), findsOneWidget);
       expect(_key('live-play-cast'), findsOneWidget);
       expect(_key('live-play-video-fit'), findsOneWidget);
+      Future<void> reveal(String entry) async {
+        if (_key('room-menu-$entry').evaluate().isEmpty) {
+          await tester.scrollUntilVisible(
+            _key('room-menu-$entry'),
+            80,
+            scrollable: find.descendant(of: _key('room-menu-list'), matching: find.byType(Scrollable)),
+          );
+        }
+      }
+
       // 3.x's icons; › on the rows that open a panel.
       const icons = {
         'timer': AppIcons.sleepTimer,
         'volume': AppIcons.roomVolume,
         'streamLink': AppIcons.streamLink,
+        'playbackInfo': AppIcons.playbackInfo,
         'share': AppIcons.share,
         'external': AppIcons.openExternal,
         'localInteraction': AppIcons.localInteraction,
       };
       for (final MapEntry(key: entry, value: icon) in icons.entries) {
+        await reveal(entry);
         expect(_in('room-menu-$entry', find.byIcon(icon)), findsOneWidget, reason: entry);
         final opens = entry != 'share' && entry != 'external';
         expect(_in('room-menu-$entry', find.byIcon(AppIcons.forward)), opens ? findsOneWidget : findsNothing);
@@ -215,13 +237,27 @@ void main() {
         expect(row.left, greaterThanOrEqualTo(panel.left));
         expect(row.right, lessThanOrEqualTo(panel.right));
       }
+      await reveal('external');
       expect(_in('room-menu-external', find.text('在哔哩哔哩打开')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        _key('room-menu-localInteraction'),
+        80,
+        scrollable: find.descendant(of: _key('room-menu-list'), matching: find.byType(Scrollable)),
+      );
+      await tester.ensureVisible(_key('room-menu-localInteraction'));
+      await tester.pump();
+      expect(
+        _key('room-menu-localInteraction'),
+        findsOneWidget,
+        reason: '7 rows now; the panel scrolls on the K90 on its side',
+      );
       expect(
         tester.getRect(_key('room-menu-localInteraction')).bottom,
         lessThanOrEqualTo(400),
-        reason: 'the K90 on its side shows every row without scrolling',
+        reason: 'the last row can be scrolled into view',
       );
       // Readable: the words and icons on the card at least 4.5:1.
+      await reveal('timer');
       final scheme = theme.colorScheme;
       final card = Color.alphaBlend(scheme.surfaceContainerHighest.withValues(alpha: 0.55), scheme.surface);
       final label = tester.widget<Text>(_in('room-menu-timer', find.text('定时关闭')));
@@ -243,7 +279,7 @@ void main() {
     expect(tester.getRect(_key('live-play-side-panel')), const Rect.fromLTWH(2608 - 360.0, 0, 360, 1200));
     expect(_groups(tester), [
       ['timer', 'volume'],
-      ['streamLink', 'share', 'external'],
+      ['streamLink', 'playbackInfo', 'share', 'external'],
       ['localInteraction'],
     ]);
     await _close(tester, room);
@@ -256,7 +292,17 @@ void main() {
       await _tap(tester, _key('live-play-menu').first);
       expect(find.byType(PopupMenuItem<RoomMenuEntry>), findsWidgets, reason: 'the small menu next to the bar button');
       expect(_key('room-menu-panel'), findsNothing);
-      for (final entry in ['switchRoom', 'timer', 'volume', 'videoFit', 'cast', 'streamLink', 'share', 'external']) {
+      for (final entry in [
+        'switchRoom',
+        'timer',
+        'volume',
+        'videoFit',
+        'cast',
+        'streamLink',
+        'playbackInfo',
+        'share',
+        'external',
+      ]) {
         expect(_key('room-menu-$entry'), findsOneWidget, reason: entry);
       }
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -269,7 +315,7 @@ void main() {
       expect(panel.width, 393);
       expect(_groups(tester), [
         ['timer', 'volume', 'videoFit'],
-        ['streamLink', 'share', 'external'],
+        ['streamLink', 'playbackInfo', 'share', 'external'],
         ['localInteraction'],
       ]);
       expect(_in('room-menu-videoFit', find.byIcon(AppIcons.aspectRatio)), findsOneWidget);
@@ -317,6 +363,8 @@ void main() {
       ('localInteraction', 'panel-local'),
     ]) {
       await _tap(tester, _videoMenu());
+      await tester.ensureVisible(_key('room-menu-$entry'));
+      await tester.pump();
       await _tap(tester, _key('room-menu-$entry'));
       expect(_key(opens), findsOneWidget, reason: entry);
       expect(_key('room-menu-panel'), findsNothing);
@@ -365,8 +413,13 @@ void main() {
       await _openFullscreenMenu(tester);
       expect(_key('room-menu-panel'), findsOneWidget);
       // The last row: scrolled to, tapped, its panel opens.
+      await tester.scrollUntilVisible(
+        _key('room-menu-localInteraction'),
+        80,
+        scrollable: find.descendant(of: _key('room-menu-list'), matching: find.byType(Scrollable)),
+      );
       await tester.ensureVisible(_key('room-menu-localInteraction'));
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
       await _tap(tester, _key('room-menu-localInteraction'));
       expect(_key('panel-local'), findsOneWidget);
       expect(tester.takeException(), isNull);

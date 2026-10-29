@@ -18,7 +18,7 @@ import 'package:pure_live/i18n/i18n.dart';
 
 /// The smallest height of a row of [RoomMenuPanel]: the six rows of the
 /// landscape menu, the gaps and the header fit a 400-high phone (the K90 on
-/// its side) without scrolling.
+/// its side); the seventh row ("播放信息", A07.33) scrolls on that screen.
 const double roomMenuRowHeight = 52;
 
 /// The gap between the groups of [RoomMenuPanel].
@@ -29,8 +29,9 @@ const double roomMenuGroupGap = 8;
 /// group a rounded card, each row 52 high with a 24-point icon, the name in
 /// 15 and its state in 13 under it; a row that opens a panel ends in ›.
 ///
-/// A row that opens a panel (sleep timer, volume, stream address, cast,
-/// switch room, local interaction) puts that panel in this one's place; a
+/// A row that opens a panel (sleep timer, volume, stream address, playback
+/// information, cast, switch room, local interaction) puts that panel in
+/// this one's place; a
 /// row that does something at once (share, open in the platform's app, a
 /// new window) closes the panel first. "画面比例" opens its small menu next
 /// to the row and closes the panel once a fit is picked.
