@@ -289,7 +289,12 @@ final class SettingsEntry {
   };
 
   /// "页面 › 分组" of a search result.
-  String get crumb => '${i18n(subpage?.titleKey ?? section.titleKey)} › ${i18n(group)}';
+  String get crumb {
+    final page = i18n(subpage?.titleKey ?? section.titleKey);
+    // Underscore groups are intentionally untitled in the settings pages.
+    // Their internal identifiers are not user-visible search breadcrumbs.
+    return group.startsWith('_') ? page : '$page › ${i18n(group)}';
+  }
 
   /// Whether [query] (lower case, trimmed, not empty) finds this entry.
   bool matches(String query) {

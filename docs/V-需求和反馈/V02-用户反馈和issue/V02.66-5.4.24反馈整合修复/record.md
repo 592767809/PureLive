@@ -18,3 +18,12 @@ Windows与Android候选均完成浏览器遥控配对；Windows公开直播间�
 ### 2026-10-30 Native projection navigation correction
 
 The exact 4d53681 Windows ZIP played a real generated stream in its owned fullscreen projection process. Selecting a second cell and a direct authenticated room command returned successfully but retained the first room. The production receiver replaced its sole home route on the first command; subsequent root replacements shared a GoRouter page key and retained the existing StatefulWidget/player. A real-router widget regression reproduced the stale room before the fix. The receiver now pushes its first room above home, then replaces only that room, preserving a base route and fresh room state. Four navigation/IPC tests and six-member fatal-infos analysis pass. All packages and the complete gate will be regenerated for this correction; old artifacts remain preserved outside the repository. No original-device acceptance is claimed.
+
+
+### 2026-10-30 Native settings and media acceptance
+
+The 4d53681 API28 v4dev package searched for `remote` and reached the embedded LAN controller, exposing an untitled internal group identifier in the breadcrumb. Untitled groups now omit their internal identifiers in search results, matching their normal page presentation. A regression failed before the correction; all 30 settings tests and six-member fatal-infos analysis pass.
+
+Native 4d53681 Android playback verified a public Douyu video, paused seeking to 8:29, and switching to 480P while retaining pause and position. The exact Windows ZIP in a light app theme displayed white readable video clocks and quality text while a public video and timeline danmaku played. A generated Android foreground audio fixture verified default permanent loss pauses; opt-in mixing continues through another media GAIN; an independent fresh-session transient interruption pauses and resumes after release. The AVD has no audible hardware sink; this is native focus/clock/frame evidence, not physical call or speaker acceptance.
+
+With automatic room switching enabled through the real settings search, generated stalled channel B exhausted its original native recovery and two more full recovery cycles, then failed channel C was attempted before normal channel D played at 21:19:41 local time. Private, timestamped logs and original screenshots remain outside the repository. No original Huawei/Sony/Windows acceptance is implied. The projection navigation correction still requires the rebuilt final Windows package to demonstrate room/window reuse.

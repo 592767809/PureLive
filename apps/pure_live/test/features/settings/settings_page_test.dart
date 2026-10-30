@@ -25,6 +25,7 @@ void main() {
     for (final query in ['遥控', 'remote']) {
       await searchSettingsFor(tester, query);
       expect(find.text('局域网遥控'), findsWidgets);
+      expect(find.textContaining('_remote_control'), findsNothing);
     }
     await tester.tap(settingsRow('playback_remote'));
     await settleSettings(tester);
