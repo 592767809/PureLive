@@ -2099,6 +2099,7 @@
     "remote_control_pair": "Connect and pair",
     "remote_control_paired": "Paired",
     "remote_control_pairing": "Pairing code: {code}",
+    "remote_control_permission_denied": "L’accesso alla rete locale è stato negato. Consenti l’accesso alla rete locale o ai dispositivi nelle vicinanze per usare i controlli LAN, quindi riprova.",
     "remote_control_receive": "Receive remote control",
     "remote_control_receive_hint": "Use on a trusted local network. Paired devices can control the current player and send live-room links. Disabling or revoking pairing removes access immediately.",
     "remote_control_revoke": "Revoke all pairings and rotate code",

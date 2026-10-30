@@ -2099,6 +2099,7 @@
     "remote_control_pair": "Connect and pair",
     "remote_control_paired": "Paired",
     "remote_control_pairing": "Pairing code: {code}",
+    "remote_control_permission_denied": "Quyền truy cập mạng cục bộ đã bị từ chối. Hãy cho phép truy cập Mạng cục bộ hoặc Thiết bị ở gần để sử dụng điều khiển LAN, rồi thử lại.",
     "remote_control_receive": "Receive remote control",
     "remote_control_receive_hint": "Use on a trusted local network. Paired devices can control the current player and send live-room links. Disabling or revoking pairing removes access immediately.",
     "remote_control_revoke": "Revoke all pairings and rotate code",
