@@ -683,6 +683,7 @@ final class PlaybackSession {
   /// Opens [source]; [recovering] keeps the state's [PlaybackState.recovery]
   /// (a step of [_recover]), otherwise it is the user's reopening.
   Future<void> _openSource(PlaybackSource source, int session, {bool recovering = false}) async {
+    if (!_current(session) || (recovering && !_wantPlaying)) return;
     final request = _request!;
     final plan = _plan!;
     _cancelWatchdogs();
@@ -729,7 +730,7 @@ final class PlaybackSession {
           code: 'engine_create_timeout',
         ),
       );
-      if (!_current(session) || _fence.generation != generation) return;
+      if (!_current(session) || _fence.generation != generation || !_wantPlaying) return;
       _timing?.engineReadyAt(reused: reused);
       final refresh = request.refresh;
       final transport = _transport;
@@ -756,6 +757,7 @@ final class PlaybackSession {
               // A -> broken B -> A switch must not hang before open is timed.
               await engine.setVolume(_state.volume);
               if (!_current(session) || _fence.generation != generation) return;
+              if (!_wantPlaying) throw StateError('The pending source was paused before loading');
               await engine.open(
                 EngineMedia.of(
                   input,
@@ -764,6 +766,7 @@ final class PlaybackSession {
                   audio: request.audio?.call(source),
                 ),
               );
+              if (_current(session) && _fence.generation == generation && !_wantPlaying) await engine.pause();
               if (_current(session)) _timing?.mark(OpenTiming.loaded);
             },
           )

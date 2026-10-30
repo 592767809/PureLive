@@ -207,6 +207,21 @@ Future<void> main() async {
     await Future<void>.delayed(const Duration(seconds: 3));
     await session.selectLine(1).timeout(const Duration(seconds: 25));
     await healthy('manual-line-after-hang');
+    _label.value = '正在核对恢复后暂停保持';
+    await session.pause().timeout(const Duration(seconds: 5));
+    final pausedEngine = session.engine! as MpvEngine;
+    final pausedPosition = pausedEngine.player.state.position;
+    final creationsBeforePause = engines.length;
+    await Future<void>.delayed(const Duration(seconds: 13));
+    await sample('manual-pause-held');
+    if (!identical(session.engine, pausedEngine) ||
+        engines.length != creationsBeforePause ||
+        pausedEngine.player.state.playing ||
+        (pausedEngine.player.state.position - pausedPosition).abs() > const Duration(milliseconds: 300)) {
+      throw StateError('Manual pause was reversed after recovery');
+    }
+    await session.resume().timeout(const Duration(seconds: 5));
+    await healthy('manual-resume');
     result['passed'] = true;
     result['engine_creations'] = engines.length;
     result['phase'] = 'completed';
