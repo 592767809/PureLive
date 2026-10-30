@@ -92,6 +92,9 @@ abstract final class RoutePath {
   /// Toolbox (open a link).
   static const kToolbox = '/tool_box';
 
+  /// Official Douyu videos and replay sessions.
+  static const kDouyuVod = '/douyu_vod';
+
   /// Huya cookie.
   static const kHuyaCookie = '/huya_cookie';
 

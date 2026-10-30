@@ -8,6 +8,7 @@ import 'package:pure_live/features/account/account_page.dart';
 import 'package:pure_live/features/area_rooms/area_rooms_page.dart';
 import 'package:pure_live/features/areas/areas_page.dart';
 import 'package:pure_live/features/auth/auth_page.dart';
+import 'package:pure_live/features/douyu_vod/vod_page.dart';
 import 'package:pure_live/features/favorite/favorite_page.dart';
 import 'package:pure_live/features/history/history_page.dart';
 import 'package:pure_live/features/home/home_page.dart';
@@ -61,6 +62,7 @@ final Map<String, PageBuilder> pageRoutes = {
   RoutePath.kSettingsHotAreas: (route) => HotAreasPage(route: route),
   RoutePath.kVersionHistory: (route) => AboutPage(route: route),
   RoutePath.kToolbox: (route) => ToolboxPage(route: route),
+  RoutePath.kDouyuVod: (route) => DouyuVodCatalogPage(route: route),
   RoutePath.kFavoriteAreas: (route) => AreasPage(route: route),
   RoutePath.kHuyaCookie: (route) => AccountPage(route: route),
   RoutePath.kDouyuAccountCookie: (route) => AccountPage(route: route),

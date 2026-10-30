@@ -38,6 +38,11 @@ path = [
   { glob = "apps/pure_live/lib/shared/net/mdns_peers.dart", sub = "J05" },
   { glob = "apps/pure_live/lib/shared/remote/", sub = "J05", note = "配对、发现、播放遥控和浏览器控制页，不导出账号" },
 
+  { glob = "apps/pure_live/lib/features/douyu_vod/vod_controller.dart", sub = "V01" },
+  { glob = "apps/pure_live/lib/features/douyu_vod/vod_progress.dart", sub = "V01" },
+  { glob = "apps/pure_live/lib/features/douyu_vod/", sub = "A15" },
+  { glob = "apps/pure_live/lib/shared/audio/", sub = "G05" },
+
   # ---- apps/pure_live/lib/platform：原生通道的 Dart 一侧 ----
   { glob = "apps/pure_live/lib/platform/background_guide.dart", sub = "O01" },
   { glob = "apps/pure_live/lib/platform/display_mode.dart", sub = "O05" },

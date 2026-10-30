@@ -162,6 +162,7 @@ class TvRoomDialog extends StatelessWidget {
         children: [
           if (room.platform == SiteIds.douyin || room.broadcastInfo != null)
             BroadcastInformation(
+              selectable: false,
               information: room.broadcastInfo,
               style: scale.font(TvTextSize.body, color: palette.text, height: 1.55),
             ),

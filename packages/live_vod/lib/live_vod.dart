@@ -6,7 +6,11 @@ library;
 
 export 'src/client.dart';
 export 'src/danmaku.dart';
+export 'src/douyu/api.dart';
+export 'src/douyu/models.dart';
 export 'src/douyu/sign.dart';
+export 'src/douyu/source.dart';
+export 'src/douyu/timeline.dart';
 export 'src/models.dart';
 export 'src/music/audio_cache.dart';
 export 'src/music/daily.dart';

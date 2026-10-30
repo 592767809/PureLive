@@ -8,6 +8,7 @@ import 'package:pure_live/features/toolbox/toolbox_actions.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
+import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/links/supported_platforms.dart';
 
 /// Reads the clipboard text (tests replace it).
@@ -163,6 +164,15 @@ class _ToolboxPageState extends ConsumerState<ToolboxPage> {
         children: [
           // c9: the cards of the settings pages, at most 720 wide.
           for (final child in [
+            Card(
+              child: ListTile(
+                key: const ValueKey('toolbox-douyu-vod'),
+                leading: const Icon(AppIcons.vodCatalog),
+                title: Text(i18n('douyu_vod_title')),
+                subtitle: Text(i18n('douyu_vod_entry_hint')),
+                onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kDouyuVod)),
+              ),
+            ),
             SettingsGroup(
               key: const ValueKey('toolbox-link-card'),
               first: true,

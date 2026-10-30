@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/features/toolbox/toolbox_actions.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/phone_bridge.dart';
 import 'package:pure_live/tv/tv_navigation.dart';
 import 'package:pure_live/tv/tv_theme.dart';
@@ -131,6 +133,11 @@ class _TvLinkPaneState extends ConsumerState<TvLinkPane> {
             spacing: scale.px(12),
             runSpacing: scale.px(12),
             children: [
+              TvButton(
+                key: const ValueKey('tv-link-douyu-vod'),
+                label: i18n('douyu_vod_title'),
+                onTap: () => unawaited(AppNavigator.toNamed<void>(RoutePath.kDouyuVod)),
+              ),
               TvButton(
                 key: const ValueKey('tv-link-play'),
                 label: i18n('tv_link_play'),

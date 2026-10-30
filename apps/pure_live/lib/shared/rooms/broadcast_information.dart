@@ -6,13 +6,16 @@ import 'package:pure_live/i18n/i18n.dart';
 /// Missing data is shown as unavailable, independently of the room signature.
 class BroadcastInformation extends StatelessWidget {
   /// Creates the information sections. Styles may follow a TV's scaled theme.
-  const new({required this.information, this.style, super.key});
+  const new({required this.information, this.style, this.selectable = true, super.key});
 
   /// Null until a platform metadata response or sync event has arrived.
   final LiveBroadcastInfo? information;
 
   /// Optional platform-specific text scale/style.
   final TextStyle? style;
+
+  /// TV informational text must not introduce hidden selection focus stops.
+  final bool selectable;
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +26,12 @@ class BroadcastInformation extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: body?.copyWith(fontWeight: FontWeight.w700)),
+          Text(title, style: body?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          SelectableText(text, key: ValueKey(key), style: body),
+          if (selectable)
+            SelectableText(text, key: ValueKey(key), style: body)
+          else
+            Text(text, key: ValueKey(key), style: body),
         ],
       ),
     );

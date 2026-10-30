@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_vod/live_vod.dart';
 import 'package:pure_live/app/services.dart';
+import 'package:pure_live/features/douyu_vod/vod_progress.dart';
 
 /// The Bilibili video-on-demand plumbing (M14.0 `live_vod`): the app's HTTP
 /// client (same proxy and rate rules as the live platform, site id
@@ -18,3 +19,18 @@ final Provider<BilibiliUgcApi> vodUgcProvider = Provider((ref) => BilibiliUgcApi
 /// PGC endpoints: anime and film index, seasons, episode streams, followed
 /// seasons.
 final Provider<BilibiliPgcApi> vodPgcProvider = Provider((ref) => BilibiliPgcApi(ref.watch(vodClientProvider)));
+
+/// Douyu's official public replay/video endpoints share the live transport/login.
+final Provider<DouyuVodSource> douyuVodProvider = Provider((ref) {
+  final services = ref.watch(appServicesProvider);
+  return DouyuVodApi(services.http, cookies: services.cookies);
+});
+
+/// Local-only bounded VOD resume history; signed URLs are never stored.
+final Provider<DouyuVodProgressStore> douyuVodProgressProvider = Provider((ref) {
+  final meta = ref.watch(storeProvider).meta;
+  return DouyuVodProgressStore(
+    read: () => meta.get('douyu-vod-history-v1'),
+    write: (value) => meta.set('douyu-vod-history-v1', value),
+  );
+});
