@@ -24,3 +24,6 @@ PR#107原提交b3c071929cf0d7a4a75213e32700986a0817d0ca纳入独立分支，保�
 
 
 依据：[Flutter局部约束](https://docs.flutter.dev/ui/adaptive-responsive/general)、[Android音频焦点](https://developer.android.com/media/optimize/audio-focus)、[media_core恢复模型](https://github.com/liuchuancong/media_core/blob/71513b8d337403cb1fd02bf21984962e52ef244e/doc/en/recovery.md)。检索没有证明原设备故障根因，不照搬模型作为修复。
+
+
+发布冻结期间新增#112：电视全屏换台列表的主播名对比度、长标题滚动及OK控制栏字体。已核对tv_room_overlays.dart，列表标题仍单行省略，主播信息使用次级文字；可评估复用仅焦点运行的TvMarquee。本项未包含在本版，已回复并保持开放，后续需长中英文、大字体和遥控导航验收。#101/#105新增回复仅确认已收到评估，无新增技术证据。

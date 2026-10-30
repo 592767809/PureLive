@@ -24,3 +24,6 @@
 - 丢帧/解码帧：首选缺失时回退。
 - 测试文件 `packages/live_player/test/playback_stats_test.dart` 已写；本环境没有 Flutter SDK，`flutter test` 未运行。
 - `dart format --page-width 120 --set-exit-if-changed`（临时 Dart 3.13.5）通过。
+
+
+2026-10-30已随5.4.22发布。当前执行者独立运行完整门禁和最终包验证；具体证据与原设备边界见Y01.33/verify.md。
