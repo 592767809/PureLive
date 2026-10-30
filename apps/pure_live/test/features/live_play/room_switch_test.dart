@@ -29,6 +29,7 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 
+import '../../qa_capture.dart';
 import '../../support.dart';
 import 'live_play_support.dart';
 
@@ -72,6 +73,7 @@ final class _Room {
 /// [width] × [height]; [follows] followed and [history] watched before.
 Future<_Room> _pump(
   WidgetTester tester, {
+  TargetPlatform platform = TargetPlatform.android,
   double width = 393,
   double height = 852,
   Object? arguments,
@@ -81,7 +83,8 @@ Future<_Room> _pump(
   bool portraitStream = false,
   Map<String, LiveRoom>? rooms,
 }) async {
-  debugDefaultTargetPlatformOverride = TargetPlatform.android;
+  await prepareQaFonts(tester);
+  debugDefaultTargetPlatformOverride = platform;
   tester.view
     ..physicalSize = Size(width, height)
     ..devicePixelRatio = 1;
@@ -225,6 +228,34 @@ int _whole(double height, double card, int columns) {
 }
 
 void main() {
+  testWidgets('desktop room groups are fully visible without horizontal scrolling', (tester) async {
+    final room = await _pump(
+      tester,
+      platform: TargetPlatform.windows,
+      width: 1280,
+      height: 800,
+      arguments: LiveRoomArgs(room: _room('6'), playlist: [_room('5'), _room('6'), _room('8')]),
+      follows: [_room('7')],
+      history: [(_room('8'), const Duration(hours: 1))],
+    );
+    await _openFromMenu(tester);
+    final panel = tester.getRect(_key('live-play-switch-panel'));
+    for (final group in ['onAir', 'source', 'history', 'replays']) {
+      final chip = _key('switch-group-$group');
+      expect(chip, findsOneWidget);
+      final rect = tester.getRect(chip);
+      expect(rect.left, greaterThanOrEqualTo(panel.left));
+      expect(rect.right, lessThanOrEqualTo(panel.right), reason: group);
+      expect(chip.hitTestable(), findsOneWidget, reason: group);
+    }
+    await captureQaFrame(tester, 'desktop-switch-categories');
+    await _tap(tester, 'switch-group-history');
+    expect(_key('switch-room-bilibili-8'), findsOneWidget);
+    await captureQaFrame(tester, 'desktop-watch-history');
+    expect(tester.takeException(), isNull);
+    await _close(tester, room);
+  });
+
   testWidgets('issue #68: automatic switching does not reset an active sleep timer', (tester) async {
     final room = await _pump(
       tester,
@@ -423,7 +454,7 @@ void main() {
       );
       expect(landscape, [
         [RoomMenuEntry.timer, RoomMenuEntry.volume],
-        [RoomMenuEntry.streamLink, RoomMenuEntry.share, RoomMenuEntry.external],
+        [RoomMenuEntry.streamLink, RoomMenuEntry.playbackInfo, RoomMenuEntry.share, RoomMenuEntry.external],
         <RoomMenuEntry>[],
       ]);
       expect(roomMenuGroups(iptv: false, newWindow: false, cast: true).first.first, RoomMenuEntry.switchRoom);
@@ -785,7 +816,15 @@ void main() {
       final room = await _pump(tester, width: 852, height: 393);
       await _tap(tester, 'live-play-fullscreen');
       await _tap(tester, 'live-play-menu');
-      expect(_menuEntries(), ['timer', 'volume', 'streamLink', 'share', 'external', 'localInteraction']);
+      expect(_menuEntries(), [
+        'timer',
+        'volume',
+        'streamLink',
+        'playbackInfo',
+        'share',
+        'external',
+        'localInteraction',
+      ]);
       await _close(tester, room);
 
       final upright = await _pump(tester, portraitStream: true);
@@ -796,7 +835,16 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await _tap(tester, 'live-play-fullscreen');
       await _tap(tester, 'live-play-menu');
-      expect(_menuEntries(), ['timer', 'volume', 'videoFit', 'streamLink', 'share', 'external', 'localInteraction']);
+      expect(_menuEntries(), [
+        'timer',
+        'volume',
+        'videoFit',
+        'streamLink',
+        'playbackInfo',
+        'share',
+        'external',
+        'localInteraction',
+      ]);
       await _close(tester, upright);
     });
   });

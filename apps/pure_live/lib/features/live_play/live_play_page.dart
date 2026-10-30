@@ -23,6 +23,7 @@ import 'package:pure_live/features/live_play/danmaku/danmaku_settings_panel.dart
 import 'package:pure_live/features/live_play/danmaku/message_panel.dart';
 import 'package:pure_live/features/live_play/danmaku/super_chat_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/iptv_guide.dart';
+import 'package:pure_live/features/live_play/dialogs/playback_info_panel.dart';
 import 'package:pure_live/features/live_play/dialogs/room_dialogs.dart';
 import 'package:pure_live/features/live_play/dialogs/stream_dialogs.dart';
 import 'package:pure_live/features/live_play/layout/edge_swipe_back.dart';
@@ -1099,6 +1100,11 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       key: const ValueKey('panel-stream-link'),
       controller: controller,
       use: StreamUse.copy,
+      onClose: _panels.close,
+      dragToClose: portrait,
+    ),
+    RoomPanelKind.playbackInfo => PlaybackInfoPanel(
+      controller: controller,
       onClose: _panels.close,
       dragToClose: portrait,
     ),

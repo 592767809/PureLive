@@ -87,9 +87,10 @@ step() {
   else
     echo "gate: FAIL $name" >&2
     # Test runners print a failure long before the end of a big run; show each
-    # failing test with its message, then the tail.
-    grep -n -A40 ' \[E\]$' "$log" | head -n 200 >&2
-    tail -n 60 "$log" >&2
+    # failing test with its message, then the tail. Flutter's compact reporter
+    # marks them with ❌; older runners use " [E]".
+    grep -n -A60 -E '❌| \[E\]$' "$log" | head -n 400 >&2
+    tail -n 120 "$log" >&2
     failures+=("$name")
   fi
 }

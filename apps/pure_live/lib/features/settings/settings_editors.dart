@@ -213,7 +213,12 @@ class PreferPlatformTile extends ConsumerWidget {
                 selected: current,
                 options: [
                   for (final id in choices)
-                    AppDialogOption(value: id, label: name(id), key: ValueKey('settings-platform-$id')),
+                    AppDialogOption(
+                      value: id,
+                      label: name(id),
+                      leading: PlatformLogo(id, size: 24),
+                      key: ValueKey('settings-platform-$id'),
+                    ),
                 ],
               )
             : await showAppDialog<String>(

@@ -42,6 +42,9 @@ enum RoomPanelKind {
   /// "获取直链" (U.2n c1, c4): the room menu.
   streamLink,
 
+  /// "播放信息" (A07.33): the room menu's stream statistics.
+  playbackInfo,
+
   /// "投屏" (U.2n c1, c4): the room menu and the fullscreen top bar.
   cast,
 

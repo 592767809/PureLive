@@ -902,6 +902,7 @@ void main() {
         'room-menu-videoFit',
         'room-menu-cast',
         'room-menu-streamLink',
+        'room-menu-playbackInfo',
         'room-menu-share',
         'room-menu-external',
         'room-menu-newWindow',
@@ -914,6 +915,7 @@ void main() {
         'room-menu-videoFit',
         'room-menu-cast',
         'room-menu-streamLink',
+        'room-menu-playbackInfo',
         'room-menu-share',
         'room-menu-external',
         // U.2k: the third group, the local interaction (on by default).
@@ -934,6 +936,7 @@ void main() {
       'videoFit': AppIcons.aspectRatio,
       'cast': AppIcons.cast,
       'streamLink': AppIcons.streamLink,
+      'playbackInfo': AppIcons.playbackInfo,
       'share': AppIcons.share,
       'external': AppIcons.openExternal,
     };
@@ -947,8 +950,36 @@ void main() {
     expect(roomMenuGroups(iptv: false, newWindow: true, cast: false)[1].last, RoomMenuEntry.newWindow);
     expect(roomMenuGroups(iptv: false, newWindow: false, cast: true)[2], isEmpty);
     expect(roomMenuGroups(iptv: false, newWindow: false, cast: true, local: true)[2], [RoomMenuEntry.localInteraction]);
-    expect(roomMenuGroups(iptv: true, newWindow: false, cast: true)[1], [RoomMenuEntry.cast, RoomMenuEntry.streamLink]);
-    expect(roomMenuGroups(iptv: true, newWindow: false, cast: false)[1], [RoomMenuEntry.streamLink]);
+    expect(roomMenuGroups(iptv: true, newWindow: false, cast: true)[1], [
+      RoomMenuEntry.cast,
+      RoomMenuEntry.streamLink,
+      RoomMenuEntry.playbackInfo,
+    ]);
+    expect(roomMenuGroups(iptv: true, newWindow: false, cast: false)[1], [
+      RoomMenuEntry.streamLink,
+      RoomMenuEntry.playbackInfo,
+    ]);
+    await _close(tester, room);
+  });
+
+  testWidgets('room menu: playback info replaces the menu with the room panel', (tester) async {
+    final room = await _pump(tester);
+    await tester.tap(find.byKey(const ValueKey('live-play-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('room-menu-playbackInfo')));
+    await _settle(tester);
+    expect(find.byKey(const ValueKey('panel-playback-info')), findsOneWidget);
+    expect(find.byKey(const ValueKey('room-menu-list')), findsNothing, reason: 'the menu is replaced');
+    expect(find.byKey(const ValueKey('playback-info-resolution')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('playback-info-host')),
+      100,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('playback-info-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(find.text('a.example'), findsOneWidget, reason: 'the stream host of the opened line');
     await _close(tester, room);
   });
 
