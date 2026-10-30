@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.22</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.22.md">Release notes (Chinese)</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.23</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.23.md">Release notes (Chinese)</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#supported-platforms">Platforms</a>
   &nbsp;·&nbsp; <a href="#building-from-source">Build</a>
@@ -34,7 +34,7 @@ Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chin
 
 5.4.8 adds current-room Super Chat history and fixes TV focus, links without a scheme and automatic-recording toggles. 5.4.9 adds multiview mute, TV preferred-platform selection and a fullscreen Super Chat entry, with iPad volume/brightness gestures and screen-wake recovery fixes. Verification on the reported physical devices remains pending; see the release notes.
 
-5.4.22 adds the fullscreen Super Chat entry switch to room settings, wraps desktop room-switch categories, shows platform logos in TV preferences, gives IPTV auto-sync a single row focus target, and adds a read-only playback information panel.
+5.4.23 fixes stalled-player recovery, Android Surface initialization and video remounting after recovery, preserves manual pause across asynchronous operations, and improves native diagnostics. Code and generated-media recovery paths are verified; reports on the original Sony and Honor hardware remain open.
 
 5.4.21 adds phone QR input to TV link playback, prevents horizontal swipes from changing brightness or volume, and keeps home jump buttons clear of the glass navigation bar. Douyu VIP counts remain separate from real viewer counts and rankings and are cleared when the broadcast ends.
 
@@ -432,7 +432,7 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Roadmap
 
-| Client | 5.4.22 (now) | Later |
+| Client | 5.4.23 (now) | Later |
 |---|---|---|
 | **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms, 15 interface languages | Keep up with platform changes |
 | **Android TV** | Stable: Live, Video (Bilibili VOD) and Music modes, wallpapers, TV-style settings, type on your phone via QR code | Verify and tune on more TVs |
