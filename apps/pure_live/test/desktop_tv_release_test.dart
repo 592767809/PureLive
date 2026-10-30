@@ -31,7 +31,7 @@ void main() {
     await tester.ensureVisible(toggle);
     await tester.tap(toggle);
     await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(seconds: 1));
     });
     await tester.pump();
     expect(services.store.settings.get(Settings.showFullscreenSuperChat), isFalse);
@@ -39,7 +39,7 @@ void main() {
     await captureQaFrame(tester, 'sc-setting-off');
     await tester.tap(toggle);
     await tester.runAsync(() async {
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(seconds: 1));
     });
     await tester.pump();
     expect(services.store.settings.get(Settings.showFullscreenSuperChat), isTrue);
@@ -54,6 +54,9 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       var changes = 0;
+      var saving = false;
+      var autoUpdate = false;
+      late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
           theme: const LiveTheme().dark,
@@ -62,21 +65,32 @@ void main() {
               child: SizedBox(
                 width: 900,
                 child: TvSettingsStyle(
-                  child: IptvSourceCard(
-                    id: 'sample',
-                    isGuide: guide,
-                    name: 'Sample',
-                    address: 'https://example.com/list',
-                    badge: 'M3U',
-                    isRemote: true,
-                    details: '',
-                    autoUpdate: false,
-                    busy: false,
-                    blocked: false,
-                    onSync: () {},
-                    onDelete: () {},
-                    onAutoUpdate: (_) => changes++,
-                    onAction: (_) {},
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      update = setState;
+                      return IptvSourceCard(
+                        id: 'sample',
+                        isGuide: guide,
+                        name: 'Sample',
+                        address: 'https://example.com/list',
+                        badge: 'M3U',
+                        isRemote: true,
+                        details: '',
+                        autoUpdate: autoUpdate,
+                        busy: saving,
+                        blocked: saving,
+                        onSync: () {},
+                        onDelete: () {},
+                        onAutoUpdate: (value) {
+                          changes++;
+                          update(() {
+                            saving = true;
+                            autoUpdate = value;
+                          });
+                        },
+                        onAction: (_) {},
+                      );
+                    },
                   ),
                 ),
               ),
@@ -107,6 +121,13 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(changes, 1);
+      expect(focusedRow(), rowKey, reason: 'saving must not move focus to an adjacent destructive action');
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(changes, 1, reason: 'a second confirmation while saving must be ignored');
+      update(() => saving = false);
+      await tester.pump();
+      expect(focusedRow(), rowKey, reason: 'focus must still identify the row after saving');
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pump();
       expect(focusedRow(), isNot(rowKey), reason: 'one left press exits the whole row, without stopping on the switch');

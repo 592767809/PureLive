@@ -308,6 +308,7 @@ class SettingsRow extends StatefulWidget {
     this.tooltip,
     this.subtitleMaxLines = 3,
     this.keepTrailingWhileBusy = false,
+    this.retainFocusWhileBusy = false,
     super.key,
   });
 
@@ -317,6 +318,11 @@ class SettingsRow extends StatefulWidget {
   /// While [busy], shows the spinner before [trailing] (which greys itself
   /// out) instead of replacing it (a switch that is being changed, U.1c).
   final bool keepTrailingWhileBusy;
+
+  /// Keeps the row's keyboard focus while its value is being saved. Input
+  /// remains ignored and accessibility does not expose an activation action.
+  /// This avoids moving a TV remote to a neighboring action during a save.
+  final bool retainFocusWhileBusy;
 
   /// The spinner's colour while [busy] (error red for clearing).
   final Color? busyColor;
@@ -385,6 +391,7 @@ class _SettingsRowState extends State<SettingsRow> {
     final colors = theme.colorScheme;
     final tv = SettingsRowStyle.tvOf(context);
     final usable = widget.enabled && !widget.busy;
+    final focusable = widget.enabled && (!widget.busy || widget.retainFocusWhileBusy);
     final body = theme.textTheme.bodyMedium ?? const TextStyle();
     // The card title and small sizes; the TV's one step larger (UI.md §5.5:
     // 17 and 14 by default).
@@ -497,8 +504,13 @@ class _SettingsRowState extends State<SettingsRow> {
       color: widget.selected ? colors.secondaryContainer : Colors.transparent,
       borderRadius: AppRadii.listRow,
       child: InkWell(
-        onTap: usable ? widget.onTap : null,
-        canRequestFocus: usable && widget.onTap != null,
+        onTap: usable
+            ? widget.onTap
+            : focusable && widget.onTap != null
+            ? () {}
+            : null,
+        canRequestFocus: focusable && widget.onTap != null,
+        excludeFromSemantics: !usable,
         borderRadius: AppRadii.listRow,
         hoverColor: overlay.withValues(alpha: 0.06),
         highlightColor: overlay.withValues(alpha: 0.10),

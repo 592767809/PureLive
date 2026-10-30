@@ -382,8 +382,9 @@ class _AutoSyncRow extends StatelessWidget {
         stackTrailing: false,
         title: i18n('auto_sync'),
         icon: AppIcons.autoSync,
-        onTap: change == null ? null : () => change(!value),
-        enabled: change != null,
+        onTap: () => change?.call(!value),
+        busy: change == null,
+        retainFocusWhileBusy: true,
         trailing: ExcludeFocus(
           child: IgnorePointer(
             child: Switch(key: ValueKey('iptv-auto-$id'), value: value, onChanged: change),
