@@ -18,7 +18,7 @@ final class DouyuVodProgress {
   final DateTime updated;
 }
 
-/// One app-owned bounded history, backed by the existing encrypted-app store's
+/// One app-owned bounded history, backed by the existing app store's
 /// metadata repository. Writes are serialized so overlapping exits cannot erase
 /// another video's progress. A storage failure never prevents playback.
 final class DouyuVodProgressStore {

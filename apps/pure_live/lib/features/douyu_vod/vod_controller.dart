@@ -72,6 +72,7 @@ final class DouyuVodController extends ChangeNotifier {
 
   /// Opens metadata, restores local position, then loads the permitted rendition.
   Future<void> open(String id, {Duration? start}) async {
+    final volume = _ready ? session.state.volume : initialVolume;
     await record();
     if (_disposed) return;
     final generation = ++_generation;
@@ -127,7 +128,7 @@ final class DouyuVodController extends ChangeNotifier {
         PlaybackRequest(
           site: SiteIds.douyu,
           plan: _plan(quality, resume),
-          volume: initialVolume,
+          volume: volume,
           refresh: () => _renew(generation),
         ),
       );

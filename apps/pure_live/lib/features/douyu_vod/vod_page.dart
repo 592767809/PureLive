@@ -191,7 +191,7 @@ class _DouyuVodPageState extends ConsumerState<DouyuVodCatalogPage> {
                     counterText: '',
                     hintText: i18n('douyu_vod_search_hint'),
                     suffixIcon: IconButton(
-                      tooltip: i18n('search'),
+                      tooltip: i18n('douyu_vod_search'),
                       onPressed: () => unawaited(_submit()),
                       icon: const Icon(AppIcons.search),
                     ),

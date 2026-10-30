@@ -174,6 +174,7 @@ void main() {
         'superChat',
         'retraction',
         'notice',
+        'roomInfo',
       ]);
       // D07.2 added giftedSubscription last.
       expect(LiveNoticeKind.values.map((k) => k.name), ['system', 'subscription', 'raid', 'giftedSubscription']);

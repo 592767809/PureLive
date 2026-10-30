@@ -286,6 +286,8 @@ void main() {
         RoutePath.kKuaishouCookie, RoutePath.kWebDavPage, RoutePath.kSplash, RoutePath.kVersionPage,
         RoutePath.kRecordPage, RoutePath.kRecordSettings, RoutePath.kWebSearch, RoutePath.kSettingsTags,
         RoutePath.kRemoteSync,
+        RoutePath.kPlaybackRemote,
+        RoutePath.kDouyuVod,
         // U.2k: the local interaction settings (3.x pushed the page directly).
         RoutePath.kLocalInteraction,
         // U.11a: the log page moved out of the backup page (3.x) into settings.

@@ -8,6 +8,7 @@ import 'package:live_danmaku/src/codec/protobuf.dart';
 import 'package:live_danmaku/src/connection.dart';
 import 'package:live_danmaku/src/connection_base.dart';
 import 'package:live_danmaku/src/socket_connection.dart';
+import 'package:live_net/live_net.dart';
 import 'package:meta/meta.dart';
 
 /// What one received Douyin frame asks for ([DouyinDanmakuProtocol.decode]):
@@ -113,6 +114,27 @@ abstract final class DouyinDanmakuProtocol {
             ..string(7, 'ack')
             ..string(8, internalExt))
           .toBytes();
+
+  /// Public first-join snapshot. An empty cursor requests persisted WRDS data;
+  /// websocket's current-time cursor alone can miss an existing announcement.
+  static Uri informationSnapshot(DouyinDanmakuArgs args, {required DateTime now}) {
+    final query = {
+      ...endpoints(args, signature: '', now: now).first.queryParameters,
+      'cursor': '',
+      'resp_content_type': 'protobuf',
+      'fetch_rule': '1',
+      'last_rtt': '-1',
+    }..remove('signature');
+    return Uri.https('live.douyin.com', '/webcast/im/fetch/', query);
+  }
+
+  /// Extracts only typed room information from the public initial Response.
+  /// Historical chat, gifts and viewer counters must not be replayed into chat.
+  static List<LiveMessage> initialInformation(List<int> bytes, {required String roomId}) {
+    if (bytes.isEmpty || bytes.length > 2097152) return const [];
+    final frame = (ProtoWriter()..bytes(8, bytes)).toBytes();
+    return decode(frame, roomId: roomId).messages.where((message) => message.type == LiveMessageType.roomInfo).toList();
+  }
 
   /// Decodes one server [frame] for broadcast [roomId] (3.x `decodeMessage`).
   ///
@@ -366,7 +388,7 @@ final class DouyinDanmakuConnection extends DanmakuSocketConnection<DouyinDanmak
   /// Creates the connection. [proxy] routes the handshake; `connector`
   /// replaces `dart:io`'s handshake; `random` (the signature's random bytes)
   /// and `now` (the cursor time) are only for tests.
-  new({super.proxy, super.connector, Random? random, DateTime Function()? now})
+  new({super.proxy, super.connector, this._http, Random? random, DateTime Function()? now})
     : _signer = DouyinSigner(userAgent: DouyinApi.userAgent, random: random),
       _now = now ?? DateTime.now,
       super(site: SiteIds.douyin, policy: socketPolicy);
@@ -381,6 +403,8 @@ final class DouyinDanmakuConnection extends DanmakuSocketConnection<DouyinDanmak
 
   final DouyinSigner _signer;
   final DateTime Function() _now;
+  final LiveHttp? _http;
+  CancelToken? _initialCancel;
   _Broadcast? _broadcast;
 
   @override
@@ -413,6 +437,35 @@ final class DouyinDanmakuConnection extends DanmakuSocketConnection<DouyinDanmak
     session
       ..ready()
       ..send(DouyinDanmakuProtocol.heartbeat());
+    final broadcast = _of(session);
+    if (_http != null && broadcast != null) unawaited(_loadInitial(broadcast, session));
+  }
+
+  Future<void> _loadInitial(_Broadcast broadcast, DanmakuSocketSession session) async {
+    _initialCancel?.cancel();
+    final cancel = _initialCancel = CancelToken();
+    final args = broadcast.args;
+    try {
+      final response = await _http!.send(
+        LiveRequest(
+          site: SiteIds.douyin,
+          url: DouyinDanmakuProtocol.informationSnapshot(args, now: _now()),
+          headers: args.headers,
+          timeout: const Duration(seconds: 8),
+          cancel: cancel,
+        ),
+      );
+      if (!session.isActive ||
+          !identical(_initialCancel, cancel) ||
+          !identical(_of(session), broadcast) ||
+          !identical(broadcast.args, args) ||
+          !response.isSuccess) {
+        return;
+      }
+      DouyinDanmakuProtocol.initialInformation(response.bytes, roomId: args.roomId).forEach(session.message);
+    } on Object {
+      /* Optional metadata failure must not close a working chat. */
+    }
   }
 
   @override
@@ -483,6 +536,8 @@ final class DouyinDanmakuConnection extends DanmakuSocketConnection<DouyinDanmak
   @override
   @protected
   Future<void> stop() async {
+    _initialCancel?.cancel();
+    _initialCancel = null;
     _broadcast = null;
     await super.stop();
   }

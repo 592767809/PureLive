@@ -267,6 +267,8 @@ const List<String> _withKick = [
 
 /// Settings v4 added (no 3.x key) and their defaults, with the task.
 const Map<String, Object> newInV4 = {
+  'allowAudioMixing': false, // V01.19: opt-in media coexistence.
+  'roomVolumeGains': <String, Object?>{}, // V01.17: independent signed room gain overrides.
   'autoSwitchLiveFollows': false, // G02.9: existing recovery stays opt-in and unchanged.
   'multiviewMixAudio': false,
   'homeNavigationAutoHide': false,

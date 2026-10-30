@@ -576,6 +576,7 @@
     "douyu_vod_restricted": "Unavailable to this account",
     "douyu_vod_resume_at": "Last watched to {time}",
     "douyu_vod_rewind": "Rewind 10 seconds",
+    "douyu_vod_search": "Search",
     "douyu_vod_search_hint": "Search streamers/videos or paste a Douyu video link",
     "douyu_vod_segment": "Session segment {index}",
     "douyu_vod_title": "Douyu replays and videos",

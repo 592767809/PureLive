@@ -246,7 +246,7 @@ class _DouyuVodPlayerPageState extends ConsumerState<DouyuVodPlayerPage> with Wi
                     look: look,
                     running: state.status == PlaybackStatus.playing,
                     visible: _controller.danmakuVisible,
-                maxVisible: watchSetting(ref, Settings.danmakuMaxVisibleCount),
+                    maxVisible: watchSetting(ref, Settings.danmakuMaxVisibleCount),
                     fps: fps,
                     refreshRate: refreshRate,
                     giftClearance: const EdgeInsets.only(top: 48, bottom: 130),

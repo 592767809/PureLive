@@ -245,7 +245,7 @@ DanmakuRegistry buildDanmakuRegistry(PlatformDeps deps, SiteRegistry sites) {
     ),
     SiteIds.huya: () => HuyaDanmakuConnection(proxy: proxy, connector: connector(SiteIds.huya)),
     // The room's DouyinDanmakuArgs carry `refresh` (B-5), set by DouyinSite.
-    SiteIds.douyin: () => DouyinDanmakuConnection(proxy: proxy, connector: connector(SiteIds.douyin)),
+    SiteIds.douyin: () => DouyinDanmakuConnection(http: http, proxy: proxy, connector: connector(SiteIds.douyin)),
     SiteIds.kuaishou: () => KuaishouDanmakuConnection(http: http),
     SiteIds.twitch: () => TwitchDanmakuConnection(proxy: proxy, connector: connector(SiteIds.twitch)),
     // B-6: SOOP's chat follows the app proxy (CONNECT tunnel). Its own
