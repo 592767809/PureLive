@@ -14,6 +14,7 @@ import 'package:pure_live/app/desktop/mini_window.dart';
 import 'package:pure_live/app/desktop/projection_runtime.dart';
 import 'package:pure_live/app/desktop/shared_data.dart';
 import 'package:pure_live/app/desktop/startup_entry.dart';
+import 'package:pure_live/app/desktop/startup_window.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/desktop/tray.dart';
 import 'package:pure_live/app/launch_args.dart';
@@ -319,7 +320,7 @@ final class DesktopShell with WindowListener {
       title: i18nOr('app_name', 'PureLive'),
       titleBarStyle: TitleBarStyle.hidden,
     );
-    await windowManager.waitUntilReadyToShow(options, () async {
+    await restoreStartupWindow(options, () async {
       await windowManager.setPreventClose(true);
       if (position != null) {
         // A monitor unplugged since last time: back to the middle (c6).

@@ -316,6 +316,7 @@ channel = [
   { name = "pure_live/finder", sub = "Y02" },
   { name = "pure_live/key_commands", sub = "A18" },
   { name = "pure_live/display_mode", sub = "O05" },
+  { name = "pure_live/window_startup", sub = "X01" },
   { name = "pure_live/multicast_lock", sub = "N02" },
   { name = "pure_live/native_http", sub = "Q03" },
   { name = "pure_live/permissions", sub = "O04" },

@@ -8,6 +8,12 @@
 #include <flutter/standard_method_codec.h>
 #include "flutter/generated_plugin_registrant.h"
 
+namespace {
+constexpr UINT kStartupFrame = WM_APP + 0x251;
+constexpr UINT_PTR kStartupRecoveryTimer = 0x504C;
+constexpr int kStartupRecoveryAttempts = 5;
+}  // namespace
+
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
 
@@ -56,13 +62,27 @@ bool FlutterWindow::OnCreate() {
 
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  flutter_controller_->engine()->SetNextFrameCallback([&]() {
-    this->Show();
+  startup_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "pure_live/window_startup",
+          &flutter::StandardMethodCodec::GetInstance());
+  startup_channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    if (call.method_name() != "layoutReady") {
+      result->NotImplemented();
+      return;
+    }
+    startup_layout_ready_ = true;
+    StartStartupRecovery();
+    result->Success();
   });
-
-  // Flutter can complete the first frame before the "show window" callback is
-  // registered. The following call ensures a frame is pending to ensure the
-  // window is shown. It is a no-op if the first frame hasn't completed yet.
+  startup_callback_ = std::make_shared<StartupCallback>();
+  startup_callback_->window = GetHandle();
+  const std::weak_ptr<StartupCallback> callback = startup_callback_;
+  flutter_controller_->engine()->SetNextFrameCallback([callback]() {
+    if (auto state = callback.lock(); state && state->window) {
+      PostMessage(state->window, kStartupFrame, 0, 0);
+    }
+  });
   flutter_controller_->ForceRedraw();
 
   return true;
@@ -74,6 +94,10 @@ void FlutterWindow::OnDestroy() {
   // the wrapper still exists but its internal view is null, so forwarding the
   // re-entrant message would crash in FlutterWindowsView::GetEngine().
   flutter_controller_destroying_ = true;
+  KillTimer(GetHandle(), kStartupRecoveryTimer);
+  if (startup_callback_) startup_callback_->window = nullptr;
+  startup_callback_.reset();
+  startup_channel_.reset();
   display_mode_channel_.reset();
   flutter_controller_.reset();
 
@@ -84,6 +108,20 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == kStartupFrame) {
+    if (flutter_controller_destroying_) return 0;
+    startup_frame_seen_ = true;
+    // The Dart shell owns normal show/focus/maximize. A preparation failure
+    // still needs to show its error page before the shell has been started.
+    if (!startup_layout_ready_) Show();
+    StartStartupRecovery();
+    RecoverStartupSurface();
+    return 0;
+  }
+  if (message == WM_TIMER && wparam == kStartupRecoveryTimer) {
+    RecoverStartupSurface();
+    return 0;
+  }
   if (message == WM_MOVE || message == WM_DISPLAYCHANGE ||
       message == WM_DPICHANGED) {
     NotifyDisplayModeChanged(message == WM_DISPLAYCHANGE);
@@ -108,6 +146,43 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
+}
+
+void FlutterWindow::StartStartupRecovery() {
+  if (startup_recovery_started_ || flutter_controller_destroying_) return;
+  startup_recovery_started_ = true;
+  SetTimer(GetHandle(), kStartupRecoveryTimer, 1000, nullptr);
+}
+
+void FlutterWindow::RecoverStartupSurface() {
+  if (!flutter_controller_ || flutter_controller_destroying_) return;
+  // Bounded startup recovery only; later resizes belong to the normal runner.
+  if (startup_recovery_attempts_ >= kStartupRecoveryAttempts) return;
+  if (++startup_recovery_attempts_ == kStartupRecoveryAttempts) {
+    KillTimer(GetHandle(), kStartupRecoveryTimer);
+  }
+  const HWND parent = GetHandle();
+  if (!IsWindowVisible(parent) || IsIconic(parent)) return;
+  RECT bounds{};
+  if (!GetClientRect(parent, &bounds)) return;
+  const int width = bounds.right - bounds.left;
+  const int height = bounds.bottom - bounds.top;
+  if (width < 2 || height < 2) return;
+  const HWND child = flutter_controller_->view()->GetNativeWindow();
+  // ForceRedraw alone cannot repair an in-flight surface resize. Reissue a
+  // real child-size transition, then restore the exact current client bounds.
+  // The top-level size, monitor, DPI, activation and maximized state stay owned
+  // by window_manager. Inspired by rustdesk/rustdesk PR #15717's child refresh.
+  constexpr UINT flags = SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER;
+  SetWindowPos(child, nullptr, 0, 0, width - 1, height, flags);
+  SetWindowPos(child, nullptr, 0, 0, width, height, flags);
+  flutter_controller_->ForceRedraw();
+  // One resync after the first frame is enough. The five-tick fallback is
+  // only for a startup that has not produced a frame; never jitter a live UI.
+  if (startup_frame_seen_) {
+    startup_recovery_attempts_ = kStartupRecoveryAttempts;
+    KillTimer(parent, kStartupRecoveryTimer);
+  }
 }
 
 FlutterWindow::DisplayModeSnapshot FlutterWindow::ReadDisplayMode() const {
