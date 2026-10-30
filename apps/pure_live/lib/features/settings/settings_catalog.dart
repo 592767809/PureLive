@@ -1749,6 +1749,17 @@ List<SettingsEntry> _build() {
       settings: [Settings.enableProxy, Settings.proxyHost, Settings.proxyPort],
       keywords: ['代理', 'proxy', 'HTTP'],
     )
+    // The custom receiver page also participates in the settings search.
+    ..section = SettingsSection.playbackRemote
+    ..group = '_remote_control'
+    ..link(
+      'playback_remote',
+      'remote_control_title',
+      AppIcons.deviceSync,
+      route: RoutePath.kPlaybackRemote,
+      desc: 'remote_control_settings_desc',
+      keywords: ['遥控', '互联', '配对', 'remote', 'LAN', 'pair'],
+    )
     // ---- cache and data (U.6e e2–e7) ----
     ..section = SettingsSection.cache
     ..group = 'settings_group_cache'

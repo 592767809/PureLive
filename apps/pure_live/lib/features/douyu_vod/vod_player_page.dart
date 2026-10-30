@@ -315,12 +315,12 @@ class _DouyuVodPlayerPageState extends ConsumerState<DouyuVodPlayerPage> with Wi
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  child: Material(
-                    color: OnVideoColors.panel,
-                    child: SafeArea(
-                      top: false,
-                      child: Theme(
-                        data: ThemeData.dark(useMaterial3: true),
+                  child: Theme(
+                    data: ThemeData.dark(useMaterial3: true),
+                    child: Material(
+                      color: OnVideoColors.panel,
+                      child: SafeArea(
+                        top: false,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Column(

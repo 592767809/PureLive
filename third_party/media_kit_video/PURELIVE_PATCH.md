@@ -91,3 +91,17 @@ Creation still does not wait for a Surface. The application keys Video by its
 controller because VideoState binds player width/height streams in initState;
 replacing a native player must replace those listeners too. Factory race tests
 and Android 9 generated-media native/screen comparisons cover both paths.
+
+## Independent native player queues (2026-10-30)
+
+The companion `media_kit` NativePlayer lock is instance-owned. Upstream's
+static lock serialized every player's create/open/control/dispose operation,
+so a held stop reply in a retired player also blocked its replacement from
+initializing. The session's bounded retirement alone could not bypass that
+shared queue. Each player's existing serialization and native event-buffer
+ownership remain intact. The real-handle regression
+`packages/live_player/test/native_instance_isolation_test.dart` holds an old
+stop reply during disposal and requires a replacement to initialize, change
+volume and pause before releasing the old reply. The original shared lock
+times out; the instance lock passes. This is an identified common defect,
+not original Sony/Huawei/Honor hardware acceptance.

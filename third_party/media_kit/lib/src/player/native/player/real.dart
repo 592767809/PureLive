@@ -2573,8 +2573,10 @@ class NativePlayer extends PlatformPlayer {
   /// The methods which must execute synchronously before playback of a source can end.
   final List<Future<void> Function()> onUnloadHooks = [];
 
-  /// Synchronization & mutual exclusion between methods of this class.
-  static final Lock lock = Lock();
+  /// Serializes methods on this handle only. A stalled stop/dispose on an old
+  /// player must not prevent another handle from initializing or being used.
+  /// Each NativeEventLoop separately owns and drains its handle's event buffer.
+  final Lock lock = Lock();
 
   /// [HashMap] for retrieving previously fetched audio-bitrate(s).
   static final HashMap<String, double> audioBitrateCache =

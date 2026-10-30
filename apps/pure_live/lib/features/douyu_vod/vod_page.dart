@@ -204,7 +204,9 @@ class _DouyuVodPageState extends ConsumerState<DouyuVodCatalogPage> {
                   spacing: 12,
                   runSpacing: 8,
                   children: [
-                    if (!_history) ...[
+                    if (!_history && _author.isEmpty && _query.isEmpty)
+                      Text(i18n('douyu_vod_recommendations'), style: context.textStyles.t14),
+                    if (!_history && (_author.isNotEmpty || _query.isNotEmpty)) ...[
                       ChoiceChip(
                         label: Text(i18n('douyu_vod_replays')),
                         selected: _replay,

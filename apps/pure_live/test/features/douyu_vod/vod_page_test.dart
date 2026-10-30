@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_ui/live_ui.dart';
@@ -57,6 +58,37 @@ Future<void> settle(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('recommendations are labelled independently of replay and video search filters', (tester) async {
+    final source = await pumpPage(tester);
+    expect(source.calls, ['home']);
+    expect(find.text('推荐视频'), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNothing);
+    await tester.enterText(find.byKey(const ValueKey('vod-search')), '测试主播');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await settle(tester);
+    expect(find.byType(ChoiceChip), findsNWidgets(2));
+    await tester.tap(find.byKey(const ValueKey('vod-home')));
+    await settle(tester);
+    expect(source.calls.last, 'home');
+    expect(find.text('推荐视频'), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await settle(tester);
+  });
+
+  testWidgets('on-video clocks and selected quality remain readable in the light app theme', (tester) async {
+    await pumpPage(tester, player: true);
+    for (final label in ['0:00', '高清']) {
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: find.text(label), matching: find.byType(RichText)).first,
+      );
+      final color = paragraph.text.style!.color!;
+      expect(color.computeLuminance(), greaterThan(0.65), reason: '$label must contrast with the dark video panel');
+    }
+    await tester.pumpWidget(const SizedBox());
+    await settle(tester);
+  });
+
   testWidgets('catalog searches the selected tab, appends a page and opens the encoded author catalog', (tester) async {
     final source = await pumpPage(tester);
     expect(find.text('第一场录像'), findsOneWidget);

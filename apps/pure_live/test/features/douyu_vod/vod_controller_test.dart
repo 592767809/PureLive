@@ -31,6 +31,8 @@ void main() {
     expect(engine.opens.single.start, const Duration(seconds: 93));
     expect(controller.session.state.onDemand, isTrue);
     expect(controller.qualityId, 'high', reason: 'unavailable super tier must never be selected');
+    engine.emit(const EnginePosition(Duration(seconds: 93)));
+    await pumpEventQueue();
     engine.emit(const EnginePosition(Duration(seconds: 150)));
     await pumpEventQueue();
     await controller.session.setVolume(0.27);
@@ -58,6 +60,33 @@ void main() {
     expect(history.single.position, const Duration(seconds: 150));
     expect(stored, isNot(contains('cdn.example')));
     expect(stored, isNot(contains('sign')));
+  });
+
+  test('old nonzero clock events cannot acknowledge a pending seek or corrupt exit history', () async {
+    var stored = '[]';
+    final progress = DouyuVodProgressStore(read: () async => stored, write: (value) async => stored = value);
+    final engine = FakeEngine();
+    final controller = DouyuVodController(
+      source: FakeVodSource(signer),
+      session: fakeSession(engine),
+      progress: progress,
+    );
+    await controller.open(firstVideo.id);
+    engine.emit(const EnginePosition(Duration(seconds: 12)));
+    await pumpEventQueue();
+    await controller.seek(const Duration(minutes: 20));
+    engine.emit(const EnginePosition(Duration(seconds: 13)));
+    await pumpEventQueue();
+    expect(controller.position, const Duration(minutes: 20));
+    await controller.record();
+    expect((await progress.list()).single.position, const Duration(minutes: 20));
+    engine.emit(const EnginePosition(Duration(minutes: 20, milliseconds: 100)));
+    await pumpEventQueue();
+    engine.emit(const EnginePosition(Duration(minutes: 20, seconds: 5)));
+    await pumpEventQueue();
+    expect(controller.position, const Duration(minutes: 20, seconds: 5));
+    controller.dispose();
+    await pumpEventQueue();
   });
 
   test('replaced and disposed details cannot open media or replace the selected video', () async {

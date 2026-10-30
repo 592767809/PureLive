@@ -40,7 +40,7 @@ final class DouyuVodController extends ChangeNotifier {
   Duration _lastSaved = Duration.zero;
   Duration? _pendingPosition;
 
-  /// Keeps a requested position across intermediate zero-valued open snapshots.
+  /// Keeps a requested position until the engine acknowledges the new clock.
   Duration get position => _pendingPosition ?? session.state.position;
 
   /// Selected video metadata, available after its detail request.
@@ -82,6 +82,7 @@ final class DouyuVodController extends ChangeNotifier {
     _timeline = null;
     _retractions.add(const LiveRetraction.all());
     _ready = false;
+    _pendingPosition = null;
     _detail = null;
     qualities = const [];
     segments = const [];
@@ -97,7 +98,11 @@ final class DouyuVodController extends ChangeNotifier {
       final history = await progress.list();
       if (!_current(generation)) return;
       final saved = history.where((entry) => entry.video.id == id).firstOrNull?.position;
-      final resume = start ?? saved ?? Duration.zero;
+      final requested = start ?? saved ?? Duration.zero;
+      final duration = detail.video.duration;
+      final resume = requested < Duration.zero || (duration > Duration.zero && requested >= duration)
+          ? Duration.zero
+          : requested;
       final offered = await source.qualities(detail, cancel: cancel);
       if (!_current(generation)) return;
       qualities = offered;
@@ -257,9 +262,11 @@ final class DouyuVodController extends ChangeNotifier {
 
   void _onState(PlaybackState state) {
     if (_disposed) return;
-    if (_pendingPosition != null &&
-        state.status != PlaybackStatus.opening &&
-        (state.position > Duration.zero || _pendingPosition == Duration.zero)) {
+    // Native position/property notifications are asynchronous. An already
+    // queued nonzero snapshot from before the seek is not its acknowledgement.
+    if (_pendingPosition case final target?
+        when state.status == PlaybackStatus.completed ||
+            state.status != PlaybackStatus.opening && (state.position - target).abs() <= const Duration(seconds: 2)) {
       _pendingPosition = null;
     }
     if (_ready && !busy) {
