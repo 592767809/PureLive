@@ -11,6 +11,7 @@ import 'package:pure_live/app/commands.dart';
 import 'package:pure_live/app/desktop/close_dialog.dart';
 import 'package:pure_live/app/desktop/display_geometry.dart';
 import 'package:pure_live/app/desktop/mini_window.dart';
+import 'package:pure_live/app/desktop/projection_runtime.dart';
 import 'package:pure_live/app/desktop/shared_data.dart';
 import 'package:pure_live/app/desktop/startup_entry.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
@@ -259,6 +260,9 @@ final class DesktopShell with WindowListener {
   String? _title;
   AppLifecycleListener? _exitListener;
   bool _quitting = false;
+
+  /// The authenticated endpoint of an extra projection window, if requested.
+  ProjectionRuntime? projection;
 
   /// The shell of this window; null before [start] and where it does not
   /// run.
@@ -626,6 +630,7 @@ final class DesktopShell with WindowListener {
 
   /// Stops listening (tests, shutdown).
   Future<void> dispose() async {
+    await projection?.dispose();
     windowManager.removeListener(this);
     _exitListener?.dispose();
     liveRouteObserver.topPage.removeListener(_retitle);

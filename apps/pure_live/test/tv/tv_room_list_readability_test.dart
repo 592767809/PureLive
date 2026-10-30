@@ -51,7 +51,7 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
         expect(tester.takeException(), isNull);
         final row = find.byKey(const ValueKey('tv-room-list-0'));
-        final title = find.descendant(of: row, matching: find.text(rooms.first.title));
+        final title = find.descendant(of: row, matching: find.text(rooms.first.title)).first;
         final name = find.descendant(of: row, matching: find.text(rooms.first.nick));
         final bounds = tester.getRect(row);
         expect(tester.getRect(title).bottom, lessThanOrEqualTo(tester.getRect(name).top));

@@ -13,10 +13,14 @@ import 'package:live_core/live_core.dart';
 /// which is ignored now).
 final class LaunchArgs {
   /// Creates the parsed arguments.
-  const new({this.instanceId = '', this.room});
+  const new({this.instanceId = '', this.room, this.projection = false});
 
   /// Reads [args]; anything unexpected is ignored.
-  factory parse(List<String> args) => LaunchArgs(instanceId: instanceIdFromArgs(args), room: roomFromArgs(args));
+  factory parse(List<String> args) => LaunchArgs(
+    instanceId: instanceIdFromArgs(args),
+    room: roomFromArgs(args),
+    projection: args.contains('--projection'),
+  );
 
   /// `--instance=<id>`.
   static const String instancePrefix = '--instance=';
@@ -29,6 +33,9 @@ final class LaunchArgs {
 
   /// The room to open after the home page is up.
   final LiveRoom? room;
+
+  /// Whether this extra window receives a multiview wall's selections.
+  final bool projection;
 
   /// Whether this is the main window.
   bool get isPrimary => instanceId.isEmpty;

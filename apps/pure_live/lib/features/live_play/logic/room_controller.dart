@@ -21,6 +21,7 @@ import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/danmaku/gift_flights.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
 import 'package:pure_live/shared/rooms/playback_diagnostics.dart';
+import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// Where the room page is (3.x kept `isLoading`, `success`, `isLiving` and
@@ -248,6 +249,7 @@ class LiveRoomController extends ChangeNotifier {
   int? _startupEpoch;
 
   LiveRoom _room;
+  final Map<String, int> _roomInfoVersions = {};
   RoomStage _stage = RoomStage.loading;
   Object? _failure;
   List<LivePlayQuality> _qualities = const [];
@@ -508,6 +510,26 @@ class LiveRoomController extends ChangeNotifier {
     }
     // A08.6 c3: the settings page changes it for the rooms already open.
     _subscriptions.add(store.settings.watch(Settings.showChatGifts).skip(1).listen(_onShowGifts));
+    _subscriptions.add(
+      store.settings
+          .watch(Settings.roomVolumeGains)
+          .skip(1)
+          .listen(
+            (_) => unawaited(
+              _guard(() => session.setVolumeGainDb(RoomGain.effective(store.settings, _room)), 'room gain'),
+            ),
+          ),
+    );
+    _subscriptions.add(
+      store.settings
+          .watch(Settings.volumeBoostDb)
+          .skip(1)
+          .listen(
+            (_) => unawaited(
+              _guard(() => session.setVolumeGainDb(RoomGain.effective(store.settings, _room)), 'room gain'),
+            ),
+          ),
+    );
     // A08.12: "只显示值钱的礼物" takes the cheap gift lines away at once.
     _subscriptions.add(store.settings.watch(Settings.chatGiftsAboveTier).skip(1).listen(_onGiftTier));
     _subscriptions.add(store.settings.watch(Settings.superChatIncludesMembership).skip(1).listen(_onMembershipCards));
@@ -569,7 +591,7 @@ class LiveRoomController extends ChangeNotifier {
   /// Fetches the room detail and plays it when it is on air (3.x
   /// `onInitPlayerState`). Also the "refresh room" action and the retry
   /// after a failed detail.
-  Future<void> load() async {
+  Future<void> load({bool preservePause = false}) async {
     if (_disposed) return;
     final epoch = ++_epoch;
     // G03.1: only the first load is the room's entry.
@@ -616,7 +638,7 @@ class LiveRoomController extends ChangeNotifier {
       _notify();
       return;
     }
-    await _startStream(epoch);
+    await _startStream(epoch, preservePause: preservePause);
   }
 
   bool _current(int epoch) => !_disposed && epoch == _epoch;
@@ -661,7 +683,7 @@ class LiveRoomController extends ChangeNotifier {
     return store.settings.get<String>(setting);
   }
 
-  Future<void> _startStream(int epoch) async {
+  Future<void> _startStream(int epoch, {bool preservePause = false}) async {
     unawaited(_qualityScope.close());
     final scope = _qualityScope = LiveQualityDiscoveryScope();
     final previous = _qualities.elementAtOrNull(_qualityIndex);
@@ -690,7 +712,7 @@ class LiveRoomController extends ChangeNotifier {
         ? kept
         : defaultQualityIndex(found, preferred!, preferH264: store.settings.get<bool>(Settings.preferH264));
     _notify();
-    final opened = await _openQuality(_qualityIndex, epoch, userChoice: false);
+    final opened = await _openQuality(_qualityIndex, epoch, userChoice: false, preservePause: preservePause);
     if (!opened || !_current(epoch)) return;
     if (!_historyRecorded && site.id != SiteIds.iptv) {
       _historyRecorded = true;
@@ -717,7 +739,7 @@ class LiveRoomController extends ChangeNotifier {
   }
 
   /// Resolves quality [index] and opens it. Returns whether a stream opened.
-  Future<bool> _openQuality(int index, int epoch, {required bool userChoice}) async {
+  Future<bool> _openQuality(int index, int epoch, {required bool userChoice, bool preservePause = false}) async {
     final requested = _qualities[index];
     final LivePlayUrlResolution resolution;
     try {
@@ -750,6 +772,11 @@ class LiveRoomController extends ChangeNotifier {
     // permission first; refused, the user is told and the open fails as usual.
     await ensureLocalNetworkFor(resolution.lines.map((line) => line.url), toast: toast);
     if (!_current(epoch)) return false;
+    if (preservePause && session.state.status == PlaybackStatus.paused) {
+      _stage = RoomStage.playing;
+      _notify();
+      return false;
+    }
     // C01.4: a confirmed tier the list does not have (a Bilibili guest in a
     // room listed as 原画 only, served 250) is named by the platform, as the
     // recorder names it, and takes the requested entry's place.
@@ -780,6 +807,7 @@ class LiveRoomController extends ChangeNotifier {
         refresh: () => _refreshPlan(opened, quality),
         audioOnly: _audioOnly,
         volume: _volume(),
+        volumeGainDb: RoomGain.effective(store.settings, _room),
         startup: startup,
         onTiming: startup == null ? null : _logTiming,
       ),
@@ -1291,6 +1319,16 @@ class LiveRoomController extends ChangeNotifier {
         _flying.add(message);
       case LiveMessageType.online:
         _applyAudience(message.data);
+      case LiveMessageType.roomInfo:
+        if (message.data case final LiveRoomInfoUpdate update) {
+          final key = '${update.broadcastId}:${update.section.name}';
+          final previous = _roomInfoVersions[key];
+          if (previous != null && update.version > 0 && update.version <= previous) return;
+          if (_roomInfoVersions.length >= 32 && !_roomInfoVersions.containsKey(key)) _roomInfoVersions.clear();
+          _roomInfoVersions[key] = update.version;
+          _room = _room.copyWith(broadcastInfo: update.applyTo(_room.broadcastInfo));
+          _notify();
+        }
       case LiveMessageType.superChat:
         if (message.data case final LiveSuperChatMessage superChat) {
           _addSuperChats([superChat]);

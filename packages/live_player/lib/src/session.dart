@@ -25,6 +25,7 @@ final class PlaybackRequest {
     this.refresh,
     this.audioOnly = false,
     this.volume = 1,
+    this.volumeGainDb,
     this.startup,
     this.onTiming,
     this.audio,
@@ -46,6 +47,9 @@ final class PlaybackRequest {
 
   /// Volume, 0 to 1 (3.x restored the room's saved volume on desktop).
   final double volume;
+
+  /// Optional room gain in dB; null uses the engine's global default.
+  final int? volumeGainDb;
 
   /// G03.1: the room's marks before this open (T0 to T3), for [onTiming].
   final StartupMarks? startup;
@@ -231,6 +235,7 @@ final class PlaybackSession {
   bool _disposed = false;
   bool _wantPlaying = false;
   bool _playing = false;
+  int? _volumeGainDb;
   bool _buffering = false;
   PlayerException? _openingError;
 
@@ -391,6 +396,7 @@ final class PlaybackSession {
       _timing = OpenTiming(site: request.site, startup: request.startup, sink: sink);
     }
     _request = request;
+    _volumeGainDb = request.volumeGainDb;
     _plan = request.plan;
     _prefetched = null;
     _lines.reset();
@@ -535,6 +541,13 @@ final class PlaybackSession {
     _presentationVisible = visible;
     _cancelFrameWatchdog();
     if (visible && _playing && !_buffering && _state.status == PlaybackStatus.playing) _armFrameWatchdog(_session);
+  }
+
+  /// Updates a room's gain without changing its volume or restarting playback.
+  Future<void> setVolumeGainDb(int? decibels) async {
+    _checkAlive();
+    _volumeGainDb = decibels?.clamp(-12, 12);
+    if (_engine case final VolumeGainControl gain) await gain.setVolumeGainDb(_volumeGainDb);
   }
 
   /// Sets the volume, 0 to 1.
@@ -764,6 +777,7 @@ final class PlaybackSession {
                   decoder: _decoder,
                   audioOnly: _state.audioOnly,
                   audio: request.audio?.call(source),
+                  volumeGainDb: _volumeGainDb,
                 ),
               );
               if (_current(session) && _fence.generation == generation && !_wantPlaying) await engine.pause();

@@ -40,6 +40,9 @@ abstract final class RoutePath {
   /// LAN sync.
   static const kRemoteSync = '/remote_sync';
 
+  /// Paired LAN playback remote and live-room link pushes.
+  static const kPlaybackRemote = '/playback_remote';
+
   /// About.
   static const kAbout = '/about';
 
@@ -88,6 +91,9 @@ abstract final class RoutePath {
 
   /// Toolbox (open a link).
   static const kToolbox = '/tool_box';
+
+  /// Official Douyu videos and replay sessions.
+  static const kDouyuVod = '/douyu_vod';
 
   /// Huya cookie.
   static const kHuyaCookie = '/huya_cookie';

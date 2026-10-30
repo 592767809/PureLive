@@ -20,6 +20,19 @@ import 'settings_harness.dart';
 void main() {
   setUpAll(loadStrings);
 
+  testWidgets('LAN control can be found by either language and opens its embedded receiver page', (tester) async {
+    await pumpSettings(tester, width: 1200);
+    for (final query in ['遥控', 'remote']) {
+      await searchSettingsFor(tester, query);
+      expect(find.text('局域网遥控'), findsWidgets);
+      expect(find.textContaining('_remote_control'), findsNothing);
+    }
+    await tester.tap(settingsRow('playback_remote'));
+    await settleSettings(tester);
+    expect(find.byKey(const ValueKey('remote-control-enable')), findsOneWidget);
+    expect(find.byKey(const ValueKey('remote-control-address')), findsOneWidget);
+  });
+
   testWidgets("P02: settings keep Android's stretch at their ends; only refreshable lists bounce", (tester) async {
     await pumpSettings(tester);
     expect(find.byType(AppRefreshView), findsNothing);
@@ -46,6 +59,7 @@ void main() {
         'recording',
         'general',
         'network',
+        'playbackRemote',
         'localInteraction',
         'cache',
         'backup',

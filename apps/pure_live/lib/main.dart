@@ -13,10 +13,12 @@ import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/bootstrap.dart';
 import 'package:pure_live/app/data_root.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
+import 'package:pure_live/app/desktop/projection_runtime.dart';
 import 'package:pure_live/app/fonts.dart';
 import 'package:pure_live/app/frame_log.dart';
 import 'package:pure_live/app/intake/system_intake.dart';
 import 'package:pure_live/app/launch_failure.dart';
+import 'package:pure_live/app/remote_runtime.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/app/startup.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -72,6 +74,11 @@ Future<void> _launch(List<String> args) async {
   }
   // Shares, shortcuts and share codes on the clipboard (F.0a).
   SystemIntake.start(services);
+  installPlaybackRemote(services);
+  if (services.launch.projection && DesktopShell.supported) {
+    await WidgetsBinding.instance.endOfFrame;
+    DesktopShell.current?.projection = await ProjectionRuntime.start(services);
+  }
 }
 
 /// The log of a failed start: the share sheet on a phone, else a file in

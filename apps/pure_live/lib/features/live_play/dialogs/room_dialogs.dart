@@ -7,6 +7,7 @@ import 'package:pure_live/features/live_play/layout/room_panel.dart';
 import 'package:pure_live/features/live_play/logic/background_playback.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/rooms/room_gain_control.dart';
 
 // The room menu's "定时关闭" and "房间音量" (docs/A-界面设计/A07-直播间界面/A07.12-直播间子弹窗统一 c1): room
 // panels like the record and danmaku settings ones, under the picture in
@@ -409,6 +410,10 @@ class _RoomVolumePanelState extends State<RoomVolumePanel> {
                 i18n(_system ? 'live_play_volume_system_hint' : 'live_play_volume_room_hint'),
                 style: theme.textTheme.bodyMedium?.regular.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: RoomGainControl(settings: _room.store.settings, room: _room.room),
             ),
           ],
         );

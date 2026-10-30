@@ -22,7 +22,10 @@ import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/remote/playback_remote.dart';
+import 'package:pure_live/shared/remote/playback_target.dart';
 import 'package:pure_live/shared/rooms/auto_room_switch.dart';
+import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/room/tv_room_settings_panel.dart';
@@ -101,6 +104,8 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   Timer? _debounce;
   int _pendingDelta = 0;
   ValueNotifier<LiveRoom?>? _shown;
+  PlaybackRemote? _remote;
+  RemotePlaybackTarget? _remoteTarget;
 
   /// How long the controls stay without a key.
   static const Duration controlsTimeout = Duration(seconds: 6);
@@ -130,6 +135,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     final arguments = widget.route.arguments;
     final (room, list) = switch (arguments) {
       final TvRoomArgs args => (args.room, args.playlist),
+      LiveRoomArgs(:final room, :final playlist) => (room, playlist),
       final LiveRoom room => (room, const <LiveRoom>[]),
       _ => (null, const <LiveRoom>[]),
     };
@@ -141,8 +147,26 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     final at = list.indexWhere(room.hasSameIdentity);
     _playlist = at < 0 ? [room, ...list] : list;
     _index = at < 0 ? 0 : at;
+    _remote = ref.read(appServicesProvider).remoteControl;
+    _remoteTarget = playbackRemoteTarget(
+      available: () => mounted && (ModalRoute.isCurrentOf(context) ?? true),
+      room: () => _room,
+      session: () => _controller?.session,
+      refresh: () async => await _controller?.load(),
+      volume: (value) async => await _controller?.setVolume(value, save: true),
+      navigation: {
+        for (final key in ['previous', 'next', 'up', 'down', 'left', 'right', 'ok', 'back']) key: () => _remoteKey(key),
+        'danmaku': () async {
+          final settings = ref.read(storeProvider).settings;
+          await settings.set(Settings.hideDanmaku, !settings.get(Settings.hideDanmaku));
+          return true;
+        },
+      },
+    );
+    _remote!.register(_remoteTarget!);
     _autoRoomSwitch = AutoRoomSwitch(
       store: ref.read(storeProvider),
+      onRefresh: () async => await _controller?.load(preservePause: true),
       siteOf: ref.read(sitesProvider).maybeOf,
       maySwitch: () =>
           mounted &&
@@ -226,6 +250,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
 
   @override
   void dispose() {
+    if (_remoteTarget case final target?) _remote?.unregister(target);
     _autoRoomSwitch?.dispose();
     liveRouteObserver.currentRoute.removeListener(_syncAutoRoomSwitch);
     _hideControls?.cancel();
@@ -389,6 +414,52 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     return KeyEventResult.ignored;
   }
 
+  Future<bool> _remoteKey(String key) async {
+    if (!mounted) return false;
+    if (key == 'previous' || key == 'next') {
+      if (_playlist.length < 2) return false;
+      switchBy(key == 'previous' ? -1 : 1);
+      return true;
+    }
+    if (key == 'back') return await AppNavigator.mouseBack();
+    if (_panel || _settings || _controls || _superChatPanel) {
+      final focus = FocusManager.instance.primaryFocus;
+      if (key == 'ok') {
+        final context = focus?.context;
+        if (context == null) return false;
+        Actions.maybeInvoke(context, const ActivateIntent());
+        return true;
+      }
+      final direction = switch (key) {
+        'up' => TraversalDirection.up,
+        'down' => TraversalDirection.down,
+        'left' => TraversalDirection.left,
+        'right' => TraversalDirection.right,
+        _ => null,
+      };
+      return direction != null && (focus?.focusInDirection(direction) ?? false);
+    }
+    switch (key) {
+      case 'up':
+        switchBy(-1);
+      case 'down':
+        switchBy(1);
+      case 'left':
+        _openPanel();
+      case 'right':
+        _openSettings();
+      case 'ok':
+        if (_blocked) {
+          await _controller?.retry();
+        } else {
+          _showControls();
+        }
+      default:
+        return false;
+    }
+    return true;
+  }
+
   void _showSuperChats() {
     _hideControls?.cancel();
     setState(() {
@@ -437,6 +508,25 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
       ],
     );
     if (picked != null && picked != state.lineIndex) unawaited(controller.selectLine(picked));
+    if (mounted && _controls) _touch();
+  }
+
+  Future<void> _pickGain() async {
+    final room = _room;
+    if (room == null) return;
+    final settings = ref.read(storeProvider).settings;
+    _hideControls?.cancel();
+    const inherit = 100;
+    final picked = await showTvChoice<int>(
+      context,
+      title: i18n('room_gain'),
+      current: RoomGain.overrideOf(settings, room) ?? inherit,
+      options: [
+        TvChoice(value: inherit, label: i18n('room_gain_default')),
+        for (var db = -12; db <= 12; db++) TvChoice(value: db, label: '${db > 0 ? '+' : ''}$db dB'),
+      ],
+    );
+    if (picked != null) await RoomGain.save(settings, room, picked == inherit ? null : picked);
     if (mounted && _controls) _touch();
   }
 
@@ -527,6 +617,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                               danmakuOn: watchSetting(ref, Settings.enableDanmakuDisplay),
                               onQuality: () => unawaited(_pickQuality()),
                               onLine: () => unawaited(_pickLine()),
+                              onGain: () => unawaited(_pickGain()),
                               onDanmaku: () {
                                 _touch();
                                 final settings = ref.read(storeProvider).settings;

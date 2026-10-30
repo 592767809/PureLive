@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 227 条；设置 290 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
+路径规则 234 条；设置 292 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -22,7 +22,7 @@
 | A11 设置界面 | 2 |  |  |  |  |
 | A12 账号和数据界面 | 6 |  |  |  |  |
 | A13 网络电视和多画面界面 | 2 |  |  |  |  |
-| A15 小页面 | 4 |  |  |  |  |
+| A15 小页面 | 5 |  |  |  |  |
 | A16 桌面界面 | 1 | 12 |  |  |  |
 | A17 电视界面 | 3 | 19 |  |  |  |
 | A18 苹果平台界面 | 3 | 1 |  |  | 1 |
@@ -47,7 +47,7 @@
 | G02 会话和恢复 | 1 |  |  |  |  |
 | G03 起播速度和弱网 | 1 |  |  |  |  |
 | G04 画面 |  | 3 |  |  |  |
-| G05 声音和媒体控制 | 1 | 5 |  |  | 1 |
+| G05 声音和媒体控制 | 2 | 7 |  |  | 1 |
 | H01 录制核心 | 2 | 1 |  |  |  |
 | H02 录制中心 | 6 |  |  |  |  |
 | H03 录制设置和存储 | 4 | 13 |  |  |  |
@@ -64,7 +64,7 @@
 | J02 存储和加密 | 2 |  |  |  | 1 |
 | J03 备份恢复 | 2 | 1 |  |  |  |
 | J04 WebDAV | 5 | 6 |  |  |  |
-| J05 设备同步 | 3 | 1 |  |  |  |
+| J05 设备同步 | 5 | 1 |  |  |  |
 | J06 3.x 数据迁移 | 1 |  |  |  |  |
 | K01 账号和登录方式 | 4 |  |  |  |  |
 | K02 登录状态 | 1 | 3 |  |  |  |
@@ -76,7 +76,7 @@
 | O01 通知和前台服务 | 8 | 6 |  |  | 4 |
 | O02 画中画 | 1 |  |  |  | 1 |
 | O03 分享接收和快捷方式 | 3 | 1 |  |  | 2 |
-| O04 权限 | 4 |  |  |  | 2 |
+| O04 权限 | 5 |  |  |  | 2 |
 | O05 方向、刷新率、常亮 | 3 | 2 |  |  | 1 |
 | O06 返回手势、平板和折叠屏 | 1 |  |  |  | 2 |
 | Q01 请求和编码 | 2 |  |  |  |  |
@@ -87,6 +87,7 @@
 | R03 内存和图片 | 2 |  |  |  |  |
 | R05 耗电 | 1 |  |  |  |  |
 | S01 自动测试 | 2 |  |  |  |  |
+| V01 新功能提议 | 2 |  |  |  |  |
 | X01 Windows | 1 |  |  |  |  |
 | X03 电视 |  | 1 |  |  |  |
 | X04 iOS和iPadOS | 1 |  |  |  |  |
@@ -155,7 +156,7 @@
 
 ## A15 小页面
 
-- 代码：`apps/pure_live/lib/features/about/`、`apps/pure_live/lib/features/toolbox/`、`apps/pure_live/lib/features/version/`、`apps/pure_live/lib/shared/links/`
+- 代码：`apps/pure_live/lib/features/douyu_vod/`、`apps/pure_live/lib/features/about/`、`apps/pure_live/lib/features/toolbox/`、`apps/pure_live/lib/features/version/`、`apps/pure_live/lib/shared/links/`
 
 ## A16 桌面界面
 
@@ -273,8 +274,8 @@
 
 ## G05 声音和媒体控制
 
-- 代码：`apps/pure_live/lib/features/live_play/logic/audio_focus.dart`
-- 设置：`defaultMobileVolume`、`defaultDesktopVolume`、`volumeBoostDb`、`globalVolumeMute`、`roomVolumes`
+- 代码：`apps/pure_live/lib/shared/audio/`、`apps/pure_live/lib/features/live_play/logic/audio_focus.dart`
+- 设置：`defaultMobileVolume`、`defaultDesktopVolume`、`volumeBoostDb`、`globalVolumeMute`、`roomVolumes`、`roomVolumeGains`、`allowAudioMixing`
 - 通道：`pure_live/device_controls`
 
 ## H01 录制核心
@@ -356,7 +357,7 @@
 
 ## J05 设备同步
 
-- 代码：`apps/pure_live/lib/shared/net/lan_address.dart`、`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
+- 代码：`apps/pure_live/lib/shared/net/lan_address.dart`、`apps/pure_live/lib/shared/net/mdns_peers.dart`、`apps/pure_live/lib/shared/remote/`（配对、发现、播放遥控和浏览器控制页，不导出账号）、`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
 - 设置：`remote_sync_device_id`
 
 ## J06 3.x 数据迁移
@@ -416,7 +417,7 @@
 
 ## O04 权限
 
-- 代码：`apps/pure_live/lib/platform/system_*.dart`、`apps/pure_live/lib/shared/permission_prompts.dart`、`apps/pure_live/android/**/PermissionsPlugin.kt`、`apps/pure_live/android/**/SystemAccessPlugin.kt`
+- 代码：`apps/pure_live/lib/platform/device_controls.dart`（媒体音量和应用亮度，普通直播与多画面共用）、`apps/pure_live/lib/platform/system_*.dart`、`apps/pure_live/lib/shared/permission_prompts.dart`、`apps/pure_live/android/**/PermissionsPlugin.kt`、`apps/pure_live/android/**/SystemAccessPlugin.kt`
 - 通道：`pure_live/permissions`、`pure_live/system_access`
 
 ## O05 方向、刷新率、常亮
@@ -464,6 +465,10 @@
 ## S01 自动测试
 
 - 代码：`tools/coverage/`、`tools/timeshift/`
+
+## V01 新功能提议
+
+- 代码：`apps/pure_live/lib/features/douyu_vod/vod_controller.dart`、`apps/pure_live/lib/features/douyu_vod/vod_progress.dart`
 
 ## X01 Windows
 

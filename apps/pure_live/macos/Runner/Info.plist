@@ -55,6 +55,7 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_purelive-sync._tcp</string>
+		<string>_purelive-remote._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>扫描二维码：登录平台账号、和其他设备同步</string>

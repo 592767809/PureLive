@@ -47,7 +47,7 @@ MpvPlatform? mpvPlatformOf(TargetPlatform platform) => switch (platform) {
 ///   output off (the fork's `setVideoOutputEnabled`), desktop selects
 ///   `vid=no`; Android does not re-send `vid=auto` after an open.
 /// - Windows reports presented frames (the fork's `frameRevision`).
-final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource {
+final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource, VolumeGainControl {
   new _(this.player, this.controller, this.config, {void Function(String)? onBufferingSnapshot}) {
     _bufferingProbe = NativeBufferingProbe(
       read: _readProperty,
@@ -97,6 +97,13 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
 
   /// Configuration.
   final MpvEngineConfig config;
+  int? _roomGainDb;
+
+  @override
+  Future<void> setVolumeGainDb(int? decibels) async {
+    _roomGainDb = decibels?.clamp(-12, 12);
+    await _setProperty('volume-gain', '${(_roomGainDb ?? config.volumeGainDb).clamp(-12, 12)}');
+  }
 
   late final NativeDiagnosticGate _gate;
   final StreamController<EngineEvent> _events = StreamController.broadcast(sync: true);
@@ -194,6 +201,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
 
   @override
   Future<void> open(EngineMedia media) async {
+    _roomGainDb = media.volumeGainDb?.clamp(-12, 12);
     _diagnosticOpens++;
     _bufferingProbe.reset();
     _hasSource = true;
@@ -202,6 +210,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
     try {
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
+      await _setProperty('volume-gain', '${(_roomGainDb ?? config.volumeGainDb).clamp(-12, 12)}');
       await _setExternalAudio(media.audio);
       await openMpvMediaInput(
         media.uri,

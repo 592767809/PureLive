@@ -17,6 +17,7 @@ final class EngineMedia {
     this.onDemand = false,
     this.start,
     this.audio,
+    this.volumeGainDb,
   });
 
   /// The media of [input] with the session's decoder and audio mode, and
@@ -26,6 +27,7 @@ final class EngineMedia {
     DecoderMode decoder = DecoderMode.hardware,
     bool audioOnly = false,
     ExternalAudio? audio,
+    int? volumeGainDb,
   }) => EngineMedia(
     uri: input.uri,
     headers: input.headers,
@@ -35,6 +37,7 @@ final class EngineMedia {
     onDemand: input.onDemand,
     start: input.start,
     audio: audio,
+    volumeGainDb: volumeGainDb,
   );
 
   /// The URL to open (a loopback URL for relayed inputs).
@@ -61,6 +64,9 @@ final class EngineMedia {
   /// The audio of a split stream (DASH video on demand, A17.6), played
   /// alongside [uri]; null when [uri] carries its own sound (live rooms).
   final ExternalAudio? audio;
+
+  /// Per-room gain; null restores the engine's configured global default.
+  final int? volumeGainDb;
 
   @override
   String toString() => 'EngineMedia(${uri.scheme}://${uri.host}, ${decoder.name}${audioOnly ? ', audio only' : ''})';
@@ -90,6 +96,12 @@ final class ExternalAudio {
 /// The external audio for a [source] of the plan (the audio rendition on
 /// the same CDN as the video line); null for none.
 typedef ExternalAudioFor = ExternalAudio? Function(PlaybackSource source);
+
+/// An engine that supports live signed-gain updates without reopening media.
+abstract interface class VolumeGainControl {
+  /// Applies a room's gain or restores the configured default.
+  Future<void> setVolumeGainDb(int? decibels);
+}
 
 /// One event of the engine, in arrival order.
 @immutable

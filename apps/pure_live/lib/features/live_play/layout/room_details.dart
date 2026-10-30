@@ -11,6 +11,7 @@ import 'package:pure_live/features/live_play/logic/area_lookup.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/rooms/broadcast_information.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
@@ -153,6 +154,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> with SingleTickerPr
       Object.hash(room.nick, room.avatar, room.area, room.title, room.notice, room.introduction, room.link),
       Object.hash(room.effectiveLiveStatus, room.effectiveRestriction, room.startedAt, room.roomId),
       Object.hashAll(audienceFigures(room, vipCount: _controller.vipCount)),
+      room.broadcastInfo,
     );
   }
 
@@ -252,6 +254,8 @@ class _Content extends StatelessWidget {
           ),
         ],
         _Figures(controller: controller),
+        if (room.platform == SiteIds.douyin || room.broadcastInfo != null)
+          BroadcastInformation(information: room.broadcastInfo),
         if (notice.isNotEmpty) _Expandable(label: i18n('live_play_info_notice'), text: platformNotice(notice)),
         if (introduction.isNotEmpty && introduction != notice)
           _Expandable(label: i18n('live_play_info_introduction'), text: introduction),

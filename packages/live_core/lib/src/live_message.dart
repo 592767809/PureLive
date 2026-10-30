@@ -25,6 +25,10 @@ enum LiveMessageType {
   /// A platform notice shown as a line of its own; [LiveMessage.data] holds
   /// its [LiveNoticeKind], [LiveMessage.message] the text.
   notice,
+
+  /// Session-only room information; [LiveMessage.data] is a
+  /// `LiveRoomInfoUpdate`. It is never sent to chat filtering or flying text.
+  roomInfo,
 }
 
 /// What a [LiveMessageType.retraction] takes back.

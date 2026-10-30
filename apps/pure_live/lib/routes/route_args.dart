@@ -31,13 +31,16 @@ final class RouteArgs {
 @immutable
 final class LiveRoomArgs {
   /// Creates the arguments.
-  const new({required this.room, this.playlist = const []});
+  const new({required this.room, this.playlist = const [], this.startFullscreen = false});
 
   /// The room to open.
   final LiveRoom room;
 
   /// The rooms of the page it was opened from, in its order.
   final List<LiveRoom> playlist;
+
+  /// Opens this room fullscreen without changing the user's global preference.
+  final bool startFullscreen;
 
   /// The room [arguments] (a `LiveRoom` or a [LiveRoomArgs]) opens, or null.
   static LiveRoom? roomOf(Object? arguments) => switch (arguments) {

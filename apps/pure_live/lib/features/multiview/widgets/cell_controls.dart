@@ -10,6 +10,7 @@ import 'package:pure_live/features/multiview/logic/multiview_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/shared/record/record_button.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
+import 'package:pure_live/shared/rooms/room_gain_control.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// A quality's label; "?" marks one the platform has not confirmed (as the
@@ -125,6 +126,15 @@ class MultiviewCellControls extends ConsumerWidget {
         // On a row of its own the volume's icon lines up with the room's
         // avatar, as before.
         final volumeRow = volume(lead: 20 - _start);
+        final gain = Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            key: const ValueKey('multiview-control-gain'),
+            icon: const Icon(AppIcons.roomVolume),
+            label: Text(i18n('room_gain')),
+            onPressed: () => unawaited(showRoomGainDialog(context, settings: controller.store.settings, room: room)),
+          ),
+        );
         const indent = EdgeInsetsDirectional.only(start: _buttonInset);
         return Padding(
           key: ValueKey('multiview-cell-controls-${index + 1}'),
@@ -141,6 +151,7 @@ class MultiviewCellControls extends ConsumerWidget {
                     ),
                     Align(alignment: AlignmentDirectional.centerStart, child: buttons),
                     volumeRow,
+                    gain,
                   ],
                 )
               : LayoutBuilder(
@@ -173,6 +184,7 @@ class MultiviewCellControls extends ConsumerWidget {
                           Align(alignment: AlignmentDirectional.centerStart, child: buttons),
                           volumeRow,
                         ],
+                        gain,
                       ],
                     );
                   },

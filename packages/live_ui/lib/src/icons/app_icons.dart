@@ -10,6 +10,17 @@ import 'package:remixicon/remixicon.dart';
 /// Danmaku on, off and settings are pictures, see `DanmakuIcon`; the record
 /// button's ring and dot are drawn by `RecordGlyph`.
 abstract final class AppIcons {
+  /// Public videos and replay catalog.
+  static const IconData vodCatalog = Icons.video_library_outlined;
+
+  /// Return to the video recommendations.
+  static const IconData vodHome = Icons.home_outlined;
+
+  /// Seek ten seconds backwards in on-demand playback.
+  static const IconData vodRewind = Icons.replay_10;
+
+  /// Seek ten seconds forwards in on-demand playback.
+  static const IconData vodForward = Icons.forward_10;
   // ---- the home shell (docs/A-界面设计/A06-首页和全局/A06.1-手机首页, U.3b) ----
 
   /// The home destination "关注".

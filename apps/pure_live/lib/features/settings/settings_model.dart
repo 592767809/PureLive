@@ -81,6 +81,15 @@ enum SettingsSection {
   /// Proxies (U.6d).
   network(SettingsArea.general, 'custom_network_proxy', 'custom_network_proxy_desc', AppIcons.settingsNetwork),
 
+  /// Paired local-network playback control, separate from settings backup.
+  playbackRemote(
+    SettingsArea.general,
+    'remote_control_title',
+    'remote_control_settings_desc',
+    AppIcons.deviceSync,
+    route: RoutePath.kPlaybackRemote,
+  ),
+
   /// Local interaction (U.2k, U.6d).
   localInteraction(
     SettingsArea.general,
@@ -280,7 +289,12 @@ final class SettingsEntry {
   };
 
   /// "页面 › 分组" of a search result.
-  String get crumb => '${i18n(subpage?.titleKey ?? section.titleKey)} › ${i18n(group)}';
+  String get crumb {
+    final page = i18n(subpage?.titleKey ?? section.titleKey);
+    // Underscore groups are intentionally untitled in the settings pages.
+    // Their internal identifiers are not user-visible search breadcrumbs.
+    return group.startsWith('_') ? page : '$page › ${i18n(group)}';
+  }
 
   /// Whether [query] (lower case, trimmed, not empty) finds this entry.
   bool matches(String query) {

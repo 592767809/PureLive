@@ -5,6 +5,7 @@ library;
 
 export 'src/aes.dart';
 export 'src/audience.dart';
+export 'src/broadcast_info.dart';
 export 'src/convert.dart';
 export 'src/hls_master.dart';
 export 'src/hls_source_query_policy.dart';

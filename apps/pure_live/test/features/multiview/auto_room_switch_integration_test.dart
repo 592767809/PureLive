@@ -35,6 +35,12 @@ Future<void> _tick(WidgetTester tester) async {
   await tester.pump();
 }
 
+Future<void> _confirmTwice(WidgetTester tester) async {
+  for (var i = 0; i < 43; i++) {
+    await _tick(tester);
+  }
+}
+
 void main() {
   setUpAll(loadStrings);
 
@@ -50,7 +56,7 @@ void main() {
     final id = controller.cells[0].id;
     final layout = controller.layout;
     expect(controller.audioIndex, 1);
-    await _tick(tester);
+    await _confirmTwice(tester);
     expect(controller.cells[0].room!.roomId, 'b');
     expect(controller.cells[0].stage, CellStage.playing);
     expect(controller.cells[0].id, id);
@@ -71,7 +77,7 @@ void main() {
     await controller.start();
     await controller.assign(0, pickRoom('a'));
     await controller.assign(1, pickRoom('b'));
-    await _tick(tester);
+    await _confirmTwice(tester);
     expect(controller.cells.take(2).map((cell) => cell.room!.roomId).toSet(), {'c', 'd'});
     expect(controller.cells.take(2).every((cell) => cell.playing), isTrue);
     controller.dispose();
@@ -87,7 +93,7 @@ void main() {
     final controller = multiviewController(store, site);
     await controller.start();
     await controller.assign(0, pickRoom('a'));
-    await _tick(tester);
+    await _confirmTwice(tester);
     expect(site.asked, contains('b'));
     await controller.remove(0);
     gate.complete(pickRoom('b'));
@@ -109,7 +115,7 @@ void main() {
     await controller.assign(0, pickRoom('a'));
     final session = controller.cells[0].session;
     site.offline.add('a');
-    for (var i = 0; i < 62; i++) {
+    for (var i = 0; i < 104; i++) {
       for (final engine in engines) {
         engine.advance();
       }

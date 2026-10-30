@@ -14,6 +14,7 @@ import 'package:live_store/live_store.dart';
 import 'package:pure_live/app/app_log.dart';
 import 'package:pure_live/app/launch_args.dart';
 import 'package:pure_live/app/recording.dart';
+import 'package:pure_live/shared/remote/playback_remote.dart';
 
 /// Everything the pages use, made once at start (3.x registered these as
 /// GetX services and singletons: `SettingsService.to`, `Sites.of`,
@@ -65,6 +66,9 @@ final class AppServices {
   /// The data folder.
   final Directory dataRoot;
 
+  /// Explicitly enabled LAN playback control for this app instance.
+  final PlaybackRemote remoteControl = PlaybackRemote();
+
   /// Completes when 3.x's per-broadcast follows have moved to their
   /// streamer (M9 `IdentityMigration`). The follow refresh (M13) waits for
   /// it: a refresh answers with the new identity, which a merge ignores.
@@ -97,6 +101,7 @@ final class AppServices {
   /// Releases recording, the store and the HTTP client, and the FC2
   /// controls still waiting for playback (E06.2 c6).
   Future<void> close() async {
+    await remoteControl.stop();
     await recording?.dispose();
     await mediaOpener.close();
     if (sites.maybeOf(SiteIds.fc2Live) case final Fc2LiveSite fc2) {

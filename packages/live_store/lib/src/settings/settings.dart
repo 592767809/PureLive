@@ -982,6 +982,12 @@ abstract final class Settings {
   /// Per-room volume, `{"room_vol_<platform>_<roomId>": 0..1}`.
   static const roomVolumes = JsonSetting('roomVolumes', section: 'volume', defaultValue: {});
 
+  /// Optional per-room signed dB overrides; absent entries inherit the global gain.
+  static const roomVolumeGains = JsonSetting('roomVolumeGains', section: 'volume', defaultValue: {});
+
+  /// Opt-in coexistence with external media; system interruptions still apply.
+  static const allowAudioMixing = BoolSetting('allowAudioMixing', section: 'volume', defaultValue: false);
+
   // ---- room card (room_card_settings_controller.dart:251-265) ----
 
   /// Phone card preset (`compact`, `normal`, `rich`, `custom`).
@@ -2157,6 +2163,8 @@ abstract final class Settings {
     volumeBoostDb,
     globalVolumeMute,
     roomVolumes,
+    roomVolumeGains,
+    allowAudioMixing,
     roomCardMobilePreset,
     roomCardDesktopPreset,
     roomCardMobileConfig,

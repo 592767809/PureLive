@@ -104,6 +104,8 @@ List<Map<String, Object?>> _asV4(LiveMessage message) {
   String? id([String suffix = '']) => message.messageId.isEmpty ? null : 'chzzk:${message.messageId}$suffix';
   final sentAt = message.sentAt?.millisecondsSinceEpoch;
   switch (message.type) {
+    case LiveMessageType.roomInfo:
+      throw StateError('CHZZK fixtures have no room-information events');
     case LiveMessageType.chat:
       return [
         {

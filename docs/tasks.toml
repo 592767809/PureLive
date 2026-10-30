@@ -6949,3 +6949,146 @@ next = "公开文件复读后继续原机反馈，见G02.11/V02.65。"
 date = "2026-10-30"
 commit = "42ba4d0a423a87be6626a6907fc3dc7cd2829670"
 note = "5.4.23已发布；116项播放器测试、完整门禁、同源包及实际画面证据独立记录。"
+
+[[task]]
+id = "G02.12"
+title = "自动换房前两次刷新确认"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/115"
+branch = "ai/G02.12"
+stages = ["根因与回归", "跨布局验证", "发布与收尾"]
+done = 0
+next = "按任务说明完成验证和交付；未验原机保持记录。"
+
+[[task]]
+id = "A17.23"
+title = "电视房间文字与焦点滚动"
+type = "功能"
+status = "开发中"
+size = "小"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/112"
+branch = "ai/G02.12"
+stages = ["根因与回归", "跨布局验证", "发布与收尾"]
+done = 0
+next = "按任务说明完成验证和交付；未验原机保持记录。"
+
+[[task]]
+id = "V02.66"
+title = "5.4.24反馈整合修复"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "用户要求处理新issue和需求、发布、合并及关闭已验证反馈"
+branch = "ai/G02.12"
+stages = ["根因与回归", "跨布局验证", "发布与收尾"]
+done = 0
+next = "按任务说明完成验证和交付；未验原机保持记录。"
+
+[[task]]
+id = "Y01.35"
+title = "发布5.4.24全部反馈需求整合更新"
+type = "发布"
+status = "开发中"
+size = "中"
+tier = 1
+from = "用户授权发布更新、合并和issue收尾"
+branch = "ai/G02.12"
+stages = ["根因与回归", "跨布局验证", "发布与收尾"]
+done = 0
+next = "按任务说明完成验证和交付；未验原机保持记录。"
+
+[[task]]
+id = "V01.13"
+title = "抖音匿名动态和直播预告"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/101"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.14"
+title = "多显示器多画面联动"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 3
+from = "https://github.com/wzgrx/PureLive/issues/102"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.15"
+title = "局域网配对与遥控"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 3
+from = "https://github.com/wzgrx/PureLive/issues/105"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.16"
+title = "横屏多画面亮度音量手势"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/106"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.17"
+title = "房间独立分贝增益"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/108"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.18"
+title = "斗鱼官方回看点播"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 3
+from = "https://github.com/wzgrx/PureLive/issues/109"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
+
+[[task]]
+id = "V01.19"
+title = "Android外部音频共播"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 2
+from = "https://github.com/wzgrx/PureLive/issues/110"
+branch = "ai/G02.12"
+stages = ["来源与行为设计", "实现与边界测试", "各端验收"]
+done = 0
+next = "用户要求所有需求完成后统一发布；继续实现、集成测试和原生验收。"
