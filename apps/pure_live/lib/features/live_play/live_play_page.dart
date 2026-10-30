@@ -221,6 +221,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   late final RoomCommands _commands = _RoomMenu(this);
   PlaybackRemote? _remote;
   RemotePlaybackTarget? _remoteTarget;
+  bool _projectionWindow = false;
 
   @override
   void initState() {
@@ -244,7 +245,9 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       return;
     }
     final store = ref.read(storeProvider);
-    _remote = ref.read(appServicesProvider).remoteControl;
+    final services = ref.read(appServicesProvider);
+    _remote = services.remoteControl;
+    _projectionWindow = services.launch.projection && !services.launch.isPrimary;
     _remoteTarget = playbackRemoteTarget(
       available: () => mounted && (ModalRoute.isCurrentOf(context) ?? true),
       room: () => _controller?.room,
@@ -627,7 +630,11 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     if (fullscreen && _platform.mobile) unawaited(_restoreSystemUi(upright: _restorePortrait));
     // The brightness gesture overrides the window's only inside the room.
     unawaited(DeviceControls.resetBrightness());
-    if (fullscreen && _platform.desktop) unawaited(DesktopWindow.setFullScreen(on: false));
+    // The projection window outlives each room. Its replacement may already
+    // be fullscreen when this old page finishes its route transition.
+    if (fullscreen && _platform.desktop && !_projectionWindow) {
+      unawaited(DesktopWindow.setFullScreen(on: false));
+    }
     _refreshRate?.dispose();
     _swipe.dispose();
     _switchGroup.dispose();
@@ -665,7 +672,14 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         }
         // A swipe still stopping the player goes first (U.2b2).
         final pending = _handover;
-        unawaited(pending == null ? release() : pending.then((_) => release()));
+        // Stopping can settle shared watch-time notifiers observed by the
+        // replacement room. Do that after the widget-unmount lock is released.
+        unawaited(
+          Future<void>.microtask(() async {
+            if (pending != null) await pending;
+            await release();
+          }),
+        );
       }
     }
     super.dispose();
