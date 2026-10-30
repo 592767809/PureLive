@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:live_core/live_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:pure_live/app/data_root.dart';
 import 'package:pure_live/app/desktop/display_geometry.dart';
@@ -12,6 +13,15 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:window_manager/window_manager.dart';
+
+/// Opens a wall selection in the receiver's existing window.
+void navigateProjectionRoom(LiveRoom room) {
+  // Keep the receiver's home under its first room. Replacing the only root
+  // match gives consecutive rooms the same GoRouter page key, preserving the
+  // old StatefulWidget/player even though the route's arguments have changed.
+  final navigate = AppNavigator.router.canPop() ? AppNavigator.offAndToNamed<void> : AppNavigator.toNamed<void>;
+  unawaited(navigate(RoutePath.kLivePlay, arguments: LiveRoomArgs(room: room, startFullscreen: true)));
+}
 
 /// The native side of an explicitly launched projection window.
 final class ProjectionRuntime {
@@ -52,12 +62,7 @@ final class ProjectionRuntime {
       _requestedDisplay = selection.display;
     }
     if (_closed) return;
-    unawaited(
-      AppNavigator.offAndToNamed<void>(
-        RoutePath.kLivePlay,
-        arguments: LiveRoomArgs(room: selection.room, startFullscreen: true),
-      ),
-    );
+    navigateProjectionRoom(selection.room);
     await WidgetsBinding.instance.endOfFrame;
   }
 

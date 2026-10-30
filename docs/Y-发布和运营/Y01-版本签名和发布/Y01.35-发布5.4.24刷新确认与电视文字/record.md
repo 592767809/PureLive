@@ -17,3 +17,8 @@
 首个bce367e4候选的14成员门禁、本地六包和Apple四包成功，仍未公开。实测后补齐回看推荐标签/文字对比度、异步旧时钟隔离、遥控设置搜索，并用真实mpv句柄复现修复#33日志对应的跨实例静态锁阻塞。修复前失败日志和首批包完整保留；应用相关38项与播放器117项通过，六成员致命级静态分析通过。
 
 Android独立API28普通v4dev候选验证了浏览器暂停/保持/继续、25%音量、全屏/返回，多画面选中格子的39%音量与另一格0%的隔离，亮度102→202→退出恢复102及清除窗口覆盖，房间-6/+6dB、跨单房间/多画面读取和恢复默认。该批实测记录明确绑定bce367e4，最终改动仍须由重新冻结的同源包复验。先前候选和日志保存在仓库外candidate-r3-bce367e4，不作为最终交付包。
+
+
+### 2026-10-30 Native projection navigation correction
+
+The exact 4d53681 Windows ZIP played a real generated stream in its owned fullscreen projection process. Selecting a second cell and a direct authenticated room command returned successfully but retained the first room. The production receiver replaced its sole home route on the first command; subsequent root replacements shared a GoRouter page key and retained the existing StatefulWidget/player. A real-router widget regression reproduced the stale room before the fix. The receiver now pushes its first room above home, then replaces only that room, preserving a base route and fresh room state. Four navigation/IPC tests and six-member fatal-infos analysis pass. All packages and the complete gate will be regenerated for this correction; old artifacts remain preserved outside the repository. No original-device acceptance is claimed.

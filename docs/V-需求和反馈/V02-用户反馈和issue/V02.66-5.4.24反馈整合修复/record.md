@@ -13,3 +13,8 @@ Windows与Android候选均完成浏览器遥控配对；Windows公开直播间�
 ## 2026-10-30 实现检查点
 
 五项能力已接入；#115修复前失败已保留，新增暂停/取消边界回归；#108独立正负dB与默认继承、多画面复用回归通过；#106四种手势回归通过；#110十三项焦点回归通过。三成员静态分析通过，修改后的四组界面/自动切房集成107项通过。完整门禁、所有九项需求和最终原生验收未完成，当前不推送、不发布、不关闭issue。
+
+
+### 2026-10-30 Native projection navigation correction
+
+The exact 4d53681 Windows ZIP played a real generated stream in its owned fullscreen projection process. Selecting a second cell and a direct authenticated room command returned successfully but retained the first room. The production receiver replaced its sole home route on the first command; subsequent root replacements shared a GoRouter page key and retained the existing StatefulWidget/player. A real-router widget regression reproduced the stale room before the fix. The receiver now pushes its first room above home, then replaces only that room, preserving a base route and fresh room state. Four navigation/IPC tests and six-member fatal-infos analysis pass. All packages and the complete gate will be regenerated for this correction; old artifacts remain preserved outside the repository. No original-device acceptance is claimed.
