@@ -2098,6 +2098,7 @@
     "remote_control_pair": "连接并配对",
     "remote_control_paired": "配对成功",
     "remote_control_pairing": "配对码：{code}",
+    "remote_control_permission_denied": "未获得本地网络权限，局域网遥控暂不可用。请允许“本地网络”或“附近设备”权限后重试。",
     "remote_control_receive": "让其他设备控制本机",
     "remote_control_receive_hint": "在可信的同一局域网内使用。开启后可控制当前播放器和推送直播间链接；关闭或撤销配对立即失效。",
     "remote_control_revoke": "撤销全部配对并更换配对码",

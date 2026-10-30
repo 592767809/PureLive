@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:pure_live/shared/net/lan_address.dart';
 import 'package:pure_live/shared/net/mdns_peers.dart';
+import 'package:pure_live/shared/remote/remote_access.dart';
 import 'package:pure_live/shared/remote/remote_web.dart';
 
 String _nonce() => base64Url.encode(List<int>.generate(32, (_) => Random.secure().nextInt(256))).replaceAll('=', '');
@@ -114,6 +115,8 @@ final class PlaybackRemote extends ChangeNotifier {
   Future<void> _start({required bool discovery, InternetAddress? bind}) async {
     if (running) return;
     final generation = ++_generation;
+    await ensurePlaybackRemoteAccess();
+    if (generation != _generation) return;
     final server = await HttpServer.bind(bind ?? InternetAddress.anyIPv4, 0);
     if (generation != _generation) {
       await server.close(force: true);

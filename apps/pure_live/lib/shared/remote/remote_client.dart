@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:pure_live/shared/net/lan_address.dart';
 import 'package:pure_live/shared/net/mdns_peers.dart';
 import 'package:pure_live/shared/remote/playback_remote.dart';
+import 'package:pure_live/shared/remote/remote_access.dart';
 
 /// A discovered receiver's public entry point; pairing is always separate.
 typedef RemoteControlPeer = ({String name, Uri uri});
@@ -51,6 +52,8 @@ final class PlaybackRemoteClient {
   /// Pairs with the code visible on the receiving screen.
   Future<void> pair(String code) async {
     if (!RegExp(r'^\d{6}$').hasMatch(code)) throw const FormatException('invalid code');
+    if (_closed || remoteControlUri(uri.toString()) == null) throw const SocketException('invalid receiver');
+    await ensurePlaybackRemoteAccess();
     final data = await _request('pair', {'code': code});
     final token = data['token'];
     if (token is! String || token.length != 43) throw const FormatException('invalid pair response');
@@ -113,6 +116,7 @@ final class PlaybackRemoteClient {
 /// Discovers current receivers over mDNS and IPv4 broadcast for five seconds.
 /// No account identity, pairing code, or session token is announced.
 Future<List<RemoteControlPeer>> discoverPlaybackRemotes({MdnsPeers? mdns}) async {
+  await ensurePlaybackRemoteAccess();
   final peers = <String, RemoteControlPeer>{};
   final bonsoir = mdns ?? BonsoirPeers(type: '_purelive-remote._tcp');
   RawDatagramSocket? socket;

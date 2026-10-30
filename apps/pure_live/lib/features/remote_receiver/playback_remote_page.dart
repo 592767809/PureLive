@@ -9,6 +9,7 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/shared/qr_scan.dart';
 import 'package:pure_live/shared/remote/playback_remote.dart';
+import 'package:pure_live/shared/remote/remote_access.dart';
 import 'package:pure_live/shared/remote/remote_client.dart';
 
 /// LAN browser/app pairing, link pushes and playback control on every layout.
@@ -70,6 +71,8 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
     try {
       await action();
       if (mounted) setState(() => _message = i18n('remote_control_ok'));
+    } on RemoteControlAccessDenied {
+      if (mounted) setState(() => _message = i18n('remote_control_permission_denied'));
     } on Object {
       if (mounted) setState(() => _message = i18n('remote_control_failed'));
     } finally {
