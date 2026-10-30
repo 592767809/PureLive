@@ -181,7 +181,11 @@ class _MultiviewLevelGesturesState extends State<MultiviewLevelGestures> {
         if (_pointers.isEmpty) _multiple = false;
       },
       onPointerMove: (event) => _pointer = event.position,
-      onPointerCancel: (_) => _cancel(),
+      onPointerCancel: (event) {
+        _pointers.remove(event.pointer);
+        if (_pointers.isEmpty) _multiple = false;
+        _cancel();
+      },
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         dragStartBehavior: DragStartBehavior.down,

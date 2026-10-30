@@ -46,6 +46,7 @@ void main() {
         'recording',
         'general',
         'network',
+        'playbackRemote',
         'localInteraction',
         'cache',
         'backup',

@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 228 条；设置 292 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
+路径规则 230 条；设置 292 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 21 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -64,7 +64,7 @@
 | J02 存储和加密 | 2 |  |  |  | 1 |
 | J03 备份恢复 | 2 | 1 |  |  |  |
 | J04 WebDAV | 5 | 6 |  |  |  |
-| J05 设备同步 | 3 | 1 |  |  |  |
+| J05 设备同步 | 5 | 1 |  |  |  |
 | J06 3.x 数据迁移 | 1 |  |  |  |  |
 | K01 账号和登录方式 | 4 |  |  |  |  |
 | K02 登录状态 | 1 | 3 |  |  |  |
@@ -356,7 +356,7 @@
 
 ## J05 设备同步
 
-- 代码：`apps/pure_live/lib/shared/net/lan_address.dart`、`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
+- 代码：`apps/pure_live/lib/shared/net/lan_address.dart`、`apps/pure_live/lib/shared/net/mdns_peers.dart`、`apps/pure_live/lib/shared/remote/`（配对、发现、播放遥控和浏览器控制页，不导出账号）、`apps/pure_live/lib/features/remote_receiver/mdns_peers.dart`、`apps/pure_live/lib/features/remote_receiver/remote_sync_*.dart`
 - 设置：`remote_sync_device_id`
 
 ## J06 3.x 数据迁移

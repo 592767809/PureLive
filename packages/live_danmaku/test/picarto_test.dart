@@ -75,6 +75,8 @@ String _text(Object frame) => frame is String ? frame : utf8.decode(frame as Lis
 /// with every field, after checking the fields their kind leaves fixed.
 Map<String, Object?> _asV4(LiveMessage message) {
   switch (message.type) {
+    case LiveMessageType.roomInfo:
+      throw StateError('Picarto fixtures have no room-information events');
     case LiveMessageType.online:
       final data = message.data! as LiveAudienceUpdate;
       expect(data.kind, LiveAudienceMetricKind.onlineViewers);

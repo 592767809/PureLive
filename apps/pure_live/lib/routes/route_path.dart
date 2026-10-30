@@ -40,6 +40,9 @@ abstract final class RoutePath {
   /// LAN sync.
   static const kRemoteSync = '/remote_sync';
 
+  /// Paired LAN playback remote and live-room link pushes.
+  static const kPlaybackRemote = '/playback_remote';
+
   /// About.
   static const kAbout = '/about';
 

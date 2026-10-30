@@ -7,6 +7,7 @@ import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/rooms/broadcast_information.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/tv_theme.dart';
@@ -159,6 +160,11 @@ class TvRoomDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (room.platform == SiteIds.douyin || room.broadcastInfo != null)
+            BroadcastInformation(
+              information: room.broadcastInfo,
+              style: scale.font(TvTextSize.body, color: palette.text, height: 1.55),
+            ),
           Container(
             margin: EdgeInsets.only(top: scale.px(16)),
             padding: EdgeInsets.symmetric(horizontal: scale.px(16), vertical: scale.px(12)),

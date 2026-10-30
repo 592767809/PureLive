@@ -81,6 +81,15 @@ enum SettingsSection {
   /// Proxies (U.6d).
   network(SettingsArea.general, 'custom_network_proxy', 'custom_network_proxy_desc', AppIcons.settingsNetwork),
 
+  /// Paired local-network playback control, separate from settings backup.
+  playbackRemote(
+    SettingsArea.general,
+    'remote_control_title',
+    'remote_control_settings_desc',
+    AppIcons.deviceSync,
+    route: RoutePath.kPlaybackRemote,
+  ),
+
   /// Local interaction (U.2k, U.6d).
   localInteraction(
     SettingsArea.general,

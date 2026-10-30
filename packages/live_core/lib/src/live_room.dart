@@ -1,4 +1,5 @@
 import 'package:live_core/src/audience.dart';
+import 'package:live_core/src/broadcast_info.dart';
 import 'package:live_core/src/json.dart';
 import 'package:live_core/src/sites.dart';
 import 'package:live_net/live_net.dart';
@@ -177,6 +178,7 @@ final class LiveRoom {
     this.restriction,
     String? introduction,
     String? notice,
+    this.broadcastInfo,
     this.data,
     this.danmakuData,
     this.epgId,
@@ -327,6 +329,9 @@ final class LiveRoom {
 
   /// Room notice.
   final String? notice;
+
+  /// Session-only platform announcements and actual broadcast previews.
+  final LiveBroadcastInfo? broadcastInfo;
 
   /// Platform data needed to resolve streams; never stored.
   final Object? data;
@@ -615,6 +620,7 @@ final class LiveRoom {
       restriction: incoming.restriction ?? (sameBroadcast ? restriction : null),
       introduction: preferNullable(incoming.introduction, introduction),
       notice: preferNullable(incoming.notice, notice),
+      broadcastInfo: incoming.broadcastInfo ?? (sameBroadcast ? broadcastInfo : null),
       data: incoming.data ?? data,
       danmakuData: incoming.danmakuData ?? danmakuData,
       epgId: preferNullable(incoming.epgId, epgId),
@@ -683,6 +689,7 @@ final class LiveRoom {
     LiveRestriction? restriction,
     String? introduction,
     String? notice,
+    LiveBroadcastInfo? broadcastInfo,
     Object? data,
     Object? danmakuData,
     String? epgId,
@@ -713,6 +720,7 @@ final class LiveRoom {
     restriction: restriction ?? this.restriction,
     introduction: introduction ?? this.introduction,
     notice: notice ?? this.notice,
+    broadcastInfo: broadcastInfo ?? this.broadcastInfo,
     data: data ?? this.data,
     danmakuData: danmakuData ?? this.danmakuData,
     epgId: epgId ?? this.epgId,

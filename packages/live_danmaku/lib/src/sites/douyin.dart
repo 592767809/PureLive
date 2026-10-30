@@ -143,9 +143,14 @@ abstract final class DouyinDanmakuProtocol {
     for (final envelope in envelopes) {
       try {
         final payload = envelope.bytes(2) ?? Uint8List(0);
+        if (envelope.string(1) == 'WebcastRoomIntroMessage') {
+          messages.addAll(_roomIntro(payload, roomId));
+          continue;
+        }
         final message = switch (envelope.string(1)) {
           'WebcastChatMessage' => _chat(payload, envelope.integer(3) ?? 0, roomId),
           'WebcastRoomUserSeqMessage' => _online(payload),
+          'WebcastRoomDataSyncMessage' => _broadcastInfo(payload, roomId),
           _ => null,
         };
         if (message != null) messages.add(message);
@@ -202,6 +207,115 @@ abstract final class DouyinDanmakuProtocol {
 
   /// A platform time: above 10^11 milliseconds, otherwise seconds.
   static int _milliseconds(int time) => time > 100000000000 ? time : time * 1000;
+
+  // Wire field facts: the platform's WebcastRoomDataSyncMessage,
+  // HighlightContainerSyncData, HighlightItem and HighlightDataAppointment
+  // schemas (cxxsheng/TiktokSource, 2c6fb7c). The official web LiveReserveCard
+  // reads date_text/time_text from the same highlight sync; no remote JS runs.
+  static LiveMessage? _broadcastInfo(Uint8List payload, String roomId) {
+    if (payload.length > 262144) throw const FormatException('Douyin room information too large');
+    final message = ProtoMessage.decode(payload);
+    final actual = ProtoMessage.unsigned(message.integer(2) ?? message.message(1)?.integer(3) ?? 0);
+    if (actual != '0' && actual != roomId) return null;
+    final key = message.string(3) ?? '';
+    if (key != 'HighlightContainerSyncData' && key != 'webcast.im.HighlightContainerSyncData') return null;
+    final data = ProtoMessage.decode(message.bytes(5) ?? const []);
+    final items = data.messages(1);
+    if (items.length > 32) throw const FormatException('Douyin room information item limit');
+    LiveBroadcastPreview? preview;
+    for (final item in items) {
+      final appointment = item.message(102);
+      if (appointment == null) continue;
+      final id = ProtoMessage.unsigned(appointment.integer(6) ?? 0);
+      final date = appointment.string(11)?.trim() ?? '';
+      final time = appointment.string(12)?.trim() ?? '';
+      if (id == '0' || date.isEmpty || time.isEmpty || date.length > 120 || time.length > 120) {
+        // An unrecognised appointment layout must not erase a valid preview.
+        throw const FormatException('Douyin appointment display fields missing');
+      }
+      final timestamp = appointment.integer(1) ?? 0;
+      preview = LiveBroadcastPreview(
+        id: id,
+        dateText: date,
+        timeText: time,
+        startsAt: timestamp > 0 && _milliseconds(timestamp) <= _maxEpochMilliseconds
+            ? DateTime.fromMillisecondsSinceEpoch(_milliseconds(timestamp), isUtc: true)
+            : null,
+      );
+      break;
+    }
+    return LiveMessage(
+      type: LiveMessageType.roomInfo,
+      userName: '',
+      message: '',
+      color: LiveMessageColor.white,
+      sourceRoomId: roomId,
+      data: LiveRoomInfoUpdate(
+        broadcastId: roomId,
+        section: LiveRoomInfoSection.preview,
+        version: message.integer(4) ?? data.integer(2) ?? 0,
+        preview: preview,
+      ),
+    );
+  }
+
+  static List<LiveMessage> _roomIntro(Uint8List payload, String roomId) {
+    if (payload.length > 262144) throw const FormatException('Douyin room introduction too large');
+    final message = ProtoMessage.decode(payload);
+    final common = message.message(1);
+    final actual = ProtoMessage.unsigned(common?.integer(3) ?? 0);
+    if (actual != '0' && actual != roomId) return const [];
+    final text = message.string(4)?.trim() ?? '';
+    if (text.length > 8192) throw const FormatException('Douyin introduction text limit');
+    final result = <LiveMessage>[
+      LiveMessage(
+        type: LiveMessageType.roomInfo,
+        userName: '',
+        message: '',
+        color: LiveMessageColor.white,
+        sourceRoomId: roomId,
+        data: LiveRoomInfoUpdate(
+          broadcastId: roomId,
+          section: LiveRoomInfoSection.dynamics,
+          version: common?.integer(4) ?? 0,
+          dynamics: text.isEmpty ? const [] : List.unmodifiable([text]),
+        ),
+      ),
+    ];
+    final appointment = message.message(22);
+    if (appointment != null) {
+      final enabled = appointment.flag(1);
+      final id = appointment.string(2)?.trim() ?? '';
+      final schedule = appointment.string(3)?.trim() ?? '';
+      if (enabled && (id.isEmpty || schedule.isEmpty || schedule.length > 240)) return result;
+      final timestamp = appointment.integer(6) ?? 0;
+      result.add(
+        LiveMessage(
+          type: LiveMessageType.roomInfo,
+          userName: '',
+          message: '',
+          color: LiveMessageColor.white,
+          sourceRoomId: roomId,
+          data: LiveRoomInfoUpdate(
+            broadcastId: roomId,
+            section: LiveRoomInfoSection.preview,
+            version: common?.integer(4) ?? 0,
+            preview: enabled
+                ? LiveBroadcastPreview(
+                    id: id,
+                    dateText: '',
+                    timeText: schedule,
+                    startsAt: timestamp > 0 && _milliseconds(timestamp) <= _maxEpochMilliseconds
+                        ? DateTime.fromMillisecondsSinceEpoch(_milliseconds(timestamp), isUtc: true)
+                        : null,
+                  )
+                : null,
+          ),
+        ),
+      );
+    }
+    return result;
+  }
 
   /// `RoomUserSeqMessage`: the concurrent audience is `total` (3), the exact
   /// number the display text rounds (M5.F B-5; recorded in rooms of 2 to

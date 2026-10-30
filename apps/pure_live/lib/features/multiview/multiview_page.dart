@@ -11,6 +11,8 @@ import 'package:live_player/live_player.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/desktop/desktop_window.dart';
+import 'package:pure_live/app/desktop/display_geometry.dart';
+import 'package:pure_live/app/desktop/projection_channel.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/multiview/logic/multiview_controller.dart';
 import 'package:pure_live/features/multiview/logic/multiview_geometry.dart';
@@ -32,6 +34,8 @@ import 'package:pure_live/shared/danmaku/danmaku_settings_content.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/navigation/edge_swipe_back.dart';
 import 'package:pure_live/shared/panels/side_panel.dart';
+import 'package:pure_live/shared/remote/playback_remote.dart';
+import 'package:pure_live/shared/remote/playback_target.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// Multi-view (3.x `lib/modules/multiview`, docs/A-界面设计/A13-网络电视和多画面界面/A13.2-多画面): several
@@ -113,6 +117,10 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
   Set<int> _railOffscreen = const {};
   bool _appHidden = false;
   late final AppLifecycleListener _lifecycle;
+  ProjectionChannel? _projection;
+  String? _projectionDisplay;
+  PlaybackRemote? _remote;
+  RemotePlaybackTarget? _remoteTarget;
 
   @override
   void initState() {
@@ -134,6 +142,30 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
       toast: (message) => AppNavigator.toast(message),
       emotes: ref.read(emoteLibraryProvider),
     )..addListener(_onControllerChanged);
+    _remote = services.remoteControl;
+    _remoteTarget = playbackRemoteTarget(
+      available: () => mounted && (ModalRoute.isCurrentOf(context) ?? true),
+      room: () => _controller.cells[_selectedIndex].room,
+      session: () => _controller.cells[_selectedIndex].session,
+      refresh: () => _controller.retry(_selectedIndex, reload: true),
+      volume: (value) => _controller.setVolume(_selectedIndex, value),
+      navigation: {
+        'fullscreen': () async {
+          await _setMode(_mode == _DisplayMode.fullscreen ? _DisplayMode.normal : _DisplayMode.fullscreen);
+          return true;
+        },
+        'danmaku': () async {
+          _controller.setDanmakuEnabled(enabled: !_controller.danmakuEnabled);
+          return true;
+        },
+        'back': AppNavigator.mouseBack,
+        'previous': () async => _remoteSelect(-1),
+        'up': () async => _remoteSelect(-1),
+        'next': () async => _remoteSelect(1),
+        'down': () async => _remoteSelect(1),
+      },
+    );
+    _remote!.register(_remoteTarget!);
     unawaited(_controller.start());
     HardwareKeyboard.instance.addHandler(_onKey);
     // No video is decoded while the app is out of sight (UI_PLAN §9.3).
@@ -164,6 +196,8 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
 
   @override
   void dispose() {
+    if (_remoteTarget case final target?) _remote?.unregister(target);
+    unawaited(_projection?.close());
     _lifecycle.dispose();
     HardwareKeyboard.instance.removeHandler(_onKey);
     if (_mode == _DisplayMode.fullscreen && _mobile) unawaited(_restoreSystemUi());
@@ -265,6 +299,16 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     }
   }
 
+  bool _remoteSelect(int delta) {
+    final playing = _controller.cells.indexed.where((entry) => entry.$2.playing).map((entry) => entry.$1).toList();
+    if (playing.length < 2) return false;
+    final at = playing.indexOf(_selectedIndex);
+    final target = playing[(at + delta) % playing.length];
+    _select(target);
+    if (_controller.cells[target].room case final room?) _project(room);
+    return true;
+  }
+
   /// Makes cell [index] the picker's target and shows the picker.
   void _openPicker(int index) {
     setState(() {
@@ -281,6 +325,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
 
   void _onCellTap(int index) {
     final cell = _controller.cells[index];
+    if (cell.stage == CellStage.playing && cell.room != null) _project(cell.room!);
     switch (cell.stage) {
       case CellStage.playing:
         if (_controller.layout == MultiviewLayout.focus) {
@@ -307,6 +352,53 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
         _show(cell);
       case CellStage.empty || CellStage.offline || CellStage.failed:
         _openPicker(index);
+    }
+  }
+
+  void _project(LiveRoom room) {
+    final display = _projectionDisplay;
+    if (display == null) return;
+    final channel = _projection ??= ProjectionChannel(ref.read(appServicesProvider).dataRoot);
+    unawaited(
+      channel.select(ProjectionSelection(room, display: display)).catchError((Object error) {
+        if (mounted) AppNavigator.toast(i18n('projection_failed'));
+      }),
+    );
+  }
+
+  Future<void> _chooseProjection() async {
+    final displays = <DesktopDisplayGeometry>[];
+    try {
+      displays.addAll(readDesktopDisplays());
+    } on Object {
+      AppNavigator.toast(i18n('projection_failed'));
+      return;
+    }
+    final selection = await showDialog<String>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: Text(i18n('projection_title')),
+        children: [
+          Padding(padding: const EdgeInsets.all(16), child: Text(i18n('projection_hint'))),
+          SimpleDialogOption(onPressed: () => Navigator.pop(context, 'off'), child: Text(i18n('projection_off'))),
+          SimpleDialogOption(onPressed: () => Navigator.pop(context, ''), child: Text(i18n('projection_current'))),
+          for (var i = 0; i < displays.length; i++)
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, displays[i].persistenceKey),
+              child: Text(i18n('projection_display', args: {'index': '${i + 1}', 'name': displays[i].name})),
+            ),
+        ],
+      ),
+    );
+    if (!mounted || selection == null) return;
+    setState(() => _projectionDisplay = selection == 'off' ? null : selection);
+    if (selection == 'off') {
+      final channel = _projection;
+      _projection = null;
+      await channel?.close();
+    } else if (_hasSelection) {
+      final room = _controller.cells[_selectedIndex].room;
+      if (room != null) _project(room);
     }
   }
 
@@ -522,6 +614,14 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
               )
             : Text(i18n('multiview_title')),
         actions: [
+          if (!_mobile)
+            ToolbarToggle(
+              key: const ValueKey('multiview-projection'),
+              tooltip: i18n('projection_title'),
+              on: _projectionDisplay != null,
+              onPressed: () => unawaited(_chooseProjection()),
+              child: const Icon(AppIcons.newWindow, size: 22),
+            ),
           ToolbarToggle(
             key: const ValueKey('multiview-mix-audio'),
             tooltip: i18n('multiview_mix_audio'),

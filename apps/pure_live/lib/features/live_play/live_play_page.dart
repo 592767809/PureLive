@@ -63,6 +63,8 @@ import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_observer.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/remote/playback_remote.dart';
+import 'package:pure_live/shared/remote/playback_target.dart';
 import 'package:pure_live/shared/rooms/auto_room_switch.dart';
 
 /// The room's clock: the danmaku filter, the gift lines' limit and combo
@@ -217,6 +219,8 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
   RoomPlatform get _platform => RoomPlatform.current();
 
   late final RoomCommands _commands = _RoomMenu(this);
+  PlaybackRemote? _remote;
+  RemotePlaybackTarget? _remoteTarget;
 
   @override
   void initState() {
@@ -240,6 +244,33 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       return;
     }
     final store = ref.read(storeProvider);
+    _remote = ref.read(appServicesProvider).remoteControl;
+    _remoteTarget = playbackRemoteTarget(
+      available: () => mounted && (ModalRoute.isCurrentOf(context) ?? true),
+      room: () => _controller?.room,
+      session: () => _controller?.session,
+      refresh: () async => await _controller?.load(),
+      volume: (value) async => await _controller?.setVolume(value, save: true),
+      navigation: {
+        'fullscreen': () async {
+          _commands.toggleFullScreen();
+          return true;
+        },
+        'danmaku': () async {
+          await _commands.toggleDanmaku();
+          return true;
+        },
+        'back': () async {
+          await AppNavigator.mouseBack();
+          return true;
+        },
+        'previous': () async => _remoteChannel(-1),
+        'up': () async => _remoteChannel(-1),
+        'next': () async => _remoteChannel(1),
+        'down': () async => _remoteChannel(1),
+      },
+    );
+    _remote!.register(_remoteTarget!);
     _settings = store.settings;
     _autoRoomSwitch = AutoRoomSwitch(
       store: store,
@@ -289,14 +320,15 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _shape = session.states.listen((state) {
       if (state.expectsPortrait != _detectedPortrait.value) _detectedPortrait.value = state.expectsPortrait;
     });
-    if (adopted != null &&
-        session.state.status == PlaybackStatus.playing &&
-        store.settings.get(Settings.enableFullScreenDefault)) {
+    final autoFullscreen =
+        store.settings.get(Settings.enableFullScreenDefault) ||
+        (widget.route.arguments is LiveRoomArgs && (widget.route.arguments! as LiveRoomArgs).startFullscreen);
+    if (adopted != null && session.state.status == PlaybackStatus.playing && autoFullscreen) {
       // Back from the floating window the stream already plays.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _display == RoomDisplay.inline) unawaited(_enterFullscreen());
       });
-    } else if (store.settings.get(Settings.enableFullScreenDefault)) {
+    } else if (autoFullscreen) {
       // 3.x entered fullscreen once the stream played.
       _autoFullscreen = session.states.listen((state) {
         if (state.status != PlaybackStatus.playing) return;
@@ -445,6 +477,13 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _switchRoom(playlist.move(step));
   }
 
+  bool _remoteChannel(int step) {
+    final playlist = _playlist;
+    if (!mounted || playlist == null || !playlist.swipeable) return false;
+    _switchRoom(playlist.move(step));
+    return true;
+  }
+
   /// A room picked in the switch panel (U.2m c2): shown in this page on the
   /// same player, staying in fullscreen, like a swipe; the portrait
   /// fullscreen then swipes through [group], the list it was picked from.
@@ -565,6 +604,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
 
   @override
   void dispose() {
+    if (_remoteTarget case final target?) _remote?.unregister(target);
     _autoRoomSwitch?.dispose();
     liveRouteObserver.currentRoute.removeListener(_syncAutoRoomSwitch);
     _controller?.removeListener(_syncAutoRoomSwitch);

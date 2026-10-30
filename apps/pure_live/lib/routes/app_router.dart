@@ -78,6 +78,7 @@ final Map<String, PageBuilder> pageRoutes = {
   RoutePath.kWebSearch: (route) => SearchPage(route: route),
   RoutePath.kSettingsTags: (route) => TagsPage(route: route),
   RoutePath.kRemoteSync: (route) => RemoteReceiverPage(route: route),
+  RoutePath.kPlaybackRemote: (route) => buildSettingsRoutePage(route)!,
   RoutePath.kLocalInteraction: (route) => buildSettingsRoutePage(route)!,
   RoutePath.kLogs: (route) => buildSettingsRoutePage(route)!,
 };

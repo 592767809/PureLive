@@ -104,6 +104,7 @@ final class MultiviewCell {
   bool _switching = false;
   double _volume = 1;
   int _epoch = 0;
+  final Map<String, int> _roomInfoVersions = {};
 
   /// Counts the streams handed to the session (see the live room's).
   int _opens = 0;
@@ -1172,6 +1173,20 @@ class MultiviewController extends ChangeNotifier {
       case LiveMessageType.gift:
         // A08.12: the same switch, filters and gate as the room's picture.
         if (store.settings.get(Settings.danmakuShowGifts) && _filter.accepts(message)) _giftFlights.add(message);
+      case LiveMessageType.roomInfo:
+        if (message.data case final LiveRoomInfoUpdate update) {
+          final cell = _cells.where((cell) => cell.room?.identityKey == _danmakuKey).firstOrNull;
+          if (cell == null || cell.room == null) return;
+          final key = '${update.broadcastId}:${update.section.name}';
+          final previous = cell._roomInfoVersions[key];
+          if (previous != null && update.version > 0 && update.version <= previous) return;
+          if (cell._roomInfoVersions.length >= 32 && !cell._roomInfoVersions.containsKey(key)) {
+            cell._roomInfoVersions.clear();
+          }
+          cell._roomInfoVersions[key] = update.version;
+          cell._room = cell.room!.copyWith(broadcastInfo: update.applyTo(cell.room!.broadcastInfo));
+          _notify();
+        }
       case LiveMessageType.online || LiveMessageType.superChat || LiveMessageType.notice:
         return;
     }

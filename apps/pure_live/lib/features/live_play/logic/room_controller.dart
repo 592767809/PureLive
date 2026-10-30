@@ -249,6 +249,7 @@ class LiveRoomController extends ChangeNotifier {
   int? _startupEpoch;
 
   LiveRoom _room;
+  final Map<String, int> _roomInfoVersions = {};
   RoomStage _stage = RoomStage.loading;
   Object? _failure;
   List<LivePlayQuality> _qualities = const [];
@@ -1318,6 +1319,16 @@ class LiveRoomController extends ChangeNotifier {
         _flying.add(message);
       case LiveMessageType.online:
         _applyAudience(message.data);
+      case LiveMessageType.roomInfo:
+        if (message.data case final LiveRoomInfoUpdate update) {
+          final key = '${update.broadcastId}:${update.section.name}';
+          final previous = _roomInfoVersions[key];
+          if (previous != null && update.version > 0 && update.version <= previous) return;
+          if (_roomInfoVersions.length >= 32 && !_roomInfoVersions.containsKey(key)) _roomInfoVersions.clear();
+          _roomInfoVersions[key] = update.version;
+          _room = _room.copyWith(broadcastInfo: update.applyTo(_room.broadcastInfo));
+          _notify();
+        }
       case LiveMessageType.superChat:
         if (message.data case final LiveSuperChatMessage superChat) {
           _addSuperChats([superChat]);
