@@ -10,8 +10,8 @@ import 'package:pure_live/shared/danmaku/chat_list_settings.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
 import 'package:pure_live/tv/widgets/tv_dialogs.dart';
 
-import 'support.dart';
 import 'qa_capture.dart';
+import 'support.dart';
 
 void main() {
   testWidgets('the room settings toggle persists the existing fullscreen SC preference', (tester) async {

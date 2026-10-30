@@ -29,8 +29,8 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 
-import '../../support.dart';
 import '../../qa_capture.dart';
+import '../../support.dart';
 import 'live_play_support.dart';
 
 LiveRoom _room(String id, {LiveStatus status = LiveStatus.live, String online = ''}) => LiveRoom(
