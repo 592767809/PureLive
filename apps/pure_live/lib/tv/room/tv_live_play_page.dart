@@ -23,6 +23,7 @@ import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/rooms/auto_room_switch.dart';
+import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/tv/room/tv_room_overlays.dart';
 import 'package:pure_live/tv/room/tv_room_settings_panel.dart';
@@ -143,6 +144,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _index = at < 0 ? 0 : at;
     _autoRoomSwitch = AutoRoomSwitch(
       store: ref.read(storeProvider),
+      onRefresh: () async => await _controller?.load(preservePause: true),
       siteOf: ref.read(sitesProvider).maybeOf,
       maySwitch: () =>
           mounted &&
@@ -440,6 +442,25 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     if (mounted && _controls) _touch();
   }
 
+  Future<void> _pickGain() async {
+    final room = _room;
+    if (room == null) return;
+    final settings = ref.read(storeProvider).settings;
+    _hideControls?.cancel();
+    const inherit = 100;
+    final picked = await showTvChoice<int>(
+      context,
+      title: i18n('room_gain'),
+      current: RoomGain.overrideOf(settings, room) ?? inherit,
+      options: [
+        TvChoice(value: inherit, label: i18n('room_gain_default')),
+        for (var db = -12; db <= 12; db++) TvChoice(value: db, label: '${db > 0 ? '+' : ''}$db dB'),
+      ],
+    );
+    if (picked != null) await RoomGain.save(settings, room, picked == inherit ? null : picked);
+    if (mounted && _controls) _touch();
+  }
+
   Future<void> _toggleFollow({required bool followed}) async {
     final room = _room;
     if (room == null) return;
@@ -527,6 +548,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                               danmakuOn: watchSetting(ref, Settings.enableDanmakuDisplay),
                               onQuality: () => unawaited(_pickQuality()),
                               onLine: () => unawaited(_pickLine()),
+                              onGain: () => unawaited(_pickGain()),
                               onDanmaku: () {
                                 _touch();
                                 final settings = ref.read(storeProvider).settings;

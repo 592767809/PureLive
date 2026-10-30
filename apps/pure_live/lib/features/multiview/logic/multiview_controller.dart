@@ -17,6 +17,7 @@ import 'package:pure_live/shared/danmaku/gift_flights.dart';
 import 'package:pure_live/shared/rooms/auto_room_switch.dart';
 import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
+import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// The arrangements of the multi-view grid (3.x `MultiviewLayout`).
@@ -268,6 +269,11 @@ class MultiviewController extends ChangeNotifier {
     final cell = MultiviewCell._(_nextCellId++);
     cell._autoSwitch = AutoRoomSwitch(
       store: store,
+      onRefresh: () async {
+        final index = _cells.indexOf(cell);
+        final room = cell.room;
+        if (index >= 0 && room != null) await assign(index, room, automatic: true);
+      },
       siteOf: siteOf,
       group: _autoGroup,
       maySwitch: () => !_disposed && _cells.contains(cell),
@@ -379,6 +385,8 @@ class MultiviewController extends ChangeNotifier {
       _subscriptions.add(store.settings.watch(setting).skip(1).listen((_) => unawaited(_reloadFilter())));
     }
     _subscriptions.add(store.settings.watch(Settings.multiviewMixAudio).skip(1).listen(_updateMixAudio));
+    _subscriptions.add(store.settings.watch(Settings.roomVolumeGains).skip(1).listen((_) => _syncRoomGains()));
+    _subscriptions.add(store.settings.watch(Settings.volumeBoostDb).skip(1).listen((_) => _syncRoomGains()));
     await _reloadFilter();
     await _load();
   }
@@ -566,10 +574,21 @@ class MultiviewController extends ChangeNotifier {
   int indexOfRoom(LiveRoom room) =>
       _cells.indexWhere((cell) => cell.stage != CellStage.empty && (cell.room?.hasSameIdentity(room) ?? false));
 
-  /// Plays [picked] in cell [index] (3.x `assignRoom`): the detail is always
-  /// fetched (a stored offline state may be old), then the qualities and the
-  /// stream. The cell's sound plays unless it is a small cell of the focus
-  /// layout.
+  void _syncRoomGains() {
+    for (final cell in _cells) {
+      final room = cell.room;
+      if (room != null) {
+        unawaited(
+          _guard(
+            () => cell._session?.setVolumeGainDb(RoomGain.effective(store.settings, room)) ?? Future<void>.value(),
+            'room gain',
+          ),
+        );
+      }
+    }
+  }
+
+  /// Fetches and plays [picked] in cell [index], preserving audio focus for automatic changes.
   Future<void> assign(int index, LiveRoom picked, {bool automatic = false}) async {
     if (_disposed || index < 0 || index >= _cells.length) return;
     final cell = _cells[index];
@@ -624,7 +643,7 @@ class MultiviewController extends ChangeNotifier {
       unawaited(_save());
       return;
     }
-    await _play(cell, epoch, site, room, preserveAudioFocus: automatic);
+    await _play(cell, epoch, site, room, preserveAudioFocus: automatic, preservePause: automatic);
   }
 
   /// A carousel cell's "播放轮播" (E06.2 c1, as the live room's): the video
@@ -652,6 +671,7 @@ class MultiviewController extends ChangeNotifier {
     LiveSite site,
     LiveRoom room, {
     bool preserveAudioFocus = false,
+    bool preservePause = false,
   }) async {
     final scope = cell._scope = LiveQualityDiscoveryScope();
     final List<LivePlayQuality> found;
@@ -673,7 +693,7 @@ class MultiviewController extends ChangeNotifier {
     cell._qualities = found;
     final small = _layout == MultiviewLayout.focus && _cells.indexOf(cell) != _focused;
     final quality = _smallCellsLowQuality && small ? found.length - 1 : _normalQuality(cell);
-    final opened = await _openQuality(cell, quality, epoch, manual: false);
+    final opened = await _openQuality(cell, quality, epoch, manual: false, preservePause: preservePause);
     if (!opened || !_current(cell, epoch)) return;
     final position = _cells.indexOf(cell);
     // A small cell of the focus layout starts silent (3.x); elsewhere the
@@ -706,7 +726,13 @@ class MultiviewController extends ChangeNotifier {
   }
 
   /// Resolves quality [index] of [cell] and opens it in the cell's session.
-  Future<bool> _openQuality(MultiviewCell cell, int index, int epoch, {required bool manual}) async {
+  Future<bool> _openQuality(
+    MultiviewCell cell,
+    int index,
+    int epoch, {
+    required bool manual,
+    bool preservePause = false,
+  }) async {
     final site = cell._site;
     final room = cell._room;
     if (site == null || room == null) return false;
@@ -739,6 +765,11 @@ class MultiviewController extends ChangeNotifier {
     // permission first; refused, the user is told and the open fails as usual.
     await ensureLocalNetworkFor(resolution.lines.map((line) => line.url), toast: toast);
     if (!_current(cell, epoch)) return false;
+    if (preservePause && cell._session?.state.status == PlaybackStatus.paused) {
+      cell._stage = CellStage.playing;
+      _notify();
+      return false;
+    }
     // C01.4: the live room's rule (a confirmed tier outside the list is
     // named by the platform); only a quality picked by hand is answered with
     // a toast, so cells entering together stay quiet.
@@ -771,6 +802,7 @@ class MultiviewController extends ChangeNotifier {
         refresh: () => _refreshPlan(cell, epoch, opened, site, room, quality),
         audioOnly: cell._offscreen,
         volume: _audibleVolume(cell),
+        volumeGainDb: RoomGain.effective(store.settings, room),
       ),
     );
     return _current(cell, epoch);

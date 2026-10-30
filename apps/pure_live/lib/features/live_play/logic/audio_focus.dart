@@ -24,9 +24,26 @@ abstract interface class AudioFocusPort {
   Stream<void> get becomingNoisy;
 }
 
+/// A platform that can request coexistence rather than exclusive media focus.
+abstract interface class AudioMixingPort {
+  /// Updates the next activation's system configuration.
+  Future<void> configureMixing({required bool enabled});
+}
+
+/// System policy for opt-in media coexistence, preserving real media attributes.
+AudioSessionConfiguration audioFocusConfiguration({required bool mixing}) =>
+    const AudioSessionConfiguration.music().copyWith(
+      androidAudioFocusGainType: mixing
+          ? AndroidAudioFocusGainType.gainTransientMayDuck
+          : AndroidAudioFocusGainType.gain,
+      avAudioSessionCategoryOptions: mixing
+          ? AVAudioSessionCategoryOptions.mixWithOthers
+          : AVAudioSessionCategoryOptions.none,
+    );
+
 /// [AudioFocusPort] over `audio_session` (3.x's `LiveAudioHandler`): set up
 /// once as music.
-final class SystemAudioFocus implements AudioFocusPort {
+final class SystemAudioFocus implements AudioFocusPort, AudioMixingPort {
   new _();
 
   /// The app's one session.
@@ -40,6 +57,14 @@ final class SystemAudioFocus implements AudioFocusPort {
   static bool get available => Platform.isAndroid || Platform.isIOS;
 
   Future<AudioSession>? _session;
+  bool _mixing = false;
+
+  @override
+  Future<void> configureMixing({required bool enabled}) async {
+    _mixing = enabled;
+    final session = await _configured();
+    await session.configure(audioFocusConfiguration(mixing: _mixing));
+  }
 
   Future<AudioSession> _configured() => _session ??= () async {
     final session = await AudioSession.instance;
@@ -48,7 +73,12 @@ final class SystemAudioFocus implements AudioFocusPort {
   }();
 
   @override
-  Future<bool> activate({required bool active}) async => await (await _configured()).setActive(active);
+  Future<bool> activate({required bool active}) async => await (await _configured()).setActive(
+    active,
+    androidAudioFocusGainType: _mixing
+        ? AndroidAudioFocusGainType.gainTransientMayDuck
+        : AndroidAudioFocusGainType.gain,
+  );
 
   @override
   Stream<AudioInterruptionEvent> get interruptions =>
@@ -78,7 +108,26 @@ final class SystemAudioFocus implements AudioFocusPort {
 class RoomAudioFocus with WidgetsBindingObserver {
   /// Creates the focus of [session]; call [start]. [mayPlayNow] says
   /// whether the room may play where the app is now (null: always).
-  new({required this.session, required this.port, this.mayPlayNow});
+  new({required this.session, required this.port, this.mayPlayNow, bool mixWithOthers = false, this.mixingChanges})
+    : _mixing = mixWithOthers;
+
+  /// Runtime preference changes, released with this room's other subscriptions.
+  final Stream<bool>? mixingChanges;
+  bool _mixing;
+
+  /// Changes media coexistence without automatically resuming a paused room.
+  void setMixing({required bool enabled}) {
+    if (_disposed || _mixing == enabled) return;
+    _mixing = enabled;
+    _enqueue(() async {
+      if (port case final AudioMixingPort configurable) await configurable.configureMixing(enabled: _mixing);
+      if (_sounding) {
+        await _activate(active: false);
+        _active = true;
+        await _activate(active: true);
+      }
+    });
+  }
 
   /// How far a prompt lowers the volume (3.x).
   static const duckFactor = 0.2;
@@ -132,6 +181,7 @@ class RoomAudioFocus with WidgetsBindingObserver {
   void start({bool observeLifecycle = true}) {
     if (_started || _disposed) return;
     _started = true;
+    if (mixingChanges case final changes?) _subscriptions.add(changes.listen((enabled) => setMixing(enabled: enabled)));
     _subscriptions
       ..add(session.states.listen(_onState))
       ..add(port.interruptions.listen(_onInterruption, onError: _onPortError))
@@ -169,6 +219,7 @@ class RoomAudioFocus with WidgetsBindingObserver {
         _enqueue(() => _pauseForFocus(resume: true));
       case (true, AudioInterruptionType.unknown):
         _active = false;
+        if (_mixing) return;
         _enqueue(() => _pauseForFocus(resume: false));
       case (true, AudioInterruptionType.duck):
         _enqueue(_duck);
@@ -234,6 +285,9 @@ class RoomAudioFocus with WidgetsBindingObserver {
 
   Future<void> _activate({required bool active}) async {
     try {
+      if (active) {
+        if (port case final AudioMixingPort configurable) await configurable.configureMixing(enabled: _mixing);
+      }
       final granted = await port.activate(active: active);
       if (active && !granted) developer.log('Audio focus was not granted', name: 'audio_focus');
     } on Object catch (error, stack) {

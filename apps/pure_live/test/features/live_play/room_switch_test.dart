@@ -303,6 +303,10 @@ void main() {
       await tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller.setAudioOnly(enabled: true);
       await tester.pump(const Duration(seconds: 1));
       await _settle(tester);
+      for (var i = 0; i < 2; i++) {
+        await tester.pump(const Duration(seconds: 21));
+        await _settle(tester);
+      }
       final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
       expect(controller.room.roomId, '7');
       expect(controller.audioOnly, isTrue);
@@ -328,6 +332,10 @@ void main() {
       );
       await tester.pump(const Duration(seconds: 1));
       await _settle(tester);
+      for (var i = 0; i < 2; i++) {
+        await tester.pump(const Duration(seconds: 21));
+        await _settle(tester);
+      }
       expect(_shown(tester), '7');
       expect(room.sessions, hasLength(1), reason: 'automatic switches reuse the existing player');
       expect(room.engine.opens.last.uri.path, '/7/index.m3u8');

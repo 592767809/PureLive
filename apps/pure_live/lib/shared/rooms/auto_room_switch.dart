@@ -34,12 +34,14 @@ final class AutoRoomSwitch {
     required this.siteOf,
     required this.onSwitch,
     required this.maySwitch,
+    this.onRefresh,
     this.onExhausted,
     AutoRoomSwitchGroup? group,
     this.lookupTimeout = const Duration(seconds: 10),
   }) : _group = group ?? AutoRoomSwitchGroup() {
     _settings = store.settings.watch(Settings.autoSwitchLiveFollows).skip(1).listen((_) {
       _cancel();
+      _resetConfirmations();
       _attempted.clear();
       _exhausted = false;
       _evaluate();
@@ -58,6 +60,9 @@ final class AutoRoomSwitch {
   /// The owning page's lifecycle and background-play policy.
   final bool Function() maySwitch;
 
+  /// Reloads the current room before replacing it after exhausted recovery.
+  final Future<void> Function()? onRefresh;
+
   /// Called once when this round has no usable candidate.
   final void Function()? onExhausted;
 
@@ -71,6 +76,8 @@ final class AutoRoomSwitch {
   late final StreamSubscription<bool> _settings;
   Timer? _pending;
   Timer? _healthy;
+  Timer? _retryDelay;
+  int _refreshes = 0;
   LiveRoom? _room;
   PlaybackState _playback = const PlaybackState();
   bool _resolving = true;
@@ -88,6 +95,7 @@ final class AutoRoomSwitch {
 
   /// Binds a new room; explicit user choices start a fresh round.
   void setRoom(LiveRoom room, {bool automatic = false}) {
+    if (!automatic || _room?.identityKey != room.identityKey) _resetConfirmations();
     _cancel();
     _healthy?.cancel();
     _healthy = null;
@@ -134,6 +142,7 @@ final class AutoRoomSwitch {
         _healthy = null;
         _attempted.clear();
         _exhausted = false;
+        _refreshes = 0;
       });
     } else {
       _healthy?.cancel();
@@ -150,6 +159,7 @@ final class AutoRoomSwitch {
 
   /// Empties a reusable cell and releases its reservation.
   void clear() {
+    _resetConfirmations();
     _cancel();
     _healthy?.cancel();
     _healthy = null;
@@ -174,11 +184,16 @@ final class AutoRoomSwitch {
   void _evaluate() {
     if (!_eligible) {
       _cancel();
-    } else if (!_searching && _pending == null) {
+    } else if (!_searching && _pending == null && _retryDelay == null) {
       // Avoid replacing widgets inside a synchronous controller notification.
       _pending = Timer(const Duration(seconds: 1), () {
         _pending = null;
-        if (_eligible) unawaited(_next());
+        if (!_eligible) return;
+        if (onRefresh != null && _refreshes < 2) {
+          _refreshCurrent();
+        } else {
+          unawaited(_next());
+        }
       });
     }
   }
@@ -190,6 +205,26 @@ final class AutoRoomSwitch {
     _pending?.cancel();
     _pending = null;
     _searching = false;
+  }
+
+  void _resetConfirmations() {
+    _retryDelay?.cancel();
+    _retryDelay = null;
+    _refreshes = 0;
+  }
+
+  void _refreshCurrent() {
+    _refreshes++;
+    // A full reload may finish before native playback starts. Give it time.
+    _retryDelay = Timer(const Duration(seconds: 20), () {
+      _retryDelay = null;
+      _evaluate();
+    });
+    unawaited(
+      Future<void>.sync(onRefresh!).catchError((Object _) {
+        // Failed confirmation is not evidence that a broadcast ended.
+      }),
+    );
   }
 
   bool _current(int epoch) => epoch == _epoch && _eligible;
@@ -264,6 +299,7 @@ final class AutoRoomSwitch {
     _cancel();
     _healthy?.cancel();
     unawaited(_settings.cancel());
+    _resetConfirmations();
     _group.release(_owner);
   }
 }

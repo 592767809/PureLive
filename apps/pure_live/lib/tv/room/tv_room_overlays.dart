@@ -9,6 +9,7 @@ import 'package:pure_live/shared/rooms/room_texts.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
+import 'package:pure_live/tv/widgets/tv_room_card.dart';
 
 /// The room's state over the picture: entering, buffering, offline, failed
 /// or restricted, with what OK does (pure_live_TV's placeholders).
@@ -173,6 +174,7 @@ class TvRoomControls extends StatelessWidget {
     required this.onRefresh,
     required this.onList,
     this.onSuperChat,
+    this.onGain,
     this.firstButton,
     super.key,
   });
@@ -207,6 +209,9 @@ class TvRoomControls extends StatelessWidget {
 
   /// Opens the room list.
   final VoidCallback onList;
+
+  /// Opens the room's persistent signed gain setting.
+  final VoidCallback? onGain;
 
   /// Opens active super chats; null when there are none or the entry is off.
   final VoidCallback? onSuperChat;
@@ -254,7 +259,7 @@ class TvRoomControls extends StatelessWidget {
                       ].join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: scale.font(TvTextSize.small, color: OnVideoColors.secondary),
+                      style: scale.font(TvTextSize.small, weight: FontWeight.w700, color: OnVideoColors.foreground),
                     ),
                   ],
                 ),
@@ -330,6 +335,16 @@ class TvRoomControls extends StatelessWidget {
                     onTap: onRefresh,
                   ),
                 ),
+                if (onGain != null)
+                  _gap(
+                    scale,
+                    TvButton(
+                      key: const ValueKey('tv-room-gain'),
+                      icon: AppIcons.roomVolume,
+                      label: i18n('room_gain'),
+                      onTap: onGain,
+                    ),
+                  ),
                 TvButton(
                   key: const ValueKey('tv-room-list'),
                   icon: TvIcons.roomList,
@@ -456,17 +471,16 @@ class _TvRoomListState extends State<TvRoomList> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    title.isEmpty ? room.displayNick(platformName(room.platform)) : title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  TvMarquee(
+                                    text: title.isEmpty ? room.displayNick(platformName(room.platform)) : title,
+                                    running: focused,
                                     style: scale.font(TvTextSize.body, weight: FontWeight.w600, color: color),
                                   ),
                                   Text(
                                     room.displayNick(platformName(room.platform)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: scale.font(TvTextSize.small, color: color.withValues(alpha: 0.7)),
+                                    style: scale.font(TvTextSize.small, weight: FontWeight.w700, color: color),
                                   ),
                                 ],
                               ),

@@ -17,6 +17,7 @@ import 'package:pure_live/features/multiview/logic/multiview_geometry.dart';
 import 'package:pure_live/features/multiview/widgets/cell_controls.dart';
 import 'package:pure_live/features/multiview/widgets/cell_view.dart';
 import 'package:pure_live/features/multiview/widgets/focus_bar.dart';
+import 'package:pure_live/features/multiview/widgets/level_gestures.dart';
 import 'package:pure_live/features/multiview/widgets/room_picker.dart';
 import 'package:pure_live/features/multiview/widgets/toolbar.dart';
 import 'package:pure_live/features/multiview/widgets/wall.dart';
@@ -665,16 +666,21 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     ],
   );
 
-  Widget _wall({double gap = 3, Rect? avoid}) => MultiviewWall(
-    layout: _controller.layout,
-    count: _controller.cells.length,
-    focused: _controller.focusedIndex,
-    gap: gap,
-    padding: gap,
-    avoid: avoid,
-    onAddCell: _controller.canAddCell ? _controller.addCell : null,
-    onOffscreen: _setOffscreen,
-    cellBuilder: _cell,
+  Widget _wall({double gap = 3, Rect? avoid}) => MultiviewLevelGestures(
+    controller: _controller,
+    selectedIndex: _selectedIndex,
+    enabled: _mobile && MediaQuery.orientationOf(context) == Orientation.landscape && _overlay == _Overlay.none,
+    child: MultiviewWall(
+      layout: _controller.layout,
+      count: _controller.cells.length,
+      focused: _controller.focusedIndex,
+      gap: gap,
+      padding: gap,
+      avoid: avoid,
+      onAddCell: _controller.canAddCell ? _controller.addCell : null,
+      onOffscreen: _setOffscreen,
+      cellBuilder: _cell,
+    ),
   );
 
   /// The wall with the column's fold handle on its right edge (22).

@@ -14,11 +14,15 @@ import 'live_play_support.dart';
 
 /// The system's side: interruptions and unplugged headphones are sent by
 /// hand; [activations] records every request and release of the focus.
-final class _FakePort implements AudioFocusPort {
+final class _FakePort implements AudioFocusPort, AudioMixingPort {
   final interruptionEvents = StreamController<AudioInterruptionEvent>.broadcast(sync: true);
   final noisyEvents = StreamController<void>.broadcast(sync: true);
   final activations = <bool>[];
   bool fails = false;
+  final policies = <bool>[];
+
+  @override
+  Future<void> configureMixing({required bool enabled}) async => policies.add(enabled);
 
   @override
   Future<bool> activate({required bool active}) async {
@@ -67,6 +71,39 @@ void main() {
   tearDown(() async {
     await focus.dispose();
     await session.dispose();
+  });
+
+  test('issue110 mixing keeps media loss playing while calls and headphones still pause', () async {
+    focus.setMixing(enabled: true);
+    await settle();
+    expect(port.policies.last, isTrue);
+    port.begin(AudioInterruptionType.unknown);
+    await settle();
+    expect(session.state.status, PlaybackStatus.playing);
+    port.begin(AudioInterruptionType.pause);
+    await settle();
+    expect(session.state.status, PlaybackStatus.paused);
+    port.end(AudioInterruptionType.pause);
+    await settle();
+    expect(session.state.status, PlaybackStatus.playing);
+    port.noisyEvents.add(null);
+    await settle();
+    expect(session.state.status, PlaybackStatus.paused);
+    focus.setMixing(enabled: false);
+    await settle();
+    expect(
+      session.state.status,
+      PlaybackStatus.paused,
+      reason: 'changing policy does not resume a manual or noisy pause',
+    );
+  });
+
+  test('issue110 native policy retains media attributes and uses a coexistence focus request', () {
+    final mixing = audioFocusConfiguration(mixing: true);
+    expect(mixing.androidAudioFocusGainType, AndroidAudioFocusGainType.gainTransientMayDuck);
+    expect(mixing.androidAudioAttributes!.contentType, AndroidAudioContentType.music);
+    expect(mixing.avAudioSessionCategoryOptions, AVAudioSessionCategoryOptions.mixWithOthers);
+    expect(audioFocusConfiguration(mixing: false).androidAudioFocusGainType, AndroidAudioFocusGainType.gain);
   });
 
   test('focus is asked for when playing starts and given back when the room is left', () async {

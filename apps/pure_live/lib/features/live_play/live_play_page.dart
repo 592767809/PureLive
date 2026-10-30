@@ -243,6 +243,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     _settings = store.settings;
     _autoRoomSwitch = AutoRoomSwitch(
       store: store,
+      onRefresh: () async => await _controller?.load(preservePause: true),
       siteOf: ref.read(sitesProvider).maybeOf,
       maySwitch: () =>
           mounted &&
@@ -349,6 +350,8 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         ? (RoomAudioFocus(
             session: session,
             port: SystemAudioFocus.instance,
+            mixWithOthers: store.settings.get(Settings.allowAudioMixing),
+            mixingChanges: store.settings.watch(Settings.allowAudioMixing).skip(1),
             // Where the background policy would not let it play, the end
             // of a call waits for the app to come back.
             mayPlayNow: () =>

@@ -39,6 +39,7 @@ path = [
   # ---- apps/pure_live/lib/platform：原生通道的 Dart 一侧 ----
   { glob = "apps/pure_live/lib/platform/background_guide.dart", sub = "O01" },
   { glob = "apps/pure_live/lib/platform/display_mode.dart", sub = "O05" },
+  { glob = "apps/pure_live/lib/platform/device_controls.dart", sub = "O04", note = "媒体音量和应用亮度，普通直播与多画面共用" },
   { glob = "apps/pure_live/lib/platform/live_alert_channel.dart", sub = "O01" },
   { glob = "apps/pure_live/lib/platform/screen_orientation.dart", sub = "O05" },
   { glob = "apps/pure_live/lib/platform/overlay_window.dart", sub = "A07" },

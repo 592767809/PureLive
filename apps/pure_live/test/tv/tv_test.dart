@@ -255,6 +255,10 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await _settle(tester);
     final page = tester.state<TvLivePlayPageState>(find.byType(TvLivePlayPage));
+    for (var i = 0; i < 2; i++) {
+      await tester.pump(const Duration(seconds: 21));
+      await _settle(tester);
+    }
     expect(page.controller!.room.roomId, '2');
     expect(page.controller!.stage, RoomStage.playing);
     expect(find.byKey(const ValueKey('tv-room-banner')), findsOneWidget);

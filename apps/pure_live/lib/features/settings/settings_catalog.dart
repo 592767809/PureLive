@@ -805,6 +805,15 @@ List<SettingsEntry> _build() {
     // ---- video (U.6c c2) ----
     ..section = SettingsSection.video
     ..group = 'audio_settings'
+    ..toggle(
+      'audio_mixing',
+      'audio_mixing',
+      Settings.allowAudioMixing,
+      AppIcons.settingsVolumeBoost,
+      desc: 'audio_mixing_desc',
+      keywords: ['同时播放', '混音', 'mix', 'audio'],
+      when: _mobile,
+    )
     ..add(
       'global_mute',
       'global_mute',
