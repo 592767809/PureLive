@@ -15,6 +15,7 @@ final class NativeBufferingProbe {
   /// Non-identifying native state useful before a buffering watchdog fires.
   static const properties = [
     'core-idle',
+    'idle-active',
     'paused-for-cache',
     'pause',
     'eof-reached',
@@ -25,6 +26,10 @@ final class NativeBufferingProbe {
     'audio-params/samplerate',
     'audio-params/channel-count',
     'decoder-frame-drop-count',
+    'track-list/count',
+    'vo',
+    'vid',
+    'aid',
   ];
 
   Timer? _timer;
@@ -58,12 +63,19 @@ final class NativeBufferingProbe {
   Future<String> _value(String property) async {
     try {
       final value = (await read(property).timeout(const Duration(seconds: 1))).trim();
+      if (value.isEmpty) return '?/unavailable';
       if (value == 'yes' || value == 'no') return value;
-      if (value.length > 32) return '?';
+      if ((property == 'vid' || property == 'aid') && value == 'auto') return value;
+      if (property == 'vo' && const {'null', 'gpu', 'gpu-next', 'libmpv', 'mediacodec_embed'}.contains(value)) {
+        return value;
+      }
+      if (value.length > 32) return '?/invalid';
       final number = double.tryParse(value);
-      return number != null && number.isFinite && number.abs() < 1e12 ? number.toString() : '?';
+      return number != null && number.isFinite && number.abs() < 1e12 ? number.toString() : '?/invalid';
+    } on TimeoutException {
+      return '?/timeout';
     } on Object {
-      return '?';
+      return '?/error';
     }
   }
 

@@ -49,7 +49,10 @@ MpvPlatform? mpvPlatformOf(TargetPlatform platform) => switch (platform) {
 /// - Windows reports presented frames (the fork's `frameRevision`).
 final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource {
   new _(this.player, this.controller, this.config, {void Function(String)? onBufferingSnapshot}) {
-    _bufferingProbe = NativeBufferingProbe(read: _readProperty, report: onBufferingSnapshot ?? debugPrint);
+    _bufferingProbe = NativeBufferingProbe(
+      read: _readProperty,
+      report: (line) => (onBufferingSnapshot ?? debugPrint)('$line engine=$_diagnosticEngine open=$_diagnosticOpens'),
+    );
     _gate = NativeDiagnosticGate(onError: (error) => _add(EngineError(error)));
     _bind();
   }
@@ -68,8 +71,9 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
       debugPrint('mpv probe override: probesize=${probe.probeSize} analyzeduration=${probe.analyzeDuration}');
     }
     if (native is NativePlayer) {
+      await native.waitForPlayerInitialization;
       for (final MapEntry(:key, :value) in resolved.liveProperties.entries) {
-        await native.setProperty(key, value);
+        await native.setPropertyAsync(key, value);
       }
     }
     final macos = resolved.platform == MpvPlatform.macos;
@@ -104,6 +108,9 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   var _externalAudio = false;
   var _disposed = false;
   var _opens = 0;
+  static var _nextDiagnosticEngine = 0;
+  final int _diagnosticEngine = ++_nextDiagnosticEngine;
+  var _diagnosticOpens = 0;
 
   bool get _android => config.platform == MpvPlatform.android;
 
@@ -176,11 +183,18 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
 
   Future<void> _setProperty(String name, String value) async {
     final native = player.platform;
-    if (native is NativePlayer) await native.setProperty(name, value);
+    if (native is NativePlayer) {
+      await native.waitForPlayerInitialization;
+      await native.waitForVideoControllerInitializationIfAttached;
+      // Reconfiguring a reused decoder can wait on the native core. Keep the
+      // UI isolate and the source-open deadline alive while that request runs.
+      await native.setPropertyAsync(name, value);
+    }
   }
 
   @override
   Future<void> open(EngineMedia media) async {
+    _diagnosticOpens++;
     _bufferingProbe.reset();
     _hasSource = true;
     _watchBuffering(true);
@@ -238,7 +252,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   Future<String> _readProperty(String name) async {
     final native = player.platform;
     if (_disposed || native is! NativePlayer) return '';
-    return await native.getProperty(name);
+    return await native.getPropertyAsync(name);
   }
 
   @override
@@ -270,7 +284,7 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
     final native = player.platform;
     if (native is! NativePlayer) return;
     if (audio == null && !_externalAudio) return;
-    await native.setProperty('audio-files', '');
+    await _setProperty('audio-files', '');
     _externalAudio = audio != null;
     if (audio != null) await native.command(['change-list', 'audio-files', 'append', audio.uri.toString()]);
   }

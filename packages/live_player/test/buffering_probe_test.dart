@@ -40,6 +40,9 @@ void main() {
           'eof-reached' => 'NaN',
           'video-params/w' => 'Infinity',
           'video-params/h' => '1e50',
+          'track-list/count' => '',
+          'vo' => 'gpu',
+          'vid' => 'auto',
           _ => 'https://example.invalid/private?token=not-a-real-token\nextra',
         },
         report: lines.add,
@@ -49,7 +52,12 @@ void main() {
       expect(lines.single, isNot(contains('private')));
       expect(lines.single, isNot(contains('token')));
       expect(lines.single, isNot(contains('\n')));
-      expect(lines.single, contains('time-pos=?'));
+      expect(lines.single, contains('time-pos=?/timeout'));
+      expect(lines.single, contains('pause=?/error'));
+      expect(lines.single, contains('eof-reached=?/invalid'));
+      expect(lines.single, contains('track-list/count=?/unavailable'));
+      expect(lines.single, contains('vo=gpu'));
+      expect(lines.single, contains('vid=auto'));
       pending.complete('123');
       async.flushMicrotasks();
       expect(lines, hasLength(1));
