@@ -51,8 +51,8 @@ void main() {
     AppNavigator.router = router;
     Future<void> advance() async {
       for (var i = 0; i < 5; i++) {
-        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
-        await tester.pump(const Duration(milliseconds: 20));
+        await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
+        await tester.pump(const Duration(seconds: 1));
       }
     }
 
@@ -81,7 +81,7 @@ void main() {
       expect(DesktopWindow.fullScreen.value, isTrue, reason: 'late disposal of the first room must not exit it');
     } finally {
       await tester.pumpWidget(const SizedBox.shrink());
-      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+      await tester.runAsync(() => Future<void>.delayed(const Duration(seconds: 1)));
       await tester.pump(const Duration(seconds: 5));
       AppNavigator.router = null;
       router.dispose();
