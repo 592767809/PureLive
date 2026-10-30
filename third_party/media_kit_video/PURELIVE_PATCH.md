@@ -81,3 +81,13 @@ background (`AppVisibility`, following `didEnterBackground` /
 background; with PureLive's background play (A18.1 c5) mpv keeps playing the
 sound and the next frame is drawn once the app is back. The simulator's
 software path (`TextureSW`) has no GL and is unchanged.
+
+## Android initialization ordering (2026-10-30)
+
+Initial mpv options and Surface attachment now share the controller lock.
+A Surface published before the Create reply is retained and replayed after
+initialization, so the startup vo=null cannot overwrite a valid gpu binding.
+Creation still does not wait for a Surface. The application keys Video by its
+controller because VideoState binds player width/height streams in initState;
+replacing a native player must replace those listeners too. Factory race tests
+and Android 9 generated-media native/screen comparisons cover both paths.

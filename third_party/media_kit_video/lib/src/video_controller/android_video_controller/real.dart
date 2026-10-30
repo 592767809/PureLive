@@ -41,6 +41,10 @@ class AndroidVideoController extends PlatformVideoController {
   /// with `vid=auto` while another asynchronous mpv command is still pending.
   bool _videoOutputEnabled = true;
 
+  // A platform channel may publish its first Surface before Create returns.
+  // Keep those values, but do not apply them ahead of the initial mpv options.
+  bool _initialized = false;
+
   NativePlayer get platform => player.platform as NativePlayer;
 
   /// Pure Live: asynchronous, so the UI isolate keeps drawing while mpv
@@ -59,23 +63,25 @@ class AndroidVideoController extends PlatformVideoController {
 
   /// Listener for updating the --wid property.
   Future<void> widListener() async {
+    if (!_initialized || _videoParamsDisposed) return;
     await lock.synchronized(() async {
-      final width = rect.value?.width.toInt() ?? 1;
-      final height = rect.value?.height.toInt() ?? 1;
-      final properties = resolveAndroidSurfaceProperties(
-        width: width,
-        height: height,
-        wid: wid.value,
-        configuredVo: configuration.vo!,
-        videoOutputEnabled: _videoOutputEnabled,
-      );
-      // It is important to re-initialize --vo after --android-surface-size.
-      await setProperty('vo', 'null');
-      // ORDER IS IMPORTANT. Surface attachment is the authoritative point at
-      // which video can be restored, and [properties] always includes `vid` for
-      // both gpu and mediacodec_embed output.
-      await setProperties(properties);
+      if (!_initialized || _videoParamsDisposed) return;
+      await _applySurface();
     });
+  }
+
+  /// Applies the latest binding while [lock] is held. Initialization also
+  /// reconciles it: an early callback will not necessarily be emitted again.
+  Future<void> _applySurface() async {
+    final properties = resolveAndroidSurfaceProperties(
+      width: rect.value?.width.toInt() ?? 1,
+      height: rect.value?.height.toInt() ?? 1,
+      wid: wid.value,
+      configuredVo: configuration.vo!,
+      videoOutputEnabled: _videoOutputEnabled,
+    );
+    await setProperty('vo', 'null');
+    await setProperties(properties);
   }
 
   /// Updates dimensions without resetting the output driver when Flutter kept
@@ -83,6 +89,7 @@ class AndroidVideoController extends PlatformVideoController {
   /// creates a visible pause and may force a live decoder to reconnect.
   Future<void> _updateSurfaceGeometry(Rect nextRect) {
     return lock.synchronized(() async {
+      if (!_initialized || _videoParamsDisposed) return;
       await setProperty(
         'android-surface-size',
         '${nextRect.width.toInt()}x${nextRect.height.toInt()}',
@@ -145,7 +152,8 @@ class AndroidVideoController extends PlatformVideoController {
       if (_videoParamsDisposed) return;
       final width = size.width;
       final height = size.height;
-      final isSame = width == rect.value?.width.toInt() &&
+      final isSame =
+          width == rect.value?.width.toInt() &&
           height == rect.value?.height.toInt();
       if (isSame) return;
 
@@ -162,12 +170,7 @@ class AndroidVideoController extends PlatformVideoController {
       });
       if (_videoParamsDisposed) return;
 
-      rect.value = Rect.fromLTWH(
-        0.0,
-        0.0,
-        width.toDouble(),
-        height.toDouble(),
-      );
+      rect.value = Rect.fromLTWH(0.0, 0.0, width.toDouble(), height.toDouble());
       // The Android callback is fire-and-forget and can arrive after this
       // MethodChannel reply. Apply the mpv geometry here as well so retaining
       // the same Surface object can never lose a size update.
@@ -233,17 +236,24 @@ class AndroidVideoController extends PlatformVideoController {
       'enableSurfaceProducer': configuration.enableAndroidSurfaceProducer,
     });
 
-    await controller.setProperties({
-      // It is necessary to set vo=null here to avoid SIGSEGV, --wid must be assigned before vo=gpu is set.
-      'vo': 'null',
-      'hwdec': configuration.hwdec!,
-      'vid': 'auto',
-      'force-window': 'yes',
-      'gpu-api': configuration.vo == 'gpu-next' ? 'vulkan,opengl' : 'auto',
-      'sub-use-margins': 'no',
-      'sub-font-provider': 'none',
-      'sub-scale-with-window': 'yes',
-      'hwdec-codecs': 'h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1',
+    await controller.lock.synchronized(() async {
+      await controller.setProperties({
+        // It is necessary to set vo=null here to avoid SIGSEGV, --wid must be assigned before vo=gpu is set.
+        'vo': 'null',
+        'hwdec': configuration.hwdec!,
+        'vid': 'auto',
+        'force-window': 'yes',
+        'gpu-api': configuration.vo == 'gpu-next' ? 'vulkan,opengl' : 'auto',
+        'sub-use-margins': 'no',
+        'sub-font-provider': 'none',
+        'sub-scale-with-window': 'yes',
+        'hwdec-codecs': 'h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1',
+      });
+      controller._initialized = true;
+      // Never wait for a Surface here: some devices create it only after
+      // decoding begins. Reconcile an early binding, or keep vo=null safely
+      // until a later callback attaches it, without disabling video decoding.
+      await controller._applySurface();
     });
 
     // Return the [PlatformVideoController].
@@ -268,6 +278,7 @@ class AndroidVideoController extends PlatformVideoController {
     _videoParamsDisposed = true;
     await videoParamsSubscription?.cancel();
     await _videoParamsResizeQueue;
+    await lock.synchronized(() => _initialized = false);
     wid.removeListener(widListener);
     super.dispose();
     wid.dispose();
@@ -282,62 +293,63 @@ class AndroidVideoController extends PlatformVideoController {
   static final _controllers = HashMap<int, AndroidVideoController>();
 
   /// [MethodChannel] for invoking platform specific native implementation.
-  static final _channel = const MethodChannel(
-    'com.alexmercerind/media_kit_video',
-  )..setMethodCallHandler((MethodCall call) async {
-      try {
-        debugPrint(call.method.toString());
-        debugPrint(call.arguments.toString());
-        switch (call.method) {
-          case 'VideoOutput.Resize':
-            {
-              // Notify about updated texture ID & [Rect].
-              final int handle = call.arguments['handle'];
-              final Rect rect = Rect.fromLTWH(
-                call.arguments['rect']['left'] * 1.0,
-                call.arguments['rect']['top'] * 1.0,
-                call.arguments['rect']['width'] * 1.0,
-                call.arguments['rect']['height'] * 1.0,
-              );
-              final int id = call.arguments['id'];
-              final int wid = call.arguments['wid'];
-              final controller = _controllers[handle];
-              if (controller == null) break;
-              final previousRect = controller.rect.value;
-              final bindingChanged = controller.wid.value != wid;
-              final geometryChanged = previousRect != rect;
-              controller.rect.value = rect;
-              controller.id.value = id;
-              if (bindingChanged) {
-                // The listener performs one ordered WID/vo/vid transaction.
-                // It reads [rect] after the new geometry was published above.
-                controller.wid.value = wid;
-              } else if (geometryChanged) {
-                await controller._updateSurfaceGeometry(rect);
+  static final _channel =
+      const MethodChannel(
+        'com.alexmercerind/media_kit_video',
+      )..setMethodCallHandler((MethodCall call) async {
+        try {
+          debugPrint(call.method.toString());
+          debugPrint(call.arguments.toString());
+          switch (call.method) {
+            case 'VideoOutput.Resize':
+              {
+                // Notify about updated texture ID & [Rect].
+                final int handle = call.arguments['handle'];
+                final Rect rect = Rect.fromLTWH(
+                  call.arguments['rect']['left'] * 1.0,
+                  call.arguments['rect']['top'] * 1.0,
+                  call.arguments['rect']['width'] * 1.0,
+                  call.arguments['rect']['height'] * 1.0,
+                );
+                final int id = call.arguments['id'];
+                final int wid = call.arguments['wid'];
+                final controller = _controllers[handle];
+                if (controller == null) break;
+                final previousRect = controller.rect.value;
+                final bindingChanged = controller.wid.value != wid;
+                final geometryChanged = previousRect != rect;
+                controller.rect.value = rect;
+                controller.id.value = id;
+                if (bindingChanged) {
+                  // The listener performs one ordered WID/vo/vid transaction.
+                  // It reads [rect] after the new geometry was published above.
+                  controller.wid.value = wid;
+                } else if (geometryChanged) {
+                  await controller._updateSurfaceGeometry(rect);
+                }
+                break;
               }
-              break;
-            }
-          case 'VideoOutput.WaitUntilFirstFrameRenderedNotify':
-            {
-              // Notify about updated texture ID & [Rect].
-              final int handle = call.arguments['handle'];
-              debugPrint(handle.toString());
-              // Notify about the first frame being rendered.
-              final completer =
-                  _controllers[handle]?.waitUntilFirstFrameRenderedCompleter;
-              if (!(completer?.isCompleted ?? true)) {
-                completer?.complete();
+            case 'VideoOutput.WaitUntilFirstFrameRenderedNotify':
+              {
+                // Notify about updated texture ID & [Rect].
+                final int handle = call.arguments['handle'];
+                debugPrint(handle.toString());
+                // Notify about the first frame being rendered.
+                final completer =
+                    _controllers[handle]?.waitUntilFirstFrameRenderedCompleter;
+                if (!(completer?.isCompleted ?? true)) {
+                  completer?.complete();
+                }
+                break;
               }
-              break;
-            }
-          default:
-            {
-              break;
-            }
+            default:
+              {
+                break;
+              }
+          }
+        } catch (exception, stacktrace) {
+          debugPrint(exception.toString());
+          debugPrint(stacktrace.toString());
         }
-      } catch (exception, stacktrace) {
-        debugPrint(exception.toString());
-        debugPrint(stacktrace.toString());
-      }
-    });
+      });
 }

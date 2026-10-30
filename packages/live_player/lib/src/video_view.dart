@@ -126,6 +126,9 @@ class _LiveVideoViewState extends State<LiveVideoView> {
     final engine = widget.session.engine;
     if (engine is! MpvEngine) return ColoredBox(color: widget.fill, child: const SizedBox.expand());
     final video = Video(
+      // VideoState binds player streams in initState. A replacement engine
+      // must not inherit the old player's width/height visibility listeners.
+      key: ObjectKey(engine.controller),
       controller: engine.controller,
       controls: null,
       fit: widget.fit,

@@ -91,12 +91,14 @@ class NativePlayer extends PlatformPlayer {
           _eventLoop = null;
           for (final request in [
             ..._setPropertyRequests.values,
+            ..._getPropertyRequests.values,
             ..._commandRequests.values,
             ..._screenshotRequests.values.map((request) => request.completer),
           ]) {
             request.completeError(StateError('Player has been disposed'));
           }
           _setPropertyRequests.clear();
+          _getPropertyRequests.clear();
           _commandRequests.clear();
           _screenshotRequests.clear();
         }
@@ -1179,6 +1181,35 @@ class NativePlayer extends PlatformPlayer {
     return readNativeString(mpv, ctx, property) ?? '';
   }
 
+  /// Reads a property without blocking the caller's isolate on the native core.
+  /// A missing value is empty; other native errors retain their numeric code.
+  /// Timed-out requests are forgotten, so diagnostic polling cannot accumulate
+  /// pending Dart completers when a decoder stops responding.
+  Future<String> getPropertyAsync(
+    String property, {
+    Duration timeout = const Duration(seconds: 1),
+  }) async {
+    await waitForPlayerInitialization.timeout(timeout);
+    _checkNativeHandle();
+    final requestNumber = _asyncRequestNumber++;
+    final completer = _getPropertyRequests[requestNumber] = Completer<String>();
+    final name = property.toNativeUtf8();
+    try {
+      final immediate = mpv.mpv_get_property_async(
+        ctx,
+        requestNumber,
+        name.cast(),
+        generated.mpv_format.MPV_FORMAT_STRING,
+      );
+      if (immediate < 0)
+        throw StateError('mpv property request failed: $immediate');
+      return await completer.future.timeout(timeout);
+    } finally {
+      calloc.free(name);
+      _getPropertyRequests.remove(requestNumber);
+    }
+  }
+
   /// Observes property for the internal libmpv instance of this [Player].
   /// Please use this method only if you know what you are doing, existing methods in [Player] implementation are suited for the most use cases.
   ///
@@ -1337,6 +1368,40 @@ class NativePlayer extends PlatformPlayer {
           }
         }
       }
+    }
+    if (event.ref.event_id ==
+        generated.mpv_event_id.MPV_EVENT_GET_PROPERTY_REPLY) {
+      final completer = _getPropertyRequests.remove(event.ref.reply_userdata);
+      // A timeout may have retired this request. Copy event-owned data before
+      // returning to mpv_wait_event; it is invalidated by the next native event.
+      if (completer != null) {
+        try {
+          final error = event.ref.error;
+          if (error == generated.mpv_error.MPV_ERROR_PROPERTY_UNAVAILABLE) {
+            completer.complete('');
+          } else if (error < 0) {
+            completer.completeError(
+              StateError('mpv property read failed: $error'),
+            );
+          } else {
+            final data = event.ref.data;
+            if (data == nullptr)
+              throw StateError('mpv property reply has no data');
+            final property = data.cast<generated.mpv_event_property>().ref;
+            if (property.format != generated.mpv_format.MPV_FORMAT_STRING ||
+                property.data == nullptr) {
+              throw StateError('mpv property reply has no string');
+            }
+            final value = property.data.cast<Pointer<Utf8>>().value;
+            completer.complete(value == nullptr ? '' : value.toDartString());
+          }
+        } catch (error, stack) {
+          completer.completeError(error, stack);
+        }
+      }
+      // Property-unavailable is a diagnostic result, not a playback failure.
+      // The future above owns errors; do not also feed the generic log gate.
+      return;
     }
     if (event.ref.event_id ==
         generated.mpv_event_id.MPV_EVENT_SET_PROPERTY_REPLY) {
@@ -2287,6 +2352,7 @@ class NativePlayer extends PlatformPlayer {
 
   int _asyncRequestNumber = 0;
   final Map<int, Completer<int>> _setPropertyRequests = {};
+  final Map<int, Completer<String>> _getPropertyRequests = {};
   final Map<int, Completer<int>> _commandRequests = {};
   final Map<int, _ScreenshotRequest> _screenshotRequests = {};
 

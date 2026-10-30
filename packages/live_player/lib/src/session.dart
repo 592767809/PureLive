@@ -76,6 +76,7 @@ final class SessionTimings {
     this.recoveryBudgetReset = const Duration(seconds: 30),
     this.liveRetryDelays = const [Duration(milliseconds: 750), Duration(seconds: 2)],
     this.idleRelease = const Duration(seconds: 45),
+    this.engineRelease = const Duration(seconds: 5),
     this.refreshRetry = const Duration(seconds: 10),
     this.offlineGrace = const Duration(seconds: 20),
     this.networkProbe = const Duration(seconds: 2),
@@ -119,6 +120,11 @@ final class SessionTimings {
 
   /// How long a stopped session keeps its engine for the next room.
   final Duration idleRelease;
+
+  /// Grace for a retired engine to release. A stuck native operation must
+  /// not prevent a replacement from starting; outstanding retirements remain
+  /// tracked and cap allocation instead of leaking an unbounded set of players.
+  final Duration engineRelease;
 
   /// Delay before trying a failed lease prefetch again.
   final Duration refreshRetry;
@@ -211,6 +217,7 @@ final class PlaybackSession {
   PlaybackTransport _transport = PlaybackTransport();
   PlayerEngine? _engine;
   Future<PlayerEngine>? _engineCreating;
+  final Map<Object, Future<void>> _retiringEngines = {};
   StreamSubscription<EngineEvent>? _events;
 
   PlaybackState _state = const PlaybackState();
@@ -412,9 +419,6 @@ final class PlaybackSession {
       );
       return;
     }
-    // A kept engine gets this room's volume; a new one gets it on creation.
-    await _engine?.setVolume(_state.volume);
-    if (!_current(session)) return;
     await _openSource(request.plan.sources.first, session);
   }
 
@@ -617,6 +621,13 @@ final class PlaybackSession {
     _idleTimer?.cancel();
     final engine = _engine;
     if (engine != null) return engine;
+    if (_retiringEngines.length >= 2) {
+      throw const PlayerException(
+        message: 'Previous native players have not finished releasing',
+        type: PlayerErrorType.initialization,
+        code: 'engine_release_pending',
+      );
+    }
     final creating = _engineCreating ??= _createEngine();
     try {
       final created = await creating;
@@ -625,7 +636,6 @@ final class PlaybackSession {
       if (_engine == null) {
         _engine = created;
         _events = created.events.listen(_onEvent);
-        await created.setVolume(_state.volume);
       }
       return _engine!;
     } on Object catch (error, stack) {
@@ -640,19 +650,40 @@ final class PlaybackSession {
     }
   }
 
-  Future<void> _releaseEngine() async {
+  Future<void> _releaseEngine({Future<void>? inputRelease}) async {
     final engine = _engine;
     _engine = null;
     _engineMoves = false;
     // Not awaited: a broadcast cancel completes in the root zone.
     unawaited(_events?.cancel());
     _events = null;
-    await engine?.dispose();
+    if (engine == null && inputRelease == null) return;
+    final owner = engine ?? Object();
+    final releasing = Future.wait<void>([if (engine != null) Future<void>.sync(engine.dispose), ?inputRelease])
+        .then<void>((_) {});
+    _retiringEngines[owner] = releasing;
+    unawaited(
+      releasing.then<void>(
+        (_) => _retiringEngines.remove(owner),
+        onError: (Object _, StackTrace _) {
+          // A failed disposal is not proof that native resources were freed.
+          // Retain the allocation guard; a later open may create at most one
+          // other player before engine_release_pending stops further attempts.
+        },
+      ),
+    );
+    try {
+      await releasing.timeout(timings.engineRelease, onTimeout: () {});
+    } on Object {
+      // The failed retirement remains counted above, without leaving the
+      // current session stuck waiting on cleanup or an unhandled error.
+    }
   }
 
   /// Opens [source]; [recovering] keeps the state's [PlaybackState.recovery]
   /// (a step of [_recover]), otherwise it is the user's reopening.
   Future<void> _openSource(PlaybackSource source, int session, {bool recovering = false}) async {
+    if (!_current(session) || (recovering && !_wantPlaying)) return;
     final request = _request!;
     final plan = _plan!;
     _cancelWatchdogs();
@@ -691,8 +722,15 @@ final class PlaybackSession {
     );
     try {
       final reused = _engine != null;
-      final engine = await _engineNow();
-      if (!_current(session) || _fence.generation != generation) return;
+      final engine = await _engineNow().timeout(
+        timings.sourceOpen,
+        onTimeout: () => throw const PlayerException(
+          message: 'The native player did not initialize before the deadline',
+          type: PlayerErrorType.initialization,
+          code: 'engine_create_timeout',
+        ),
+      );
+      if (!_current(session) || _fence.generation != generation || !_wantPlaying) return;
       _timing?.engineReadyAt(reused: reused);
       final refresh = request.refresh;
       final transport = _transport;
@@ -712,7 +750,14 @@ final class PlaybackSession {
               cancel: cancel,
             ),
             (input) async {
-              if (_current(session)) _timing?.inputOpened(input.route);
+              if (!_current(session) || _fence.generation != generation) return;
+              _timing?.inputOpened(input.route);
+              // Native control commands share the player's queue. Keep this
+              // room's volume inside the source deadline too: an immediate
+              // A -> broken B -> A switch must not hang before open is timed.
+              await engine.setVolume(_state.volume);
+              if (!_current(session) || _fence.generation != generation) return;
+              if (!_wantPlaying) throw StateError('The pending source was paused before loading');
               await engine.open(
                 EngineMedia.of(
                   input,
@@ -721,6 +766,7 @@ final class PlaybackSession {
                   audio: request.audio?.call(source),
                 ),
               );
+              if (_current(session) && _fence.generation == generation && !_wantPlaying) await engine.pause();
               if (_current(session)) _timing?.mark(OpenTiming.loaded);
             },
           )
@@ -1294,6 +1340,13 @@ final class PlaybackSession {
 
   Future<void> _recover(PlayerException error, int session) async {
     if (!_current(session) || !_wantPlaying || _offline) return;
+    if (error.code == 'engine_create_timeout' || error.code == 'engine_release_pending') {
+      // A decoder preference cannot repair an unfinished allocation/teardown.
+      // Keep the operation owned and let an explicit later retry observe its
+      // eventual completion, instead of spending the CDN/decoder budgets.
+      _publishError(error, SourceFailureKind.transient);
+      return;
+    }
     final plan = _plan!;
     final source = _source;
     // The stream failed on its own: say so, with the attempt (the "正在重连
@@ -1308,6 +1361,14 @@ final class PlaybackSession {
     _emit(_state.copyWith(status: PlaybackStatus.buffering, recovery: _recoveries, recoveryCause: _recoveryCause));
     final transport = error.type == PlayerErrorType.network || error.type == PlayerErrorType.source;
 
+    final unfinishedOpen = error.code == 'source_open_timeout' && !_engineRecreated && source != null;
+    if (unfinishedOpen) {
+      // Unlike a failed URL, this native open has not returned. Reusing the
+      // same engine can queue every later room behind that unfinished call.
+      await _retireAfterStall(session);
+      if (!_current(session)) return;
+    }
+
     if (transport && await _tryRefresh(session)) return;
     if (!_current(session)) return;
 
@@ -1320,16 +1381,23 @@ final class PlaybackSession {
       }
     }
 
-    if (error.code == 'video_frame_stall_timeout' && !_engineRecreated && source != null) {
-      // A Windows renderer that stopped presenting while mpv still plays.
-      _engineRecreated = true;
-      final transport = _transport;
-      _transport = PlaybackTransport();
-      await transport.close();
-      if (!_current(session)) return;
-      await _releaseEngine();
-      if (!_current(session)) return;
+    if (unfinishedOpen) {
       await _openSource(source, session, recovering: true);
+      return;
+    }
+
+    if (!_engineRecreated &&
+        source != null &&
+        const {
+          'video_frame_stall_timeout',
+          'buffering_stall_timeout',
+          'playback_stall_timeout',
+          'unexpected_pause_timeout',
+        }.contains(error.code)) {
+      // Refresh and alternate lines did not recover progress. Try one fresh
+      // native player; repeated opens on a damaged decoder/output are not a
+      // recovery. Ordinary HTTP errors still take the existing line path.
+      await _recreateAfterStall(source, session);
       return;
     }
 
@@ -1352,6 +1420,22 @@ final class PlaybackSession {
 
     if (transport && !plan.onDemand && _scheduleRetryRound(session)) return;
     _publishError(error, SourceFailureKind.transient);
+  }
+
+  Future<void> _recreateAfterStall(PlaybackSource source, int session) async {
+    await _retireAfterStall(session);
+    if (!_current(session)) return;
+    await _openSource(source, session, recovering: true);
+  }
+
+  Future<void> _retireAfterStall(int session) async {
+    _engineRecreated = true;
+    final transport = _transport;
+    _transport = PlaybackTransport();
+    // Detach this exact engine before waiting on old input/native cleanup.
+    // A new room may start during either wait and must not adopt this engine
+    // or have its replacement disposed by a late continuation.
+    await _releaseEngine(inputRelease: transport.close());
   }
 
   /// Refreshes the plan and reopens: the same line first, the next one on

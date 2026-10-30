@@ -604,9 +604,13 @@ void main() {
       addTearDown(relay.close);
       fakeAsync((async) {
         final input = _HeldInput();
-        engine = FakeEngine();
+        final created = <FakeEngine>[];
         session = PlaybackSession(
-          engine: () async => engine,
+          engine: () async {
+            engine = FakeEngine();
+            created.add(engine);
+            return engine;
+          },
           opener: MediaOpener(relay: () async => relay, recipes: [_HeldRecipeOpener(input)]),
         );
         unawaited(
@@ -638,6 +642,8 @@ void main() {
         async.flushMicrotasks();
         expect(session.state.status, PlaybackStatus.playing);
         expect(session.input?.uri.host, 'b.example');
+        expect(created, hasLength(stop ? 1 : 2));
+        if (!stop) expect(created.first.disposed, isTrue, reason: 'a stalled engine is detached before grant cleanup');
         input.released.complete();
         async
           ..flushMicrotasks()
@@ -688,19 +694,28 @@ void main() {
 
   test('a stalled open is bounded and the next line is tried', () {
     fakeAsync((async) {
-      engine = FakeEngine();
-      session = PlaybackSession(engine: () async => engine, opener: MediaOpener());
-      engine.onOpen = (media) async {
-        if (media.uri.host == 'a.example') {
-          await Completer<void>().future;
-          return;
-        }
-        engine.playing();
-      };
+      final created = <FakeEngine>[];
+      session = PlaybackSession(
+        engine: () async {
+          final fresh = engine = FakeEngine();
+          created.add(fresh);
+          fresh.onOpen = (media) async {
+            if (media.uri.host == 'a.example') {
+              await Completer<void>().future;
+              return;
+            }
+            fresh.playing();
+          };
+          return fresh;
+        },
+        opener: MediaOpener(),
+      );
       unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan([_a, _b]))));
       async.elapse(const Duration(seconds: 19));
       expect(engine.opens.last.uri.host, 'b.example');
       expect(session.state.status, PlaybackStatus.playing);
+      expect(created, hasLength(2));
+      expect(created.first.disposed, isTrue);
     });
   });
 
@@ -1285,11 +1300,18 @@ void main() {
         );
 
         // A source that never opens: the deadline's code, after the walk.
-        engine = FakeEngine()..onOpen = (_) => Completer<void>().future;
-        session = PlaybackSession(engine: () async => engine, opener: MediaOpener());
+        var creations = 0;
+        session = PlaybackSession(
+          engine: () async {
+            creations++;
+            return engine = FakeEngine()..onOpen = (_) => Completer<void>().future;
+          },
+          opener: MediaOpener(),
+        );
         unawaited(session.open(PlaybackRequest(site: 'douyu', plan: _plan([_a]), onTiming: timings.add)));
-        async.elapse(const Duration(minutes: 2));
+        async.elapse(const Duration(minutes: 3));
         expect(session.state.status, PlaybackStatus.error);
+        expect(creations, 2, reason: 'one engine replacement is allowed, not a fresh player on every retry');
         expect(timings, hasLength(2));
         expect(timings.last.error, 'source_open_timeout');
         expect(timings.last.line(), contains('route=direct engine=new result=error:source_open_timeout'));

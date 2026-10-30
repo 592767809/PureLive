@@ -16,6 +16,12 @@ final class FakeEngine implements PlayerEngine {
   /// What the next opens do; null opens and plays.
   Future<void> Function(EngineMedia media)? onOpen;
 
+  /// Optional native teardown delay/failure for lifecycle fault injection.
+  Future<void> Function()? onDispose;
+
+  /// Optional queued control operation for a busy native player.
+  Future<void> Function(double)? onVolume;
+
   @override
   bool reportsFrames = false;
 
@@ -67,7 +73,10 @@ final class FakeEngine implements PlayerEngine {
   Future<void> seek(Duration position) async => calls.add('seek ${position.inSeconds}');
 
   @override
-  Future<void> setVolume(double volume) async => calls.add('volume $volume');
+  Future<void> setVolume(double volume) async {
+    calls.add('volume $volume');
+    await onVolume?.call(volume);
+  }
 
   @override
   Future<void> setAudioOnly({required bool enabled}) async => calls.add('audioOnly $enabled');
@@ -75,6 +84,7 @@ final class FakeEngine implements PlayerEngine {
   @override
   Future<void> dispose() async {
     disposed = true;
+    await onDispose?.call();
     await _events.close();
   }
 }
