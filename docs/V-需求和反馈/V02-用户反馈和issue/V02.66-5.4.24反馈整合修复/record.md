@@ -48,3 +48,10 @@ A new, isolated API37/x86_64 generated-data AVD displayed the actual system perm
 ### 2026-10-31 Full language-parity correction
 
 The full gate for a32ed430 rejected one i18n parity test: the new LAN-refusal sentence existed only in the two base languages, while thirteen selectable languages require the same key set. All thirteen now have localized text, preserving sorted four-space JSON and existing placeholder/line-break contracts. The complete i18n suite and the real remote-settings refusal widget test pass. No failed-source installer was built or published. Permission and playback production code did not change. The failed gate and source bundle are retained separately; the corrected source gets a fresh all/14 gate and all installers.
+
+
+## 2026-10-31 全部需求统一发布与收尾
+
+[5.4.24](https://github.com/wzgrx/PureLive/releases/tag/v5.4.24)已公开；构建源码`f053ffc90e9d0a8ad4e69d72fe153c28d6f809cc`，PR#117合并`ff4ebe894549ae0e5f57cdf57f53fb1b5035562d`。九项需求全部实现，十包及校验文件经远端SHA-256、匿名下载和完整性清单逐项核对。原生证据的实际源码与覆盖边界见Y01.35/verify.md；原设备问题#33/#47/#49继续开放。
+
+旧库提交`81122a0da4b99387a307829ed3d57141a19536d2`只更新两个JSON；新鲜基线与最终数据同六项历史版本页失败，兼容与全部215条历史保留通过。D-078只适用于本版。现代同步README、任务和两个JSON后重新执行完整门禁，再合并并匿名复读双库四份更新文件。
