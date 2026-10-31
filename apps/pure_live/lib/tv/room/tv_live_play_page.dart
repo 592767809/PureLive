@@ -90,6 +90,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   AutoRoomSwitch? _autoRoomSwitch;
   StreamSubscription<PlaybackState>? _autoRoomStates;
   PlaybackSession? _session;
+  late final Future<void> _wallpaperReady;
   RoomBackgroundPolicy? _background;
   String? _problem;
   bool _controls = false;
@@ -129,7 +130,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   void initState() {
     super.initState();
     // One video at a time on a box: the video background waits (A17.8).
-    TvWallpaperVideo.hold();
+    _wallpaperReady = TvWallpaperVideo.hold();
     // Music gives the speakers to the room.
     unawaited(yieldMusicToOtherPlayback(ref));
     final arguments = widget.route.arguments;
@@ -192,7 +193,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
   void _open(LiveRoom room, {bool automatic = false}) {
     final audioOnly = automatic && (_controller?.audioOnly ?? false);
     _autoRoomSwitch?.setRoom(room, automatic: automatic);
-    _closeRoom();
+    TvWallpaperVideo.trackCleanup(_closeRoom());
     final site = ref.read(sitesProvider).maybeOf(room.platform);
     if (site == null) {
       _problem = i18n('platform_retired');
@@ -220,7 +221,11 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _background = RoomBackgroundPolicy(controller: controller, settings: store.settings)..start();
     controller.addListener(_syncAutoRoomSwitch);
     _autoRoomStates = session.states.listen((_) => _syncAutoRoomSwitch());
-    unawaited(controller.start());
+    unawaited(
+      _wallpaperReady.then((_) {
+        if (mounted && identical(_controller, controller)) unawaited(controller.start());
+      }),
+    );
   }
 
   void _syncAutoRoomSwitch() {
@@ -235,7 +240,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     );
   }
 
-  void _closeRoom() {
+  Future<void> _closeRoom() {
     _controller?.removeListener(_syncAutoRoomSwitch);
     unawaited(_autoRoomStates?.cancel());
     _autoRoomStates = null;
@@ -245,7 +250,7 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _controller = null;
     final session = _session;
     _session = null;
-    if (session != null) unawaited(session.dispose());
+    return session?.waitForResourceRelease() ?? Future<void>.value();
   }
 
   @override
@@ -256,11 +261,10 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
     _hideControls?.cancel();
     _hideBanner?.cancel();
     _debounce?.cancel();
-    _closeRoom();
+    unawaited(TvWallpaperVideo.releaseAfter(_closeRoom()));
     _keys.dispose();
     _firstControl.dispose();
     _superChatFocus.dispose();
-    TvWallpaperVideo.release();
     super.dispose();
   }
 

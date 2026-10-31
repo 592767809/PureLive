@@ -20,6 +20,63 @@ const timings = SessionTimings(
 );
 
 void main() {
+  test('A17.24: bounded disposal and confirmed resource retirement are distinct', () {
+    fakeAsync((async) {
+      final pending = Completer<void>();
+      final engine = FakeEngine()..onDispose = () => pending.future;
+      final session = PlaybackSession(engine: () async => engine, opener: MediaOpener(), timings: timings);
+      unawaited(session.open(request('a')));
+      async.flushMicrotasks();
+      var disposed = false;
+      var released = false;
+      unawaited(session.dispose().then((_) => disposed = true));
+      unawaited(session.waitForResourceRelease().then((_) => released = true));
+      async.elapse(const Duration(seconds: 2));
+      expect(disposed, isTrue);
+      expect(released, isFalse);
+      pending.complete();
+      async.flushMicrotasks();
+      expect(released, isTrue);
+    });
+  });
+
+  test('A17.24: confirmed retirement waits for a late native creation', () {
+    fakeAsync((async) {
+      final pending = Completer<PlayerEngine>();
+      final session = PlaybackSession(engine: () => pending.future, opener: MediaOpener(), timings: timings);
+      unawaited(session.open(request('a')));
+      async.flushMicrotasks();
+      var released = false;
+      unawaited(session.waitForResourceRelease().then((_) => released = true));
+      async.elapse(const Duration(seconds: 2));
+      expect(released, isFalse);
+      final late = FakeEngine();
+      pending.complete(late);
+      async.flushMicrotasks();
+      expect(late.disposed, isTrue);
+      expect(released, isTrue);
+    });
+  });
+
+  test('A17.24: failed native cleanup cannot prove resources released', () {
+    fakeAsync((async) {
+      final engine = FakeEngine()..onDispose = () async => throw StateError('controlled cleanup failure');
+      final session = PlaybackSession(engine: () async => engine, opener: MediaOpener(), timings: timings);
+      unawaited(session.open(request('a')));
+      async.flushMicrotasks();
+      Object? failure;
+      unawaited(
+        session.waitForResourceRelease().then<void>(
+          (_) {},
+          onError: (Object error) {
+            failure = error;
+          },
+        ),
+      );
+      async.elapse(const Duration(seconds: 2));
+      expect(failure, isA<StateError>());
+    });
+  });
   test('G02.13: a timed-out factory does not poison retry and its late player is retired', () {
     fakeAsync((async) {
       final pending = Completer<PlayerEngine>();

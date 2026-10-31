@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/settings/settings_dialogs.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_files.dart';
 import 'package:pure_live/tv/wallpaper/wallpaper_model.dart';
+import 'package:pure_live/tv/wallpaper/wallpaper_playback.dart';
 
 /// Sets and changes the TV background; its files in the app's support
 /// folder, `tv_wallpaper/`.
@@ -42,20 +44,53 @@ TvWallpaper watchTvWallpaper(WidgetRef ref) {
   return TvWallpaper.of(ref.read(storeProvider).settings);
 }
 
-/// Pages that decode video of their own (the live room, a video) hold the
-/// video background still while they are open (A17.8, risk: a box decodes
-/// one video at a time).
+/// Foreground video holds the optional background until its own cleanup ends.
 abstract final class TvWallpaperVideo {
   static final ValueNotifier<int> _holds = ValueNotifier(0);
+  static final Set<TvWallpaperPlayback> _players = {};
 
-  /// Whether the video background is held still.
+  /// Number of foreground video owners.
   static ValueListenable<int> get holds => _holds;
 
-  /// Holds it still until [release].
-  static void hold() => _holds.value++;
+  /// Suspends and retires all registered background sessions before playback.
+  static Future<void> hold() {
+    _holds.value++;
+    return Future.wait([for (final player in _players.toList()) player.setHeld(held: true)]);
+  }
 
-  /// Lets it play again (once every holder released it).
-  static void release() => _holds.value = (_holds.value - 1).clamp(0, 1 << 20);
+  /// A replaced room still owns resources until its asynchronous cleanup ends.
+  static void trackCleanup(Future<void> cleanup) {
+    unawaited(hold());
+    unawaited(releaseAfter(cleanup));
+  }
+
+  /// Restores the background only after the last foreground owner leaves.
+  static void release() {
+    _holds.value = (_holds.value - 1).clamp(0, 1 << 20);
+    for (final player in _players.toList()) {
+      unawaited(player.setHeld(held: _holds.value > 0));
+    }
+  }
+
+  /// Keeps decoding resources mutually exclusive during foreground shutdown.
+  static Future<void> releaseAfter(Future<void> cleanup) async {
+    try {
+      await cleanup.timeout(const Duration(seconds: 6));
+    } on Object {
+      developer.log('Foreground playback retirement unavailable', name: 'TvWallpaper');
+      // The background stays held until the original cleanup actually ends.
+      unawaited(cleanup.then((_) => release(), onError: (Object _) {}));
+      return;
+    }
+    release();
+  }
+
+  static void _register(TvWallpaperPlayback player) {
+    _players.add(player);
+    unawaited(player.setHeld(held: _holds.value > 0));
+  }
+
+  static void _unregister(TvWallpaperPlayback player) => _players.remove(player);
 }
 
 /// The TV interface's background (A17.8 h1), under every TV page: a colour,
@@ -112,25 +147,17 @@ class _VideoWallpaper extends ConsumerStatefulWidget {
 }
 
 class _VideoWallpaperState extends ConsumerState<_VideoWallpaper> {
-  late final PlaybackSession _session = ref.read(playbackSessionFactoryProvider)();
-  StreamSubscription<PlaybackState>? _states;
+  late final TvWallpaperPlayback _player;
+  PlaybackSession? _session;
+  bool _closing = false;
 
   @override
   void initState() {
     super.initState();
-    TvWallpaperVideo.holds.addListener(_holdChanged);
-    _states = _session.states.listen((state) {
-      // Loops: the end goes back to the start.
-      if (state.status == PlaybackStatus.completed) {
-        unawaited(_session.seek(Duration.zero).then((_) => _session.resume()));
-      }
-    });
-    unawaited(_open());
-  }
-
-  Future<void> _open() async {
-    await _session.open(
-      PlaybackRequest(
+    final create = ref.read(playbackSessionFactoryProvider);
+    _player = TvWallpaperPlayback(
+      createSession: create,
+      request: () => PlaybackRequest(
         site: 'wallpaper',
         volume: 0,
         plan: PlaybackPlan.of(
@@ -138,20 +165,24 @@ class _VideoWallpaperState extends ConsumerState<_VideoWallpaper> {
           onDemand: true,
         ),
       ),
+      onSessionChanged: (session) {
+        if (mounted && !_closing) setState(() => _session = session);
+      },
     );
-    if (TvWallpaperVideo.holds.value > 0) await _session.pause();
+    TvWallpaperVideo._register(_player);
   }
-
-  void _holdChanged() => unawaited(TvWallpaperVideo.holds.value > 0 ? _session.pause() : _session.resume());
 
   @override
   void dispose() {
-    TvWallpaperVideo.holds.removeListener(_holdChanged);
-    unawaited(_states?.cancel());
-    unawaited(_session.dispose());
+    _closing = true;
+    TvWallpaperVideo._unregister(_player);
+    unawaited(_player.close());
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => LiveVideoView(session: _session, fit: widget.fit);
+  Widget build(BuildContext context) => switch (_session) {
+    final session? => LiveVideoView(session: session, fit: widget.fit),
+    null => const SizedBox.expand(),
+  };
 }

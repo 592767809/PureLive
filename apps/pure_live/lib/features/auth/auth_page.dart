@@ -104,7 +104,7 @@ class AuthPage extends StatelessWidget {
       ),
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(i18n('auth_title'))),
+      appBar: settingsPageAppBar(context, title: i18n('auth_title')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [

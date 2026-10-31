@@ -14,6 +14,7 @@ import 'package:pure_live/shared/backup/backup_data.dart';
 import 'package:pure_live/shared/backup/backup_preview_dialog.dart';
 import 'package:pure_live/shared/backup/sync_parts.dart';
 import 'package:pure_live/shared/qr_scan.dart';
+import 'package:pure_live/shared/settings/settings_text_presenter.dart';
 
 /// Makes the page's sync service (tests replace it).
 final Provider<RemoteSyncService Function()> remoteSyncServiceProvider = Provider<RemoteSyncService Function()>((ref) {
@@ -415,6 +416,7 @@ class _RemoteReceiverPageState extends ConsumerState<RemoteReceiverPage> {
           // Two columns on wide windows; a phone held sideways (short)
           // keeps one (docs/specs/UI.md §5.1).
           final two =
+              !SettingsRowStyle.tvOf(context) &&
               constraints.maxWidth >= remoteSyncTwoColumns &&
               constraints.maxHeight >= windowCompactHeight - kToolbarHeight;
           final note = Padding(
@@ -552,7 +554,7 @@ class _RemoteReceiverPageState extends ConsumerState<RemoteReceiverPage> {
                 Flexible(
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: SelectableText(
+                    child: _valueText(
                       service.address,
                       key: const ValueKey('remote-sync-address'),
                       maxLines: 1,
@@ -574,7 +576,7 @@ class _RemoteReceiverPageState extends ConsumerState<RemoteReceiverPage> {
             if (service.pairingCode.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(i18n('remote_sync_pairing_code'), style: styles.t12.copyWith(color: colors.onSurfaceVariant)),
-              SelectableText(
+              _valueText(
                 service.pairingCode,
                 key: const ValueKey('remote-sync-code'),
                 // 28 by default: the app bar title size × 28 / 20.
@@ -688,6 +690,17 @@ class _RemoteReceiverPageState extends ConsumerState<RemoteReceiverPage> {
     );
   }
 
+  Future<void> _editTvAddress() async {
+    final prompt = SettingsTextPresenter.maybeOf(context)?.prompt;
+    if (prompt == null) return;
+    final value = await prompt(context, title: i18n('remote_sync_manual'), initial: _address.text, maxLength: 512);
+    if (mounted && value != null) setState(() => _address.text = value.trim());
+  }
+
+  Widget _valueText(String value, {Key? key, TextStyle? style, int? maxLines}) => SettingsRowStyle.tvOf(context)
+      ? Text(value, key: key, style: style, maxLines: maxLines)
+      : SelectableText(value, key: key, style: style, maxLines: maxLines);
+
   Widget _manual() => Padding(
     padding: const EdgeInsets.all(16),
     child: Column(
@@ -698,25 +711,44 @@ class _RemoteReceiverPageState extends ConsumerState<RemoteReceiverPage> {
           style: context.textStyles.t13.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
         const SizedBox(height: 12),
-        TextField(
-          key: const ValueKey('remote-sync-target'),
-          controller: _address,
-          focusNode: _addressFocus,
-          keyboardType: TextInputType.url,
-          decoration: InputDecoration(
-            hintText: '192.168.1.100:39888',
-            prefixIcon: const Icon(AppIcons.lanAddress),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            // The other device's QR code carries its address and pairing
-            // code (3.x scanned it).
-            suffixIcon: qrScanButton(
-              context,
-              key: const ValueKey('remote-sync-scan'),
-              hint: i18n('remote_sync_scan_other'),
-              onText: (text) => _address.text = text,
+        if (SettingsRowStyle.tvOf(context))
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _address,
+            builder: (context, value, _) => SettingsLinkRow(
+              key: const ValueKey('remote-sync-target'),
+              icon: AppIcons.lanAddress,
+              title: i18n('remote_sync_manual'),
+              value: value.text.isEmpty ? i18n('remote_sync_manual_hint') : value.text,
+              onTap: () => unawaited(_editTvAddress()),
+            ),
+          )
+        else
+          TextField(
+            key: const ValueKey('remote-sync-target'),
+            controller: _address,
+            focusNode: _addressFocus,
+            keyboardType: TextInputType.url,
+            decoration: InputDecoration(
+              hintText: '192.168.1.100:39888',
+              prefixIcon: const Icon(AppIcons.lanAddress),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              // The other device's QR code carries its address and pairing
+              // code (3.x scanned it).
+              suffixIcon: qrScanButton(
+                context,
+                key: const ValueKey('remote-sync-scan'),
+                hint: i18n('remote_sync_scan_other'),
+                onText: (text) => _address.text = text,
+              ),
             ),
           ),
-        ),
+        if (SettingsRowStyle.tvOf(context) && QrScan.available)
+          SettingsLinkRow(
+            key: const ValueKey('remote-sync-scan'),
+            icon: AppIcons.scanQr,
+            title: i18n('remote_sync_scan_other'),
+            onTap: () => unawaited(_scan()),
+          ),
         const SizedBox(height: 12),
         _buttons(
           onReceive: () {

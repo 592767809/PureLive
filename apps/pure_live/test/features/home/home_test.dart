@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,32 @@ Future<AppServices> _pump(
 }
 
 void main() {
+  testWidgets('A06.9: a mouse drags the short desktop rail scrollbar thumb', (tester) async {
+    final services = await _pump(tester, width: 1000, height: 400);
+    addTearDown(() => tester.runAsync(services.close));
+    final rail = find.byKey(const ValueKey('home-rail'));
+    final scrollable = find.descendant(of: rail, matching: find.byType(Scrollable)).first;
+    final position = tester.state<ScrollableState>(scrollable).position;
+    expect(position.maxScrollExtent, greaterThan(100));
+    final bounds = tester.getRect(rail);
+    await tester.sendEventToBinding(PointerScrollEvent(position: bounds.center, scrollDelta: const Offset(0, 30)));
+    await tester.pumpAndSettle();
+    final before = position.pixels;
+    expect(before, greaterThan(0));
+    final start = Offset(bounds.right - 4, bounds.top + 50);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: start);
+    await tester.pump(const Duration(seconds: 1));
+    await mouse.down(start);
+    await mouse.moveBy(const Offset(0, 120));
+    await mouse.up();
+    await tester.pumpAndSettle();
+    expect(position.pixels, greaterThan(before + 50), reason: 'the thumb, not the content, was dragged');
+    expect(tester.takeException(), isNull);
+    await mouse.removePointer();
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   for (final glass in [true, false]) {
     for (final menu in HomeMenu.values) {
       for (final single in [true, false]) {

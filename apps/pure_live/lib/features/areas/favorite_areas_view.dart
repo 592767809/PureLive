@@ -132,7 +132,10 @@ class _FavoriteAreasViewState extends ConsumerState<FavoriteAreasView> with Tick
             isScrollable: true,
             tabAlignment: TabAlignment.start,
             physics: const PureLiveBoundedScrollPhysics(),
-            tabs: [for (final id in _ids) TabLabel(label: label(id))],
+            tabs: [
+              for (final id in _ids)
+                TabLabel(leading: id == SiteIds.all ? null : PlatformLogo(id, size: 20), label: label(id)),
+            ],
           ),
           Expanded(
             child: TabBarView(
