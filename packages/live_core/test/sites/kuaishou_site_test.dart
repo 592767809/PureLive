@@ -266,6 +266,31 @@ void main() {
     expect(setup.http.requests.last.headers['cookie'], 'did=renewed');
   });
 
+  test('issue125 a room-specific refusal cannot sign other rooms out', () async {
+    final vault = MemoryCookieVault()..set('kuaishou', 'did=stale');
+    addTearDown(vault.dispose);
+    final refused = _synthetic(
+      _page(_live),
+      '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"errorType":{"type":31}}]}};</script>',
+    );
+    const other = 'another_public_room';
+    final setup = _setup(
+      ['S09-room-live'],
+      cookies: vault,
+      extra: [_moved('S09-room-live', _page(other))],
+      script: {
+        '/u/$_live': [refused],
+      },
+    );
+    await setup.site.getRoomDetail(roomId: _live);
+    await setup.site.getRoomDetail(roomId: other);
+    expect(
+      setup.http.requests.last.headers['cookie'],
+      'did=stale',
+      reason: 'a refusal does not prove that this login fails for every room',
+    );
+  });
+
   group('catalog', () {
     test('categories walk all eight types page by page while hasMore says so; no cookie', () async {
       // The recording stopped while types 1–4 still said hasMore: their end

@@ -875,7 +875,7 @@ void main() {
   });
 
   test('B-7: a refused cookie is said once per refusal, and not after the room closed', () async {
-    final site = _RefusingSite(liveRoom());
+    final site = _RefusingSite(liveRoom())..siteId = SiteIds.twitch;
     final controller = controllerFor(site);
     await controller.start();
     await settle();
@@ -886,6 +886,21 @@ void main() {
     await settle();
     site.refusals.add(null);
     expect(toasts.skip(before), hasLength(1), reason: 'the subscription ended with the room');
+    expect(site.refusals.hasListener, isFalse);
+  });
+
+  test('issue125 cookie refusal explains guest playback without claiming expiry', () async {
+    final site = _RefusingSite(liveRoom())..siteId = SiteIds.kuaishou;
+    final controller = controllerFor(site);
+    await controller.start();
+    await settle();
+    final before = toasts.length;
+    site.refusals.add(null);
+    expect(toasts.skip(before), ['快手拒绝了 Cookie 请求，已改为游客播放公开直播；保存的 Cookie 保持不变。']);
+    controller.dispose();
+    await settle();
+    site.refusals.add(null);
+    expect(toasts.skip(before), hasLength(1));
     expect(site.refusals.hasListener, isFalse);
   });
 

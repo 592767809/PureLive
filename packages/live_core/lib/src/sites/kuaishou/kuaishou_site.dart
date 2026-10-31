@@ -92,16 +92,18 @@ final class KuaishouSite extends LiveSite
   /// The user's cookie ('' when signed out), control characters removed.
   String _rawLogin() => (_cookies?.cookieFor(_site) ?? '').replaceAll(_controlCharacters, '').trim();
 
-  String? _rejectedCookie;
+  final Map<String, String> _guestRooms = {};
   final _refusals = StreamController<void>.broadcast(sync: true);
 
   @override
   Stream<void> get cookieRefusals => _refusals.stream;
 
-  String _login() {
+  String _login() => _rawLogin();
+
+  String _roomLogin(String id) {
     final raw = _rawLogin();
-    if (raw != _rejectedCookie) _rejectedCookie = null;
-    return raw == _rejectedCookie ? '' : raw;
+    _guestRooms.removeWhere((_, cookie) => cookie != raw);
+    return _guestRooms[id] == raw ? '' : raw;
   }
 
   /// The anonymous session's cookie header while it is younger than 30
@@ -204,7 +206,7 @@ final class KuaishouSite extends LiveSite
   /// A user cookie goes alone. Its explicit refusal may recover through the
   /// anonymous path only when that path returns a publicly playable live room;
   /// otherwise the original refusal remains authoritative. A recovered cookie
-  /// is skipped in memory until the stored value changes. Anonymous pages carry the
+  /// is skipped for this room in memory until the stored value changes. Anonymous pages carry the
   /// live session; with [ensureSession] one is made first (room entry,
   /// recording, streams), without it the page goes as it is (follow
   /// refresh). A refused or unreadable page (`RiskControl`, `ApiChanged`)
@@ -224,7 +226,7 @@ final class KuaishouSite extends LiveSite
     bool anonymous = false,
   }) async {
     final url = Uri.parse(KuaishouApi.roomPageUrl(id));
-    final login = anonymous ? '' : _login();
+    final login = anonymous ? '' : _roomLogin(id);
     if (login.isEmpty) return await _anonymousRoomPage(url, parse, ensureSession: ensureSession);
     try {
       return parse(await _get(url, _pageHeaders(login)), cookie: login, userCookie: true);
@@ -237,8 +239,9 @@ final class KuaishouSite extends LiveSite
         throw refusal;
       }
       if (!room.isLiveNow || room.restriction != LiveRestriction.none) rethrow;
-      if (_rawLogin() == login && _rejectedCookie != login) {
-        _rejectedCookie = login;
+      if (_rawLogin() == login && _guestRooms[id] != login) {
+        _guestRooms[id] = login;
+        if (_guestRooms.length > 64) _guestRooms.remove(_guestRooms.keys.first);
         _refusals.add(null);
       }
       return room;
