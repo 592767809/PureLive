@@ -34,6 +34,7 @@ final class TvWallpaperPlayback {
   bool _disabled = false;
   int _revision = 0;
   Future<void>? _pending;
+  Future<void>? _retirement;
 
   /// The view's current owner; null while held or releasing.
   PlaybackSession? get session => _session;
@@ -51,6 +52,13 @@ final class TvWallpaperPlayback {
     _held = true;
     _revision++;
     return _synchronize();
+  }
+
+  /// Retires an unmounted view while retaining its actual native ownership.
+  /// The layer bounds foreground waits but keeps replacements held until done.
+  Future<void> waitForResourceRelease() async {
+    await close();
+    if (_retirement case final cleanup?) await cleanup;
   }
 
   Future<void> _synchronize() {
@@ -86,14 +94,12 @@ final class TvWallpaperPlayback {
       _states?.cancel().ignore();
       _states = null;
       _notify(null);
-      Future<void> retire() async {
-        // Detaching the owner already fences callbacks. Listener cancellation
-        // must never delay releasing a scarce native decoder.
-        await previous.waitForResourceRelease();
-      }
-
+      // Detaching fences callbacks; native release must not wait for listeners.
+      final retirement = previous.waitForResourceRelease();
+      _retirement = retirement;
       try {
-        await retire().timeout(releaseTimeout);
+        await retirement.timeout(releaseTimeout);
+        if (identical(_retirement, retirement)) _retirement = null;
       } on Object {
         // Do not create more native players if cleanup cannot prove retirement.
         _disabled = true;

@@ -173,6 +173,27 @@ void main() {
     await player.close();
   });
 
+  test('unmounted resource wait survives bounded close grace until actual release', () async {
+    final engine = _Engine();
+    final player = TvWallpaperPlayback(
+      createSession: () => PlaybackSession(engine: () async => engine, opener: MediaOpener()),
+      request: _request,
+      onSessionChanged: (_) {},
+      releaseTimeout: const Duration(seconds: 1),
+    );
+    await player.setHeld(held: false);
+    await _settle();
+    engine.disposeGate = Completer<void>();
+    var released = false;
+    final retiring = player.waitForResourceRelease().then((_) => released = true);
+    await Future<void>.delayed(const Duration(seconds: 2));
+    expect(released, isFalse);
+    expect(player.session, isNull);
+    engine.disposeGate!.complete();
+    await retiring;
+    expect(engine.disposed, isTrue);
+  });
+
   testWidgets('an older replaced room keeps the background held after its page exits', (tester) async {
     unawaited(TvWallpaperVideo.hold());
     await tester.pump();

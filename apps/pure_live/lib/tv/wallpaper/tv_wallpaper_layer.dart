@@ -48,6 +48,7 @@ TvWallpaper watchTvWallpaper(WidgetRef ref) {
 abstract final class TvWallpaperVideo {
   static final ValueNotifier<int> _holds = ValueNotifier(0);
   static final Set<TvWallpaperPlayback> _players = {};
+  static final Set<Future<void>> _retiringWallpapers = {};
 
   /// Number of foreground video owners.
   static ValueListenable<int> get holds => _holds;
@@ -55,7 +56,10 @@ abstract final class TvWallpaperVideo {
   /// Suspends and retires all registered background sessions before playback.
   static Future<void> hold() {
     _holds.value++;
-    return Future.wait([for (final player in _players.toList()) player.setHeld(held: true)]);
+    return Future.wait([
+      for (final player in _players.toList()) player.setHeld(held: true),
+      for (final cleanup in _retiringWallpapers.toList()) _waitForBackgroundCleanup(cleanup),
+    ]);
   }
 
   /// A replaced room still owns resources until its asynchronous cleanup ends.
@@ -87,10 +91,41 @@ abstract final class TvWallpaperVideo {
 
   static void _register(TvWallpaperPlayback player) {
     _players.add(player);
-    unawaited(player.setHeld(held: _holds.value > 0));
+    // Flutter mounts a replacement before disposing the old keyed view.
+    // Apply visibility after finalizing that tree, when retirement is tracked.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_players.contains(player)) unawaited(player.setHeld(held: _holds.value > 0));
+    });
   }
 
-  static void _unregister(TvWallpaperPlayback player) => _players.remove(player);
+  static void _unregister(TvWallpaperPlayback player) {
+    _players.remove(player);
+    // A view leaving the tree does not prove its native decoder is gone.
+    unawaited(hold());
+    final cleanup = player.waitForResourceRelease();
+    _retiringWallpapers.add(cleanup);
+    unawaited(
+      cleanup.then(
+        (_) {
+          _retiringWallpapers.remove(cleanup);
+          release();
+        },
+        onError: (Object _) {
+          _retiringWallpapers.remove(cleanup);
+          // Keep cosmetics held when actual release cannot be established.
+          developer.log('Unmounted wallpaper retirement unavailable', name: 'TvWallpaper');
+        },
+      ),
+    );
+  }
+
+  static Future<void> _waitForBackgroundCleanup(Future<void> cleanup) async {
+    try {
+      await cleanup.timeout(const Duration(seconds: 6));
+    } on Object {
+      developer.log('Unmounted wallpaper startup barrier unavailable', name: 'TvWallpaper');
+    }
+  }
 }
 
 /// The TV interface's background (A17.8 h1), under every TV page: a colour,
@@ -176,7 +211,6 @@ class _VideoWallpaperState extends ConsumerState<_VideoWallpaper> {
   void dispose() {
     _closing = true;
     TvWallpaperVideo._unregister(_player);
-    unawaited(_player.close());
     super.dispose();
   }
 
