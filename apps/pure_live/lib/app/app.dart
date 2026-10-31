@@ -26,6 +26,7 @@ import 'package:pure_live/features/favorite/favorite_controller.dart';
 import 'package:pure_live/features/home/home_menu.dart';
 import 'package:pure_live/features/live_play/mini/floating_window.dart';
 import 'package:pure_live/features/live_play/switch_room/room_switch_panel.dart';
+import 'package:pure_live/features/remote_receiver/screen_mirror_page.dart';
 import 'package:pure_live/features/splash/splash_page.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/platform_services.dart';
@@ -109,7 +110,9 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
     // 3.x started the follow check, the login check and the exit timer with
     // its services; here once the first frame is up.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) ref.read(appStartupProvider).start();
+      if (!mounted) return;
+      ref.read(appStartupProvider).start();
+      unawaited(TvDevice.detect());
     });
     _stopHomeWatch = _watchHome(_router);
   }
@@ -177,6 +180,11 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
 
   @override
   void didHaveMemoryPressure() => releaseImageMemory();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) unawaited(TvDevice.detect());
+  }
 
   GoRouter _buildRouter({required bool tv}) {
     final location = splashInitialLocation(ref.read(appServicesProvider).store.settings);
@@ -313,6 +321,7 @@ class _PureLiveAppState extends ConsumerState<PureLiveApp> with WidgetsBindingOb
                   children: [
                     child ?? const SizedBox.shrink(),
                     if (!tv) const Positioned.fill(child: FloatingRoomLayer()),
+                    const Positioned.fill(child: ScreenCaptureIndicator()),
                   ],
                 ),
               ),

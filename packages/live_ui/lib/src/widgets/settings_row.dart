@@ -914,13 +914,18 @@ class SettingsSliderRow extends StatelessWidget {
                 ),
               ),
             ),
-          Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            divisions: divisions,
-            onChanged: enabled ? onChanged : null,
-            onChangeEnd: enabled ? onChangeEnd : null,
+          // Settings form a vertical list on every device. Keep Up/Down
+          // for navigation; Left/Right still adjust this horizontal value.
+          MediaQuery(
+            data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: enabled ? onChanged : null,
+              onChangeEnd: enabled ? onChangeEnd : null,
+            ),
           ),
         ],
       ),

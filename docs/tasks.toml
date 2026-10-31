@@ -7342,10 +7342,11 @@ tier = 3
 from = "https://github.com/wzgrx/PureLive/issues/126"
 stages = ["现状与权限边界", "行为和协议设计", "实现与各端验收"]
 done = 1
-next = "设计应用级导航目标与单独的辅助采集授权；本轮只完成评估并公开说明，尚未交付，不关闭126。"
+next = "A16.6、N02.2已实现应用遥控、逐次本机授权的画面共享、浏览器本地截图/录屏导出；接V02.68做最终同源候选的跨端原生验证与发布后收尾。"
 date = "2026-10-31"
 note = "全设备遥控不纳入直播应用；应用导航、界面采集和媒体投放是不同能力。Android屏幕采集逐次本机授权，不能用现有配对代替。"
 
+to = ["A16.6", "N02.2"]
 [[task]]
 id = "V01.22"
 title = "常驻时间与播放速率显示"
@@ -7356,6 +7357,188 @@ tier = 2
 from = "https://github.com/wzgrx/PureLive/issues/128"
 stages = ["现状与数据语义核对", "共享信息层和设置方案", "实现及各端验收"]
 done = 1
-next = "设计共享信息层与统计采样生命周期；本轮仅评估并回复，未交付，不关闭128。"
+next = "A07.36已实现共享信息层及设置，原生受控手机验证已有画面、真实流速与设置持久化；接V02.68继续最终同源候选的桌面电视验证和发布。"
 date = "2026-10-31"
 note = "当前媒体下载速率不等于设备总网速；未知值不伪装为零。"
+
+to = ["A07.36"]
+[[task]]
+id = "V02.68"
+title = "完整交付应用遥控采集镜像和信息层"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户2026-10-31全部需求开发后再发布；GitHub #126、#128"
+stages = ["实现信息层", "实现应用遥控", "实现采集镜像和本地导出", "跨端验证与完整发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A07.36"
+title = "常驻时间与播放速率信息层"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+from = "用户2026-10-31全部需求开发后再发布；GitHub #126、#128"
+stages = ["共用信息层与设置", "手机桌面电视集成", "布局导航与原生验证"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A16.6"
+title = "应用级局域网遥控"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户2026-10-31全部需求开发后再发布；GitHub #126、#128"
+stages = ["导航焦点与文本输入", "模态和过期页面隔离", "原生交互验证"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "N02.2"
+title = "局域网屏幕采集镜像与导出"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户2026-10-31全部需求开发后再发布；GitHub #126、#128"
+stages = ["系统采集和配对信令", "截图录屏本地下载", "镜像接收与退出恢复", "生命周期与跨端验证"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "V02.69"
+title = "玻璃底栏遮挡关注分区入口"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/130；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A06.10"
+title = "分区浮动按钮避让玻璃底栏"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/130；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "V02.70"
+title = "电视自动模式异常与导航受困"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/131；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A17.26"
+title = "电视设备识别与导航恢复"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/131；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "V02.71"
+title = "版本更新弹窗缺失初始焦点"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/132；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A17.27"
+title = "版本弹窗默认焦点和状态切换"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/132；用户要求新issue一起解决后再发布"
+stages = ["复现与根因", "修复和反证测试", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "V02.72"
+title = "桌面六个设置栏目的对齐一致性"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/133；用户要求新issue一起解决后再发布"
+stages = ["截图与反例", "共享布局和实现", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "A16.7"
+title = "独立设置页面统一面板布局"
+type = "界面"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/133；用户要求新issue一起解决后再发布"
+stages = ["截图与反例", "共享布局和实现", "各端回归及发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "V02.73"
+title = "开机窗口尺寸与恢复状态冲突"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/134；用户要求新issue一起完成后发布"
+stages = ["根因与反例", "策略与持久化实现", "原生重启回归与发布"]
+done = 0
+branch = "ai/V02.68"
+to = ["A16.8"]
+
+[[task]]
+id = "A16.8"
+title = "启动窗口尺寸策略与独立几何记忆"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/134；用户要求新issue一起完成后发布"
+stages = ["根因与反例", "策略与持久化实现", "原生重启回归与发布"]
+done = 0
+branch = "ai/V02.68"
+
+[[task]]
+id = "Y01.39"
+title = "5.5.0全需求与新反馈完整发布"
+type = "发布"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户要求全部需求和新issue完成后再更新；沿用自主维护和发布授权"
+stages = ["源码审查与完整门禁", "同源十包和原生验收", "公开包与双仓库更新", "反馈PR和分支收尾"]
+done = 0
+branch = "ai/V02.68"

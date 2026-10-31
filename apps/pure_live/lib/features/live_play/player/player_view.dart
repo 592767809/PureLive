@@ -38,6 +38,7 @@ import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
 import 'package:pure_live/shared/danmaku/danmaku_settings.dart';
 import 'package:pure_live/shared/danmaku/danmaku_templates.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/rooms/playback_hud.dart';
 
 export 'package:pure_live/features/live_play/dialogs/player_dialogs.dart' show videoFits;
 
@@ -958,6 +959,7 @@ class _RoomPlayerState extends ConsumerState<RoomPlayer> {
             ],
           ),
         ),
+        if (!pip) PlaybackHud(telemetry: _room.telemetry, controls: _controls && !_locked, clearance: _giftClearance()),
         // U.2k c9: the local gift banner, on its own layer in the middle of
         // the picture, clear of the bars (D08.4).
         if (LocalRoomScope.maybeOf(context) case final local?)

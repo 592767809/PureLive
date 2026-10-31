@@ -568,7 +568,7 @@ class WindowSizeTile extends ConsumerWidget {
       key: entry.rowKey,
       icon: AppIcons.settingsWindowSize,
       title: entry.titleText,
-      subtitle: entry.descriptionText,
+      subtitle: i18n('window_size_policy_desc'),
       value: '$width × $height',
       onTap: () async {
         final size = await showAppDialog<Size>(
@@ -579,6 +579,7 @@ class WindowSizeTile extends ConsumerWidget {
         await ref.read(storeProvider).settings.setAll({
           Settings.windowWidth: size.width,
           Settings.windowHeight: size.height,
+          Settings.rememberWindowGeometry: false,
         });
         // The window takes the size at once (3.x), not only next start.
         final shell = DesktopShell.current;

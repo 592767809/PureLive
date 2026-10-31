@@ -6,11 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/shared/qr_scan.dart';
 import 'package:pure_live/shared/remote/playback_remote.dart';
 import 'package:pure_live/shared/remote/remote_access.dart';
 import 'package:pure_live/shared/remote/remote_client.dart';
+import 'package:pure_live/shared/remote/screen_share.dart';
 
 /// LAN browser/app pairing, link pushes and playback control on every layout.
 class PlaybackRemotePage extends ConsumerStatefulWidget {
@@ -31,6 +33,8 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
   final _address = TextEditingController();
   final _code = TextEditingController();
   final _link = TextEditingController();
+  final _text = TextEditingController();
+  late final ScreenShare _share;
   PlaybackRemoteClient? _client;
   late final PlaybackRemote _receiver;
   List<RemoteControlPeer> _peers = const [];
@@ -45,6 +49,14 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
   void initState() {
     super.initState();
     _receiver = ref.read(appServicesProvider).remoteControl;
+    _share = ref.read(appServicesProvider).screenShare;
+    _share.addListener(_changed);
+    final outgoing = _share.outgoingOwner;
+    if (outgoing is PlaybackRemoteClient && outgoing.paired) {
+      _client = outgoing;
+      _address.text = outgoing.uri.toString();
+      unawaited(_poll());
+    }
     _receiver.addListener(_changed);
     _timer = Timer.periodic(const Duration(seconds: 2), (_) => unawaited(_poll()));
   }
@@ -56,12 +68,16 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
   @override
   void dispose() {
     _receiver.removeListener(_changed);
+    _share.removeListener(_changed);
     _timer?.cancel();
     final client = _client;
-    if (client != null) unawaited(client.disconnect().catchError((Object _) {}));
+    if (client != null && !identical(_share.outgoingOwner, client)) {
+      unawaited(client.disconnect().catchError((Object _) {}));
+    }
     _address.dispose();
     _code.dispose();
     _link.dispose();
+    _text.dispose();
     super.dispose();
   }
 
@@ -86,7 +102,19 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
     _polling = true;
     try {
       final status = await client.status();
-      if (mounted && identical(client, _client)) setState(() => _status = status);
+      if (mounted && identical(client, _client)) {
+        setState(() {
+          final old = _status?['state'];
+          final next = status['state'];
+          if (old is! Map ||
+              next is! Map ||
+              old['inputId'] != next['inputId'] ||
+              old['secretInput'] != next['secretInput']) {
+            _text.clear();
+          }
+          _status = status;
+        });
+      }
     } on Object {
       if (mounted && identical(client, _client)) {
         setState(() {
@@ -107,15 +135,22 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
       await client.pair(_code.text.trim());
       final status = await client.status();
       if (!mounted) {
-        client.close();
+        await client.disconnect();
         return;
       }
-      _client?.close();
+      final previous = _client;
+      if (previous != null) {
+        if (identical(_share.outgoingOwner, previous)) {
+          await _share.stop();
+        } else {
+          await previous.disconnect();
+        }
+      }
       _client = client;
       _status = status;
       _code.clear();
     } on Object {
-      client.close();
+      await client.disconnect().catchError((Object _) {});
       rethrow;
     }
   });
@@ -143,12 +178,8 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
     final volume = fields['volume'];
     final selectedVolume = _dragVolume ?? (volume is num ? volume.toDouble().clamp(0.0, 1.0) : 0.5);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(i18n('remote_control_title')),
-        leading: widget.onBack == null ? null : BackButton(onPressed: widget.onBack),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      appBar: settingsPageAppBar(context, title: i18n('remote_control_title'), onBack: widget.onBack),
+      body: SettingsPageList(
         children: [
           Text(i18n('remote_control_receive'), style: Theme.of(context).textTheme.titleLarge),
           SwitchListTile(
@@ -185,6 +216,25 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
               Text(i18n('remote_control_no_lan')),
             Text(i18n('remote_control_sessions', args: {'count': '${_receiver.pairedCount}'})),
             TextButton(onPressed: _receiver.revoke, child: Text(i18n('remote_control_revoke'))),
+            const SizedBox(height: 16),
+            Text(i18n('screen_share_title'), style: Theme.of(context).textTheme.titleLarge),
+            Text(i18n('screen_share_local_consent')),
+            SwitchListTile(
+              key: const ValueKey('screen-share-receive'),
+              title: Text(i18n('screen_share_allow_receive')),
+              subtitle: Text(i18n('screen_share_restore')),
+              value: _share.receiveAllowed,
+              onChanged: _busy || _share.capturing
+                  ? null
+                  : (value) => unawaited(_run(() => _share.allowReceive(enabled: value))),
+            ),
+            FilledButton(
+              key: const ValueKey('screen-share-capture'),
+              onPressed: _busy ? null : () => unawaited(_run(_share.capturing ? _share.stop : _share.startCapture)),
+              child: Text(i18n(_share.capturing ? 'screen_share_stop' : 'screen_share_enable_capture')),
+            ),
+            Text(i18n('screen_share_video_only')),
+            if (Theme.of(context).platform == TargetPlatform.iOS) Text(i18n('screen_share_ios_scope')),
           ],
           const Divider(height: 32),
           Text(i18n('remote_control_send_title'), style: Theme.of(context).textTheme.titleLarge),
@@ -261,6 +311,7 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
                   ('fullscreen', i18n('fullscreen')),
                   ('danmaku', i18n('danmaku')),
                   ('back', i18n('back')),
+                  ('home', i18n('home')),
                 ])
                   OutlinedButton(
                     onPressed: !_busy && available.contains(command) ? () => unawaited(_command(command)) : null,
@@ -275,6 +326,54 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
                 setState(() => _dragVolume = null);
                 unawaited(_command('volume', value: value));
               },
+            ),
+
+            TextField(
+              key: const ValueKey('remote-control-text'),
+              controller: _text,
+              enabled: fields['inputId'] is int,
+              obscureText: fields['secretInput'] == true,
+              maxLength: 4096,
+              decoration: InputDecoration(labelText: i18n('remote_control_text_hint')),
+            ),
+            FilledButton(
+              key: const ValueKey('remote-control-type'),
+              onPressed: _busy || fields['inputId'] is! int
+                  ? null
+                  : () => unawaited(
+                      _run(() async {
+                        final id = _status?['targetId'];
+                        if (id is! String) return;
+                        await _client!.insertText(id, fields['inputId']! as int, _text.text);
+                        if (mounted) _text.clear();
+                        _status = await _client!.status();
+                      }),
+                    ),
+              child: Text(i18n('remote_control_text')),
+            ),
+            const SizedBox(height: 16),
+            Text(i18n('screen_share_send_hint')),
+            FilledButton(
+              key: const ValueKey('screen-share-send'),
+              onPressed: _busy || _share.connected
+                  ? null
+                  : () => unawaited(
+                      _run(() async {
+                        final client = _client!;
+                        final status = await client.status();
+                        final screen = status['screen'];
+                        if (screen is! Map || screen['receiveAllowed'] != true) {
+                          throw StateError('mirror receiver not armed');
+                        }
+                        await _share.sendTo(client.screen, clientOwner: client, closeClient: client.disconnect);
+                      }),
+                    ),
+              child: Text(i18n('screen_share_send')),
+            ),
+            OutlinedButton(
+              key: const ValueKey('screen-share-browser'),
+              onPressed: () => unawaited(AppNavigator.openExternal(_client!.uri)),
+              child: Text(i18n('screen_share_browser')),
             ),
             TextField(
               key: const ValueKey('remote-control-link'),
@@ -298,7 +397,11 @@ class _PlaybackRemotePageState extends ConsumerState<PlaybackRemotePage> {
                   ? null
                   : () => unawaited(
                       _run(() async {
-                        await _client!.disconnect();
+                        if (identical(_share.outgoingOwner, _client)) {
+                          await _share.stop();
+                        } else {
+                          await _client!.disconnect();
+                        }
                         _client = null;
                         _status = null;
                       }),

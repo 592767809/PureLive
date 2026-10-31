@@ -38,17 +38,18 @@ class LocalInteractionSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final interaction = ref.watch(localInteractionProvider);
+    final embedded = SettingsPane.of(context);
     return Scaffold(
       appBar: settingsPageAppBar(context, onBack: onBack, title: i18n('local_interaction_settings')),
       body: ListenableBuilder(
         listenable: interaction,
         builder: (context, _) => ListView(
           key: const ValueKey('local-settings-list'),
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: EdgeInsets.fromLTRB(embedded ? 24 : 16, embedded ? 0 : 12, embedded ? 24 : 16, 32),
           children: [
             for (final child in _groups(context, interaction))
               Align(
-                alignment: Alignment.topCenter,
+                alignment: embedded ? AlignmentDirectional.topStart : Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _contentMaxWidth),
                   child: SizedBox(width: double.infinity, child: child),

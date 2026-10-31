@@ -11,6 +11,8 @@ import 'package:pure_live/features/settings/settings_section_view.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 
+export 'package:live_ui/live_ui.dart' show SettingsPane;
+
 /// Stores [value] for [setting] (written in the background; the row
 /// updates through the store's change stream).
 void writeSetting<T extends Object>(WidgetRef ref, Setting<T> setting, T value) =>
@@ -685,31 +687,7 @@ class SettingsPageBody extends StatelessWidget {
   final bool start;
 
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    controller: controller,
-    physics: const PureLiveScrollPhysics(),
-    padding: EdgeInsets.fromLTRB(start ? 24 : 16, 0, start ? 24 : 16, 32),
-    child: Align(
-      alignment: start ? Alignment.topLeft : Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
-      ),
-    ),
-  );
-}
-
-/// Shows a page's title as the right pane's heading: the pages read it to
-/// lay out their body at the start (U.6a c9).
-class SettingsPane extends InheritedWidget {
-  /// Marks [child] as inside the right pane.
-  const new({required super.child, super.key});
-
-  /// Whether [context] is inside the wide layout's right pane.
-  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<SettingsPane>() != null;
-
-  @override
-  bool updateShouldNotify(SettingsPane oldWidget) => false;
+  Widget build(BuildContext context) => SettingsPageList(controller: controller, start: start, children: children);
 }
 
 /// The words of the counter buttons.

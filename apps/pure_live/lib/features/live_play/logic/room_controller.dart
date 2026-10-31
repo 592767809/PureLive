@@ -21,6 +21,7 @@ import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/danmaku/gift_flights.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
 import 'package:pure_live/shared/rooms/playback_diagnostics.dart';
+import 'package:pure_live/shared/rooms/playback_telemetry.dart';
 import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
@@ -122,6 +123,18 @@ class LiveRoomController extends ChangeNotifier {
 
   /// The player; the page owns it and disposes it after this controller.
   final PlaybackSession session;
+
+  PlaybackTelemetry? _telemetry;
+
+  /// One lazily polled source for the HUD and the playback information panel.
+  PlaybackTelemetry get telemetry => _telemetry ??= PlaybackTelemetry(
+    identity: () => (session.engine, session.state.source, session.state.line),
+    read: () async {
+      final engine = session.engine;
+      if (engine case final PlaybackStatsSource source) return await source.readStats();
+      return null;
+    },
+  );
 
   /// The danmaku connection of [site].
   final DanmakuConnection danmaku;
@@ -1573,6 +1586,7 @@ class LiveRoomController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _telemetry?.dispose();
     _epoch++;
     _refreshTimer?.cancel();
     _superChatTimer?.cancel();

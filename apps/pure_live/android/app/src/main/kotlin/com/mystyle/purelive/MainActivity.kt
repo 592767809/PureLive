@@ -31,6 +31,7 @@ import android.provider.Settings
 import android.text.InputType
 import android.util.Rational
 import android.util.TypedValue
+import android.view.KeyEvent
 import android.view.Display
 import android.view.Surface
 import android.view.SurfaceView
@@ -98,6 +99,10 @@ import java.util.concurrent.atomic.AtomicBoolean
  *   bars (3.x used battery_plus).
  */
 class MainActivity : AudioServiceActivity() {
+    private var remoteInputId: Long? = null
+    private var remoteInputEditor: EditText? = null
+    private var remoteInputDialog: AlertDialog? = null
+
     companion object {
         private const val DISPLAY_MODE_CHANNEL = "pure_live/display_mode"
         private const val BACKGROUND_PLAYBACK_CHANNEL = "pure_live/background_playback"
@@ -239,6 +244,9 @@ class MainActivity : AudioServiceActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        if (!flutterEngine.plugins.has(ScreenCapturePlugin::class.java)) {
+            flutterEngine.plugins.add(ScreenCapturePlugin())
+        }
         FloatingOverlay.attach(this, flutterEngine)
         if (!flutterEngine.plugins.has(AppChannelsPlugin::class.java)) {
             flutterEngine.plugins.add(AppChannelsPlugin())
@@ -333,8 +341,42 @@ class MainActivity : AudioServiceActivity() {
                     call.argument<String>("title") ?: "",
                     call.argument<String>("hint") ?: "",
                     call.argument<String>("text") ?: "",
+                    call.argument<Number>("remoteInputId")?.toLong(),
                     result,
                 )
+                "remoteInputText", "remoteInputCommand" -> {
+                    val dialog = remoteInputDialog
+                    val id = call.argument<Number>("id")?.toLong()
+                    if (dialog == null || !dialog.isShowing || id == null || id != remoteInputId ||
+                        dialog.window?.decorView?.hasWindowFocus() != true) {
+                        result.success(false)
+                    } else if (call.method == "remoteInputText") {
+                        val value = call.argument<String>("text")
+                        if (value == null || value.length > 4096) result.success(false)
+                        else {
+                            remoteInputEditor?.setText(value)
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.performClick()
+                            result.success(true)
+                        }
+                    } else {
+                        val command = call.argument<String>("command")
+                        val code = when (command) {
+                            "up" -> KeyEvent.KEYCODE_DPAD_UP
+                            "down" -> KeyEvent.KEYCODE_DPAD_DOWN
+                            "left" -> KeyEvent.KEYCODE_DPAD_LEFT
+                            "right" -> KeyEvent.KEYCODE_DPAD_RIGHT
+                            "ok" -> KeyEvent.KEYCODE_DPAD_CENTER
+                            "back" -> KeyEvent.KEYCODE_BACK
+                            else -> null
+                        }
+                        if (code == null) result.success(false)
+                        else {
+                            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code))
+                            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
+                            result.success(true)
+                        }
+                    }
+                }
 
                 else -> result.notImplemented()
             }
@@ -427,22 +469,36 @@ class MainActivity : AudioServiceActivity() {
         return if (level in 0..100) level else null
     }
 
-    /** A television: the TV UI mode, or a device with the leanback feature (Android TV, Google TV, most boxes). */
+    /** Device features survive UI-mode transitions during cold boot/wake. */
     private fun isTelevision(): Boolean {
+        val device = getSharedPreferences("pure_live_device", Context.MODE_PRIVATE)
+        if (device.getBoolean("confirmedTelevision", false)) return true
         val uiModeManager = getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
-        if (uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) return true
-        return packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        @Suppress("DEPRECATION")
+        val television = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+            packageManager.hasSystemFeature(PackageManager.FEATURE_TELEVISION) ||
+            (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION ||
+            uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        // Only positive hardware/system evidence is remembered. Choosing the
+        // TV interface manually never writes this device cache.
+        if (television) device.edit().putBoolean("confirmedTelevision", true).apply()
+        return television
     }
 
     /**
      * One line of text from the system keyboard: [text] to edit, null when
      * cancelled. Done or search on the keyboard confirms, like OK.
      */
-    private fun showTextInput(title: String, hint: String, text: String, result: MethodChannel.Result) {
+    private fun showTextInput(title: String, hint: String, text: String, inputId: Long?, result: MethodChannel.Result) {
         var answered = false
         fun answer(value: String?) {
             if (answered) return
             answered = true
+            if (remoteInputId == inputId) {
+                remoteInputId = null
+                remoteInputEditor = null
+                remoteInputDialog = null
+            }
             result.success(value)
         }
         val input = EditText(this).apply {
@@ -464,6 +520,9 @@ class MainActivity : AudioServiceActivity() {
             .setPositiveButton(android.R.string.ok) { _, _ -> answer(input.text.toString()) }
             .setNegativeButton(android.R.string.cancel) { _, _ -> answer(null) }
             .create()
+        remoteInputId = inputId
+        remoteInputEditor = input
+        remoteInputDialog = dialog
         dialog.setOnDismissListener { answer(null) }
         input.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH ||

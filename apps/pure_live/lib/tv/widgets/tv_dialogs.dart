@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/remote/native_remote_input.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
 import 'package:pure_live/tv/widgets/tv_focusable.dart';
@@ -425,8 +426,6 @@ abstract final class TvTextInput {
     );
   }
 
-  static const MethodChannel _channel = MethodChannel('pure_live/app');
-
   static Future<String?> _native(
     BuildContext context, {
     required String title,
@@ -434,7 +433,7 @@ abstract final class TvTextInput {
     required String text,
   }) async {
     try {
-      return await _channel.invokeMethod<String>('inputText', {'title': title, 'hint': hint, 'text': text});
+      return await NativeRemoteInput.prompt({'title': title, 'hint': hint, 'text': text});
     } on MissingPluginException {
       return context.mounted ? await showTvInput(context, title: title, hint: hint, text: text) : null;
     } on PlatformException {

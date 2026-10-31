@@ -73,6 +73,17 @@ final class PlaybackRemoteClient {
     await _request('link', {'text': text});
   }
 
+  /// Fixed screen signaling; pixels flow peer-to-peer and are not HTTP uploads.
+  Future<Map<String, dynamic>> screen(String action, Map<String, Object?> data) {
+    if (!{'view', 'answer', 'push', 'stop'}.contains(action)) throw const FormatException('invalid screen action');
+    return _request('screen/$action', data);
+  }
+
+  /// Writes only to the exact focused input reported by the receiving app.
+  Future<void> insertText(String target, int inputId, String text) async {
+    await _request('text', {'targetId': target, 'inputId': inputId, 'text': text});
+  }
+
   Future<Map<String, dynamic>> _request(String path, [Map<String, Object?>? body]) async {
     if (_closed || remoteControlUri(uri.toString()) == null) throw const SocketException('invalid receiver');
     final request = await _http.openUrl(body == null ? 'GET' : 'POST', uri.resolve('/api/$path'));
@@ -82,11 +93,13 @@ final class PlaybackRemoteClient {
       request.headers.contentType = ContentType.json;
       request.write(jsonEncode(body));
     }
-    final response = await request.close().timeout(const Duration(seconds: 15));
+    final response = await request.close().timeout(Duration(seconds: path.startsWith('screen/') ? 30 : 15));
     final bytes = <int>[];
     await for (final chunk in response.timeout(const Duration(seconds: 5))) {
       bytes.addAll(chunk);
-      if (bytes.length > 32768) throw const FormatException('oversized response');
+      if (bytes.length > (path.startsWith('screen/') ? 65536 : 32768)) {
+        throw const FormatException('oversized response');
+      }
     }
     if (response.statusCode == HttpStatus.unauthorized) _token = null;
     if (response.statusCode != HttpStatus.ok) throw HttpException('Remote ${response.statusCode}');

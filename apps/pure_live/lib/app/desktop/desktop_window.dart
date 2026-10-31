@@ -311,12 +311,10 @@ final class DesktopShell with WindowListener {
     // Never larger than the screen's work area (a size kept from a bigger
     // display, or the default on a small one, put the window's left part
     // off the screen on the Mac runner).
-    final size = fitWindowSize(
-      Size(_prefs.get(Settings.windowWidth), _prefs.get(Settings.windowHeight)),
-      await _workArea(),
-    );
+    final geometry = await startupWindowGeometry(_store, primary: primary);
+    final size = fitWindowSize(geometry.size, await _workArea());
     final position = primary ? parseWindowPosition(await _store.meta.get(windowPositionKey)) : null;
-    final maximize = primary && await _store.meta.get(windowMaximizedKey) == '1';
+    final maximize = geometry.maximized;
     final options = WindowOptions(
       size: size,
       minimumSize: minimumSize,
@@ -621,10 +619,7 @@ final class DesktopShell with WindowListener {
         return;
       }
       final bounds = await windowManager.getBounds();
-      await _prefs.setAll({
-        Settings.windowWidth: bounds.width.clamp(minimumSize.width, 16384).toDouble(),
-        Settings.windowHeight: bounds.height.clamp(minimumSize.height, 16384).toDouble(),
-      });
+      await rememberNormalWindowSize(_store, bounds.size);
       await _store.meta.set(windowPositionKey, formatWindowPosition(bounds.topLeft));
     } on Object catch (error, stack) {
       log('Saving the window failed', name: 'Desktop', error: error, stackTrace: stack);

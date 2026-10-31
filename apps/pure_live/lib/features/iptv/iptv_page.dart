@@ -542,6 +542,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
     final overview = state.value;
     final syncAll = _syncAll;
     final tv = SettingsRowStyle.tvOf(context);
+    final embedded = SettingsPane.of(context);
     return Scaffold(
       appBar: settingsPageAppBar(
         context,
@@ -577,7 +578,7 @@ class _IptvPageState extends ConsumerState<IptvPage> {
                 : ListView(
                     key: const ValueKey('iptv-scroll'),
                     physics: const PureLiveScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    padding: EdgeInsets.fromLTRB(embedded ? 24 : 16, embedded ? 0 : 12, embedded ? 24 : 16, 28),
                     children: [
                       for (final child in [
                         ..._enableNotice(),

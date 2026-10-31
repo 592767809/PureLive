@@ -14,6 +14,7 @@ import 'package:pure_live/features/settings/settings_catalog.dart';
 import 'package:pure_live/features/settings/settings_editors.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/rooms/playback_hud_config.dart';
 import 'package:pure_live/shared/rooms/room_texts.dart';
 
 /// One way the app builds keys: `template` is the string literal in `lib/`
@@ -46,6 +47,14 @@ List<RuntimeKeyRule> runtimeKeyRules() {
       if (key(pack) != generic) key(pack),
   };
   return [
+    (
+      template: 'playback_hud_*',
+      keys: [
+        for (final value in {...PlaybackHudConfig.modes, ...PlaybackHudConfig.fonts, ...PlaybackHudConfig.corners.keys})
+          'playback_hud_$value',
+      ],
+      optional: false,
+    ),
     // features/backup/log_page.dart
     (
       template: 'settings_log_level_*',

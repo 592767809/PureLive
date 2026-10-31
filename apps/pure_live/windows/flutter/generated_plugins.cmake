@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   ffmpeg_kit_extended_flutter
   flutter_inappwebview_windows
+  flutter_webrtc
   media_kit_video
   share_plus
   url_launcher_windows

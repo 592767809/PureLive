@@ -41,10 +41,13 @@ DanmakuTextShape danmakuMessageShape(LiveMessage message) {
 
 /// Emoji and what joins or changes them (skin tones, flags, keycaps, tags),
 /// and spaces.
-final RegExp _emojiOnly = RegExp(
+final RegExp _emojiOnly = _unicodePattern(
   r'^[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{1F1E6}-\u{1F1FF}\u{E0020}-\u{E007F}‍️⃣\s]+$',
-  unicode: true,
 );
 
 /// At least one picture among them (not only joiners and spaces).
-final RegExp _pictograph = RegExp(r'[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]', unicode: true);
+final RegExp _pictograph = _unicodePattern(r'[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]');
+
+// Some analyzer builds reject valid Unicode property literals (dart-lang/sdk#61246).
+// Centralize Unicode mode; the text-shape tests exercise both patterns at runtime.
+RegExp _unicodePattern(String source) => RegExp(source, unicode: true);

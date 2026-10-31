@@ -20,6 +20,45 @@ import 'settings_harness.dart';
 void main() {
   setUpAll(loadStrings);
 
+  testWidgets('issue 131: a phone settings slider leaves vertically and its pane leaves to the left', (tester) async {
+    final h = await pumpSettings(tester, width: 1280, height: 720, arguments: 'appearance');
+    final row = settingsRow('liquid_glass_frost');
+    await tester.ensureVisible(row);
+    await tester.pumpAndSettle();
+    final slider = find.descendant(of: row, matching: find.byType(Slider));
+    final focus =
+        tester
+              .widgetList<Focus>(find.descendant(of: slider, matching: find.byType(Focus)))
+              .where((widget) => widget.focusNode != null)
+              .last
+              .focusNode!
+          ..requestFocus();
+    await tester.pumpAndSettle();
+    final original = h.settings.get(Settings.liquidGlassFrost);
+    final sliderFocus = FocusManager.instance.primaryFocus;
+    expect(sliderFocus, same(focus));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await settleSettings(tester);
+    expect(
+      h.settings.get(Settings.liquidGlassFrost),
+      original,
+      reason: 'vertical navigation must not change a horizontal setting',
+    );
+    expect(FocusManager.instance.primaryFocus, isNot(sliderFocus));
+    for (var i = 0; i < 8; i++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+      await tester.pumpAndSettle();
+    }
+    final focusContext = FocusManager.instance.primaryFocus!.context!;
+    expect(
+      tester
+          .getRect(find.byKey(const ValueKey('settings-overview')))
+          .contains((focusContext.findRenderObject()! as RenderBox).localToGlobal(Offset.zero)),
+      isTrue,
+      reason: 'the nested settings navigator must let the remote return to the overview',
+    );
+  });
+
   testWidgets('LAN control can be found by either language and opens its embedded receiver page', (tester) async {
     await pumpSettings(tester, width: 1200);
     for (final query in ['遥控', 'remote']) {

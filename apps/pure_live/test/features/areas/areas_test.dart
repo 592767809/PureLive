@@ -116,14 +116,20 @@ Future<AppServices> _pumpApp(
   String preferred = 'huya',
   List<String> menus = const ['areas'],
   NetworkProbe? probe,
+  Size size = const Size(400, 900),
+  bool glass = true,
+  double bottomInset = 0,
 }) async {
   tester.view
-    ..physicalSize = const Size(400, 900)
-    ..devicePixelRatio = 1;
+    ..physicalSize = size
+    ..devicePixelRatio = 1
+    ..viewPadding = FakeViewPadding(bottom: bottomInset)
+    ..padding = FakeViewPadding(bottom: bottomInset);
   addTearDown(tester.view.reset);
   final services = (await tester.runAsync(() async {
     final services = await _services(sites);
     await services.store.settings.set(Settings.savedMenuIds, menus);
+    await services.store.settings.set(Settings.liquidGlass, glass);
     await services.store.settings.set(Settings.hotAreasList, ['douyu', 'huya']);
     await services.store.settings.set(Settings.preferPlatform, preferred);
     // The test device is English; the texts below are the Chinese ones.
@@ -154,6 +160,37 @@ Future<void> _settle(WidgetTester tester) async {
 }
 
 void main() {
+  for (final glass in [true, false]) {
+    for (final size in [const Size(400, 900), const Size(540, 400)]) {
+      testWidgets('issue 130: followed areas stays above navigation at $size (glass=$glass)', (tester) async {
+        final site = _FakeSite('huya', '虎牙', [
+          LiveCategory(id: 'all', name: '全部', children: [for (var i = 0; i < 60; i++) _area('huya', '$i', '分区$i')]),
+        ]);
+        final services = await _pumpApp(
+          tester,
+          {'huya': site},
+          menus: ['areas', 'popular'],
+          size: size,
+          glass: glass,
+          bottomInset: 24,
+        );
+        final button = find.byKey(const ValueKey('areas-followed-button'));
+        final nav = find.byKey(const ValueKey('home-nav-areas'));
+        expect(button.hitTestable(), findsOneWidget);
+        expect(tester.getRect(button).bottom, lessThan(tester.getRect(nav).top));
+        final grid = tester.widget<GridView>(find.byKey(const ValueKey('area-grid')));
+        final inset = GlassBarInset.of(tester.element(button));
+        expect(grid.padding!.resolve(TextDirection.ltr).bottom, greaterThanOrEqualTo(80 + inset));
+        await tester.tap(button);
+        await _settle(tester);
+        expect(find.byType(FavoriteAreasView), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.runAsync(services.close);
+      });
+    }
+  }
+
   testWidgets('issue #73: areas opens IPTV channels and uses the shared platform picker', (tester) async {
     final site = _FakeSite(
       SiteIds.iptv,

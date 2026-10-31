@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:live_ui/src/theme/live_colors.dart';
+import 'package:live_ui/src/theme/live_theme.dart';
 import 'package:live_ui/src/theme/text_styles.dart';
 import 'package:live_ui/src/widgets/scrolling.dart';
 import 'package:live_ui/src/widgets/settings_tiles.dart';
@@ -53,7 +54,12 @@ PreferredSizeWidget settingsPageAppBar(
   if (custom != null) {
     return custom.builder(context, title: title, subtitle: subtitle, actions: actions, bottom: bottom);
   }
-  final heading = Text(title, style: context.textStyles.t20.emphasis);
+  final heading = Text(
+    title,
+    style: context.textStyles.t20.emphasis.copyWith(
+      fontSize: SettingsPane.of(context) ? LiveFontSizes.of(Theme.of(context).textTheme).titleLarge * 18 / 20 : null,
+    ),
+  );
   return AppBar(
     leading: onBack == null ? null : BackButton(onPressed: onBack),
     title: subtitle == null
@@ -83,7 +89,7 @@ PreferredSizeWidget settingsPageAppBar(
 /// column at most [readableContentMaxWidth] wide, centred (UI_PLAN §5.3).
 class SettingsPageList extends StatelessWidget {
   /// Creates the body.
-  const new({required this.children, this.controller, this.physics, super.key});
+  const new({required this.children, this.controller, this.physics, this.start = false, super.key});
 
   /// The groups and notes.
   final List<Widget> children;
@@ -94,17 +100,23 @@ class SettingsPageList extends StatelessWidget {
   /// The scroll physics (pull to refresh needs an always scrollable one).
   final ScrollPhysics? physics;
 
+  /// Keeps a reading column at the start, as the enclosing settings pane does.
+  final bool start;
+
   @override
-  Widget build(BuildContext context) => SingleChildScrollView(
-    controller: controller,
-    physics: physics ?? const PureLiveScrollPhysics(),
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-    child: Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: readableContentMaxWidth),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+  Widget build(BuildContext context) {
+    final embedded = start || SettingsPane.of(context);
+    return SingleChildScrollView(
+      controller: controller,
+      physics: physics ?? const PureLiveScrollPhysics(),
+      padding: EdgeInsets.fromLTRB(embedded ? 24 : 16, 0, embedded ? 24 : 16, 32),
+      child: Align(
+        alignment: embedded ? AlignmentDirectional.topStart : Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: readableContentMaxWidth),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
