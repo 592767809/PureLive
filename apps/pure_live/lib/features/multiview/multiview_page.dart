@@ -484,7 +484,7 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     if (event is! KeyDownEvent) return false;
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return false;
     if (event.logicalKey == LogicalKeyboardKey.escape) return _stepBack();
-    if (event.logicalKey != LogicalKeyboardKey.keyM || _overlay != _Overlay.none) return false;
+    if (_overlay != _Overlay.none) return false;
     final keyboard = HardwareKeyboard.instance;
     if (keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed || keyboard.isShiftPressed) {
       return false;
@@ -493,7 +493,15 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
     if (focused?.widget is EditableText || focused?.findAncestorWidgetOfExactType<EditableText>() != null) {
       return false;
     }
-    _controller.toggleMuteAll();
+    if (event.logicalKey == LogicalKeyboardKey.keyM) {
+      _controller.toggleMuteAll();
+    } else if (event.logicalKey == LogicalKeyboardKey.keyF || event.logicalKey == LogicalKeyboardKey.f11) {
+      unawaited(_setMode(_mode == _DisplayMode.fullscreen ? _DisplayMode.normal : _DisplayMode.fullscreen));
+    } else if (event.logicalKey == LogicalKeyboardKey.keyI) {
+      unawaited(_setMode(_mode == _DisplayMode.immersive ? _DisplayMode.normal : _DisplayMode.immersive));
+    } else {
+      return false;
+    }
     return true;
   }
 
@@ -631,13 +639,13 @@ class _MultiviewPageState extends ConsumerState<MultiviewPage> {
           ),
           IconButton(
             key: const ValueKey('multiview-immersive'),
-            tooltip: i18n('multiview_immersive'),
+            tooltip: '${i18n('multiview_immersive')}${_mobile ? '' : ' (I)'}',
             icon: const Icon(AppIcons.immersive),
             onPressed: () => unawaited(_setMode(_DisplayMode.immersive)),
           ),
           IconButton(
             key: const ValueKey('multiview-fullscreen'),
-            tooltip: i18n('multiview_fullscreen'),
+            tooltip: '${i18n('multiview_fullscreen')}${_mobile ? '' : ' (F / F11)'}',
             icon: const Icon(AppIcons.gridFullscreen),
             onPressed: () => unawaited(_setMode(_DisplayMode.fullscreen)),
           ),

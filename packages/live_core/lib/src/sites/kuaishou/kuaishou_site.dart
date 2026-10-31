@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:live_core/src/links.dart';
@@ -37,11 +38,18 @@ final RegExp _roomIdPattern = RegExp(r'^[a-zA-Z0-9_-]+$');
 /// one is configured, else the anonymous session: a bare visit of the room
 /// page whose `Set-Cookie` is kept for 30 minutes, its device id reported
 /// once, shared by concurrent callers. Media requests carry only the
-/// user's cookie. Failures are `SiteError`s; nothing is disguised as an
+/// user's cookie unless the page was obtained anonymously. A cookie refusal
+/// may recover only a publicly playable live room, without changing stored
+/// credentials. Failures are `SiteError`s; nothing is disguised as an
 /// offline room.
 final class KuaishouSite extends LiveSite
     with LiveSiteLinks
-    implements LiveSiteRoomRefresher, LiveSiteRecordRoomResolver, LivePlayUrlResolver, LivePlayRecoveryResolver {
+    implements
+        LiveSiteRoomRefresher,
+        LiveSiteRecordRoomResolver,
+        LivePlayUrlResolver,
+        LivePlayRecoveryResolver,
+        LiveSiteCookieRefusals {
   /// Creates the adapter. [_cookies] holds the user's cookie, if any;
   /// [preferH264] reads "优先 H.264" (on by default, the setting shared with
   /// 22-3) at each call: on, the H.265-only qualities of a room page come
@@ -82,7 +90,21 @@ final class KuaishouSite extends LiveSite
   // Session -------------------------------------------------------------------
 
   /// The user's cookie ('' when signed out), control characters removed.
-  String _login() => (_cookies?.cookieFor(_site) ?? '').replaceAll(_controlCharacters, '').trim();
+  String _rawLogin() => (_cookies?.cookieFor(_site) ?? '').replaceAll(_controlCharacters, '').trim();
+
+  final Map<String, String> _guestRooms = {};
+  final _refusals = StreamController<void>.broadcast(sync: true);
+
+  @override
+  Stream<void> get cookieRefusals => _refusals.stream;
+
+  String _login() => _rawLogin();
+
+  String _roomLogin(String id) {
+    final raw = _rawLogin();
+    _guestRooms.removeWhere((_, cookie) => cookie != raw);
+    return _guestRooms[id] == raw ? '' : raw;
+  }
 
   /// The anonymous session's cookie header while it is younger than 30
   /// minutes, else null.
@@ -181,8 +203,10 @@ final class KuaishouSite extends LiveSite
   /// GETs the room page of [id] and hands it to [parse] with the cookie it
   /// carried.
   ///
-  /// A user cookie goes alone, without a session or a retry; a refusal is
-  /// the cookie's (`RiskControl.cookieSuspect`). Anonymous pages carry the
+  /// A user cookie goes alone. Its explicit refusal may recover through the
+  /// anonymous path only when that path returns a publicly playable live room;
+  /// otherwise the original refusal remains authoritative. A recovered cookie
+  /// is skipped for this room in memory until the stored value changes. Anonymous pages carry the
   /// live session; with [ensureSession] one is made first (room entry,
   /// recording, streams), without it the page goes as it is (follow
   /// refresh). A refused or unreadable page (`RiskControl`, `ApiChanged`)
@@ -195,14 +219,40 @@ final class KuaishouSite extends LiveSite
   /// for the danmaku feed, and the device report goes on alone. A visit
   /// that does not read leaves it to the page with the session, sent
   /// after the report as before.
-  Future<T> _roomPage<T>(
+  Future<LiveRoom> _roomPage(
     String id,
-    T Function(LiveResponse response, {required String cookie, required bool userCookie}) parse, {
+    LiveRoom Function(LiveResponse response, {required String cookie, required bool userCookie}) parse, {
     required bool ensureSession,
+    bool anonymous = false,
   }) async {
     final url = Uri.parse(KuaishouApi.roomPageUrl(id));
-    final login = _login();
-    if (login.isNotEmpty) return parse(await _get(url, _pageHeaders(login)), cookie: login, userCookie: true);
+    final login = anonymous ? '' : _roomLogin(id);
+    if (login.isEmpty) return await _anonymousRoomPage(url, parse, ensureSession: ensureSession);
+    try {
+      return parse(await _get(url, _pageHeaders(login)), cookie: login, userCookie: true);
+    } on RiskControl catch (refusal) {
+      if (!refusal.cookieSuspect) rethrow;
+      final LiveRoom room;
+      try {
+        room = await _anonymousRoomPage(url, parse, ensureSession: ensureSession);
+      } on SiteError {
+        throw refusal;
+      }
+      if (!room.isLiveNow || room.restriction != LiveRestriction.none) rethrow;
+      if (_rawLogin() == login && _guestRooms[id] != login) {
+        _guestRooms[id] = login;
+        if (_guestRooms.length > 64) _guestRooms.remove(_guestRooms.keys.first);
+        _refusals.add(null);
+      }
+      return room;
+    }
+  }
+
+  Future<LiveRoom> _anonymousRoomPage(
+    Uri url,
+    LiveRoom Function(LiveResponse response, {required String cookie, required bool userCookie}) parse, {
+    required bool ensureSession,
+  }) async {
     var visit = ensureSession ? await _ensureSession(url) : null;
     for (var attempt = 0; ; attempt++) {
       if (visit != null) {
@@ -350,7 +400,12 @@ final class KuaishouSite extends LiveSite
 
   // Rooms ---------------------------------------------------------------------
 
-  Future<LiveRoom> _detail(String roomId, {required bool withStreams, required bool ensureSession}) async {
+  Future<LiveRoom> _detail(
+    String roomId, {
+    required bool withStreams,
+    required bool ensureSession,
+    bool anonymous = false,
+  }) async {
     final id = roomId.trim();
     if (id.isEmpty) throw const NotFound(_site, 'empty room id');
     return await _roomPage(
@@ -366,6 +421,7 @@ final class KuaishouSite extends LiveSite
         url: response.url,
       ),
       ensureSession: ensureSession,
+      anonymous: anonymous,
     );
   }
 
@@ -425,28 +481,36 @@ final class KuaishouSite extends LiveSite
   LivePlayUrlResolution _resolve(
     LiveRoom detail,
     LivePlayQuality quality,
-    ({Object? playUrls, DateTime issuedAt}) streams,
+    ({Object? playUrls, DateTime issuedAt, bool anonymous}) streams,
   ) => KuaishouApi.resolution(
     streams.playUrls,
     quality: quality,
     roomId: detail.roomId,
     issuedAt: streams.issuedAt,
-    cookie: _login(),
+    cookie: streams.anonymous ? null : _login(),
   );
 
   /// The `playUrls` [detail] carries, or (when it has none, or [fresh]) the
   /// ones of a new room page; a room that is not living has none
   /// (`StreamUnavailable`).
-  Future<({Object? playUrls, DateTime issuedAt})> _streams(LiveRoom detail, {required bool fresh}) async {
-    if (detail.data case KuaishouRoomData(:final playUrls?, :final issuedAt) when !fresh) {
-      return (playUrls: playUrls, issuedAt: issuedAt ?? _now());
+  Future<({Object? playUrls, DateTime issuedAt, bool anonymous})> _streams(
+    LiveRoom detail, {
+    required bool fresh,
+  }) async {
+    if (detail.data case KuaishouRoomData(:final playUrls?, :final issuedAt, :final anonymous) when !fresh) {
+      return (playUrls: playUrls, issuedAt: issuedAt ?? _now(), anonymous: anonymous);
     }
-    final room = await _detail(detail.roomId, withStreams: true, ensureSession: true);
+    final room = await _detail(
+      detail.roomId,
+      withStreams: true,
+      ensureSession: true,
+      anonymous: detail.data is KuaishouRoomData && (detail.data! as KuaishouRoomData).anonymous,
+    );
     final data = room.data;
     if (!room.isLiveNow || data is! KuaishouRoomData) {
       throw StreamUnavailable(_site, 'room page: ${detail.roomId} is not living');
     }
-    return (playUrls: data.playUrls, issuedAt: data.issuedAt ?? _now());
+    return (playUrls: data.playUrls, issuedAt: data.issuedAt ?? _now(), anonymous: data.anonymous);
   }
 
   // Links ---------------------------------------------------------------------

@@ -172,6 +172,38 @@ void _expectLeftToRight(WidgetTester tester, List<String> keys) {
 }
 
 void main() {
+  testWidgets('issue123 F F11 and I toggle display modes and leave text entry alone', (tester) async {
+    final (services, _) = await _pump(tester, const Size(1280, 800));
+    await _pick(tester, '1');
+    final session = _cellView(tester, 1).cell.session;
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.keyF);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyF);
+    await _wait(tester);
+    expect(_key('multiview-fullscreen-exit'), findsOneWidget);
+    expect(_cellView(tester, 1).cell.session, same(session));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await _wait(tester);
+    expect(_key('multiview-fullscreen'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
+    await _wait(tester);
+    expect(_key('multiview-immersive-exit'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.f11);
+    await _wait(tester);
+    expect(_key('multiview-fullscreen-exit'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await _wait(tester);
+    await tester.tap(_key('multiview-picker-search'));
+    for (final key in [LogicalKeyboardKey.keyF, LogicalKeyboardKey.keyI, LogicalKeyboardKey.f11]) {
+      await tester.sendKeyEvent(key);
+      await _wait(tester);
+      expect(_key('multiview-fullscreen'), findsOneWidget);
+    }
+    await _close(tester, services);
+  });
+
   testWidgets('issue #85: an open recording panel stays bound when its cell switches rooms', (tester) async {
     final (services, _) = await _pump(tester, const Size(393, 852), withRecorder: true);
     await _pick(tester, '1');

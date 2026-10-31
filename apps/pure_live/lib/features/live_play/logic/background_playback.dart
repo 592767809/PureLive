@@ -701,18 +701,11 @@ class RoomBackgroundPolicy with WidgetsBindingObserver {
   bool _notified = false;
 
   /// The volume before the picture-in-picture window's mute (A07.24).
-  double _unmuted = 1;
 
   /// The picture-in-picture window's mute action: the player's volume to 0
   /// or back; the room's kept volume does not change.
   Future<void> _toggleMute() async {
-    final volume = controller.volume;
-    if (volume > 0) {
-      _unmuted = volume;
-      await controller.setVolume(0);
-    } else {
-      await controller.setVolume(_unmuted > 0 ? _unmuted : 1);
-    }
+    await controller.toggleMute(save: false, fallback: 1);
   }
 
   /// What the notification shows now; repeats are not sent again.

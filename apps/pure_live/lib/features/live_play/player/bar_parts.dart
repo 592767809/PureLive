@@ -12,6 +12,7 @@ import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/features/live_play/logic/room_layout.dart';
 import 'package:pure_live/features/live_play/player/player_gestures.dart';
 import 'package:pure_live/i18n/i18n.dart';
+import 'package:pure_live/shared/rooms/room_gain_control.dart';
 
 // The smaller pieces of the fullscreen and wide bars (docs/A-界面设计/A07-直播间界面/A07.2-竖屏流和竖屏全屏,
 // U.2c, U.2d): the clock and battery, the desktop volume, the fit and
@@ -166,7 +167,6 @@ class VolumeSlider extends StatefulWidget {
 }
 
 class _VolumeSliderState extends State<VolumeSlider> {
-  double? _beforeMute;
   StreamSubscription<PlaybackState>? _states;
   late double _volume = widget.controller.session.state.volume.clamp(0.0, 1.0);
 
@@ -223,19 +223,32 @@ class _VolumeSliderState extends State<VolumeSlider> {
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          key: const ValueKey('live-play-gain'),
+          tooltip: i18n('room_gain'),
+          color: OnVideoColors.foreground,
+          onPressed: () async {
+            widget.onInteract?.call();
+            final onHolding = widget.onHolding;
+            onHolding?.call(true);
+            try {
+              await showRoomGainDialog(
+                context,
+                settings: widget.controller.store.settings,
+                room: widget.controller.room,
+              );
+            } finally {
+              onHolding?.call(false);
+            }
+          },
+          icon: const Icon(AppIcons.roomGain, size: 22),
+        ),
+        IconButton(
           tooltip: i18n(volume <= 0 ? 'live_play_unmute' : 'live_play_mute'),
           color: OnVideoColors.foreground,
           constraints: const BoxConstraints(minWidth: kMinInteractiveDimension, minHeight: kMinInteractiveDimension),
           onPressed: () {
             widget.onInteract?.call();
-            final restore = _beforeMute;
-            if (volume <= 0) {
-              _beforeMute = null;
-              unawaited(widget.controller.setVolume(restore ?? 0.5, save: true));
-            } else {
-              _beforeMute = volume;
-              unawaited(widget.controller.setVolume(0, save: true));
-            }
+            unawaited(widget.controller.toggleMute());
           },
           icon: Icon(gestureLevelIcon(GestureLevel.volume, volume), size: 22),
         ),

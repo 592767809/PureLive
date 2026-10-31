@@ -964,6 +964,7 @@
     "kick_mature_notice": "Kick이 이 방송을 성인 콘텐츠(18+)로 표시했습니다.",
     "kick_stream_ended_notice": "방송이 끝났습니다",
     "kilakila_directory_scope": "Kilakila의 인기 및 떠오르는 스타 추천이며 모든 방송이 아닙니다. 무료 공개 방송만 재생됩니다. 팔로우는 스트리머 기준이며 검색에는 스트리머 ID, 프로필 링크, 이름을 쓸 수 있습니다.",
+    "kuaishou_cookie_guest": "콰이쇼우가 쿠키 요청을 거부했습니다. 공개 방송을 게스트로 재생하며 저장된 쿠키는 유지됩니다.",
     "kugoulive_chat_notice": "숫자는 지금 보고 있는 사람 수이며, 없을 때는 인기도입니다. 팔로워는 따로 표시합니다.",
     "kugoulive_directory_scope": "Kugou Live의 추천과 카테고리는 웹사이트에서 가져오며 스크롤하면 계속 불러옵니다. 검색은 방송 여부와 관계없이 스트리머를 찾고, 방 번호나 Kugou Live 링크로는 바로 방을 엽니다.",
     "kugoulive_restricted_notice": "이 방은 Kugou 로그인이 필요해 지금은 이 앱에서 재생할 수 없습니다.",

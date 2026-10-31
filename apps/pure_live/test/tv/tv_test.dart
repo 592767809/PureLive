@@ -60,7 +60,9 @@ final class _LocalHttp extends HttpOverrides;
 
 /// A platform with [count] recommended rooms that all play.
 final class _TvSite extends LiveSite {
-  new(this.count, {this.offline = const {}});
+  new(this.count, {this.offline = const {}, this.singleQuality = false});
+
+  final bool singleQuality;
 
   final int count;
 
@@ -106,9 +108,9 @@ final class _TvSite extends LiveSite {
   ];
 
   @override
-  Future<List<LivePlayQuality>> getPlayQualities({required LiveRoom detail}) async => const [
-    LivePlayQuality(quality: '原画', id: 10000),
-    LivePlayQuality(quality: '流畅', id: 80),
+  Future<List<LivePlayQuality>> getPlayQualities({required LiveRoom detail}) async => [
+    const LivePlayQuality(quality: '原画', id: 10000),
+    if (!singleQuality) const LivePlayQuality(quality: '流畅', id: 80),
   ];
 
   @override
@@ -151,6 +153,7 @@ Future<AppServices> _pumpApp(
   List<LiveSite> extraSites = const [],
   List<LiveRoom> extraFollows = const [],
   bool taggedFollows = false,
+  bool singleQuality = false,
   Stream<IptvOverview>? iptvOverview,
 }) async {
   tester.view
@@ -171,7 +174,7 @@ Future<AppServices> _pumpApp(
     await settings.set(Settings.language, '简体中文');
     if (noticeAccepted) await base.store.meta.set(TvHomePage.noticeKey, '1');
   });
-  final site = _TvSite(rooms, offline: offline);
+  final site = _TvSite(rooms, offline: offline, singleQuality: singleQuality);
   await tester.runAsync(() async {
     final rooms = [for (final n in follows) site.room(n), ...extraFollows];
     for (final room in rooms) {
@@ -256,6 +259,32 @@ Future<void> _press(WidgetTester tester, LogicalKeyboardKey key) async {
 String? get _focused => FocusManager.instance.primaryFocus?.debugLabel;
 
 void main() {
+  testWidgets('issue112 one quality remains focusable and Right advances from its initial focus', (tester) async {
+    final services = await _pumpApp(tester, singleQuality: true);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _press(tester, LogicalKeyboardKey.arrowDown);
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    await _press(tester, LogicalKeyboardKey.select);
+    await _settle(tester);
+    final page = tester.state<TvLivePlayPageState>(find.byType(TvLivePlayPage));
+    expect(page.controller!.qualities, hasLength(1));
+    final session = page.controller!.session;
+    await _press(tester, LogicalKeyboardKey.select);
+    final quality = tester.widget<TvButton>(find.byKey(const ValueKey('tv-room-quality')));
+    expect(quality.onTap, isNotNull, reason: 'one option is still a navigable control');
+    expect(_focused, 'tv room first control');
+    await _press(tester, LogicalKeyboardKey.arrowRight);
+    expect(_focused, isNot('tv room first control'));
+    await _press(tester, LogicalKeyboardKey.arrowLeft);
+    expect(_focused, 'tv room first control');
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(find.text('原画'), findsWidgets);
+    await _press(tester, LogicalKeyboardKey.select);
+    expect(page.controller!.session, same(session));
+    await _close(tester, services);
+  });
+
   testWidgets('issue #68: TV automatically leaves an offline room for an online follow', (tester) async {
     final services = await _pumpApp(tester, follows: [1, 2], offline: {1});
     await tester.runAsync(() => services.store.settings.set(Settings.autoSwitchLiveFollows, true));

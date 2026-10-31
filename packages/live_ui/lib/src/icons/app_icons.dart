@@ -274,6 +274,9 @@ abstract final class AppIcons {
   /// The room's own volume (3.x's room menu).
   static const IconData roomVolume = Remix.volume_up_line;
 
+  /// The signed volume gain of the current room.
+  static const IconData roomGain = Icons.equalizer_rounded;
+
   /// The room volume panel's mute button, silent (3.x `volumeIcon`).
   static const IconData volumeMuted = Icons.volume_off_rounded;
 

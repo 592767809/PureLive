@@ -423,10 +423,12 @@ class LiveRoomController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  /// B-7: "Twitch 的 Cookie 已失效，已改为匿名观看…" (Twitch is the one
-  /// platform that reports a refused cookie).
+  /// Explains a platform-confirmed cookie refusal after guest recovery.
+  /// Kuaishou keeps the stored cookie; it does not prove the login expired.
   void _onCookieRefused() {
-    if (!_disposed) toast?.call(i18n('twitch_cookie_expired'));
+    if (!_disposed) {
+      toast?.call(i18n(site.id == SiteIds.twitch ? 'twitch_cookie_expired' : 'kuaishou_cookie_guest'));
+    }
   }
 
   /// G02.2: one app log line per recovery attempt of the session, with its
@@ -910,10 +912,20 @@ class LiveRoomController extends ChangeNotifier {
   /// The player's volume, 0 to 1.
   double get volume => session.state.volume;
 
+  double? _volumeBeforeMute;
+
+  /// Mutes or restores this room's last audible volume across all controls.
+  Future<void> toggleMute({bool save = true, double fallback = 0.5}) {
+    final current = volume;
+    if (current > 0) _volumeBeforeMute = current;
+    return setVolume(current > 0 ? 0 : _volumeBeforeMute ?? fallback, save: save);
+  }
+
   /// Sets the player's volume; [save] keeps it as this room's volume (3.x
   /// `LiveRoomVolumeManager`, the `roomVolumes` setting).
   Future<void> setVolume(double value, {bool save = false}) async {
     final volume = value.isFinite ? value.clamp(0.0, 1.0) : 1.0;
+    if (volume > 0) _volumeBeforeMute = volume;
     await session.setVolume(volume);
     _notify();
     if (save) await saveVolume();

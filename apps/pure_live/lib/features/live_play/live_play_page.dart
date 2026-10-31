@@ -992,6 +992,23 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
     );
   }
 
+  KeyEventResult _roomShortcut(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent || event.logicalKey != LogicalKeyboardKey.keyM) return KeyEventResult.ignored;
+    if (ModalRoute.of(context)?.isCurrent != true) return KeyEventResult.ignored;
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed || keyboard.isMetaPressed || keyboard.isAltPressed || keyboard.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused?.widget is EditableText || focused?.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    final controller = _controller;
+    if (controller == null) return KeyEventResult.ignored;
+    unawaited(controller.toggleMute());
+    return KeyEventResult.handled;
+  }
+
   Widget _page(BuildContext context, LiveRoomController controller, _LayoutSettings settings) {
     return PopScope(
       canPop: _poppable,
@@ -1008,8 +1025,11 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.escape): _back,
-          const SingleActivator(LogicalKeyboardKey.keyF): () {
+          const SingleActivator(LogicalKeyboardKey.keyF, includeRepeats: false): () {
             if (!(_mini?.desktop ?? false)) _toggleFullscreen();
+          },
+          const SingleActivator(LogicalKeyboardKey.f11, includeRepeats: false): () {
+            if (!(_mini?.desktop ?? false)) _toggleSystemFullscreen();
           },
           const SingleActivator(LogicalKeyboardKey.space): () => unawaited(controller.session.togglePlayPause()),
           // 3.x `VideoKeyboard`: arrows change the room's volume, R reloads.
@@ -1026,6 +1046,7 @@ class _LivePlayPageState extends ConsumerState<LivePlayPage> with SingleTickerPr
         },
         child: Focus(
           autofocus: true,
+          onKeyEvent: _roomShortcut,
           // iOS's back swipe is off while the room holds its back (A18.1 c3).
           child: EdgeSwipeBack(
             enabled: defaultTargetPlatform == TargetPlatform.iOS && !_poppable && !_pip,

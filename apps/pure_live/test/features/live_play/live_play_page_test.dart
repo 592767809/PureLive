@@ -20,6 +20,8 @@ import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_args.dart';
 import 'package:pure_live/routes/route_path.dart';
 import 'package:pure_live/shared/danmaku/danmaku_overlay.dart';
+import 'package:pure_live/shared/danmaku/emotes.dart';
+import 'package:pure_live/shared/rooms/room_gain.dart';
 
 import '../../support.dart';
 import 'live_play_support.dart';
@@ -31,6 +33,7 @@ Future<AppServices> _pump(
   double width = 400,
   LiveRoom? room,
   bool desktopFrame = false,
+  EmoteLibrary? emotes,
 }) async {
   tester.view
     ..physicalSize = Size(width, 900)
@@ -42,6 +45,7 @@ Future<AppServices> _pump(
     ProviderScope(
       overrides: [
         appServicesProvider.overrideWithValue(services),
+        if (emotes != null) emoteLibraryProvider.overrideWithValue(emotes),
         sitesProvider.overrideWithValue(SiteRegistry({SiteIds.bilibili: () => site})),
         danmakuProvider.overrideWithValue(DanmakuRegistry({SiteIds.bilibili: () => danmaku})),
         playbackSessionFactoryProvider.overrideWithValue(({config}) => fakeSession(FakeEngine())),
@@ -86,9 +90,65 @@ Future<void> _pictureClick(WidgetTester tester, {int buttons = kMiddleMouseButto
 }
 
 void main() {
+  testWidgets('issue123 M restores the same volume across keyboard and toolbar mute', (tester) async {
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+    final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
+    await controller.setVolume(0.65, save: true);
+    await _settle(tester);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.keyM);
+    await _settle(tester);
+    expect(controller.volume, 0, reason: 'a held mute key toggles only once');
+    final button = find.byTooltip('取消静音');
+    await tester.tap(button);
+    await _settle(tester);
+    expect(controller.volume, closeTo(0.65, 0.001), reason: 'toolbar and key share the pre-mute volume');
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await _settle(tester);
+    expect(controller.volume, closeTo(0.65, 0.001));
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyF);
+    await _settle(tester);
+    final field = find.byKey(const ValueKey('local-composer-input'));
+    await tester.enterText(field, 'typing m');
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyM);
+    await _settle(tester);
+    expect(controller.volume, closeTo(0.65, 0.001), reason: 'M in an editor belongs to text input');
+    expect(tester.widget<TextField>(field).controller!.text, 'typing m');
+    await _close(tester, services);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
+  testWidgets('issue108 player bar directly opens persistent signed gain without changing volume', (tester) async {
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: FakeDanmaku(), width: 1280);
+    final controller = tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller;
+    await controller.setVolume(0.65);
+    final gain = find.byKey(const ValueKey('live-play-gain'));
+    expect(gain, findsOneWidget);
+    await tester.tap(gain);
+    await tester.pumpAndSettle();
+    final slider = tester.widget<Slider>(find.byKey(const ValueKey('room-gain-slider')));
+    expect((slider.min, slider.max), (-12, 12));
+    slider.onChanged!(-6);
+    slider.onChangeEnd!(-6);
+    await _settle(tester);
+    expect(RoomGain.effective(services.store.settings, controller.room), -6);
+    expect(controller.volume, closeTo(0.65, 0.001));
+    await tester.tap(find.byKey(const ValueKey('room-gain-reset')));
+    await _settle(tester);
+    expect(RoomGain.overrideOf(services.store.settings, controller.room), isNull);
+    await tester.tap(find.text('关闭').last);
+    await tester.pumpAndSettle();
+    expect(tester.widget<RoomPlayer>(find.byType(RoomPlayer)).controller, same(controller));
+    await _close(tester, services);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
+
   testWidgets('phone: header, room strip, qualities, chat and flying danmaku; follow and unfollow', (tester) async {
     final danmaku = FakeDanmaku();
-    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku);
+    final emotes = EmoteLibrary(bundle: FileAssetBundle());
+    await tester.runAsync(() => emotes.load(SiteIds.bilibili));
+    final services = await _pump(tester, site: FakeSite(liveRoom()), danmaku: danmaku, emotes: emotes);
     AppNavigator.toast = (_) {};
 
     expect(find.byKey(const ValueKey('live-play-portrait-stack')), findsOneWidget);
@@ -112,7 +172,7 @@ void main() {
     expect(overlay.flyingCount, 1);
 
     // M13.16: the platform's bundled emoticons are pictures in the chat list.
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
+    expect(emotes.tableOf(SiteIds.bilibili).codes, contains('[dog]'));
     danmaku.chat('好[dog]');
     await tester.pump();
     final pictures = tester.widgetList<Image>(

@@ -611,7 +611,7 @@ void main() {
       expect(tester.widget<Slider>(_key('live-play-volume-slider')).value, closeTo(0.35, 0.001));
       expect(_text(tester, 'live-play-volume-percent'), '35%');
       expect(_key('gesture-level-volume'), findsNothing);
-      await tester.tap(_in('live-play-volume', find.byType(IconButton)));
+      await tester.tap(_in('live-play-volume', find.byTooltip('静音')));
       await _settle(tester);
       tester.binding.handlePointerEvent(PointerScrollEvent(position: picture, scrollDelta: const Offset(0, -20)));
       await _settle(tester);
