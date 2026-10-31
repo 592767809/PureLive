@@ -161,7 +161,6 @@ Finder _in(String key, Finder finder) => find.descendant(of: _key(key), matching
 
 const _topKeys = [
   'live-play-back',
-  'live-play-clock',
   'live-play-battery',
   'live-play-video-title',
   'live-play-switch-room',
@@ -200,11 +199,10 @@ void main() {
       await _tap(tester, 'live-play-fullscreen');
       final top = _key('live-play-top-bar');
       // Change 2 adds record and the menu (no FFmpeg in tests: no record);
-      // change 4 puts the clock by Back; picture-in-picture waits for a
-      // device that offers it.
+      // The shared HUD owns the clock independently of both control bars.
+      // Picture-in-picture waits for a device that offers it.
       expect(_order(tester, top, _topKeys), [
         'live-play-back',
-        'live-play-clock',
         'live-play-video-title',
         'live-play-switch-room',
         'live-play-audio-only',
@@ -217,6 +215,7 @@ void main() {
       expect(tester.widget(_key('live-play-switch-room')), isA<VideoIconButton>());
       expect(_in('live-play-menu', find.byIcon(AppIcons.roomMenu)), findsOneWidget);
       expect(tester.widget<Text>(_key('live-play-clock')).data, matches(RegExp(r'^\d\d:\d\d$')));
+      expect(_in('live-play-top-bar', _key('live-play-clock')), findsNothing, reason: 'HUD positioning is independent');
 
       final bottom = _key('live-play-bottom-bar');
       expect(_order(tester, bottom, _bottomKeys), [
@@ -321,7 +320,6 @@ void main() {
       await _tap(tester, 'live-play-fullscreen');
       expect(_order(tester, _key('live-play-top-bar'), _topKeys), [
         'live-play-back',
-        'live-play-clock',
         'live-play-video-title',
         'live-play-switch-room',
         'live-play-audio-only',
@@ -733,12 +731,7 @@ void main() {
         ['live-play-back', 'live-play-video-title', 'live-play-menu'],
       );
       expect(find.descendant(of: top, matching: _key('live-play-video-follow')), findsOneWidget);
-      expect(_order(tester, second, _topKeys), [
-        'live-play-clock',
-        'live-play-switch-room',
-        'live-play-audio-only',
-        'live-play-cast',
-      ]);
+      expect(_order(tester, second, _topKeys), ['live-play-switch-room', 'live-play-audio-only', 'live-play-cast']);
       final first = _key('live-play-bottom-first-row');
       expect(_order(tester, first, _bottomKeys), ['local-composer-video', 'live-play-quality', 'live-play-line']);
       expect(

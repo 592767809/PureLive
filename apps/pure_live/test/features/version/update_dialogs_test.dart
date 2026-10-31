@@ -855,6 +855,43 @@ void main() {
   });
 
   group('download (U.3d c7–c10)', () {
+    testWidgets('issue 132: a completed TV download focuses install without an extra key', (tester) async {
+      final folder = _temp();
+      final http = _GatedHttp(size: _downloadBytes.length);
+      final h = await _pump(
+        tester,
+        width: 1280,
+        height: 720,
+        directional: true,
+        overrides: [updateDownloadToolsProvider.overrideWithValue(_tools(http, folder))],
+      );
+      await _showUpdateDownload(
+        tester,
+        tester.element(find.text('home')),
+        file: _apk('9.0.0'),
+        sources: [_apk('9.0.0').url],
+        update: _info('9.0.0'),
+      );
+      await _until(tester, () => http.opens > 0);
+      http.body.add(_downloadBytes);
+      unawaited(http.body.close());
+      final install = find.byKey(const ValueKey('update-download-install'));
+      await _until(tester, () => install.evaluate().isNotEmpty);
+      await tester.pumpAndSettle();
+      final element = tester.element(install);
+      var focused = false;
+      FocusManager.instance.primaryFocus?.context?.visitAncestorElements((ancestor) {
+        focused = identical(ancestor, element);
+        return !focused;
+      });
+      expect(focused, isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.select);
+      await tester.pumpAndSettle();
+      expect(h.opened.single, endsWith('.apk'), reason: 'the first OK acts on the visible install action');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('downloading, done, open failed, folder failed: titles, lines and buttons', (tester) async {
       final folder = _temp();
       final http = _GatedHttp(size: 3 * 1024 * 1024);

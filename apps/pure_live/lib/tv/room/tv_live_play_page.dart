@@ -25,6 +25,7 @@ import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/remote/playback_remote.dart';
 import 'package:pure_live/shared/remote/playback_target.dart';
 import 'package:pure_live/shared/rooms/auto_room_switch.dart';
+import 'package:pure_live/shared/rooms/playback_hud.dart';
 import 'package:pure_live/shared/rooms/room_gain.dart';
 import 'package:pure_live/shared/rooms/room_menu.dart';
 import 'package:pure_live/tv/room/tv_room_overlays.dart';
@@ -595,6 +596,11 @@ class TvLivePlayPageState extends ConsumerState<TvLivePlayPage> {
                         builder: (context, snapshot) =>
                             TvRoomStatus(controller: controller, playback: snapshot.data ?? controller.session.state),
                       ),
+                    ),
+                    PlaybackHud(
+                      telemetry: controller.telemetry,
+                      controls: _controls,
+                      clearance: EdgeInsets.only(top: _banner ? 110 : 12, bottom: _controls ? 170 : 52),
                     ),
                     if (_banner && !_controls && !_panel && !_settings && !_superChatPanel)
                       Positioned(

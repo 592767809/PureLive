@@ -131,6 +131,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     child: HeroControllerScope.none(
       child: Navigator(
         key: _content,
+        // The overview is outside this nested route. A remote must be able
+        // to leave its content scope, including in the phone interface.
+        routeDirectionalTraversalEdgeBehavior: TraversalEdgeBehavior.parentScope,
         observers: [_contentObserver],
         pages: [
           MaterialPage<void>(

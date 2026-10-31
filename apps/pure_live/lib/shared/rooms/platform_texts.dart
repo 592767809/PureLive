@@ -2,6 +2,13 @@ import 'package:live_core/live_core.dart';
 import 'package:live_danmaku/live_danmaku.dart';
 import 'package:pure_live/i18n/i18n.dart';
 
+/// A platform-specific public fallback notice without guessing login expiry.
+String cookieRecoveryMessage(String site) => i18n(switch (site) {
+  SiteIds.douyu => 'douyu_cookie_guest',
+  SiteIds.kuaishou => 'kuaishou_cookie_guest',
+  _ => 'twitch_cookie_expired',
+});
+
 // Words the adapters write for users in Chinese (notices, explanations, the
 // areas and qualities they name themselves, chat notices), shown in the
 // interface language (Z05.2). 3.x's adapters called `i18n`; `live_core` and

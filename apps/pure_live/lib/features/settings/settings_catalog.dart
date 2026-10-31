@@ -7,6 +7,7 @@ import 'package:pure_live/features/settings/audience_pages.dart';
 import 'package:pure_live/features/settings/background_guide_tiles.dart';
 import 'package:pure_live/features/settings/data_tools.dart';
 import 'package:pure_live/features/settings/live_alert_tiles.dart';
+import 'package:pure_live/features/settings/playback_hud_page.dart';
 import 'package:pure_live/features/settings/playback_tiles.dart';
 import 'package:pure_live/features/settings/settings_dialogs.dart';
 import 'package:pure_live/features/settings/settings_editors.dart';
@@ -804,6 +805,16 @@ List<SettingsEntry> _build() {
     )
     // ---- video (U.6c c2) ----
     ..section = SettingsSection.video
+    ..group = 'playback_hud_title'
+    ..link(
+      'playback_hud',
+      'playback_hud_title',
+      AppIcons.settingsVideo,
+      page: (_) => const PlaybackHudPage(),
+      desc: 'playback_hud_desc',
+      settings: [Settings.playbackHud],
+      keywords: ['时间', '时钟', '网速', '常驻', 'clock', 'speed', 'HUD'],
+    )
     ..group = 'audio_settings'
     ..toggle(
       'audio_mixing',
@@ -885,6 +896,14 @@ List<SettingsEntry> _build() {
       AppIcons.settingsH264,
       desc: 'settings_prefer_h264_desc',
       keywords: ['HEVC', 'H.265', 'H264', '编码'],
+    )
+    ..toggle(
+      'bilibili_raw',
+      'bilibili_raw_title',
+      Settings.bilibiliPreferRaw,
+      AppIcons.settingsQuality,
+      desc: 'bilibili_raw_desc',
+      keywords: ['B站', '原画', 'Raw', '码率', 'bilibili'],
     )
     ..choice<int>(
       'video_fit',
@@ -1644,11 +1663,19 @@ List<SettingsEntry> _build() {
       keywords: ['开机', 'startup'],
       when: _desktopShell,
     )
+    ..toggle(
+      'remember_window_geometry',
+      'remember_window_geometry',
+      Settings.rememberWindowGeometry,
+      AppIcons.settingsWindowSize,
+      desc: 'remember_window_geometry_desc',
+      when: _desktopShell,
+    )
     ..add(
       'window_size',
       'window_size',
       (context, entry) => WindowSizeTile(entry: entry),
-      settings: [Settings.windowWidth, Settings.windowHeight],
+      settings: [Settings.windowWidth, Settings.windowHeight, Settings.rememberWindowGeometry],
       keywords: ['窗口', 'window'],
       when: _desktopShell,
     )

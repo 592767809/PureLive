@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:live_core/live_core.dart';
 import 'package:live_player/live_player.dart';
 import 'package:pure_live/shared/remote/playback_remote.dart';
@@ -15,6 +17,27 @@ RemotePlaybackTarget playbackRemoteTarget({
   var lastVolume = 0.5;
   String? mutedRoom;
   return RemotePlaybackTarget(
+    scope: () => room()?.identityKey ?? '',
+    suspend: (valid) async {
+      final player = session();
+      final key = room()?.identityKey;
+      if (player == null || key == null || player.state.status == PlaybackStatus.paused) return () async {};
+      await player.pause();
+      var owned = player.state.status == PlaybackStatus.paused;
+      final subscription = player.states.listen((state) {
+        if (state.status != PlaybackStatus.paused) owned = false;
+      });
+      return () async {
+        await subscription.cancel();
+        if (valid() &&
+            owned &&
+            identical(session(), player) &&
+            room()?.identityKey == key &&
+            player.state.status == PlaybackStatus.paused) {
+          await refresh();
+        }
+      };
+    },
     available: () => available() && room() != null && session() != null,
     snapshot: () {
       final current = room();
@@ -23,6 +46,7 @@ RemotePlaybackTarget playbackRemoteTarget({
         'nick': current?.nick,
         'title': current?.title,
         'platform': current?.platform,
+        'roomKey': current?.identityKey,
         'paused': state?.status == PlaybackStatus.paused,
         'volume': state?.volume,
         'commands': ['play', 'pause', 'refresh', 'volume', 'mute', ...navigation.keys],

@@ -578,9 +578,11 @@ class _PackageState extends State<_Package> {
       final colors = Theme.of(dialogContext).colorScheme;
       final styles = dialogContext.textStyles;
       final file = widget.file;
+      final directional = MediaQuery.navigationModeOf(dialogContext) == NavigationMode.directional;
       const wide = ButtonStyle(minimumSize: WidgetStatePropertyAll(Size.fromHeight(48)));
       return AppDialog(
         key: const ValueKey('version-source-dialog'),
+        autofocus: !directional,
         title: '${widget.title} · ${_sourceName(index)}',
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -601,6 +603,7 @@ class _PackageState extends State<_Package> {
             const SizedBox(height: 16),
             FilledButton.icon(
               key: const ValueKey('version-source-download'),
+              autofocus: directional,
               style: wide,
               onPressed: () {
                 Navigator.of(dialogContext).pop();

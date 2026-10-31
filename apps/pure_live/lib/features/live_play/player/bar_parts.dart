@@ -14,60 +14,11 @@ import 'package:pure_live/features/live_play/player/player_gestures.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/shared/rooms/room_gain_control.dart';
 
+export 'package:pure_live/shared/rooms/playback_hud.dart' show PlayerClock;
+
 // The smaller pieces of the fullscreen and wide bars (docs/A-界面设计/A07-直播间界面/A07.2-竖屏流和竖屏全屏,
 // U.2c, U.2d): the clock and battery, the desktop volume, the fit and
 // portrait-mode menus, the lock and the portrait fullscreen's entry hint.
-
-/// The clock of the fullscreen bars (3.x `DatetimeInfo`): `21:36` in equal
-/// digits; redrawn when the minute turns, nothing else.
-class PlayerClock extends StatefulWidget {
-  /// Creates the clock.
-  const new({this.now = DateTime.now, super.key});
-
-  /// The time source.
-  final DateTime Function() now;
-
-  @override
-  State<PlayerClock> createState() => _PlayerClockState();
-}
-
-class _PlayerClockState extends State<PlayerClock> {
-  Timer? _tick;
-
-  @override
-  void initState() {
-    super.initState();
-    _schedule();
-  }
-
-  void _schedule() {
-    final now = widget.now();
-    final next = DateTime(now.year, now.month, now.day, now.hour, now.minute + 1);
-    _tick = Timer(next.difference(now) + const Duration(milliseconds: 50), () {
-      if (!mounted) return;
-      setState(() {});
-      _schedule();
-    });
-  }
-
-  @override
-  void dispose() {
-    _tick?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final now = widget.now();
-    String two(int value) => value.toString().padLeft(2, '0');
-    return Text(
-      '${two(now.hour)}:${two(now.minute)}',
-      key: const ValueKey('live-play-clock'),
-      style: Theme.of(context).textTheme.bodyMedium?.regular.tabular
-          .copyWith(fontSize: 14, color: OnVideoColors.foreground, shadows: OnVideoColors.shadows),
-    );
-  }
-}
 
 /// The battery figure's size (B09 c5, audit B-18: at least 11; it was 9).
 const double batteryFontSize = 11;

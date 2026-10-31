@@ -72,6 +72,8 @@ void main() {
     testWidgets('Windows: start-up, window size, closing the window, new windows', (tester) async {
       await withPlatform(TargetPlatform.windows, () async {
         final h = await pumpSettings(tester, width: 1280, height: 1400, arguments: 'general');
+        expect(h.settings.get(Settings.rememberWindowGeometry), isTrue);
+        expect(settingsRow('remember_window_geometry'), findsOneWidget);
         expectInOrder(tester, [
           for (final title in ['显示', '启动', '更新', '窗口', '定时退出']) _text(title).last,
         ]);
@@ -107,6 +109,11 @@ void main() {
         await tapSettings(tester, find.byKey(const ValueKey('settings-window-size-apply')));
         expect(h.settings.get(Settings.windowWidth), 1600);
         expect(h.settings.get(Settings.windowHeight), 900);
+        expect(
+          h.settings.get(Settings.rememberWindowGeometry),
+          isFalse,
+          reason: 'an explicit preset controls the next start',
+        );
         expect(h.toasts, ['设置已应用']);
       });
     });

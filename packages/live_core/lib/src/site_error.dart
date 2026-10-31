@@ -84,7 +84,13 @@ final class RegionBlocked extends SiteError {
 /// or live without video.
 final class StreamUnavailable extends SiteError {
   /// Creates the error.
-  const new(super.site, [super.detail]);
+  const new(super.site, [super.detail]) : code = null;
+
+  /// Creates a failure with a fixed reason safe for export.
+  const new withCode(super.site, this.code, [super.detail]);
+
+  /// A fixed reason, never a response, identifier or credential.
+  final ApiFailureCode? code;
 
   @override
   String get kind => 'StreamUnavailable';
@@ -99,7 +105,7 @@ final class UnsupportedLink extends SiteError {
   String get kind => 'UnsupportedLink';
 }
 
-/// Fixed, non-sensitive reasons for an API shape failure. Unlike [SiteError.detail],
+/// Fixed, non-sensitive reasons for an API response failure. Unlike [SiteError.detail],
 /// these may be included in an exported application log.
 enum ApiFailureCode {
   /// The signing descriptor response was not a JSON object.
@@ -125,6 +131,12 @@ enum ApiFailureCode {
 
   /// The play response had no data object or a failed HTTP status.
   douyuPlayData,
+
+  /// The play endpoint returned a nonzero platform status.
+  douyuPlayUnavailable,
+
+  /// The metadata response explicitly reported no pushed stream.
+  douyuStreamNotPushed,
 }
 
 /// The response does not match the platform spec.

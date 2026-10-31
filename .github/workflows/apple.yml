@@ -60,6 +60,9 @@ jobs:
       - name: Install official stable Python
         run: bash tools/toolchain/macos_python.sh
 
+      - name: Verify ReplayKit capture lifecycle
+        run: bash third_party/flutter_webrtc/tool/purelive_replaykit_test/run.sh
+
       - name: Toolchain
         id: toolchain
         run: |

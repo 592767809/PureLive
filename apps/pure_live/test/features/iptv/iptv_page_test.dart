@@ -89,6 +89,7 @@ Future<_Harness> _pump(
   bool defaultGuideDone = true,
   bool hotRemoved = true,
   bool tv = false,
+  bool embedded = false,
   Size size = const Size(900, 3200),
   List<Override> overrides = const [],
   Future<void> Function(_Harness harness)? prepare,
@@ -140,7 +141,9 @@ Future<_Harness> _pump(
           theme: const LiveTheme(primaryColor: Colors.blue).light,
           home: SettingsRowStyle(
             tv: tv,
-            child: const IptvPage(route: RouteArgs(RoutePath.kIptv)),
+            child: embedded
+                ? const SettingsPane(child: IptvPage(route: RouteArgs(RoutePath.kIptv)))
+                : const IptvPage(route: RouteArgs(RoutePath.kIptv)),
           ),
         ),
       ),
@@ -184,6 +187,18 @@ ButtonStyleButton _button(WidgetTester tester, String key) => tester.widget<Butt
 );
 
 void main() {
+  testWidgets('issue 133: populated IPTV settings align with an embedded settings column', (tester) async {
+    await _pump(tester, size: const Size(1280, 900), embedded: true);
+    final stats = find.byType(IptvStats);
+    expect(tester.getRect(stats).left, 24);
+    expect(tester.getRect(stats).width, readableContentMaxWidth);
+    expect(
+      tester.widget<Text>(find.descendant(of: find.byType(AppBar), matching: find.byType(Text)).first).style?.fontSize,
+      18,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   for (final (name, size, tv) in [
     ('phone', const Size(393, 852), false),
     ('desktop', const Size(1280, 800), false),

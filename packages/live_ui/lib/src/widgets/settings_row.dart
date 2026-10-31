@@ -382,6 +382,13 @@ class SettingsRow extends StatefulWidget {
 
 class _SettingsRowState extends State<SettingsRow> {
   bool _focused = false;
+  final FocusNode _tapFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _tapFocus.dispose();
+    super.dispose();
+  }
 
   bool get _keyboard => FocusManager.instance.highlightMode == FocusHighlightMode.traditional;
 
@@ -392,6 +399,9 @@ class _SettingsRowState extends State<SettingsRow> {
     final tv = SettingsRowStyle.tvOf(context);
     final usable = widget.enabled && !widget.busy;
     final focusable = widget.enabled && (!widget.busy || widget.retainFocusWhileBusy);
+    // InkWell ignores canRequestFocus in directional navigation. Keep a
+    // display-only row out of traversal so its slider/counter receives keys.
+    _tapFocus.skipTraversal = !focusable || widget.onTap == null;
     final body = theme.textTheme.bodyMedium ?? const TextStyle();
     // The card title and small sizes; the TV's one step larger (UI.md §5.5:
     // 17 and 14 by default).
@@ -504,6 +514,7 @@ class _SettingsRowState extends State<SettingsRow> {
       color: widget.selected ? colors.secondaryContainer : Colors.transparent,
       borderRadius: AppRadii.listRow,
       child: InkWell(
+        focusNode: _tapFocus,
         onTap: usable
             ? widget.onTap
             : focusable && widget.onTap != null
@@ -914,13 +925,18 @@ class SettingsSliderRow extends StatelessWidget {
                 ),
               ),
             ),
-          Slider(
-            value: value.clamp(min, max),
-            min: min,
-            max: max,
-            divisions: divisions,
-            onChanged: enabled ? onChanged : null,
-            onChangeEnd: enabled ? onChangeEnd : null,
+          // Settings form a vertical list on every device. Keep Up/Down
+          // for navigation; Left/Right still adjust this horizontal value.
+          MediaQuery(
+            data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: enabled ? onChanged : null,
+              onChangeEnd: enabled ? onChangeEnd : null,
+            ),
           ),
         ],
       ),

@@ -36,6 +36,7 @@ path = [
   { glob = "apps/pure_live/lib/shared/phone_bridge.dart", sub = "A17" },
   { glob = "apps/pure_live/lib/shared/net/lan_address.dart", sub = "J05" },
   { glob = "apps/pure_live/lib/shared/net/mdns_peers.dart", sub = "J05" },
+  { glob = "apps/pure_live/lib/shared/remote/screen_*.dart", sub = "N02" },
   { glob = "apps/pure_live/lib/shared/remote/", sub = "J05", note = "配对、发现、播放遥控和浏览器控制页，不导出账号" },
 
   { glob = "apps/pure_live/lib/features/douyu_vod/vod_controller.dart", sub = "V01" },
@@ -168,10 +169,13 @@ path = [
   { glob = "apps/pure_live/lib/shared/rooms/room_feed.dart", sub = "I02" },
   { glob = "apps/pure_live/lib/shared/rooms/room_texts.dart", sub = "I02" },
   { glob = "apps/pure_live/lib/shared/rooms/share_code.dart", sub = "E04" },
+  { glob = "apps/pure_live/lib/shared/rooms/playback_hud*.dart", sub = "A07" },
+  { glob = "apps/pure_live/lib/shared/rooms/playback_telemetry.dart", sub = "G01" },
   { glob = "apps/pure_live/lib/shared/rooms/", sub = "A09" },
   { glob = "apps/pure_live/lib/shared/under_construction.dart", sub = "A02" },
 
   # ---- 原生：Android（Kotlin）、Windows、iOS 和 macOS 运行器 ----
+  { glob = "apps/pure_live/android/**/ScreenCapturePlugin.kt", sub = "N02" },
   { glob = "apps/pure_live/android/**/MainActivity.kt", sub = "O02", note = "多个通道的宿主，待定" },
   { glob = "apps/pure_live/android/**/AppChannelsPlugin.kt", sub = "Q03", note = "原生 HTTP、加密、GBK、组播锁，待定" },
   { glob = "apps/pure_live/android/**/Recorder*.kt", sub = "O01" },
@@ -308,6 +312,7 @@ site = [
 
 # 原生通道：Dart 和 Kotlin 里写的 `pure_live/...` 名字。
 channel = [
+  { name = "pure_live/screen_capture", sub = "N02" },
   { name = "pure_live/app", sub = "O06", note = "回到后台、电视判断、遥控器输入、启动画面主题，待定" },
   { name = "pure_live/background_guide", sub = "O01" },
   { name = "pure_live/background_playback", sub = "C02" },

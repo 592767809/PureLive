@@ -9,7 +9,6 @@ import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/app/app.dart';
 import 'package:pure_live/app/services.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
-import 'package:pure_live/features/settings/settings_tiles.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
 import 'package:pure_live/routes/route_path.dart';

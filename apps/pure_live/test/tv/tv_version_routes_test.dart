@@ -193,6 +193,11 @@ void main() {
     expect(_focused(tester, source), isTrue);
     await _press(tester, LogicalKeyboardKey.select);
     expect(find.byKey(const ValueKey('version-source-dialog')), findsOneWidget);
+    expect(
+      _focused(tester, find.byKey(const ValueKey('version-source-download'))),
+      isTrue,
+      reason: 'issue 132: opening the source dialog already focuses a visible action',
+    );
     await _press(tester, LogicalKeyboardKey.escape);
     expect(find.byKey(const ValueKey('version-source-dialog')), findsNothing);
     expect(_focused(tester, source), isTrue);

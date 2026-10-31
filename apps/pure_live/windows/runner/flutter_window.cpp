@@ -1,4 +1,5 @@
 #include "flutter_window.h"
+#include "uninstall_shutdown.h"
 
 #include <algorithm>
 #include <cmath>
@@ -67,6 +68,12 @@ bool FlutterWindow::OnCreate() {
           flutter_controller_->engine()->messenger(), "pure_live/window_startup",
           &flutter::StandardMethodCodec::GetInstance());
   startup_channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    if (call.method_name() == "uninstallReady") {
+      uninstall_ready_ = true;
+      result->Success();
+      DispatchUninstallShutdown();
+      return;
+    }
     if (call.method_name() != "layoutReady") {
       result->NotImplemented();
       return;
@@ -108,6 +115,11 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  if (message == UninstallShutdownMessage()) {
+    uninstall_requested_ = true;
+    DispatchUninstallShutdown();
+    return 0;
+  }
   if (message == kStartupFrame) {
     if (flutter_controller_destroying_) return 0;
     startup_frame_seen_ = true;
@@ -146,6 +158,13 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
   }
 
   return Win32Window::MessageHandler(hwnd, message, wparam, lparam);
+}
+
+void FlutterWindow::DispatchUninstallShutdown() {
+  if (!uninstall_ready_ || !uninstall_requested_ || uninstall_sent_ ||
+      flutter_controller_destroying_ || !startup_channel_) return;
+  uninstall_sent_ = true;
+  startup_channel_->InvokeMethod("shutdownForUninstall", nullptr);
 }
 
 void FlutterWindow::StartStartupRecovery() {

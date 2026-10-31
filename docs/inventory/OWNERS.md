@@ -6,7 +6,7 @@
 
 路径规则按 OWNERS.toml 里的顺序第一条匹配的生效，所以一条目录规则只管前面的规则没拿走的文件。本页只随归属表、设置、来源和通道变化，加删代码文件不用重新生成。
 
-路径规则 234 条；设置 292 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 22 个。
+路径规则 238 条；设置 295 个（分节默认 24 条、单独指定 109 个）；来源 35 个；通道 23 个。
 
 | 子分类 | 路径规则 | 设置 | 播放 | 弹幕 | 通道 |
 |---|---:|---:|---:|---:|---:|
@@ -15,7 +15,7 @@
 | A03 动效和手感 | 3 |  |  |  |  |
 | A04 尺寸和适配 | 1 |  |  |  |  |
 | A06 首页和全局 | 3 |  |  |  |  |
-| A07 直播间界面 | 3 | 12 |  |  | 1 |
+| A07 直播间界面 | 4 | 12 |  |  | 1 |
 | A08 弹幕界面 | 5 | 11 |  |  |  |
 | A09 浏览界面 | 9 | 11 |  |  |  |
 | A10 录制界面 | 6 |  |  |  |  |
@@ -23,7 +23,7 @@
 | A12 账号和数据界面 | 6 |  |  |  |  |
 | A13 网络电视和多画面界面 | 2 |  |  |  |  |
 | A15 小页面 | 5 |  |  |  |  |
-| A16 桌面界面 | 1 | 12 |  |  |  |
+| A16 桌面界面 | 1 | 13 |  |  |  |
 | A17 电视界面 | 3 | 19 |  |  |  |
 | A18 苹果平台界面 | 3 | 1 |  |  | 1 |
 | C01 进房和房间逻辑 | 2 | 3 |  |  |  |
@@ -43,7 +43,7 @@
 | E05 平台框架和模型 | 1 |  |  |  |  |
 | E06 平台层升级 | 1 |  |  |  |  |
 | E07 平台巡检 | 1 |  |  |  |  |
-| G01 引擎 | 3 | 11 |  |  |  |
+| G01 引擎 | 4 | 13 |  |  |  |
 | G02 会话和恢复 | 1 |  |  |  |  |
 | G03 起播速度和弱网 | 1 |  |  |  |  |
 | G04 画面 |  | 3 |  |  |  |
@@ -72,7 +72,7 @@
 | L02 节目单和回看 | 3 |  |  |  |  |
 | L03 点播和音乐 | 1 |  |  |  |  |
 | N01 多画面 | 1 | 1 |  |  |  |
-| N02 投屏 | 1 |  |  |  | 1 |
+| N02 投屏 | 3 |  |  |  | 2 |
 | O01 通知和前台服务 | 8 | 6 |  |  | 4 |
 | O02 画中画 | 1 |  |  |  | 1 |
 | O03 分享接收和快捷方式 | 3 | 1 |  |  | 2 |
@@ -124,7 +124,7 @@
 
 ## A07 直播间界面
 
-- 代码：`apps/pure_live/lib/platform/overlay_window.dart`、`apps/pure_live/android/**/FloatingOverlay.kt`、`apps/pure_live/lib/features/live_play/`
+- 代码：`apps/pure_live/lib/platform/overlay_window.dart`、`apps/pure_live/android/**/FloatingOverlay.kt`、`apps/pure_live/lib/features/live_play/`、`apps/pure_live/lib/shared/rooms/playback_hud*.dart`
 - 设置：`enablePortraitStreamAdaptation`、`portraitAdaptiveHeight`、`portraitLayoutMode`、`portraitFullscreenPolicy`、`portraitFullscreenDisplayMode`、`portraitPipFollowSource`、`portraitDanmakuMode`、`rememberPortraitRoomOverride`、`portraitFullscreenSwipeSwitch`、`portraitRoomOverrides`、`livePlayChatCollapsed`、`roomSwitcherLayout`
 - 通道：`pure_live/overlay`
 
@@ -161,7 +161,7 @@
 ## A16 桌面界面
 
 - 代码：`apps/pure_live/lib/app/desktop/`
-- 设置：`enableNewWindowPlay`、`window_width`、`window_height`、`rememberPipPosition`、`windows_pip_display_id`、`windows_pip_width`、`windows_pip_height`、`windows_pip_x`、`windows_pip_y`、`dontAskExit`、`exitChoose`、`enableStartUp`
+- 设置：`enableNewWindowPlay`、`rememberWindowGeometry`、`window_width`、`window_height`、`rememberPipPosition`、`windows_pip_display_id`、`windows_pip_width`、`windows_pip_height`、`windows_pip_x`、`windows_pip_y`、`dontAskExit`、`exitChoose`、`enableStartUp`
 
 ## A17 电视界面
 
@@ -257,8 +257,8 @@
 
 ## G01 引擎
 
-- 代码：`packages/live_media/`、`packages/live_player/lib/src/engine*.dart`、`packages/live_player/lib/src/mpv_*.dart`
-- 设置：`videoPlayerKey`、`enableCodec`、`preferH264`、`playerCompatMode`、`customPlayerOutput`、`videoOutputDriver`、`audioOutputDriver`、`videoHardwareDecoder`、`floatWindowPosition`、`useSystemPip`、`floatOverlayTipShown`
+- 代码：`apps/pure_live/lib/shared/rooms/playback_telemetry.dart`、`packages/live_media/`、`packages/live_player/lib/src/engine*.dart`、`packages/live_player/lib/src/mpv_*.dart`
+- 设置：`videoPlayerKey`、`enableCodec`、`preferH264`、`bilibiliPreferRaw`、`playerCompatMode`、`customPlayerOutput`、`videoOutputDriver`、`audioOutputDriver`、`videoHardwareDecoder`、`floatWindowPosition`、`useSystemPip`、`floatOverlayTipShown`、`playbackHud`
 
 ## G02 会话和恢复
 
@@ -395,8 +395,8 @@
 
 ## N02 投屏
 
-- 代码：`packages/live_cast/`
-- 通道：`pure_live/multicast_lock`
+- 代码：`apps/pure_live/lib/shared/remote/screen_*.dart`、`apps/pure_live/android/**/ScreenCapturePlugin.kt`、`packages/live_cast/`
+- 通道：`pure_live/screen_capture`、`pure_live/multicast_lock`
 
 ## O01 通知和前台服务
 

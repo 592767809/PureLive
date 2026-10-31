@@ -17,6 +17,10 @@ final class LiveRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   final Set<Route<dynamic>> _openPopups = {};
   final List<void Function(RouteEvent event)> _listeners = [];
   Route<dynamic>? _topPageRoute;
+  int _revision = 0;
+
+  /// Changes for every page, popup, replacement or removal.
+  int get revision => _revision;
 
   /// The name of the page on top ('' before the first page).
   ValueListenable<String> get currentRoute => _current;
@@ -53,6 +57,7 @@ final class LiveRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   void removeListener(void Function(RouteEvent event) listener) => _listeners.remove(listener);
 
   void _emit(RouteEventKind kind, Route<dynamic> route, Route<dynamic>? top) {
+    _revision++;
     _current.value = top?.settings.name ?? '';
     final event = RouteEvent(kind, route);
     for (final listener in List.of(_listeners)) {
@@ -79,6 +84,7 @@ final class LiveRouteObserver extends RouteObserver<PageRoute<dynamic>> {
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didRemove(route, previousRoute);
+    _revision++;
     _track(route, open: false);
     if (identical(route, _topPageRoute)) _setTopPage(previousRoute);
   }

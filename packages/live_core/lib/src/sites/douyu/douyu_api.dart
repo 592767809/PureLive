@@ -743,7 +743,11 @@ abstract final class DouyuApi {
       throw const ApiChanged.withCode(_site, ApiFailureCode.douyuPlayCode, 'getH5PlayV1: no error code');
     }
     if (code != 0) {
-      throw StreamUnavailable(_site, 'getH5PlayV1: error $code ${jsonString(decoded['msg']) ?? ''}'.trim());
+      throw StreamUnavailable.withCode(
+        _site,
+        ApiFailureCode.douyuPlayUnavailable,
+        'getH5PlayV1: error $code ${jsonString(decoded['msg']) ?? ''}'.trim(),
+      );
     }
     final data = _object(decoded['data']);
     if (data == null || status < 200 || status >= 300) {
@@ -765,7 +769,11 @@ abstract final class DouyuApi {
   /// (S09-24422-r2-hw-h5).
   static List<LivePlayQuality> qualities(Map<String, dynamic> data) {
     if (jsonInt(data['streamStatus']) == 0) {
-      throw const StreamUnavailable(_site, 'getH5PlayV1: streamStatus 0 (no stream pushed)');
+      throw const StreamUnavailable.withCode(
+        _site,
+        ApiFailureCode.douyuStreamNotPushed,
+        'getH5PlayV1: streamStatus 0 (no stream pushed)',
+      );
     }
     final lines = cdns(data);
     final items = [for (final raw in _list(data['multirates'])) ?_object(raw)];

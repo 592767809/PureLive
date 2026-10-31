@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:isolate';
 import 'dart:math';
 
@@ -66,6 +67,7 @@ final class DouyuSite extends LiveSite
         LiveSiteRecordRoomResolver,
         LivePlayUrlResolver,
         LivePlayRecoveryResolver,
+        LiveSiteCookieRefusals,
         LivePlayUrlCursorResolver,
         LivePlayLeaseMetadata {
   /// Creates the adapter. [_cookies] holds the user's login cookie, if any;
@@ -95,6 +97,29 @@ final class DouyuSite extends LiveSite
   Future<void>? _renewal;
   final Map<String, String> _rids = {};
   final Map<String, PlayLease> _leases = {};
+  final Map<String, ({String account, DateTime at})> _guestRooms = {};
+  final _refusals = StreamController<void>.broadcast(sync: true);
+
+  /// Successful public recovery is reported without exposing the account.
+  @override
+  Stream<void> get cookieRefusals => _refusals.stream;
+
+  /// Retry the saved login after a short room-scoped public fallback.
+  static const guestRecoveryLifetime = Duration(minutes: 5);
+
+  bool _guestFor(String rid, {bool refreshMetadata = false}) {
+    final account = _account();
+    final now = _now();
+    _guestRooms.removeWhere((_, entry) => entry.account != account || now.isBefore(entry.at));
+    final previous = _guestRooms[rid];
+    if (refreshMetadata && previous != null && now.difference(previous.at) >= guestRecoveryLifetime) {
+      _guestRooms.remove(rid);
+    }
+    return _guestRooms.containsKey(rid);
+  }
+
+  ({String cookie, String did}) _guestIdentity() =>
+      (cookie: DouyuApi.cookieHeader(account: '', did: _processDid), did: _processDid);
 
   @override
   String get id => _site;
@@ -391,8 +416,32 @@ final class DouyuSite extends LiveSite
 
   /// Qualities and CDN lines from one metadata request (`rate=-1`).
   @override
-  Future<List<LivePlayQuality>> getPlayQualities({required LiveRoom detail}) async =>
-      DouyuApi.qualities((await _play(_rid(detail), rate: -1, cdn: '')).data);
+  Future<List<LivePlayQuality>> getPlayQualities({required LiveRoom detail}) async {
+    final rid = _rid(detail);
+    // Renewing an individual line must retain the identity that resolved its
+    // quality. A metadata refresh may retry this room's saved account later.
+    final alreadyGuest = _guestFor(rid, refreshMetadata: true);
+    final account = _account();
+    try {
+      return DouyuApi.qualities((await _play(rid, rate: -1, cdn: '')).data);
+    } on StreamUnavailable catch (initial) {
+      if (alreadyGuest || account.isEmpty || _account() != account) rethrow;
+      // A saved login can be refused while this public room still plays as a
+      // guest. Ask the same public endpoint once; never erase the login or
+      // infer expiry from a room-state response. Real offline rooms still fail.
+      try {
+        final answer = await _play(rid, rate: -1, cdn: '', anonymous: true);
+        final qualities = DouyuApi.qualities(answer.data);
+        if (DouyuApi.mediaUrl(answer.data) == null || _account() != account) rethrow;
+        _guestRooms[rid] = (account: account, at: _now());
+        if (_guestRooms.length > 64) _guestRooms.remove(_guestRooms.keys.first);
+        _refusals.add(null);
+        return qualities;
+      } on SiteError {
+        throw initial;
+      }
+    }
+  }
 
   @override
   Future<List<String>> getPlayUrls({required LiveRoom detail, required LivePlayQuality quality}) async =>
@@ -487,15 +536,17 @@ final class DouyuSite extends LiveSite
     String rid, {
     required int rate,
     required String cdn,
+    bool anonymous = false,
   }) async {
     if (!_digits.hasMatch(rid)) throw NotFound(_site, 'room id "$rid" is not a number');
-    await _renew();
+    final guest = anonymous || _guestFor(rid);
+    if (!guest) await _renew();
     SiteError? last;
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
-        final identity = _identity();
+        final identity = guest ? _guestIdentity() : _identity();
         final descriptor = await _descriptorFor(identity, force: attempt > 0);
-        if (_identity() != identity) {
+        if ((guest ? _guestIdentity() : _identity()) != identity) {
           last = const ApiChanged(_site, 'play identity changed while requesting its descriptor');
           continue;
         }
@@ -525,7 +576,7 @@ final class DouyuSite extends LiveSite
       } on SiteError catch (error) {
         last = error;
       }
-      if (attempt == 0) await _renew(force: true);
+      if (attempt == 0 && !guest) await _renew(force: true);
     }
     throw last!;
   }
@@ -557,7 +608,9 @@ final class DouyuSite extends LiveSite
           ),
         );
         final descriptor = DouyuApi.descriptor(response.text, now: _now(), status: response.status);
-        if (_identity() == identity) _descriptor = (identity: identity, descriptor: descriptor, at: _now());
+        if (_identity() == identity || _guestIdentity() == identity) {
+          _descriptor = (identity: identity, descriptor: descriptor, at: _now());
+        }
         return descriptor;
       } finally {
         if (identical(_descriptorFetch?.future, future)) _descriptorFetch = null;

@@ -9,6 +9,7 @@ import 'package:pure_live/features/live_play/logic/playback_info.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
 import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/routes/app_navigator.dart';
+import 'package:pure_live/shared/rooms/playback_telemetry.dart';
 
 /// Opens “播放信息”: the room's panel, or the same panel in a sheet where
 /// there is no room page around [context] (a lone button in a test).
@@ -51,84 +52,56 @@ class PlaybackInfoPanel extends StatefulWidget {
   State<PlaybackInfoPanel> createState() => _PlaybackInfoPanelState();
 }
 
-class _PlaybackInfoPanelState extends State<PlaybackInfoPanel> with WidgetsBindingObserver {
+class _PlaybackInfoPanelState extends State<PlaybackInfoPanel> {
   PlaybackStats? _stats;
-  final List<double> _downloads = [];
-  Timer? _timer;
+  late PlaybackTelemetry _telemetry;
+  bool _ownsTelemetry = false;
   StreamSubscription<PlaybackState>? _states;
-  bool _reading = false;
 
   LiveRoomController get _room => widget.controller;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    _attach();
+  }
+
+  void _attach() {
+    _ownsTelemetry = widget.statsReader != null;
+    _telemetry = _ownsTelemetry ? PlaybackTelemetry(read: widget.statsReader!) : _room.telemetry;
+    _stats = _telemetry.value;
+    _telemetry.addListener(_changed);
     _states = _room.session.states.listen((_) {
       if (mounted) setState(() {});
     });
-    _start();
+  }
+
+  void _changed() {
+    if (mounted) setState(() => _stats = _telemetry.value);
+  }
+
+  void _detach() {
+    _telemetry.removeListener(_changed);
+    if (_ownsTelemetry) _telemetry.dispose();
+    unawaited(_states?.cancel());
+  }
+
+  @override
+  void didUpdateWidget(PlaybackInfoPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller || oldWidget.statsReader != widget.statsReader) {
+      _detach();
+      _attach();
+    }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    unawaited(_states?.cancel());
+    _detach();
     super.dispose();
   }
 
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _start();
-    } else {
-      _timer?.cancel();
-      _timer = null;
-    }
-  }
-
-  void _start() {
-    if (_timer != null) return;
-    unawaited(_refresh());
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => unawaited(_refresh()));
-  }
-
-  Future<void> _refresh() async {
-    if (_reading || !mounted) return;
-    _reading = true;
-    try {
-      PlaybackStats? stats;
-      try {
-        stats = await _readStats();
-      } on Object {
-        stats = null;
-      }
-      if (!mounted) return;
-      setState(() {
-        _stats = stats;
-        final download = stats?.downloadBytesPerSecond;
-        if (download == null || !download.isFinite || download <= 0) {
-          _downloads.clear();
-        } else {
-          _downloads.add(download);
-          if (_downloads.length > 3) _downloads.removeAt(0);
-        }
-      });
-    } finally {
-      _reading = false;
-    }
-  }
-
-  Future<PlaybackStats?> _readStats() {
-    final reader = widget.statsReader;
-    if (reader != null) return reader();
-    final engine = _room.session.engine;
-    if (engine case final PlaybackStatsSource source) return source.readStats();
-    return Future<PlaybackStats?>.value();
-  }
-
-  double? get _downloadAverage => _downloads.isEmpty ? null : _downloads.reduce((a, b) => a + b) / _downloads.length;
+  double? get _downloadAverage => _telemetry.downloadAverage;
 
   PlaybackInfo get _info => playbackInfoOf(
     state: _room.session.state,

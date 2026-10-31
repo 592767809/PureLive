@@ -43,6 +43,9 @@ abstract final class RoutePath {
   /// Paired LAN playback remote and live-room link pushes.
   static const kPlaybackRemote = '/playback_remote';
 
+  /// A paired visual mirror; it retains the original route underneath.
+  static const kScreenMirror = '/screen_mirror';
+
   /// About.
   static const kAbout = '/about';
 

@@ -18,6 +18,7 @@ import 'package:pure_live/features/multiview/multiview_page.dart';
 import 'package:pure_live/features/popular/popular_page.dart';
 import 'package:pure_live/features/recorder/recorder_page.dart';
 import 'package:pure_live/features/remote_receiver/remote_receiver_page.dart';
+import 'package:pure_live/features/remote_receiver/screen_mirror_page.dart';
 import 'package:pure_live/features/search/search_page.dart';
 import 'package:pure_live/features/settings/danmaku_page.dart';
 import 'package:pure_live/features/settings/settings_page.dart';
@@ -39,6 +40,7 @@ typedef PageBuilder = Widget Function(RouteArgs route);
 /// path points at the page class of its folder under `lib/pages/` (M13
 /// replaces the folders, never this table).
 final Map<String, PageBuilder> pageRoutes = {
+  RoutePath.kScreenMirror: (_) => const ScreenMirrorPage(),
   RoutePath.kSignIn: (route) => AuthPage(route: route),
   RoutePath.kMine: (route) => AuthPage(route: route),
   RoutePath.kUserManage: (route) => AuthPage(route: route),

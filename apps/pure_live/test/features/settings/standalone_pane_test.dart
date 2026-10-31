@@ -11,6 +11,7 @@ import 'package:pure_live/features/iptv/iptv_data.dart';
 import 'package:pure_live/features/iptv/iptv_page.dart';
 import 'package:pure_live/features/live_play/local_interaction/local_interaction_settings_page.dart';
 import 'package:pure_live/features/record_settings/record_settings_page.dart';
+import 'package:pure_live/features/remote_receiver/playback_remote_page.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_page.dart';
 import 'package:pure_live/features/web_dav/web_dav_page.dart';
@@ -36,6 +37,7 @@ void main() {
     (SettingsSection.localInteraction, LocalInteractionSettingsPage, RoutePath.kLocalInteraction),
     (SettingsSection.backup, BackupPage, RoutePath.kBackup),
     (SettingsSection.log, LogPage, RoutePath.kLogs),
+    (SettingsSection.playbackRemote, PlaybackRemotePage, RoutePath.kPlaybackRemote),
   ];
   for (final (section, pageType, _) in destinations) {
     testWidgets('issue56: ${section.name} stays beside the overview in a wide settings window', (tester) async {
@@ -61,6 +63,33 @@ void main() {
         expect(page, findsOneWidget);
         expect(tester.getTopLeft(page).dx, greaterThanOrEqualTo(settingsOverviewWidth));
         expect(tester.widget<SettingsLinkRow>(settingsSection(section)).selected, isTrue);
+        final appBar = find.descendant(of: page, matching: find.byType(AppBar)).first;
+        final heading = tester.widget<AppBar>(appBar).title! as Text;
+        final theme = Theme.of(tester.element(appBar));
+        expect(
+          heading.style?.fontSize,
+          LiveFontSizes.of(theme.textTheme).titleLarge * 18 / 20,
+          reason: 'issue 133: every embedded page uses the same title size',
+        );
+        // Their unavailable-service shells are intentional here. The real
+        // content geometry is covered by each page's backend fixture tests.
+        if (section == SettingsSection.iptv || section == SettingsSection.recording) return;
+        final Finder content;
+        if (section == SettingsSection.localInteraction) {
+          content = find
+              .descendant(of: find.byKey(const ValueKey('local-settings-list')), matching: find.byType(ConstrainedBox))
+              .first;
+        } else if (section == SettingsSection.playbackRemote) {
+          content = find.byKey(const ValueKey('remote-control-enable'));
+        } else {
+          content = find.descendant(of: page, matching: find.byType(SettingsGroup)).first;
+        }
+        expect(
+          tester.getRect(content).left,
+          settingsOverviewWidth + 1 + 24,
+          reason: 'issue 133: content starts at the same inset from the content pane',
+        );
+        expect(tester.getRect(content).width, lessThanOrEqualTo(readableContentMaxWidth));
       });
     });
   }

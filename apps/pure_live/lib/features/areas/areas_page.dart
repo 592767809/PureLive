@@ -246,7 +246,9 @@ class _FollowedAreasButton extends StatelessWidget {
     final wide = width > homeTabletBreakpoint;
     final label = i18n('favorite_areas');
     return Padding(
-      padding: EdgeInsets.only(bottom: usesDesktopPages(width) ? _abovePager : (wide ? 24 : 0)),
+      padding: EdgeInsets.only(
+        bottom: (usesDesktopPages(width) ? _abovePager : (wide ? 24 : 0)) + GlassBarInset.of(context),
+      ),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface.withValues(alpha: 0.95),

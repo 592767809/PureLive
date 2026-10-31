@@ -527,6 +527,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final directional = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final styles = context.textStyles;
@@ -628,6 +629,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         trailing = [
           TextButton(
             key: const ValueKey('update-download-cancel'),
+            autofocus: directional,
             onPressed: _cancelDownload,
             child: Text(i18n('cancel')),
           ),
@@ -637,12 +639,14 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         trailing = [
           TextButton(
             key: const ValueKey('update-download-browser'),
+            autofocus: directional && !_canVerify,
             onPressed: () => unawaited(_openInBrowser()),
             child: Text(i18n('update_open_in_browser')),
           ),
           if (_canVerify)
             FilledButton.icon(
               key: const ValueKey('update-download-retry'),
+              autofocus: directional,
               onPressed: () => unawaited(_start()),
               icon: const Icon(AppIcons.retry, size: 18),
               label: Text(i18n('retry')),
@@ -663,6 +667,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         trailing = [
           FilledButton.icon(
             key: const ValueKey('update-download-install'),
+            autofocus: directional,
             onPressed: () => unawaited(_install()),
             icon: const Icon(AppIcons.install, size: 18),
             label: Text(i18n('download_open_again')),
@@ -673,6 +678,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
         trailing = [
           FilledButton.icon(
             key: const ValueKey('update-download-reveal'),
+            autofocus: directional,
             onPressed: () => unawaited(_revealInFinder()),
             icon: const Icon(AppIcons.openFolder, size: 18),
             label: Text(i18n('show_in_finder')),
@@ -688,6 +694,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
           ),
           FilledButton.icon(
             key: const ValueKey('update-download-install'),
+            autofocus: directional,
             onPressed: () => unawaited(_install()),
             icon: const Icon(AppIcons.install, size: 18),
             label: Text(i18n('install')),
@@ -719,6 +726,7 @@ class _UpdateDownloadDialogState extends ConsumerState<UpdateDownloadDialog> {
 
     return DialogButtonsTheme(
       child: DialogKeys(
+        autofocus: !directional,
         onEnter: _mainAction,
         // Not closed by a tap outside, so the route gives it no Esc.
         onEscape: _onBack,

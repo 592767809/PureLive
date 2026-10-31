@@ -44,6 +44,7 @@ Future<_Harness> _pump(
   Map<String, Object?> legacy = const {},
   Future<String?> Function()? picker,
   Object? arguments,
+  bool embedded = false,
 }) async {
   tester.view
     ..physicalSize = size
@@ -86,7 +87,11 @@ Future<_Harness> _pump(
         config: LiveUiConfig(strings: strings.ui),
         child: MaterialApp(
           theme: const LiveTheme(primaryColor: Colors.blue).light,
-          home: RecordSettingsPage(route: RouteArgs(RoutePath.kRecordSettings, arguments: arguments)),
+          home: embedded
+              ? SettingsPane(
+                  child: RecordSettingsPage(route: RouteArgs(RoutePath.kRecordSettings, arguments: arguments)),
+                )
+              : RecordSettingsPage(route: RouteArgs(RoutePath.kRecordSettings, arguments: arguments)),
         ),
       ),
     ),
@@ -125,6 +130,18 @@ bool _greyed(WidgetTester tester, String title) => find
     .isNotEmpty;
 
 void main() {
+  testWidgets('issue 133: populated recording settings align with an embedded settings column', (tester) async {
+    await _pump(tester, size: const Size(1280, 900), embedded: true);
+    final group = find.byType(SettingsGroup).first;
+    expect(tester.getRect(group).left, 24);
+    expect(tester.getRect(group).width, readableContentMaxWidth);
+    expect(
+      tester.widget<Text>(find.descendant(of: find.byType(AppBar), matching: find.byType(Text)).first).style?.fontSize,
+      18,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   test('words: units in words, sizes, what a value means', () async {
     await loadStrings();
     expect(recordDurationLabel(15), '15 秒');

@@ -373,6 +373,9 @@ abstract final class Settings {
   /// first so HEVC is only played when chosen by hand.
   static const preferH264 = BoolSetting('preferH264', section: 'player', defaultValue: true);
 
+  /// Opt-in Bilibili Raw candidates, followed by every official play line.
+  static const bilibiliPreferRaw = BoolSetting('bilibiliPreferRaw', section: 'player', defaultValue: false);
+
   /// Compatibility output.
   static const playerCompatMode = BoolSetting('playerCompatMode', section: 'player', defaultValue: false);
 
@@ -985,6 +988,9 @@ abstract final class Settings {
   /// Optional per-room signed dB overrides; absent entries inherit the global gain.
   static const roomVolumeGains = JsonSetting('roomVolumeGains', section: 'volume', defaultValue: {});
 
+  /// Local clock and media input-rate presentation; absent keys retain defaults.
+  static const playbackHud = JsonSetting('playbackHud', section: 'player', defaultValue: {});
+
   /// Opt-in coexistence with external media; system interruptions still apply.
   static const allowAudioMixing = BoolSetting('allowAudioMixing', section: 'volume', defaultValue: false);
 
@@ -1206,6 +1212,13 @@ abstract final class Settings {
   );
 
   // ---- window, exit, startup (window_size_controller.dart, exit_settings_controller.dart, startup_controller.dart) ----
+
+  /// Restore the main window's last normal bounds and maximized state.
+  static const rememberWindowGeometry = BoolSetting(
+    'rememberWindowGeometry',
+    section: 'windowSize',
+    defaultValue: true,
+  );
 
   /// Window width.
   static const windowWidth = DoubleSetting(
@@ -2073,6 +2086,7 @@ abstract final class Settings {
     preferResolutionCellular,
     enableCodec,
     preferH264,
+    bilibiliPreferRaw,
     playerCompatMode,
     customPlayerOutput,
     videoOutputDriver,
@@ -2164,6 +2178,7 @@ abstract final class Settings {
     globalVolumeMute,
     roomVolumes,
     roomVolumeGains,
+    playbackHud,
     allowAudioMixing,
     roomCardMobilePreset,
     roomCardDesktopPreset,
@@ -2199,6 +2214,7 @@ abstract final class Settings {
     enableAppProxy,
     appProxyHost,
     appProxyPort,
+    rememberWindowGeometry,
     windowWidth,
     windowHeight,
     rememberPipPosition,

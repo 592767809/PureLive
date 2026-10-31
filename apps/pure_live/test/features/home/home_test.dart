@@ -314,6 +314,7 @@ void main() {
         RoutePath.kRecordPage, RoutePath.kRecordSettings, RoutePath.kWebSearch, RoutePath.kSettingsTags,
         RoutePath.kRemoteSync,
         RoutePath.kPlaybackRemote,
+        RoutePath.kScreenMirror,
         RoutePath.kDouyuVod,
         // U.2k: the local interaction settings (3.x pushed the page directly).
         RoutePath.kLocalInteraction,

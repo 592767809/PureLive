@@ -314,7 +314,6 @@ class PlayerTopBar extends StatelessWidget {
         child: Row(
           children: [
             _back(context),
-            const PlayerClock(),
             const PlayerBattery(),
             const SizedBox(width: 4),
             Expanded(child: _VideoTitle(controller: actions.controller)),
@@ -346,7 +345,7 @@ class PlayerTopBar extends StatelessWidget {
             // a larger display size leaves too little room.
             child: _InlineRow(
               key: const ValueKey('live-play-top-second-row'),
-              left: const [SizedBox(width: 14), PlayerClock(), PlayerBattery()],
+              left: const [SizedBox(width: 14), PlayerBattery()],
               right: [..._trailing(context, switchRoom: true), const SizedBox(width: 4)],
             ),
           ),

@@ -17,6 +17,7 @@ import 'package:pure_live/app/desktop/startup_entry.dart';
 import 'package:pure_live/app/desktop/startup_window.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/desktop/tray.dart';
+import 'package:pure_live/app/desktop/uninstall_shutdown.dart';
 import 'package:pure_live/app/launch_args.dart';
 import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -265,6 +266,7 @@ final class DesktopShell with WindowListener {
   String? _title;
   AppLifecycleListener? _exitListener;
   bool _quitting = false;
+  WindowsUninstallHandler? _uninstall;
 
   /// The authenticated endpoint of an extra projection window, if requested.
   ProjectionRuntime? projection;
@@ -311,12 +313,10 @@ final class DesktopShell with WindowListener {
     // Never larger than the screen's work area (a size kept from a bigger
     // display, or the default on a small one, put the window's left part
     // off the screen on the Mac runner).
-    final size = fitWindowSize(
-      Size(_prefs.get(Settings.windowWidth), _prefs.get(Settings.windowHeight)),
-      await _workArea(),
-    );
+    final geometry = await startupWindowGeometry(_store, primary: primary);
+    final size = fitWindowSize(geometry.size, await _workArea());
     final position = primary ? parseWindowPosition(await _store.meta.get(windowPositionKey)) : null;
-    final maximize = primary && await _store.meta.get(windowMaximizedKey) == '1';
+    final maximize = geometry.maximized;
     final options = WindowOptions(
       size: size,
       minimumSize: minimumSize,
@@ -390,6 +390,10 @@ final class DesktopShell with WindowListener {
         }
       });
       if (isReleaseBuild) unawaited(_applyStartup());
+    }
+    if (Platform.isWindows) {
+      _uninstall = WindowsUninstallHandler(exit);
+      await _uninstall!.connect();
     }
   }
 
@@ -621,10 +625,7 @@ final class DesktopShell with WindowListener {
         return;
       }
       final bounds = await windowManager.getBounds();
-      await _prefs.setAll({
-        Settings.windowWidth: bounds.width.clamp(minimumSize.width, 16384).toDouble(),
-        Settings.windowHeight: bounds.height.clamp(minimumSize.height, 16384).toDouble(),
-      });
+      await rememberNormalWindowSize(_store, bounds.size);
       await _store.meta.set(windowPositionKey, formatWindowPosition(bounds.topLeft));
     } on Object catch (error, stack) {
       log('Saving the window failed', name: 'Desktop', error: error, stackTrace: stack);
@@ -640,6 +641,7 @@ final class DesktopShell with WindowListener {
 
   /// Stops listening (tests, shutdown).
   Future<void> dispose() async {
+    _uninstall?.dispose();
     await projection?.dispose();
     windowManager.removeListener(this);
     _exitListener?.dispose();

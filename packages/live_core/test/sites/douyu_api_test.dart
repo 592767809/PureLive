@@ -36,6 +36,17 @@ String _jwt(Map<String, Object?> payload) =>
 DateTime _seconds(int value) => DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true);
 
 void main() {
+  test('issue135 stream absence and play refusal export different fixed reasons', () {
+    expect(
+      () => DouyuApi.qualities({'streamStatus': 0}),
+      throwsA(isA<StreamUnavailable>().having((error) => error.code, 'reason', ApiFailureCode.douyuStreamNotPushed)),
+    );
+    expect(
+      () => DouyuApi.playData('{"error":-5,"msg":"fixture-private-data"}'),
+      throwsA(isA<StreamUnavailable>().having((error) => error.code, 'reason', ApiFailureCode.douyuPlayUnavailable)),
+    );
+  });
+
   test('S01 categories: ids, names and areas match 3.x', () {
     final fixture = _sample('S01-cate-list');
     final categories = DouyuApi.categories(fixture.body, status: fixture.status);

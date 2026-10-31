@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:live_store/live_store.dart';
 import 'package:live_ui/live_ui.dart';
@@ -29,16 +30,54 @@ const Set<SettingsSection> tvHiddenSettingsSections = {SettingsSection.pipDanmak
 /// ([TvSettingsSectionPage]); the pages that are a screen of their own (IPTV,
 /// recording, backup, the log, …) open that screen, which the TV router
 /// draws in the same look.
-class TvSettingsCatalog extends ConsumerWidget {
+class TvSettingsCatalog extends ConsumerStatefulWidget {
   /// Creates the catalogue.
   const new({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TvSettingsCatalog> createState() => _TvSettingsCatalogState();
+}
+
+class _TvSettingsCatalogState extends ConsumerState<TvSettingsCatalog> {
+  final _scroll = ScrollController();
+  final _firstRow = FocusNode(canRequestFocus: false, skipTraversal: true);
+  bool _headerPending = false;
+
+  void _revealHeader() {
+    if (_headerPending) return;
+    _headerPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _headerPending = false;
+      if (!mounted || !_firstRow.hasFocus || !_scroll.hasClients || _scroll.offset <= 0) return;
+      // Directional traversal reveals the row, but its non-focusable headings
+      // live above it. Restore them after that automatic row-only scrolling.
+      _scroll.animateTo(0, duration: tvFocusDuration, curve: Curves.easeOutCubic);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  KeyEventResult _topKey(FocusNode node, KeyEvent event) {
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) && event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _revealHeader();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
+  void dispose() {
+    _firstRow.dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.read(storeProvider).settings;
     final scale = TvScale.of(context);
     return ListView(
       key: const ValueKey('tv-settings-catalog'),
+      controller: _scroll,
       padding: EdgeInsets.symmetric(horizontal: scale.px(24), vertical: scale.px(28)),
       children: [
         TvPageHeader(title: i18n('tv_menu_settings')),
@@ -46,18 +85,27 @@ class TvSettingsCatalog extends ConsumerWidget {
         TvSettingsGroup(
           title: i18n('tv_settings_group_tv'),
           children: [
-            TvChoiceRow<String>(
-              id: 'ui_mode',
-              icon: TvIcons.uiMode,
-              title: i18n('ui_mode'),
-              subtitle: i18n('tv_ui_mode_desc'),
-              value: watchSetting(ref, Settings.uiMode),
-              options: [
-                TvChoice(value: 'auto', label: i18n('ui_mode_auto'), description: i18n('ui_mode_auto_desc')),
-                TvChoice(value: 'phone', label: i18n('ui_mode_phone')),
-                TvChoice(value: 'tv', label: i18n('ui_mode_tv')),
-              ],
-              onChanged: (value) => settings.set(Settings.uiMode, value),
+            Focus(
+              focusNode: _firstRow,
+              canRequestFocus: false,
+              skipTraversal: true,
+              onKeyEvent: _topKey,
+              onFocusChange: (focused) {
+                if (focused) _revealHeader();
+              },
+              child: TvChoiceRow<String>(
+                id: 'ui_mode',
+                icon: TvIcons.uiMode,
+                title: i18n('ui_mode'),
+                subtitle: i18n('tv_ui_mode_desc'),
+                value: watchSetting(ref, Settings.uiMode),
+                options: [
+                  TvChoice(value: 'auto', label: i18n('ui_mode_auto'), description: i18n('ui_mode_auto_desc')),
+                  TvChoice(value: 'phone', label: i18n('ui_mode_phone')),
+                  TvChoice(value: 'tv', label: i18n('ui_mode_tv')),
+                ],
+                onChanged: (value) => settings.set(Settings.uiMode, value),
+              ),
             ),
             TvSwitchRow(
               id: 'focus_zoom',
