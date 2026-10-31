@@ -48,7 +48,14 @@ MpvPlatform? mpvPlatformOf(TargetPlatform platform) => switch (platform) {
 ///   `vid=no`; Android does not re-send `vid=auto` after an open.
 /// - Windows reports presented frames (the fork's `frameRevision`).
 final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource, VolumeGainControl {
-  new _(this.player, this.controller, this.config, {void Function(String)? onBufferingSnapshot}) {
+  new _(
+    this.player,
+    this.controller,
+    this.config,
+    this._diagnosticEngine,
+    this._trace, {
+    void Function(String)? onBufferingSnapshot,
+  }) {
     _bufferingProbe = NativeBufferingProbe(
       read: _readProperty,
       report: (line) => (onBufferingSnapshot ?? debugPrint)('$line engine=$_diagnosticEngine open=$_diagnosticOpens'),
@@ -60,33 +67,72 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   /// Creates the player and its video controller. Needs a Flutter binding.
   /// [onBufferingSnapshot] receives bounded, non-identifying native state
   /// before a stall timeout, so applications can retain it at normal log level.
-  static Future<MpvEngine> create({MpvEngineConfig? config, void Function(String)? onBufferingSnapshot}) async {
+  static Future<MpvEngine> create({
+    MpvEngineConfig? config,
+    void Function(String)? onBufferingSnapshot,
+    @visibleForTesting FutureOr<Player> Function()? createPlayer,
+  }) async {
     final resolved = config ?? MpvEngineConfig(platform: mpvPlatformOf(defaultTargetPlatform) ?? MpvPlatform.linux);
-    MediaKit.ensureInitialized();
-    final player = Player(configuration: const PlayerConfiguration(title: 'Pure Live'));
-    final native = player.platform;
-    // An A/B build (G03.1) says so in logcat, next to its timing lines.
-    final probe = mpvProbeValues();
-    if (probe != mpvProbeDefaults) {
-      debugPrint('mpv probe override: probesize=${probe.probeSize} analyzeduration=${probe.analyzeDuration}');
-    }
-    if (native is NativePlayer) {
-      await native.waitForPlayerInitialization;
-      for (final MapEntry(:key, :value) in resolved.liveProperties.entries) {
-        await native.setPropertyAsync(key, value);
+    final id = ++_nextDiagnosticEngine;
+    var open = 0;
+    void report(String phase, [int? error]) {
+      try {
+        (onBufferingSnapshot ?? debugPrint)(
+          'mpv lifecycle engine=$id open=$open phase=$phase${error == null ? '' : ' error=$error'}',
+        );
+      } on Object {
+        /* Diagnostic sinks cannot change playback. */
       }
     }
-    final macos = resolved.platform == MpvPlatform.macos;
-    final controller = VideoController(
-      player,
-      configuration: VideoControllerConfiguration(
-        vo: resolved.videoOutput,
-        hwdec: resolved.preferredHardwareDecoder,
-        enableHardwareAcceleration: !macos && resolved.preferredHardwareDecoder != 'no',
-        androidAttachSurfaceAfterVideoParameters: resolved.customOutput || resolved.androidCompatibility ? null : false,
-      ),
-    );
-    return MpvEngine._(player, controller, resolved, onBufferingSnapshot: onBufferingSnapshot);
+
+    report('create-request');
+    MediaKit.ensureInitialized();
+    final player = await (createPlayer?.call() ?? Player(configuration: const PlayerConfiguration(title: 'Pure Live')));
+    try {
+      final native = player.platform;
+      if (native is NativePlayer) {
+        native.lifecycleListener = report;
+        report('native-wait');
+        await native.waitForPlayerInitialization;
+        report('configure-live');
+        for (final MapEntry(:key, :value) in resolved.liveProperties.entries) {
+          await native.setPropertyAsync(key, value);
+        }
+      }
+      final probe = mpvProbeValues();
+      if (probe != mpvProbeDefaults) {
+        debugPrint('mpv probe override: probesize=${probe.probeSize} analyzeduration=${probe.analyzeDuration}');
+      }
+      final macos = resolved.platform == MpvPlatform.macos;
+      final controller = VideoController(
+        player,
+        configuration: VideoControllerConfiguration(
+          vo: resolved.videoOutput,
+          hwdec: resolved.preferredHardwareDecoder,
+          enableHardwareAcceleration: !macos && resolved.preferredHardwareDecoder != 'no',
+          androidAttachSurfaceAfterVideoParameters: resolved.customOutput || resolved.androidCompatibility
+              ? null
+              : false,
+        ),
+      );
+      report('engine-ready');
+      return MpvEngine._(player, controller, resolved, id, (phase) {
+        if (phase == 'open-request') open++;
+        report(phase);
+      }, onBufferingSnapshot: onBufferingSnapshot);
+    } on Object {
+      report('create-failed');
+      // The caller never received an engine, so this factory still owns Player.
+      // Await cleanup: if native disposal hangs, the session retains this attempt
+      // in its bounded quarantine rather than silently leaking its allocation.
+      try {
+        await player.dispose();
+        report('failed-create-released');
+      } on Object {
+        report('failed-create-release-error');
+      }
+      rethrow;
+    }
   }
 
   /// The media_kit player.
@@ -116,7 +162,8 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   var _disposed = false;
   var _opens = 0;
   static var _nextDiagnosticEngine = 0;
-  final int _diagnosticEngine = ++_nextDiagnosticEngine;
+  final int _diagnosticEngine;
+  final void Function(String phase) _trace;
   var _diagnosticOpens = 0;
 
   bool get _android => config.platform == MpvPlatform.android;
@@ -203,15 +250,18 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   Future<void> open(EngineMedia media) async {
     _roomGainDb = media.volumeGainDb?.clamp(-12, 12);
     _diagnosticOpens++;
+    _trace('open-request');
     _bufferingProbe.reset();
     _hasSource = true;
     _watchBuffering(true);
     _gate.beginOpen(decoderStartupWindow: mpvDecoderStartupWindow(media.uri));
     try {
+      _trace('configure-open');
       await _setProperty('hwdec', config.hwdecFor(software: media.decoder == DecoderMode.software));
       await _setProperty('http-proxy', media.proxyUrl);
       await _setProperty('volume-gain', '${(_roomGainDb ?? config.volumeGainDb).clamp(-12, 12)}');
       await _setExternalAudio(media.audio);
+      _trace('load-request');
       await openMpvMediaInput(
         media.uri,
         configure: _setProperty,
@@ -277,7 +327,8 @@ final class MpvEngine implements PlayerEngine, PlaybackRate, PlaybackStatsSource
   Future<void> stop() {
     _hasSource = false;
     _bufferingProbe.reset();
-    return player.stop();
+    _trace('stop-request');
+    return player.stop().then((_) => _trace('stop-complete'));
   }
 
   @override

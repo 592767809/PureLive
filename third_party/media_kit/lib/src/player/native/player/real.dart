@@ -72,6 +72,16 @@ class NativePlayer extends PlatformPlayer {
     );
   }
 
+  /// Fixed lifecycle phases only: never paths, URLs, headers or native log text.
+  /// Applications can locate a hung initialization before a Player is returned.
+  void Function(String phase, int? error)? lifecycleListener;
+
+  void _lifecycle(String phase, [int? error]) {
+    try {
+      lifecycleListener?.call(phase, error);
+    } catch (_) {}
+  }
+
   /// Disposes the [Player] instance & releases the resources.
   @override
   Future<void> dispose({bool synchronized = true}) {
@@ -1300,6 +1310,22 @@ class NativePlayer extends PlatformPlayer {
   }
 
   Future<void> _handler(Pointer<generated.mpv_event> event) async {
+    switch (event.ref.event_id) {
+      case generated.mpv_event_id.MPV_EVENT_START_FILE:
+        _lifecycle('start-file');
+      case generated.mpv_event_id.MPV_EVENT_FILE_LOADED:
+        _lifecycle('file-loaded');
+      case generated.mpv_event_id.MPV_EVENT_END_FILE:
+        final data = event.ref.data;
+        _lifecycle(
+          'end-file',
+          data == nullptr
+              ? event.ref.error
+              : data.cast<generated.mpv_event_end_file>().ref.error,
+        );
+      case generated.mpv_event_id.MPV_EVENT_SHUTDOWN:
+        _lifecycle('shutdown', event.ref.error);
+    }
     if (event.ref.event_id ==
         generated.mpv_event_id.MPV_EVENT_PROPERTY_CHANGE) {
       if (event.ref.data == nullptr) return;
@@ -1315,6 +1341,7 @@ class NativePlayer extends PlatformPlayer {
         // The [Player] has entered the idle state; initialization is complete.
         if (!completer.isCompleted) {
           completer.complete();
+          _lifecycle('native-idle-ready');
         }
       }
       // Following properties are unrelated to the playback lifecycle. Thus, these can be accessed before initialization is complete.
@@ -2165,6 +2192,7 @@ class NativePlayer extends PlatformPlayer {
 
   Future<void> _create() {
     return lock.synchronized(() async {
+      _lifecycle('native-create');
       // The options which must be set before [MPV.mpv_initialize].
       final options = <String, String>{
         // Set --vid=no by default to prevent redundant video decoding.
@@ -2207,6 +2235,7 @@ class NativePlayer extends PlatformPlayer {
       );
       _eventLoop = eventLoop;
       ctx = eventLoop.handle;
+      _lifecycle('native-initialized');
 
       try {
         final properties = <String, String>{

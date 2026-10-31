@@ -42,6 +42,17 @@ class FlutterWindow : public Win32Window {
   void RememberDisplayMode(const DisplayModeSnapshot& snapshot);
   void NotifyDisplayModeChanged(bool force = false);
 
+  void StartStartupRecovery();
+  void RecoverStartupSurface();
+  // The frame callback may outlive the HWND/controller. It owns only this token.
+  struct StartupCallback { HWND window = nullptr; };
+  std::shared_ptr<StartupCallback> startup_callback_;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> startup_channel_;
+  bool startup_layout_ready_ = false;
+  bool startup_frame_seen_ = false;
+  bool startup_recovery_started_ = false;
+  int startup_recovery_attempts_ = 0;
+
   // The project to run.
   flutter::DartProject project_;
 

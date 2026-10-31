@@ -7125,3 +7125,42 @@ next = "已实现并随5.4.24交付；原生已覆盖范围见Y01.35，补充原
 date = "2026-10-31"
 commit = "f053ffc90e9d0a8ad4e69d72fe153c28d6f809cc"
 note = "九项统一发布；完整门禁、同源十包、原生证据、匿名下载及旧客户端兼容独立记录。"
+
+[[task]]
+id = "G02.13"
+title = "挂起初始化与停止的隔离"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/33；https://github.com/wzgrx/PureLive/issues/49"
+branch = "ai/G02.13"
+stages = ["故障反证与修复", "原生复验与完整门禁"]
+done = 0
+next = "完成故障反证后修复；原机验收范围独立记录。"
+
+[[task]]
+id = "X01.5"
+title = "Windows启动布局与首帧恢复"
+type = "功能"
+status = "开发中"
+size = "大"
+tier = 1
+from = "https://github.com/wzgrx/PureLive/issues/47"
+branch = "ai/G02.13"
+stages = ["故障反证与修复", "原生复验与完整门禁"]
+done = 0
+next = "完成故障反证后修复；原机验收范围独立记录。"
+
+[[task]]
+id = "Y01.36"
+title = "5.4.25播放与Windows修复发布"
+type = "发布"
+status = "开发中"
+size = "大"
+tier = 1
+from = "用户授权修复、发布并自主合并分支；GitHub #33 #47 #49"
+branch = "ai/G02.13"
+stages = ["同源构建与原生验收", "发布及双仓更新通道"]
+done = 0
+next = "全量14成员门禁、同源十包、原生检查及远端验证后发布。"

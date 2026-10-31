@@ -105,3 +105,14 @@ stop reply during disposal and requires a replacement to initialize, change
 volume and pause before releasing the old reply. The original shared lock
 times out; the instance lock passes. This is an identified common defect,
 not original Sony/Huawei/Honor hardware acceptance.
+
+
+## Early native lifecycle evidence (2026-10-31)
+
+The companion media_kit NativePlayer exposes an optional exception-isolated
+lifecycle listener. It emits fixed phase names and numeric end-file errors,
+never media paths or native log text. MpvEngine assigns its diagnostic identity
+before initialization, owns cleanup when its factory fails, and retains the
+original setup exception. The real-handle setup-failure regression verifies
+release before propagation. Session creation/stop retirement is bounded and
+late completions cannot adopt a new room (G02.13).

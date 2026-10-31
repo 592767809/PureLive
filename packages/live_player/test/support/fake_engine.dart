@@ -19,6 +19,9 @@ final class FakeEngine implements PlayerEngine {
   /// Optional native teardown delay/failure for lifecycle fault injection.
   Future<void> Function()? onDispose;
 
+  /// Optional stop reply held by a busy native player.
+  Future<void> Function()? onStop;
+
   /// Optional queued control operation for a busy native player.
   Future<void> Function(double)? onVolume;
 
@@ -67,7 +70,10 @@ final class FakeEngine implements PlayerEngine {
   Future<void> pause() async => calls.add('pause');
 
   @override
-  Future<void> stop() async => calls.add('stop');
+  Future<void> stop() async {
+    calls.add('stop');
+    await onStop?.call();
+  }
 
   @override
   Future<void> seek(Duration position) async => calls.add('seek ${position.inSeconds}');

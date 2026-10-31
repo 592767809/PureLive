@@ -145,6 +145,22 @@ final class SessionTimings {
   final Duration networkProbeTimeout;
 }
 
+final class _EngineCreation {
+  new(EngineFactory create) : future = Future<PlayerEngine>.sync(create);
+
+  final Future<PlayerEngine> future;
+  bool retired = false;
+  Future<void>? retirement;
+}
+
+final class _StoppingEngine {
+  new(this.engine, this.inputRelease, {this.nativeStopStarted = false});
+
+  final PlayerEngine engine;
+  final Future<void> inputRelease;
+  bool nativeStopStarted;
+}
+
 /// The playback session of one player (the session and recovery half of
 /// 3.x's `PlayerManager`): open a plan, follow the engine, recover, stop.
 ///
@@ -220,7 +236,9 @@ final class PlaybackSession {
 
   PlaybackTransport _transport = PlaybackTransport();
   PlayerEngine? _engine;
-  Future<PlayerEngine>? _engineCreating;
+  _EngineCreation? _engineCreating;
+  _StoppingEngine? _stoppingEngine;
+  Future<void>? _disposing;
   final Map<Object, Future<void>> _retiringEngines = {};
   StreamSubscription<EngineEvent>? _events;
 
@@ -571,42 +589,74 @@ final class PlaybackSession {
     _transport = PlaybackTransport();
     _source = null;
     _emit(_state.copyWith(status: PlaybackStatus.stopped, clearVideoSize: true, recovery: 0));
-    await transport.close();
-    if (!_current(session)) return;
     final engine = _engine;
-    if (engine != null) {
-      try {
-        await engine.stop();
-      } on Object {
-        // Already stopped or never opened.
-      }
-      // A newer stop arms its own release; a newer open needs the engine.
+    final closing = Future<void>.sync(transport.close);
+    final previous = _stoppingEngine;
+    final inputRelease = previous != null && identical(previous.engine, engine)
+        ? Future.wait<void>([previous.inputRelease, closing]).then<void>((_) {})
+        : closing;
+    final stopping = engine == null
+        ? null
+        : _StoppingEngine(
+            engine,
+            inputRelease,
+            nativeStopStarted: previous != null && identical(previous.engine, engine) && previous.nativeStopStarted,
+          );
+    if (stopping != null) _stoppingEngine = stopping;
+    try {
+      // Publish the stopping owner before awaiting input/native cleanup. A new
+      // room must not enqueue volume/open behind this engine's unfinished stop.
+      await inputRelease.timeout(timings.engineRelease);
       if (!_current(session)) return;
-      _idleTimer?.cancel();
-      _idleTimer = Timer(timings.idleRelease, () {
-        if (_current(session) && _state.status == PlaybackStatus.stopped) unawaited(_releaseEngine());
-      });
+      if (engine != null) {
+        stopping!.nativeStopStarted = true;
+        await engine.stop().timeout(timings.engineRelease);
+      }
+      if (!_current(session) || !identical(engine, _engine)) return;
+      if (engine != null) {
+        _idleTimer?.cancel();
+        _idleTimer = Timer(timings.idleRelease, () {
+          if (_current(session) && _state.status == PlaybackStatus.stopped) unawaited(_releaseEngine());
+        });
+      }
+    } on Object {
+      if (identical(engine, _engine) && (_current(session) || (stopping?.nativeStopStarted ?? false))) {
+        // A native stop remains unsafe after its caller was superseded too.
+        // Input-only cleanup cannot retire a newer open on a healthy engine.
+        // Detach synchronously; cleanup remains counted until it really ends.
+        unawaited(_releaseEngine(inputRelease: inputRelease));
+      }
+    } finally {
+      if (identical(_stoppingEngine, stopping)) _stoppingEngine = null;
     }
   }
 
-  /// Releases everything; the session cannot be used afterwards. An engine
-  /// still being created is waited for and released too.
-  Future<void> dispose() async {
+  /// Releases this session within the cleanup grace. Pending native creations
+  /// and releases stay owned and are reclaimed on completion, even after the
+  /// public future has returned. A second call shares the same disposal.
+  Future<void> dispose() => _disposing ??= _dispose();
+
+  Future<void> _dispose() async {
     if (_disposed) return;
-    await stop();
-    _idleTimer?.cancel();
+    _begin();
+    _wantPlaying = false;
+    _fence.clear();
+    final transport = _transport;
+    _transport = PlaybackTransport();
+    _source = null;
+    _emit(_state.copyWith(status: PlaybackStatus.stopped, clearVideoSize: true, recovery: 0));
     _disposed = true;
     final creating = _engineCreating;
-    if (creating != null) {
-      try {
-        // [_engineNow] no longer adopts it once disposed.
-        final created = await creating;
-        if (!identical(created, _engine)) await created.dispose();
-      } on Object {
-        // The creation failed: nothing to release.
-      }
+    final creationRelease = creating == null ? null : _retireCreation(creating);
+    final stopping = _stoppingEngine;
+    final closing = Future.wait<void>([Future<void>.sync(transport.close), if (stopping != null) stopping.inputRelease])
+        .then<void>((_) {});
+    try {
+      await Future.wait<void>([_releaseEngine(inputRelease: closing), ?creationRelease])
+          .timeout(timings.engineRelease, onTimeout: () => <void>[]);
+    } on Object {
+      // A failed retirement remains owned by its tracker.
     }
-    await _releaseEngine();
     await _states.close();
   }
 
@@ -632,6 +682,12 @@ final class PlaybackSession {
 
   Future<PlayerEngine> _engineNow() async {
     _idleTimer?.cancel();
+    final stopping = _stoppingEngine;
+    if (stopping != null && stopping.nativeStopStarted && identical(stopping.engine, _engine)) {
+      // The stop has already claimed this player. Retire it before returning
+      // an engine to another room, without waiting for the old native reply.
+      unawaited(_releaseEngine(inputRelease: stopping.inputRelease));
+    }
     final engine = _engine;
     if (engine != null) return engine;
     if (_retiringEngines.length >= 2) {
@@ -641,16 +697,34 @@ final class PlaybackSession {
         code: 'engine_release_pending',
       );
     }
-    final creating = _engineCreating ??= _createEngine();
+    final creating = _engineCreating ??= _EngineCreation(_createEngine);
     try {
-      final created = await creating;
-      // Disposed meanwhile: not adopted, dispose() releases it.
+      final created = await creating.future.timeout(
+        timings.sourceOpen,
+        onTimeout: () {
+          unawaited(_retireCreation(creating));
+          throw const PlayerException(
+            message: 'The native player did not initialize before the deadline',
+            type: PlayerErrorType.initialization,
+            code: 'engine_create_timeout',
+          );
+        },
+      );
       _checkAlive();
+      if (creating.retired) {
+        throw const PlayerException(
+          message: 'The native player creation was superseded',
+          type: PlayerErrorType.initialization,
+          code: 'engine_create_timeout',
+        );
+      }
       if (_engine == null) {
         _engine = created;
         _events = created.events.listen(_onEvent);
       }
       return _engine!;
+    } on PlayerException {
+      rethrow;
     } on Object catch (error, stack) {
       throw PlayerException(
         message: 'Engine creation failed: $error',
@@ -663,33 +737,49 @@ final class PlaybackSession {
     }
   }
 
-  Future<void> _releaseEngine({Future<void>? inputRelease}) async {
-    final engine = _engine;
-    _engine = null;
-    _engineMoves = false;
-    // Not awaited: a broadcast cancel completes in the root zone.
-    unawaited(_events?.cancel());
-    _events = null;
-    if (engine == null && inputRelease == null) return;
-    final owner = engine ?? Object();
-    final releasing = Future.wait<void>([if (engine != null) Future<void>.sync(engine.dispose), ?inputRelease])
-        .then<void>((_) {});
+  Future<void> _retireCreation(_EngineCreation creating) {
+    if (creating.retirement case final retirement?) return retirement;
+    creating.retired = true;
+    if (identical(_engineCreating, creating)) _engineCreating = null;
+    final releasing = creating.future.then<void>(
+      (created) => created.dispose(),
+      // A factory owns cleanup of an initialization that throws before it
+      // returns a PlayerEngine. There is no returned engine to dispose here.
+      onError: (Object _, StackTrace _) {},
+    );
+    creating.retirement = releasing;
+    _trackRetirement(creating, releasing);
+    return releasing;
+  }
+
+  void _trackRetirement(Object owner, Future<void> releasing) {
     _retiringEngines[owner] = releasing;
     unawaited(
       releasing.then<void>(
         (_) => _retiringEngines.remove(owner),
         onError: (Object _, StackTrace _) {
           // A failed disposal is not proof that native resources were freed.
-          // Retain the allocation guard; a later open may create at most one
-          // other player before engine_release_pending stops further attempts.
+          // Keep the allocation guard until a release is actually confirmed.
         },
       ),
     );
+  }
+
+  Future<void> _releaseEngine({Future<void>? inputRelease}) async {
+    final engine = _engine;
+    _engine = null;
+    _engineMoves = false;
+    if (identical(_stoppingEngine?.engine, engine)) _stoppingEngine = null;
+    unawaited(_events?.cancel());
+    _events = null;
+    if (engine == null && inputRelease == null) return;
+    final releasing = Future.wait<void>([if (engine != null) Future<void>.sync(engine.dispose), ?inputRelease])
+        .then<void>((_) {});
+    _trackRetirement(engine ?? Object(), releasing);
     try {
       await releasing.timeout(timings.engineRelease, onTimeout: () {});
     } on Object {
-      // The failed retirement remains counted above, without leaving the
-      // current session stuck waiting on cleanup or an unhandled error.
+      // Failure stays counted without blocking the current session.
     }
   }
 
@@ -734,15 +824,10 @@ final class PlaybackSession {
       ),
     );
     try {
-      final reused = _engine != null;
-      final engine = await _engineNow().timeout(
-        timings.sourceOpen,
-        onTimeout: () => throw const PlayerException(
-          message: 'The native player did not initialize before the deadline',
-          type: PlayerErrorType.initialization,
-          code: 'engine_create_timeout',
-        ),
-      );
+      final stopping = _stoppingEngine;
+      final reused =
+          _engine != null && !(stopping != null && stopping.nativeStopStarted && identical(stopping.engine, _engine));
+      final engine = await _engineNow();
       if (!_current(session) || _fence.generation != generation || !_wantPlaying) return;
       _timing?.engineReadyAt(reused: reused);
       final refresh = request.refresh;

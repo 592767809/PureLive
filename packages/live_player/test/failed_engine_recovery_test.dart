@@ -123,7 +123,7 @@ void main() {
     });
   });
 
-  test('G02.11: engine initialization has a deadline without allocating replacements repeatedly', () {
+  test('G02.13: overlapping rooms share a healthy pending creation before its deadline', () {
     fakeAsync((async) {
       final creating = Completer<PlayerEngine>();
       var creations = 0;
@@ -134,17 +134,16 @@ void main() {
           return creating.future;
         },
       );
-      unawaited(session.open(_request('good')));
-      async.elapse(const Duration(seconds: 19));
-      expect(session.state.status, PlaybackStatus.error);
-      expect((session.state.error! as PlayerException).code, 'engine_create_timeout');
-      unawaited(session.retry());
-      async.elapse(const Duration(seconds: 19));
+      unawaited(session.open(_request('first')));
+      async.flushMicrotasks();
+      unawaited(session.open(_request('newest')));
+      async.flushMicrotasks();
       expect(creations, 1);
-      creating.complete(FakeEngine());
+      final engine = FakeEngine();
+      creating.complete(engine);
       async.flushMicrotasks();
-      unawaited(session.retry());
-      async.flushMicrotasks();
+      expect(engine.opens, hasLength(1));
+      expect(engine.opens.single.uri.host, 'newest.example');
       expect(session.state.status, PlaybackStatus.playing);
       unawaited(session.dispose());
       async.flushMicrotasks();
