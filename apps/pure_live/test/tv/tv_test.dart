@@ -1598,8 +1598,10 @@ void main() {
 
       await _press(tester, LogicalKeyboardKey.select);
       expect(find.byType(TvOptionRow), findsNWidgets(3));
-      expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvOptionRow>()?.key,
-        const ValueKey('tv-choice-1'));
+      expect(
+        FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvOptionRow>()?.key,
+        const ValueKey('tv-choice-1'),
+      );
       await _press(tester, LogicalKeyboardKey.arrowUp);
       await _press(tester, LogicalKeyboardKey.select);
       expect(services.store.settings.get(Settings.playbackHud)['mode'], 'off');
