@@ -167,7 +167,6 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
   Timer? _hide;
 
   /// The volume before the mute button (A07.24), given back by it.
-  double _unmuted = 1;
   bool _volumeShown = false;
   Timer? _volumeHide;
   Timer? _volumeSave;
@@ -324,13 +323,7 @@ class _MiniPlayerSurfaceState extends State<MiniPlayerSurface> {
   /// kept volume does not change.
   void _toggleMute() {
     _reveal();
-    final volume = _room.volume;
-    if (volume > 0) {
-      _unmuted = volume;
-      unawaited(_room.setVolume(0));
-    } else {
-      unawaited(_room.setVolume(_unmuted > 0 ? _unmuted : 1));
-    }
+    unawaited(_room.toggleMute(save: false, fallback: 1));
   }
 
   /// Shows or hides the mini windows' danmaku ("小窗显示弹幕", A07.24).

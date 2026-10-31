@@ -964,6 +964,7 @@
     "kick_mature_notice": "Kick đánh dấu buổi phát này là nội dung người lớn (18+).",
     "kick_stream_ended_notice": "Buổi phát đã kết thúc",
     "kilakila_directory_scope": "Các đề xuất phổ biến và ngôi sao đang lên của Kilakila, không phải tất cả luồng; chỉ phát được luồng công khai miễn phí. Theo dõi lưu streamer; tìm kiếm nhận ID streamer, liên kết hồ sơ hoặc tên.",
+    "kuaishou_cookie_guest": "Kuaishou từ chối yêu cầu có cookie. Đang phát luồng công khai với tư cách khách; cookie đã lưu được giữ nguyên.",
     "kugoulive_chat_notice": "Con số là số người đang xem, nếu không có thì là độ nổi tiếng; người theo dõi hiển thị riêng.",
     "kugoulive_directory_scope": "Đề xuất và danh mục của Kugou Live lấy từ trang web và tiếp tục tải khi cuộn. Tìm kiếm tìm được streamer dù đang phát hay không; số phòng hoặc liên kết Kugou Live mở thẳng phòng.",
     "kugoulive_restricted_notice": "Phòng này cần đăng nhập Kugou nên ứng dụng tạm thời chưa phát được.",

@@ -964,6 +964,7 @@
     "kick_mature_notice": "Kick はこの配信を成人向けコンテンツ（18+）に指定しています。",
     "kick_stream_ended_notice": "配信は終了しました",
     "kilakila_directory_scope": "Kilakila の人気・注目の新人のおすすめで、すべての配信ではありません。無料の公開配信のみ再生できます。フォローは配信者単位で、検索には配信者 ID、プロフィールリンク、名前が使えます。",
+    "kuaishou_cookie_guest": "快手がCookie付きのリクエストを拒否しました。公開配信をゲストとして再生します。保存済みCookieは保持されます。",
     "kugoulive_chat_notice": "数値は今視聴している人数、ない場合は人気度です。フォロワーは別に表示します。",
     "kugoulive_directory_scope": "Kugou Live のおすすめとカテゴリはウェブサイトから取得し、スクロールすると続きを読み込みます。検索では配信中かどうかに関わらず配信者が見つかり、配信番号や Kugou Live のリンクで直接配信を開けます。",
     "kugoulive_restricted_notice": "この配信は Kugou のログインが必要なため、現在このアプリでは再生できません。",

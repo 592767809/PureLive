@@ -143,6 +143,129 @@ void _expectOneBrowser(Map<String, String> headers) {
 }
 
 void main() {
+  test('issue125 rejected cookie recovers public streams without altering stored login', () async {
+    final vault = MemoryCookieVault()..set('kuaishou', 'did=stale');
+    addTearDown(vault.dispose);
+    final refused = _synthetic(
+      _page(_live),
+      '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"errorType":{"type":31}}]}};</script>',
+    );
+    final setup = _setup(
+      ['S09-room-live'],
+      cookies: vault,
+      script: {
+        '/u/$_live': [refused],
+      },
+    );
+    var notices = 0;
+    if (setup.site case final LiveSiteCookieRefusals signals) {
+      final sub = signals.cookieRefusals.listen((_) => notices++);
+      addTearDown(sub.cancel);
+    }
+    final room = await setup.site.getRoomDetail(roomId: _live);
+    expect(room.isLiveNow, isTrue);
+    expect(room.restriction, LiveRestriction.none);
+    expect(vault.cookieFor('kuaishou'), 'did=stale');
+    expect(notices, 1);
+    final qualities = await setup.site.getPlayQualities(detail: room);
+    final resolved = await setup.site.resolvePlayUrls(detail: room, quality: qualities.first);
+    expect(resolved.lines, isNotEmpty);
+    expect(resolved.lines.every((line) => !line.headers.containsKey('cookie')), isTrue);
+    final fresh = await setup.site.resolvePlayUrlsForRecoveryRaw(detail: room, quality: qualities.first);
+    expect(fresh.lines.every((line) => !line.headers.containsKey('cookie')), isTrue);
+    expect(setup.http.requests.skip(1).any((r) => r.headers['cookie'] == 'did=stale'), isFalse);
+    await setup.site.getRoomDetail(roomId: _live);
+    expect(notices, 1, reason: 'same rejected login does not spam the notice');
+    vault.set('kuaishou', 'did=renewed');
+    await setup.site.getRoomDetail(roomId: _live);
+    expect(setup.http.requests.last.headers['cookie'], 'did=renewed');
+  });
+
+  test('issue125 an offline or unplayable guest page keeps the cookie refusal and login active', () async {
+    for (final body in [
+      '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"isLiving":false,"author":{"id":"abc"}}]}};</script>',
+      '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"isLiving":true,"author":{"id":"abc"},"liveStream":{"id":"L1","playUrls":{"h264":{},"hevc":{}}}}]}};</script>',
+    ]) {
+      final vault = MemoryCookieVault()..set('kuaishou', 'did=stale');
+      addTearDown(vault.dispose);
+      final refused = _synthetic(
+        _page('abc'),
+        '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"errorType":{"type":31}}]}};</script>',
+      );
+      final setup = _setup(
+        [],
+        cookies: vault,
+        extra: [_synthetic(_page('abc'), body)],
+        script: {
+          '/u/abc': [refused],
+        },
+      );
+      var notices = 0;
+      final sub = setup.site.cookieRefusals.listen((_) => notices++);
+      addTearDown(sub.cancel);
+      await expectLater(
+        setup.site.getRoomDetail(roomId: 'abc'),
+        throwsA(isA<RiskControl>().having((e) => e.cookieSuspect, 'original cookie refusal', isTrue)),
+      );
+      expect(notices, 0);
+      expect(vault.cookieFor('kuaishou'), 'did=stale');
+      await setup.site.getRoomDetail(roomId: 'abc');
+      expect(
+        setup.http.requests.last.headers['cookie'],
+        'did=stale',
+        reason: 'unsuccessful recovery does not quarantine login',
+      );
+    }
+  });
+
+  test('issue125 unrelated transport and rate failures never trigger guest recovery', () async {
+    for (final failure in <Object>[
+      TransportReason.timeout,
+      TransportReason.cancelled,
+      _synthetic(_page(_live), '', status: 429),
+      _synthetic(_page(_live), '', status: 502),
+      _synthetic(_page(_live), '', status: 404),
+    ]) {
+      final vault = MemoryCookieVault()..set('kuaishou', 'did=valid');
+      addTearDown(vault.dispose);
+      final setup = _setup(
+        ['S09-room-live'],
+        cookies: vault,
+        script: {
+          '/u/$_live': [failure],
+        },
+      );
+      await expectLater(setup.site.getRoomDetail(roomId: _live), throwsA(anything));
+      expect(_count(setup.http, '/u/$_live'), 1);
+      expect(vault.cookieFor('kuaishou'), 'did=valid');
+    }
+  });
+
+  test('issue125 guest stream renewal cannot acquire a newly saved login', () async {
+    final vault = MemoryCookieVault()..set('kuaishou', 'did=stale');
+    addTearDown(vault.dispose);
+    final refused = _synthetic(
+      _page(_live),
+      '<script>window.__INITIAL_STATE__={"liveroom":{"playList":[{"errorType":{"type":31}}]}};</script>',
+    );
+    final setup = _setup(
+      ['S09-room-live'],
+      cookies: vault,
+      script: {
+        '/u/$_live': [refused],
+      },
+    );
+    final room = await setup.site.getRoomDetail(roomId: _live);
+    final qualities = await setup.site.getPlayQualities(detail: room);
+    vault.set('kuaishou', 'did=renewed');
+    final before = setup.http.requests.length;
+    final recovered = await setup.site.resolvePlayUrlsForRecoveryRaw(detail: room, quality: qualities.first);
+    expect(recovered.lines.every((line) => !line.headers.containsKey('cookie')), isTrue);
+    expect(setup.http.requests.skip(before).every((r) => r.headers['cookie'] != 'did=renewed'), isTrue);
+    await setup.site.getRoomDetail(roomId: _live);
+    expect(setup.http.requests.last.headers['cookie'], 'did=renewed');
+  });
+
   group('catalog', () {
     test('categories walk all eight types page by page while hasMore says so; no cookie', () async {
       // The recording stopped while types 1–4 still said hasMore: their end
@@ -603,7 +726,7 @@ void main() {
       expect((cards.first.danmakuData! as KuaishouDanmakuArgs).cookie, cookie);
     });
 
-    test('a refusal with it is RiskControl with the cookie suspect, not retried (REG-KUAISHOU-008)', () async {
+    test('a failed public recovery preserves the original cookie refusal (REG-KUAISHOU-008)', () async {
       final vault = MemoryCookieVault()..set('kuaishou', 'did=stale');
       addTearDown(vault.dispose);
       final setup = _setup(
@@ -621,7 +744,10 @@ void main() {
         setup.site.getRoomDetail(roomId: 'abc'),
         throwsA(isA<RiskControl>().having((error) => error.cookieSuspect, 'cookieSuspect', isTrue)),
       );
-      expect(_trace(setup.http), ['GET /u/abc did=stale']);
+      expect(_trace(setup.http).first, 'GET /u/abc did=stale');
+      expect(_count(setup.http, '/u/abc'), lessThanOrEqualTo(5));
+      expect(setup.http.requests.skip(1).every((r) => r.headers['cookie'] != 'did=stale'), isTrue);
+      expect(vault.cookieFor('kuaishou'), 'did=stale');
     });
   });
 

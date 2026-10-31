@@ -260,7 +260,6 @@ void showRoomVolume(BuildContext context, LiveRoomController controller) {
 /// The volume to come back to when the sound is turned on again (B-14):
 /// the phone's media volume before it was muted here, and each room's.
 double? _systemBeforeMute;
-final Expando<double> _roomBeforeMute = Expando('room volume before mute');
 
 /// The volume "取消静音" goes to when nothing was heard before (N5).
 const double unmuteFallbackVolume = 0.5;
@@ -335,17 +334,16 @@ class _RoomVolumePanelState extends State<RoomVolumePanel> {
   }
 
   void _toggleMute() {
+    if (!_system) {
+      unawaited(_room.toggleMute());
+      return;
+    }
     final now = _value;
     if (now > 0) {
-      if (_system) {
-        _systemBeforeMute = now;
-      } else {
-        _roomBeforeMute[_room] = now;
-      }
+      _systemBeforeMute = now;
       unawaited(_set(0, keep: true));
     } else {
-      final before = _system ? _systemBeforeMute : _roomBeforeMute[_room];
-      unawaited(_set(before ?? unmuteFallbackVolume, keep: true));
+      unawaited(_set(_systemBeforeMute ?? unmuteFallbackVolume, keep: true));
     }
   }
 

@@ -964,6 +964,7 @@
     "kick_mature_notice": "Kick kennzeichnet diese Übertragung als Inhalt für Erwachsene (18+).",
     "kick_stream_ended_notice": "Die Übertragung ist beendet",
     "kilakila_directory_scope": "Kilakilas beliebte und aufstrebende Empfehlungen, nicht alle Streams; nur kostenlose öffentliche Streams laufen. Gefolgt wird dem Streamer; die Suche nimmt Streamer-ID, Profillink oder Namen.",
+    "kuaishou_cookie_guest": "Die Kuaishou-Anfrage mit Cookie wurde abgelehnt. Dieser öffentliche Stream wird als Gast abgespielt; das gespeicherte Cookie bleibt erhalten.",
     "kugoulive_chat_notice": "Die Zahl sind die aktuellen Zuschauer, sonst die Beliebtheit; Follower werden getrennt angezeigt.",
     "kugoulive_directory_scope": "Empfehlungen und Kategorien von Kugou Live stammen von der Website und laden beim Scrollen weiter. Die Suche findet Streamer, ob live oder nicht; eine Raumnummer oder ein Kugou-Live-Link öffnet einen Raum direkt.",
     "kugoulive_restricted_notice": "Dieser Raum erfordert eine Kugou-Anmeldung und kann in dieser App vorerst nicht abgespielt werden.",

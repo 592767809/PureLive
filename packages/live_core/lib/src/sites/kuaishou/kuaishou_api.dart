@@ -40,7 +40,7 @@ final class KuaishouDanmakuArgs {
 @immutable
 final class KuaishouRoomData {
   /// Creates the data.
-  const new({this.liveStreamId, this.playUrls, this.issuedAt});
+  const new({this.liveStreamId, this.playUrls, this.issuedAt, this.anonymous = false});
 
   /// Id of the current broadcast (danmaku feed, app deep link); null when
   /// the room is offline.
@@ -54,6 +54,9 @@ final class KuaishouRoomData {
   /// When the response carrying [playUrls] arrived: the origin of the
   /// signed URLs' leases.
   final DateTime? issuedAt;
+
+  /// These streams were issued without the stored login.
+  final bool anonymous;
 }
 
 /// Pure parsing of Kuaishou responses (3.x's `KuaishowSite`, with the
@@ -277,6 +280,7 @@ abstract final class KuaishouApi {
       data: KuaishouRoomData(
         liveStreamId: liveStreamId,
         playUrls: withStreams ? stream['playUrls'] : null,
+        anonymous: !userCookie,
         issuedAt: issuedAt,
       ),
       danmakuData: liveStreamId == null

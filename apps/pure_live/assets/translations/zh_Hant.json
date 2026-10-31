@@ -963,6 +963,7 @@
     "kick_mature_notice": "該直播已被 Kick 標記為成人內容（18+）。",
     "kick_stream_ended_notice": "直播已結束",
     "kilakila_directory_scope": "這裡是克拉克拉官網的熱門和萌星推薦，不是全部直播；只能看公開的免費直播。關注記的是主播，搜尋可以輸入主播號、主頁連結或暱稱。",
+    "kuaishou_cookie_guest": "快手拒絕了 Cookie 請求，已改為訪客播放公開直播；儲存的 Cookie 保持不變。",
     "kugoulive_chat_notice": "人數是正在觀看的人數，沒有時顯示熱度；粉絲數單獨顯示。",
     "kugoulive_directory_scope": "酷狗直播的推薦和分類都來自官網，可以繼續往下翻。搜尋能找到開播和未開播的主播，輸入房間號或貼上酷狗直播連結可以直接開啟。",
     "kugoulive_restricted_notice": "這個直播間要登入酷狗才能觀看，本應用暫時無法播放。",

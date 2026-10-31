@@ -279,7 +279,7 @@ class TvRoomControls extends StatelessWidget {
                     focusNode: firstButton,
                     icon: TvIcons.quality,
                     label: quality == null ? i18n('tv_quality') : '${i18n('tv_quality')} ${quality.quality}',
-                    onTap: qualities.length > 1 ? onQuality : null,
+                    onTap: qualities.isNotEmpty ? onQuality : null,
                   ),
                 ),
                 if (playback.lineCount > 1)
