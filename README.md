@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>下载 5.4.26</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.26.md">更新说明</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>下载 5.4.27</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.27.md">更新说明</a>
   &nbsp;·&nbsp; <a href="#功能详解">功能</a>
   &nbsp;·&nbsp; <a href="#支持的平台">支持的平台</a>
   &nbsp;·&nbsp; <a href="#从源码构建">从源码构建</a>
@@ -36,7 +36,9 @@
 
 5.4.24统一加入匿名直播动态与预告、多屏联动、局域网遥控、横屏手势、房间增益、斗鱼回看、Android音频共播、电视长标题和两次刷新确认，并修正原生播放器队列及投屏切房/全屏生命周期。九项需求同版交付；原设备偶发问题继续跟进。
 
-5.4.26整合旧草稿中的有效设计：修复桌面最小化恢复状态与侧栏滚动条，补齐收藏分区图标和电视设置页，重做视频壁纸与前台播放的资源交接。原47文件草稿保留，原设备反馈继续开放。
+5.4.26整合旧草稿中的有效设计：修复桌面最小化恢复状态与侧栏滚动条，补齐收藏分区图标和电视设置页，重做视频壁纸与前台播放的资源交接。原47文件草稿保留；原设备反馈当时保持开放，现按用户决定暂缓关闭。
+
+5.4.27补齐独立直播间M静音与多画面F/F11、I快捷键，新增播放条房间增益入口，修复电视单清晰度导航及快手公开直播的Cookie拒绝恢复。关闭后追加反馈已回查；新126、128仅评估，原设备三条按决定暂缓。
 
 5.4.25修复初始化超时后反复复用挂起播放器、停止挂起后的换房隔离和Windows启动恢复竞态，补充不含播放地址的原生阶段日志。原Huawei/Sony/Honor与GTX760反馈仍保留原机复验。
 
@@ -377,7 +379,7 @@
 
 ## 从源码构建
 
-需要 Linux 或 Windows 上的 Flutter 环境。工具链的版本统一写在 [`toolchain.env`](toolchain.env)（Flutter 3.47.7、Dart 3.13.5、Gradle 9.8.2、AGP 9.4.1、Kotlin 2.4.21、JDK 27、Android SDK 37.2、build-tools 37.0.0、platform-tools 37.0.1、cmdline-tools 23.0、NDK 30.0.16248370、CMake 4.1.2），升级时只改这一处（Android 构建直接读取其中的 compileSdk、build-tools、NDK、CMake；Gradle、AGP 另见 Z01）。
+需要 Linux 或 Windows 上的 Flutter 环境。工具链的版本统一写在 [`toolchain.env`](toolchain.env)（Flutter 3.47.8、Dart 3.13.7、Gradle 9.8.2、AGP 9.4.1、Kotlin 2.4.21、JDK 27、Android SDK 37.2、build-tools 37.0.0、platform-tools 37.0.1、cmdline-tools 23.0、NDK 30.0.16248370、CMake 4.1.2），升级时只改这一处（Android 构建直接读取其中的 compileSdk、build-tools、NDK、CMake；Gradle、AGP 另见 Z01）。
 
 ```bash
 git clone https://github.com/wzgrx/PureLive.git
@@ -385,7 +387,7 @@ cd PureLive
 
 # 1. 环境：按 toolchain.env 装好工具链，写一个环境脚本，每次构建前 source 一下
 #    （下面是示例路径，换成你自己的）
-export FLUTTER_ROOT="$HOME/tools/flutter-sdk/3.47.7"
+export FLUTTER_ROOT="$HOME/tools/flutter-sdk/3.47.8"
 export JAVA_HOME="$HOME/tools/jdk-27"
 export ANDROID_HOME="$HOME/Android/Sdk"
 export PATH="$FLUTTER_ROOT/bin:$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$PATH"
@@ -434,7 +436,7 @@ docs/                   开发计划、模块记录、界面设计和功能清�
 
 ## 路线图
 
-| 客户端 | 5.4.26（现在） | 以后 |
+| 客户端 | 5.4.27（现在） | 以后 |
 |---|---|---|
 | **Android 手机和平板** | 正式版：液态玻璃底栏、阻尼和弹簧动效，八个平台的官方登录，15 种界面语言 | 持续修平台变化 |
 | **Android 电视** | 正式版：直播、视频（哔哩哔哩点播）、音乐三个模式，壁纸，电视样式的设置目录，扫码用手机输入 | 在更多电视真机上验证和调整 |
