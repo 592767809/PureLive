@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:live_ui/live_ui.dart';
 import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/tv_theme.dart';
 import 'package:pure_live/tv/widgets/tv_button.dart';
@@ -9,6 +11,58 @@ import 'package:pure_live/tv/widgets/tv_button.dart';
 import '../support.dart';
 
 void main() {
+  testWidgets('issue131 native-path directional traversal can adjust a shared slider', (tester) async {
+    await tester.runAsync(loadStrings);
+    var value = 0.5;
+    final changes = <double>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(navigationMode: NavigationMode.directional),
+          child: child!,
+        ),
+        home: TvSettingsScaffold(
+          title: 'Settings',
+          child: StatefulBuilder(
+            builder: (context, setState) => ListView(
+              children: [
+                SettingsLinkRow(title: 'Before', onTap: () {}),
+                SettingsSliderRow(
+                  title: 'Volume',
+                  value: value,
+                  min: 0,
+                  max: 1,
+                  label: '${(value * 100).round()}%',
+                  onChanged: (next) => setState(() {
+                    value = next;
+                    changes.add(next);
+                  }),
+                ),
+                SettingsLinkRow(title: 'After', onTap: () {}),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    final sliderFocus = FocusManager.instance.primaryFocus;
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    expect(value, greaterThan(.5));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    expect(value, closeTo(.5, .001));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    expect(value, closeTo(.5, .001));
+    expect(FocusManager.instance.primaryFocus, isNot(sliderFocus));
+    expect(changes, hasLength(2));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('settings replace a focused loading row with their real first row', (tester) async {
     await tester.runAsync(loadStrings);
     final ready = ValueNotifier(0);

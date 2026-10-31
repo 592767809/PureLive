@@ -17,6 +17,7 @@ import 'package:pure_live/app/desktop/startup_entry.dart';
 import 'package:pure_live/app/desktop/startup_window.dart';
 import 'package:pure_live/app/desktop/title_bar.dart';
 import 'package:pure_live/app/desktop/tray.dart';
+import 'package:pure_live/app/desktop/uninstall_shutdown.dart';
 import 'package:pure_live/app/launch_args.dart';
 import 'package:pure_live/app/recording.dart';
 import 'package:pure_live/i18n/i18n.dart';
@@ -265,6 +266,7 @@ final class DesktopShell with WindowListener {
   String? _title;
   AppLifecycleListener? _exitListener;
   bool _quitting = false;
+  WindowsUninstallHandler? _uninstall;
 
   /// The authenticated endpoint of an extra projection window, if requested.
   ProjectionRuntime? projection;
@@ -388,6 +390,10 @@ final class DesktopShell with WindowListener {
         }
       });
       if (isReleaseBuild) unawaited(_applyStartup());
+    }
+    if (Platform.isWindows) {
+      _uninstall = WindowsUninstallHandler(exit);
+      await _uninstall!.connect();
     }
   }
 
@@ -635,6 +641,7 @@ final class DesktopShell with WindowListener {
 
   /// Stops listening (tests, shutdown).
   Future<void> dispose() async {
+    _uninstall?.dispose();
     await projection?.dispose();
     windowManager.removeListener(this);
     _exitListener?.dispose();

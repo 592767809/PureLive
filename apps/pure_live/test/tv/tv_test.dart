@@ -1578,6 +1578,122 @@ void main() {
     await _close(tester, services);
   });
 
+  testWidgets('issue128 HUD settings inherit TV styling and immediately focus their first control', (tester) async {
+    final services = await _pumpApp(tester);
+    try {
+      for (var i = 0; i < TvPane.menu.length; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      for (var i = 0; i < 9; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      await _press(tester, LogicalKeyboardKey.select);
+      await _settle(tester, rounds: 6);
+      final focused = FocusManager.instance.primaryFocus?.context;
+      expect(focused?.findAncestorWidgetOfExactType<SettingsRow>()?.title, '显示方式');
+      expect(SettingsRowStyle.tvOf(focused!), isTrue);
+      expect(find.byKey(const ValueKey('tv-settings-playback-hud')), findsOneWidget);
+
+      await _press(tester, LogicalKeyboardKey.select);
+      expect(find.byType(TvOptionRow), findsNWidgets(3));
+      expect(FocusManager.instance.primaryFocus?.context?.findAncestorWidgetOfExactType<TvOptionRow>()?.key,
+        const ValueKey('tv-choice-1'));
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      await _press(tester, LogicalKeyboardKey.select);
+      expect(services.store.settings.get(Settings.playbackHud)['mode'], 'off');
+
+      for (var i = 0; i < 5; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.arrowRight);
+      await _settle(tester);
+      expect(services.store.settings.get(Settings.playbackHud)['size'], 19);
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue131 TV scrolling reveals the complete focused slider row', (tester) async {
+    final services = await _pumpApp(tester);
+    try {
+      tester.view.physicalSize = const Size(1280, 720);
+      await _settle(tester);
+      for (var i = 0; i < TvPane.menu.length; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      for (var i = 0; i < 9; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      for (var i = 0; i < 3; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await tester.pump(const Duration(seconds: 1));
+      final row = find.byWidgetPredicate((widget) => widget is SettingsSliderRow && widget.title == '手机端默认音量');
+      final viewport = find
+          .descendant(of: find.byKey(const ValueKey('tv-settings-page-video')), matching: find.byType(Scrollable))
+          .first;
+      expect(tester.getRect(row).bottom, lessThanOrEqualTo(tester.getRect(viewport).bottom));
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue138 Up on the first settings row stays in the page; Left still returns to Settings', (
+    tester,
+  ) async {
+    final services = await _pumpApp(tester);
+    try {
+      for (var i = 0; i < TvPane.menu.length; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      final first = FocusManager.instance.primaryFocus;
+      expect(first?.context?.findAncestorWidgetOfExactType<TvFocusable>()?.key, const ValueKey('tv-setting-ui_mode'));
+      await _press(tester, LogicalKeyboardKey.arrowUp);
+      expect(FocusManager.instance.primaryFocus, same(first));
+      await _press(tester, LogicalKeyboardKey.arrowLeft);
+      expect(_focused, 'tv menu settings');
+      await _press(tester, LogicalKeyboardKey.arrowRight);
+      expect(FocusManager.instance.primaryFocus, same(first));
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
+  testWidgets('issue138 returning to the first settings row restores the complete header', (tester) async {
+    final services = await _pumpApp(tester);
+    try {
+      for (var i = 0; i < TvPane.menu.length; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      await _press(tester, LogicalKeyboardKey.select);
+      final first = FocusManager.instance.primaryFocus;
+      for (var i = 0; i < 9; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowDown);
+      }
+      final scroll = tester.state<ScrollableState>(
+        find.descendant(of: find.byKey(const ValueKey('tv-settings-catalog')), matching: find.byType(Scrollable)).first,
+      );
+      expect(scroll.position.pixels, greaterThan(0));
+      for (var i = 0; i < 9; i++) {
+        await _press(tester, LogicalKeyboardKey.arrowUp);
+      }
+      expect(FocusManager.instance.primaryFocus, same(first));
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        scroll.position.pixels,
+        0,
+        reason: 'the non-focusable page/group titles must reappear above the first row',
+      );
+    } finally {
+      await _close(tester, services);
+    }
+  });
+
   testWidgets('rail: up and down follow the rail, not the page rows under the opened rail', (tester) async {
     final services = await _pumpApp(tester);
     for (var i = 0; i < TvPane.menu.length; i++) {

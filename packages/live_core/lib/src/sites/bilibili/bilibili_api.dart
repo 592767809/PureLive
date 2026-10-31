@@ -644,6 +644,7 @@ abstract final class BilibiliApi {
     required String roomId,
     required DateTime issuedAt,
     String? cookie,
+    bool preferRaw = false,
   }) {
     final playurl = _playurl(data);
     final requested = jsonInt(requestedQn);
@@ -681,7 +682,7 @@ abstract final class BilibiliApi {
     final first = candidates.first;
     final headers = mediaHeaders(roomId, cookie: cookie);
     final seen = <String>{};
-    return LivePlayUrlResolution.lines([
+    final lines = <LivePlayLine>[
       for (final candidate in candidates)
         if (candidate.qn == first.qn && candidate.codec == first.codec && seen.add(candidate.url.toString()))
           LivePlayLine(
@@ -692,7 +693,53 @@ abstract final class BilibiliApi {
             lineId: '${candidate.url.host}|${candidate.protocol}|${candidate.format}|${candidate.codec ?? ''}',
             lease: lease(candidate.url, issuedAt),
           ),
-    ], appliedQualityData: first.qn);
+    ];
+    // Raw URLs are speculative candidates, never a replacement for the API's
+    // lines. Respect its delivered tier and leave untranscoded rooms alone.
+    final raw =
+        preferRaw && requested == 10000 && first.qn == 10000 && qualities(data).any((quality) => quality.data == 250)
+        ? _rawLines(lines)
+        : const <LivePlayLine>[];
+    return LivePlayUrlResolution.lines([...raw, ...lines], appliedQualityData: first.qn);
+  }
+
+  static List<LivePlayLine> _rawLines(List<LivePlayLine> official) {
+    final same = <LivePlayLine>[];
+    final extra = <LivePlayLine>[];
+    final seen = {for (final line in official) line.url};
+    bool indexPlaylist(LivePlayLine line) => Uri.parse(line.url).path.endsWith('/index.m3u8');
+    // The documented original stream uses the index playlist. Do not let
+    // FLV/legacy TS candidates consume the bounded budget before trying it.
+    final ordered = [...official.where(indexPlaylist), ...official.where((line) => !indexPlaylist(line))];
+    for (final line in ordered) {
+      final url = Uri.parse(line.url);
+      if (!url.host.endsWith('.bilivideo.com')) continue;
+      // The opaque room key may itself contain underscores. Only remove a
+      // documented trailing transcode marker, never reconstruct the key.
+      final path = url.path.replaceFirst(RegExp(r'_(?:bluray|prohevc|4k)(?=/index\.m3u8$|\.(?:flv|m3u8)$)'), '');
+      if (path == url.path || !path.startsWith('/live-bvc/')) continue;
+      final raw = url.replace(path: path);
+      void add(Uri candidate, List<LivePlayLine> into) {
+        if (!seen.add(candidate.toString())) return;
+        into.add(
+          LivePlayLine(
+            candidate.toString(),
+            headers: line.headers,
+            format: line.format,
+            lineId: 'raw|${candidate.host}|${indexPlaylist(line) ? 'index' : line.format?.name ?? 'media'}',
+            lease: line.lease,
+          ),
+        );
+      }
+
+      add(raw, same);
+      for (final host in const ['d1--cn-gotcha204.bilivideo.com', 'd1--cn-gotcha204b.bilivideo.com']) {
+        add(raw.replace(host: host), extra);
+      }
+    }
+    // At most six extra attempts; official recovery remains reachable even
+    // when an API response advertises many duplicated CDN/format variants.
+    return [...same.take(2), ...extra].take(6).toList();
   }
 
   /// Media request headers for the long [roomId]: UA, Origin, Referer and

@@ -613,7 +613,7 @@ class MultiviewController extends ChangeNotifier {
     if (site case final LiveSiteCookieRefusals refusals when !_refusals.containsKey(picked.platform)) {
       // B-7: a refused cookie is said once, not once per cell.
       _refusals[picked.platform] = refusals.cookieRefusals.listen((_) {
-        if (!_disposed) toast?.call(i18n('twitch_cookie_expired'));
+        if (!_disposed) toast?.call(cookieRecoveryMessage(picked.platform));
       });
     }
     _notify();

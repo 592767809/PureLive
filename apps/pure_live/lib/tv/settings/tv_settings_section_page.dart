@@ -101,13 +101,26 @@ class _TvSettingsScaffoldState extends State<TvSettingsScaffold> {
       WidgetsBinding.instance.ensureVisualUpdate();
     }
     if (!_body.hasFocus) return;
-    final target = primary?.context;
-    if (target == null || Scrollable.maybeOf(target) == null) return;
+    final focused = primary?.context;
+    if (focused == null || Scrollable.maybeOf(focused) == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !target.mounted || !_currentRoute || FocusManager.instance.primaryFocus != primary) return;
-      final scrollable = Scrollable.maybeOf(target);
+      if (!mounted || !focused.mounted || !_currentRoute || FocusManager.instance.primaryFocus != primary) return;
+      final scrollable = Scrollable.maybeOf(focused);
+      if (scrollable == null) return;
+      var target = focused;
+      focused.visitAncestorElements((element) {
+        if (element.widget is! SettingsRow) return true;
+        final box = element.findRenderObject();
+        if (box is RenderBox && box.hasSize) {
+          final extent = scrollable.position.axis == Axis.vertical ? box.size.height : box.size.width;
+          // Reveal the row's label and full focus frame as well as the
+          // slider/counter inside it. An oversized row keeps its focused part.
+          if (extent <= scrollable.position.viewportDimension) target = element;
+        }
+        return false;
+      });
       final object = target.findRenderObject();
-      if (scrollable == null || object == null || !object.attached) return;
+      if (object == null || !object.attached) return;
       final viewport = RenderAbstractViewport.maybeOf(object);
       if (viewport == null) return;
       // A loading page can retain an offset below its new first row. The

@@ -487,12 +487,12 @@ abstract interface class LiveSiteCategoryDirectoryProvider {
 
 /// A platform that stops sending the user's stored cookie once the platform
 /// refuses it and carries on anonymously (B-7): [cookieRefusals] says so, so
-/// the app can tell the user once that the cookie expired and should be
-/// filled in again.
+/// the app can explain the fallback. A room-specific refusal does not by
+/// itself prove that the saved login expired.
 abstract interface class LiveSiteCookieRefusals {
   /// One event each time a stored cookie is refused for the first time (a
-  /// refused cookie is not sent again until it changes, so the same cookie
-  /// is reported once). A broadcast stream that never closes; the cookie is
+  /// refused cookie is skipped for the adapter's recovery scope and lifetime).
+  /// A broadcast stream that never closes; the cookie is
   /// not in the event.
   Stream<void> get cookieRefusals;
 }

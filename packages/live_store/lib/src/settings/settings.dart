@@ -373,6 +373,9 @@ abstract final class Settings {
   /// first so HEVC is only played when chosen by hand.
   static const preferH264 = BoolSetting('preferH264', section: 'player', defaultValue: true);
 
+  /// Opt-in Bilibili Raw candidates, followed by every official play line.
+  static const bilibiliPreferRaw = BoolSetting('bilibiliPreferRaw', section: 'player', defaultValue: false);
+
   /// Compatibility output.
   static const playerCompatMode = BoolSetting('playerCompatMode', section: 'player', defaultValue: false);
 
@@ -2083,6 +2086,7 @@ abstract final class Settings {
     preferResolutionCellular,
     enableCodec,
     preferH264,
+    bilibiliPreferRaw,
     playerCompatMode,
     customPlayerOutput,
     videoOutputDriver,

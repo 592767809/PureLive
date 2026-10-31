@@ -7542,3 +7542,111 @@ from = "用户要求全部需求和新issue完成后再更新；沿用自主维�
 stages = ["源码审查与完整门禁", "同源十包和原生验收", "公开包与双仓库更新", "反馈PR和分支收尾"]
 done = 0
 branch = "ai/V02.68"
+
+[[task]]
+id = "V02.74"
+title = "斗鱼登录取流失败的游客恢复"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/135"
+to = ["E01.12"]
+
+[[task]]
+id = "E01.12"
+title = "斗鱼公开房间的登录失败恢复"
+type = "平台"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/135"
+
+[[task]]
+id = "V02.75"
+title = "卸载残留与进程关闭"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/136"
+to = ["X01.6"]
+
+[[task]]
+id = "X01.6"
+title = "卸载前安全退出"
+type = "工程"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/136"
+
+[[task]]
+id = "V02.76"
+title = "B站Raw原画高码率候选"
+type = "功能"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/137"
+to = ["E01.13"]
+
+[[task]]
+id = "E01.13"
+title = "B站Raw候选与官方回退"
+type = "平台"
+status = "开发中"
+size = "中"
+tier = 1
+stages = ["复核与根因", "实现和回归", "同源验证和发布"]
+done = 0
+next = "完成定向与原生验证，再运行最终all/14和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/137"
+
+[[task]]
+id = "V02.77"
+title = "电视设置顶部导航与标题恢复"
+type = "界面"
+status = "开发中"
+size = "小"
+tier = 1
+stages = ["复现与根因", "修复与回归", "原生验证与发布"]
+done = 0
+next = "最终源码门禁、受控原生复验和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/138"
+to = ["A17.28"]
+
+[[task]]
+id = "A17.28"
+title = "电视设置顶部边界与标题恢复"
+type = "界面"
+status = "开发中"
+size = "小"
+tier = 1
+stages = ["复现与根因", "修复与回归", "原生验证与发布"]
+done = 0
+next = "最终源码门禁、受控原生复验和同源发布"
+branch = "ai/V02.68"
+from = "https://github.com/wzgrx/PureLive/issues/138"

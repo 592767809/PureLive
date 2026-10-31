@@ -897,6 +897,14 @@ List<SettingsEntry> _build() {
       desc: 'settings_prefer_h264_desc',
       keywords: ['HEVC', 'H.265', 'H264', '编码'],
     )
+    ..toggle(
+      'bilibili_raw',
+      'bilibili_raw_title',
+      Settings.bilibiliPreferRaw,
+      AppIcons.settingsQuality,
+      desc: 'bilibili_raw_desc',
+      keywords: ['B站', '原画', 'Raw', '码率', 'bilibili'],
+    )
     ..choice<int>(
       'video_fit',
       'settings_video_fit',

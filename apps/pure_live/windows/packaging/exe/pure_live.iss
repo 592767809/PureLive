@@ -80,6 +80,24 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; F
 var
   PreviousInstallDirectory: String;
 
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ExitCode: Integer;
+  ApplicationPath: String;
+begin
+  if CurUninstallStep <> usUninstall then
+    exit;
+  ApplicationPath := ExpandConstant('{app}\{#AppExeName}');
+  if not FileExists(ApplicationPath) then
+    exit;
+  { The helper closes only this installed file's processes and waits for their
+    graceful state/recording cleanup. A failed close aborts before file removal. }
+  ExitCode := -1;
+  if not Exec(ApplicationPath, '--shutdown-for-uninstall', ExpandConstant('{app}'),
+              SW_HIDE, ewWaitUntilTerminated, ExitCode) or (ExitCode <> 42) then
+    RaiseException('无法关闭正在运行的纯粹直播。请退出软件及其附加窗口后重新卸载；本次尚未删除应用文件。');
+end;
+
 function ReadInstallLocation(RootKey: Integer; SubKey: String): String;
 begin
   Result := '';

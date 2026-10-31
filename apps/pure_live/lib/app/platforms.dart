@@ -162,7 +162,12 @@ SiteRegistry buildSiteRegistry(PlatformDeps deps) {
   final settings = deps.store.settings;
   bool preferH264() => settings.get(Settings.preferH264);
   return SiteRegistry({
-    SiteIds.bilibili: () => BilibiliSite(http, cookies: cookies, storedUid: () => settings.get(Settings.bilibiliUid)),
+    SiteIds.bilibili: () => BilibiliSite(
+      http,
+      cookies: cookies,
+      storedUid: () => settings.get(Settings.bilibiliUid),
+      preferRaw: () => settings.get(Settings.bilibiliPreferRaw),
+    ),
     SiteIds.douyu: () => DouyuSite(
       http,
       cookies: cookies,

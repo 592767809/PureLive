@@ -25,7 +25,7 @@ final class _PhaseFailureSite extends FakeSite {
   new(this.phase, {this.failure = const ApiChanged(SiteIds.bilibili, 'test-only-private-context')}) : super(liveRoom());
 
   final String phase;
-  final ApiChanged failure;
+  final SiteError failure;
 
   @override
   Future<LiveRoom> getRoomDetail({required String roomId}) async {
@@ -778,6 +778,25 @@ void main() {
     controller.dispose();
   });
 
+  test('issue135 exported unavailable diagnostics distinguish refusal without private details', () async {
+    final controller = controllerFor(
+      _PhaseFailureSite(
+        'qualities',
+        failure: const StreamUnavailable.withCode(
+          SiteIds.douyu,
+          ApiFailureCode.douyuPlayUnavailable,
+          'private-response-fixture Cookie: fixture-session',
+        ),
+      ),
+    );
+    await controller.start();
+    final failure = AppLog.instance.entries.where((entry) => entry.message.startsWith('playback-failure')).last;
+    expect(failure.message, contains('phase=qualities kind=StreamUnavailable code=douyuPlayUnavailable'));
+    expect(failure.message, isNot(contains('private-response-fixture')));
+    expect(failure.message, isNot(contains('fixture-session')));
+    controller.dispose();
+  });
+
   test('a failed detail keeps the card and says why; retry loads again', () async {
     final site = FakeSite(liveRoom())..detailError = const NeedsLogin(SiteIds.bilibili);
     final controller = controllerFor(site);
@@ -897,6 +916,21 @@ void main() {
     final before = toasts.length;
     site.refusals.add(null);
     expect(toasts.skip(before), ['快手拒绝了 Cookie 请求，已改为游客播放公开直播；保存的 Cookie 保持不变。']);
+    controller.dispose();
+    await settle();
+    site.refusals.add(null);
+    expect(toasts.skip(before), hasLength(1));
+    expect(site.refusals.hasListener, isFalse);
+  });
+
+  test('issue135 cookie refusal explains guest playback without claiming expiry', () async {
+    final site = _RefusingSite(liveRoom())..siteId = SiteIds.douyu;
+    final controller = controllerFor(site);
+    await controller.start();
+    await settle();
+    final before = toasts.length;
+    site.refusals.add(null);
+    expect(toasts.skip(before), ['斗鱼登录请求未取到直播流，已改用游客线路；保存的 Cookie 保持不变。']);
     controller.dispose();
     await settle();
     site.refusals.add(null);

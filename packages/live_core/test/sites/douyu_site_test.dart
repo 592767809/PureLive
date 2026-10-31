@@ -192,6 +192,117 @@ LivePlayQuality _quality(int rate, List<String> cdns) =>
     LivePlayQuality(quality: '$rate', id: rate, data: DouyuPlayData(rate, cdns));
 
 void main() {
+  test('issue135 failed login metadata can use public guest lines without changing other rooms', () async {
+    const login = 'acf_auth=fixture-login;dy_did=01234567890123456789012345678901';
+    final vault = MemoryCookieVault()..set('douyu', login);
+    addTearDown(vault.dispose);
+    final metadata = _synthetic('https://www.douyu.com$_play', {
+      'error': 0,
+      'data': {
+        'streamStatus': 1,
+        'rate': 0,
+        'rtmp_url': 'https://cdn.example.test/live',
+        'rtmp_live': 'room.flv',
+        'multirates': [
+          {'rate': 0, 'name': '原画'},
+        ],
+        'cdnsWithName': [
+          {'cdn': 'hw'},
+        ],
+      },
+    }, method: 'POST');
+    final setup = _setup(
+      ['S06-encryption'],
+      cookies: vault,
+      script: {
+        _play: [_answer('hw', 0, error: -5), metadata, _answer('hw', 0)],
+        '/lapi/live/getH5PlayV1/555': [metadata],
+      },
+    );
+    final qualities = await setup.site.getPlayQualities(detail: _room('24422'));
+    final urls = await setup.site.resolvePlayUrlsRaw(detail: _room('24422'), quality: qualities.single);
+    final requests = setup.http.requests.where((r) => r.url.path == _play).toList();
+    expect(requests, hasLength(3));
+    expect(requests.first.headers['cookie'], contains('fixture-login'));
+    expect(requests[1].headers['cookie'], isNot(contains('fixture-login')));
+    expect(requests.last.headers['cookie'], requests[1].headers['cookie']);
+    expect(urls.lines.single.headers['cookie'], requests[1].headers['cookie']);
+    expect(vault.cookieFor('douyu'), login);
+    await setup.site.getPlayQualities(detail: _room('555'));
+    expect(setup.http.requests.last.headers['cookie'], contains('fixture-login'));
+  });
+
+  test('issue135 renewing a guest line stays guest until metadata refresh or login change', () async {
+    var now = _captured;
+    final vault = MemoryCookieVault()..set('douyu', 'acf_auth=fixture-login');
+    addTearDown(vault.dispose);
+    final metadata = _synthetic('https://www.douyu.com$_play', {
+      'error': 0,
+      'data': {
+        'streamStatus': 1,
+        'rate': 0,
+        'rtmp_url': 'https://cdn.example.test/live',
+        'rtmp_live': 'room.flv',
+        'multirates': [
+          {'rate': 0, 'name': '原画'},
+        ],
+        'cdnsWithName': [
+          {'cdn': 'hw'},
+        ],
+      },
+    }, method: 'POST');
+    final encryption = _synthetic('https://www.douyu.com$_encryption', {
+      'error': 0,
+      'data': {
+        'key': 'fixture',
+        'rand_str': 'fixture',
+        'enc_data': 'fixture',
+        'enc_time': 1,
+        'expire_at': now.add(const Duration(hours: 1)).millisecondsSinceEpoch ~/ 1000,
+      },
+    });
+    final setup = _setup(
+      [],
+      cookies: vault,
+      now: () => now,
+      extra: [encryption],
+      script: {
+        _play: [_answer('hw', 0, error: -5), metadata, _answer('hw', 0), metadata, _answer('hw', 0)],
+      },
+    );
+    final quality = (await setup.site.getPlayQualities(detail: _room('24422'))).single;
+    now = now.add(const Duration(minutes: 6));
+    await setup.site.resolvePlayUrlAtRaw(detail: _room('24422'), quality: quality, lineIndex: 0);
+    expect(
+      setup.http.requests.last.headers['cookie'],
+      isNot(contains('fixture-login')),
+      reason: 'an active recording must not suddenly switch back to the failing identity',
+    );
+    await setup.site.getPlayQualities(detail: _room('24422'));
+    expect(setup.http.requests.last.headers['cookie'], contains('fixture-login'));
+    vault.set('douyu', 'acf_auth=fixture-changed');
+    await setup.site.resolvePlayUrlAtRaw(detail: _room('24422'), quality: quality, lineIndex: 0);
+    expect(setup.http.requests.last.headers['cookie'], contains('fixture-changed'));
+  });
+
+  test('issue135 guest refusal preserves the original failure and never loops', () async {
+    final vault = MemoryCookieVault()..set('douyu', 'acf_auth=fixture-login');
+    addTearDown(vault.dispose);
+    final setup = _setup(
+      ['S06-encryption'],
+      cookies: vault,
+      script: {
+        _play: [_answer('hw', 0, error: -5), _answer('hw', 0, error: -7)],
+      },
+    );
+    await expectLater(
+      setup.site.getPlayQualities(detail: _room('24422')),
+      throwsA(isA<StreamUnavailable>().having((e) => e.detail, 'initial error', contains('error -5'))),
+    );
+    expect(_count(setup.http, _play), 2);
+    expect(vault.cookieFor('douyu'), 'acf_auth=fixture-login');
+  });
+
   group('catalog and search', () {
     test('categories, area rooms and recommendations', () async {
       final setup = _setup(['S01-cate-list', 'S02-mixlist-page1', 'S03-allpage-page1']);

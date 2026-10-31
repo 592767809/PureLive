@@ -19,6 +19,7 @@ import 'package:pure_live/i18n/i18n.dart';
 import 'package:pure_live/platform/system_access.dart';
 import 'package:pure_live/shared/danmaku/emotes.dart';
 import 'package:pure_live/shared/danmaku/gift_flights.dart';
+import 'package:pure_live/shared/rooms/platform_texts.dart';
 import 'package:pure_live/shared/rooms/play_quality.dart';
 import 'package:pure_live/shared/rooms/playback_diagnostics.dart';
 import 'package:pure_live/shared/rooms/playback_telemetry.dart';
@@ -440,7 +441,7 @@ class LiveRoomController extends ChangeNotifier {
   /// Kuaishou keeps the stored cookie; it does not prove the login expired.
   void _onCookieRefused() {
     if (!_disposed) {
-      toast?.call(i18n(site.id == SiteIds.twitch ? 'twitch_cookie_expired' : 'kuaishou_cookie_guest'));
+      toast?.call(cookieRecoveryMessage(site.id));
     }
   }
 
@@ -479,6 +480,7 @@ class LiveRoomController extends ChangeNotifier {
     final kind = error is SiteError ? error.kind : error.runtimeType.toString();
     final code = switch (error) {
       ApiChanged(code: final code?) => ' code=${code.name}',
+      StreamUnavailable(code: final code?) => ' code=${code.name}',
       _ => '',
     };
     final line =

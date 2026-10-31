@@ -6,6 +6,7 @@
 #include <vector>
 #include "flutter_window.h"
 #include "utils.h"
+#include "uninstall_shutdown.h"
 #include <shobjidl.h>
 
 namespace {
@@ -84,6 +85,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
   std::vector<std::string> command_line_arguments =
       GetCommandLineArguments();
+
+  // The uninstaller waits for this helper before deleting any payload. It
+  // must run before the singleton mutex and without starting a Flutter engine.
+  for (const auto& argument : command_line_arguments) {
+    if (argument == "--shutdown-for-uninstall") return ShutdownInstalledInstances();
+  }
 
   // One process per window id, decided before any Flutter engine, GPU
   // surface or plugin starts. 3.x fenced only argument-less launches here and

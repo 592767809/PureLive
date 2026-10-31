@@ -49,6 +49,10 @@ class FlutterWindow : public Win32Window {
   std::shared_ptr<StartupCallback> startup_callback_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> startup_channel_;
   bool startup_layout_ready_ = false;
+  bool uninstall_ready_ = false;
+  bool uninstall_requested_ = false;
+  bool uninstall_sent_ = false;
+  void DispatchUninstallShutdown();
   bool startup_frame_seen_ = false;
   bool startup_recovery_started_ = false;
   int startup_recovery_attempts_ = 0;

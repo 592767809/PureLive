@@ -52,9 +52,11 @@ final class BilibiliSite extends LiveSite
     this.http, {
     this._cookies,
     int Function()? storedUid,
+    bool Function()? preferRaw,
     DateTime Function()? now,
     Future<void> Function(Duration)? sleep,
   }) : _storedUid = storedUid ?? (() => 0),
+       _preferRaw = preferRaw ?? (() => false),
        _now = now ?? DateTime.now,
        _sleep = sleep ?? Future<void>.delayed;
 
@@ -63,6 +65,7 @@ final class BilibiliSite extends LiveSite
 
   final CookieVault? _cookies;
   final int Function() _storedUid;
+  final bool Function() _preferRaw;
   final DateTime Function() _now;
   final Future<void> Function(Duration) _sleep;
   _Session? _session;
@@ -449,6 +452,7 @@ final class BilibiliSite extends LiveSite
       roomId: longId,
       issuedAt: play.issuedAt,
       cookie: play.cookie,
+      preferRaw: _preferRaw(),
     );
   }
 

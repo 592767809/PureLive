@@ -292,6 +292,7 @@ const Map<String, Object> newInV4 = {
   'iptvHotRemoved': false, // V02.9: the built-in hot list is there until deleted
   'themeColorMigration': 0, // A11.2
   'preferH264': true, // UPGRADES 22-3
+  'bilibiliPreferRaw': false,
   'autoPipOnLeave': false,
   'useSystemPip': false, // A07.25 c12
   'floatOverlayTipShown': false, // A07.25 c9
