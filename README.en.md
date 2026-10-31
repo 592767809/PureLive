@@ -18,8 +18,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.4.27</b></a>
-  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.4.27.md">Release notes (Chinese)</a>
+  <a href="https://github.com/wzgrx/PureLive/releases/latest"><b>Download 5.5.0</b></a>
+  &nbsp;·&nbsp; <a href="docs/Y-发布和运营/Y03-发布说明和README/releases/5.5.0.md">Release notes (Chinese)</a>
   &nbsp;·&nbsp; <a href="#features">Features</a>
   &nbsp;·&nbsp; <a href="#supported-platforms">Platforms</a>
   &nbsp;·&nbsp; <a href="#building-from-source">Build</a>
@@ -38,7 +38,7 @@ Pure Live (纯粹直播) is a third-party live-stream aggregator. It brings Chin
 
 5.4.26 integrates reviewed draft designs: desktop minimize/restore state, rail scrolling, favorite-area logos, TV settings, and wallpaper resource handoff. The 47 original draft files are preserved; original-device reports were open then and are now deferred and closed under the user decision.
 
-5.4.27 adds independent-room mute and multiview display shortcuts, a direct room-gain control, single-quality TV focus navigation, and bounded public Kuaishou recovery after cookie refusal. Closed-report followups were reviewed; #126 and #128 remain proposals and three original-device reports remain deferred.
+5.5.0 adds a configurable playback HUD, app navigation and focused text input over LAN, consent-based screen viewing/mirroring, and browser PNG/video export. It fixes the followed-area entry, TV focus, six desktop settings layouts and startup window policy; improves cooperative Windows uninstall and room-scoped public Douyu recovery; and adds an opt-in Bilibili Raw candidate mode. #131 and #135 await original-scenario confirmation; the three deferred device reports remain deferred.
 
 5.4.25 isolates timed-out player creation and unfinished stops, fixes the Windows startup restoration race, and adds fixed-phase native diagnostics without media addresses. Original Huawei/Sony/Honor and GTX760 reports remain open for device confirmation.
 
@@ -438,7 +438,7 @@ Plans and progress: [docs/PLAN.md](docs/PLAN.md); UI design: [docs/specs/UI.md](
 
 ## Roadmap
 
-| Client | 5.4.27 (now) | Later |
+| Client | 5.5.0 (now) | Later |
 |---|---|---|
 | **Android phones and tablets** | Stable: liquid-glass bottom bar, damped and spring motion, official sign-in for eight platforms, 15 interface languages | Keep up with platform changes |
 | **Android TV** | Stable: Live, Video (Bilibili VOD) and Music modes, wallpapers, TV-style settings, type on your phone via QR code | Verify and tune on more TVs |
