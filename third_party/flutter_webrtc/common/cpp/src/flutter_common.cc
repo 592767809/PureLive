@@ -10,10 +10,17 @@
 // See SetEventChannelHostMessenger() in flutter_common.h. Only ever written
 // from plugin registration, which happens on the platform thread before any
 // event channel exists.
+#if defined(_WIN32)
 static void* g_host_messenger = nullptr;
+#endif
 
 void SetEventChannelHostMessenger(void* messenger_ref) {
+#if defined(_WIN32)
   g_host_messenger = messenger_ref;
+#else
+  // Engine-detachment checks use this retained messenger only on Windows.
+  (void)messenger_ref;
+#endif
 }
 
 class MethodCallProxyImpl : public MethodCallProxy {

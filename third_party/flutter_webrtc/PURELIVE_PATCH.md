@@ -38,3 +38,7 @@ iOS application capture; no broadcast extension or other-app capture is promised
 
 Apple native compilation and simulator checks remain separate from physical
 consent, capture and revocation acceptance.
+
+## Strict Linux compiler compatibility
+
+Clang 23 diagnoses unused-but-set globals under the existing warning-as-error policy. Keep the retained event-channel host messenger on Windows only, where it is read for engine-detachment checks; preserve the setter as a no-op on other platforms. Explicitly acknowledge G_DEFINE_TYPE's generated parent-class cache in the Linux texture class initializer. No warning flags or texture lifecycle behavior are changed. References: https://clang.llvm.org/docs/DiagnosticsReference.html#wunused-but-set-global and https://docs.gtk.org/gobject/func.DEFINE_TYPE.html .

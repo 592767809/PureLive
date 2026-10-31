@@ -69,6 +69,8 @@ static FlTextureProxy* fl_texture_proxy_new(flutter::TextureVariant* texture) {
 }
 
 static void fl_texture_proxy_class_init(FlTextureProxyClass* klass) {
+  // G_DEFINE_TYPE retains the parent class even without parent virtual calls.
+  (void)fl_texture_proxy_parent_class;
   FL_PIXEL_BUFFER_TEXTURE_CLASS(klass)->copy_pixels =
       fl_texture_proxy_copy_pixels;
 }
