@@ -214,11 +214,17 @@ class AppDialog extends StatelessWidget {
 /// [FilledButton], so the dialog's button theme applies.
 class DialogActionButton extends FilledButton {
   /// Creates the button.
-  new({required String label, required VoidCallback? onPressed, this.danger = false, this.busy = false, super.key})
-    : super(
-        onPressed: busy ? null : onPressed,
-        child: _ActionLabel(label: label, busy: busy),
-      );
+  new({
+    required String label,
+    required VoidCallback? onPressed,
+    this.danger = false,
+    this.busy = false,
+    super.autofocus,
+    super.key,
+  }) : super(
+         onPressed: busy ? null : onPressed,
+         child: _ActionLabel(label: label, busy: busy),
+       );
 
   /// Removing, clearing or resetting something.
   final bool danger;

@@ -41,8 +41,10 @@ class DownloadDirectoryDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final styles = context.textStyles;
+    final directional = MediaQuery.navigationModeOf(context) == NavigationMode.directional;
     return AppDialog(
       key: const ValueKey('download-directory-dialog'),
+      autofocus: !directional,
       title: i18n('download_directory_prompt_title'),
       message: i18n('download_directory_prompt_message'),
       onEnter: () =>
@@ -68,12 +70,14 @@ class DownloadDirectoryDialog extends StatelessWidget {
         else
           DialogActionButton(
             key: const ValueKey('download-directory-use-default'),
+            autofocus: directional,
             label: i18n('download_directory_use_default'),
             onPressed: () => Navigator.of(context).pop(DownloadDirectoryChoice.useDefault),
           ),
         if (canPick)
           DialogActionButton(
             key: const ValueKey('download-directory-pick'),
+            autofocus: directional,
             label: i18n('download_directory_choose'),
             onPressed: () => Navigator.of(context).pop(DownloadDirectoryChoice.pick),
           ),
