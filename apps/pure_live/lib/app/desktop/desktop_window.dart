@@ -241,6 +241,10 @@ final class _WindowManagerControls implements WindowControls {
 final class DesktopShell with WindowListener {
   new _(this._store, {required this.primary, this._recording, this._dataRoot, this._instanceId = ''});
 
+  /// A listener without native startup, for platform event-sequence regressions.
+  @visibleForTesting
+  new testListener(LiveStore store) : this._(store, primary: false);
+
   final LiveStore _store;
 
   /// The main window (extra windows have no tray and simply close).
@@ -561,6 +565,8 @@ final class DesktopShell with WindowListener {
   void onWindowUnmaximize() => _maximizedChanged(maximized: false);
 
   void _maximizedChanged({required bool maximized}) {
+    // Windows may restore from the taskbar with maximize, without restore.
+    DesktopWindow.minimized.value = false;
     DesktopWindow.maximized.value = maximized;
     // The mini window un-maximizes on its way in; that is not the user's.
     if (primary && !DesktopWindow.mini.value) unawaited(_remember(windowMaximizedKey, maximized ? '1' : '0'));
@@ -575,7 +581,10 @@ final class DesktopShell with WindowListener {
   }
 
   @override
-  void onWindowFocus() => _shared?.check();
+  void onWindowFocus() {
+    DesktopWindow.minimized.value = false;
+    _shared?.check();
+  }
 
   @override
   void onWindowMinimize() => DesktopWindow.minimized.value = true;

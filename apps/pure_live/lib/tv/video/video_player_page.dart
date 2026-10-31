@@ -128,12 +128,15 @@ class _TvVideoPlayerPageState extends ConsumerState<TvVideoPlayerPage> {
   List<VodSubtitleCue> _cues = const [];
   String _cue = '';
 
+  late final Future<void> _wallpaperReady;
+  int _openRevision = 0;
+
   VideoItem get _item => widget.items[_index];
 
   @override
   void initState() {
     super.initState();
-    TvWallpaperVideo.hold();
+    _wallpaperReady = TvWallpaperVideo.hold();
     unawaited(yieldMusicToOtherPlayback(ref));
     _danmakuOn = _store.prefs.danmaku;
     _subtitlesOn = _store.prefs.subtitles;
@@ -147,12 +150,11 @@ class _TvVideoPlayerPageState extends ConsumerState<TvVideoPlayerPage> {
   @override
   void dispose() {
     unawaited(_record());
-    TvWallpaperVideo.release();
     _hide?.cancel();
     _tick?.cancel();
     _report?.cancel();
     unawaited(_states?.cancel());
-    unawaited(_session.dispose());
+    unawaited(TvWallpaperVideo.releaseAfter(_session.waitForResourceRelease()));
     unawaited(_flying.close());
     unawaited(_retractions.close());
     _surface.dispose();
@@ -161,6 +163,9 @@ class _TvVideoPlayerPageState extends ConsumerState<TvVideoPlayerPage> {
   }
 
   Future<void> _open({Duration? start}) async {
+    final revision = ++_openRevision;
+    await _wallpaperReady;
+    if (!mounted || revision != _openRevision) return;
     final item = _item;
     setState(() {
       _error = null;

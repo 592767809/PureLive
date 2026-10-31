@@ -16,6 +16,9 @@ import 'package:pure_live/tv/settings/tv_settings_section_page.dart';
 import 'package:pure_live/tv/settings/tv_settings_style.dart';
 
 const Set<String> _tvSettingsRoots = {
+  RoutePath.kMine,
+  RoutePath.kWebDavPage,
+  RoutePath.kRemoteSync,
   RoutePath.kIptv,
   RoutePath.kRecordSettings,
   RoutePath.kLocalInteraction,

@@ -22,6 +22,8 @@ import 'package:pure_live/features/iptv/iptv_data.dart';
 import 'package:pure_live/features/iptv/iptv_page.dart';
 import 'package:pure_live/features/live_play/logic/predictive_back.dart';
 import 'package:pure_live/features/live_play/logic/room_controller.dart';
+import 'package:pure_live/features/remote_receiver/remote_receiver_page.dart';
+import 'package:pure_live/features/remote_receiver/remote_sync_service.dart';
 import 'package:pure_live/features/settings/settings_catalog.dart';
 import 'package:pure_live/features/settings/settings_model.dart';
 import 'package:pure_live/features/settings/settings_page.dart';
@@ -47,6 +49,12 @@ import 'package:pure_live/tv/widgets/tv_tabs.dart';
 import '../features/live_play/live_play_support.dart';
 import '../qa_capture.dart';
 import '../support.dart';
+
+final class _LayoutOnlySync extends RemoteSyncService {
+  new(super.store);
+  @override
+  Future<void> start() async {}
+}
 
 final class _LocalHttp extends HttpOverrides;
 
@@ -207,6 +215,7 @@ Future<AppServices> _pumpApp(
     ProviderScope(
       overrides: [
         appServicesProvider.overrideWithValue(services),
+        remoteSyncServiceProvider.overrideWithValue(() => _LayoutOnlySync(services.store)),
         if (iptvOverview != null) iptvOverviewProvider.overrideWith((ref) => iptvOverview),
         televisionDeviceProvider.overrideWithValue(television),
         danmakuProvider.overrideWithValue(DanmakuRegistry({SiteIds.bilibili: FakeDanmaku.new})),
@@ -403,6 +412,36 @@ void main() {
     );
   });
 
+  testWidgets('A06.9: TV sync address confirms trimmed input and cancel preserves it', (tester) async {
+    final services = await _pumpApp(tester);
+    addTearDown(() => _close(tester, services));
+    final original = TvTextInput.prompt;
+    addTearDown(() => TvTextInput.prompt = original);
+    String? answer = '  http://example.invalid:1234  ';
+    final initialValues = <String>[];
+    TvTextInput.prompt =
+        (context, {required title, hint = '', text = '', subtitle, numeric = false, suffix, maxLength}) async {
+          expect(maxLength, 512);
+          initialValues.add(text);
+          return answer;
+        };
+    unawaited(AppNavigator.toNamed<void>(RoutePath.kRemoteSync));
+    await _settle(tester, rounds: 8);
+    final edit = find.byKey(const ValueKey('remote-sync-target'));
+    expect(edit, findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    await tester.ensureVisible(edit);
+    await tester.tap(edit);
+    await _settle(tester);
+    expect(find.text('http://example.invalid:1234'), findsOneWidget);
+    answer = null;
+    await tester.tap(edit);
+    await _settle(tester);
+    expect(initialValues, ['', 'http://example.invalid:1234']);
+    expect(find.text('http://example.invalid:1234'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('issue 61: initial focus waits for content that loads after many frames', (tester) async {
     await tester.runAsync(loadStrings);
     final ready = ValueNotifier(false);
@@ -488,6 +527,9 @@ void main() {
   });
 
   for (final path in [
+    RoutePath.kMine,
+    RoutePath.kWebDavPage,
+    RoutePath.kRemoteSync,
     RoutePath.kIptv,
     RoutePath.kRecordSettings,
     RoutePath.kLocalInteraction,

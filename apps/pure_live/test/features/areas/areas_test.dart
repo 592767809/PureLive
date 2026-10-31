@@ -465,6 +465,11 @@ void main() {
       expect(find.byType(FavoriteAreasView), findsOneWidget);
       // U.4f c4: "all" and the platforms with followed areas only; c3: "platform · category" in "all".
       final tabs = find.byKey(const ValueKey('favorite-areas-platform-tabs'));
+      expect(
+        find.descendant(of: tabs, matching: find.byType(PlatformLogo)),
+        findsOneWidget,
+        reason: 'followed platforms have the same logos as ordinary area tabs; All has none',
+      );
       expect(find.descendant(of: tabs, matching: find.text('全部')), findsOneWidget);
       expect(find.descendant(of: tabs, matching: find.text('虎牙')), findsOneWidget);
       expect(find.descendant(of: tabs, matching: find.text('斗鱼')), findsNothing);

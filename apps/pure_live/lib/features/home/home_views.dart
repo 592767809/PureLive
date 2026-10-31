@@ -223,9 +223,7 @@ class HomeTabletView extends ConsumerWidget {
       margin: const EdgeInsets.only(top: 6, bottom: 14),
       color: scheme.outlineVariant,
     );
-    final rail = Scrollbar(
-      child: SingleChildScrollView(child: Column(children: [top, separator, ...destinations])),
-    );
+    final rail = _HomeRailScroll(child: Column(children: [top, separator, ...destinations]));
     return Scaffold(
       body: SafeArea(
         child: Row(
@@ -249,6 +247,31 @@ class HomeTabletView extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// One owned controller connects desktop thumb gestures to this rail only.
+class _HomeRailScroll extends StatefulWidget {
+  const new({required this.child});
+  final Widget child;
+
+  @override
+  State<_HomeRailScroll> createState() => _HomeRailScrollState();
+}
+
+class _HomeRailScrollState extends State<_HomeRailScroll> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scrollbar(
+    controller: _scroll,
+    child: SingleChildScrollView(controller: _scroll, primary: false, child: widget.child),
+  );
 }
 
 /// The state a rail item draws: the hover or press layer and the keyboard

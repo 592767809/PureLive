@@ -660,6 +660,14 @@ final class PlaybackSession {
     await _states.close();
   }
 
+  /// Waits for all native resources after disposal, including late creations.
+  /// Unlike [dispose]'s bounded grace this waits for actual retirement; callers
+  /// deciding whether to allocate another decoder must apply their own deadline.
+  Future<void> waitForResourceRelease() async {
+    await dispose();
+    await Future.wait<void>(_retiringEngines.values.toList());
+  }
+
   void _checkAlive() {
     if (_disposed) throw StateError('Playback session is disposed');
   }
